@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
 import type { Project, Scene, Layer } from "../model";
@@ -34,6 +34,26 @@ function nextId(prefix: string, exists: (id: string) => boolean) {
 function fmtDuration(lang: Lang, s: number) {
   const n = Math.max(0, Math.round(Number(s) || 0));
   return lang === "zh" ? `${n}秒` : `${n}s`;
+}
+
+// ✅ NEW: pick next default scene name by scanning existing names
+function nextSceneDefaultName(lang: Lang, scenes: Scene[]) {
+  const zh = lang === "zh";
+  const prefix = zh ? "分镜 " : "Scene ";
+  const re = zh ? /^分镜\s*(\d+)\s*$/ : /^scene\s*(\d+)\s*$/i;
+
+  const used = new Set<number>();
+  for (const s of scenes) {
+    const name = (s?.name ?? "").trim();
+    const m = name.match(re);
+    if (m) used.add(Number(m[1]));
+  }
+
+  for (let i = 1; i < 9999; i++) {
+    if (!used.has(i)) return `${prefix}${i}`;
+  }
+
+  return `${prefix}${scenes.length + 1}`;
 }
 
 // -------------------- Media mode marker in scene.notes --------------------
@@ -110,6 +130,18 @@ export function Sidebar(props: Props) {
     duration_s: "6"
   });
 
+  // ✅ 替代 alert/confirm：轻量 toast + 自定义确认框
+  const [toastText, setToastText] = useState<string>("");
+  const toastTimerRef = useRef<number | null>(null);
+
+  const [confirmDelIdx, setConfirmDelIdx] = useState<number | null>(null);
+
+  function showToast(text: string) {
+    setToastText(text);
+    if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToastText(""), 1400);
+  }
+
   function killFocus(e: React.FocusEvent<HTMLElement>) {
     (e.currentTarget as HTMLElement).blur();
   }
@@ -152,35 +184,37 @@ export function Sidebar(props: Props) {
     setEditingLayerId(null);
   }
 
-  // ✅ keep: can switch existing scene image/video any time
+  // ✅ 修复：1) 点击同一模式不再重复触发；2) 不用 alert；3) 用 toast
   function commitMediaMode(mode: MediaMode) {
+    if (mode === mediaMode) return; // ✅ already in this mode, no-op (no toast)
+
     const nextNotes = setMedia(scene.notes ?? "", mode);
     onUpdateScene({ ...scene, notes: nextNotes });
 
-    // ✅ tiny hint (optional, but helps user understand seconds disappear)
-    // You can remove if you dislike alert.
     if (mode === "image") {
-      // eslint-disable-next-line no-alert
-      window.setTimeout(() => {
-        window.alert(lang === "zh" ? "已切换到图片：提示词只保留 T0，分镜列表不显示秒数。" : "Switched to Image: prompt keeps T0 only; no seconds badge.");
-      }, 0);
+      showToast(lang === "zh" ? "已切换到图片：仅编辑 T0（T1 保留但锁定）" : "Switched to Image: edit T0 only (T1 kept but locked)");
     } else {
-      // eslint-disable-next-line no-alert
-      window.setTimeout(() => {
-        window.alert(lang === "zh" ? "已切换到视频：提示词使用 T0/T1，分镜列表显示秒数。" : "Switched to Video: prompt uses T0/T1; seconds badge is shown.");
-      }, 0);
+      showToast(lang === "zh" ? "已切换到视频：可编辑 T0/T1" : "Switched to Video: edit T0/T1");
     }
   }
 
   function commitStabilityMode(mode: StabilityMode) {
     const nextNotes = setStability(scene.notes ?? "", mode);
     onUpdateScene({ ...scene, notes: nextNotes });
+    showToast(
+      mode === "on"
+        ? lang === "zh"
+          ? "画面稳定：开（只追加尾部规则）"
+          : "Stability: ON (tail safeguards only)"
+        : lang === "zh"
+          ? "画面稳定：关"
+          : "Stability: OFF"
+    );
   }
 
   // ✅ NEW: open mini add panel (instead of creating immediately)
   function openAddScenePanel() {
-    const index = scenes.length + 1;
-    const suggested = lang === "zh" ? `分镜 ${index}` : `Scene ${index}`;
+    const suggested = nextSceneDefaultName(lang, scenes);
 
     setNewScene({
       open: true,
@@ -196,17 +230,14 @@ export function Sidebar(props: Props) {
 
   function confirmAddScene() {
     const id = nextId("s", (x) => scenes.some((s) => s.id === x));
-    const index = scenes.length + 1;
 
-    const name = (newScene.name ?? "").trim() || (lang === "zh" ? `分镜 ${index}` : `Scene ${index}`);
+    const fallbackName = nextSceneDefaultName(lang, scenes);
+    const name = (newScene.name ?? "").trim() || fallbackName;
     const mode: MediaMode = newScene.mode;
 
     // ✅ keep data stable: even image keeps duration_s in data, but UI badge won't show it
     const duration_s = mode === "video" ? Math.max(0, Math.round(Number(newScene.duration_s) || 0)) : 6;
 
-    // ✅ IMPORTANT:
-    // - camera/lighting should start as "unset" (empty strings)
-    // - do NOT inherit current scene settings
     const newSceneObj: Scene = {
       id,
       name,
@@ -230,27 +261,32 @@ export function Sidebar(props: Props) {
     onSelectLayer(null);
 
     setNewScene((s) => ({ ...s, open: false }));
+    showToast(lang === "zh" ? "已创建新分镜" : "Scene created");
   }
 
-  function deleteScene(idx: number) {
+  // ✅ 修复：删除分镜不用 window.confirm（同样是怪弹窗）
+  function requestDeleteScene(idx: number) {
     if (scenes.length <= 1) return;
-
-    const ok = window.confirm(lang === "zh" ? "确认删除这个分镜吗？（无法撤销）" : "Delete this scene? (Cannot be undone)");
-    if (!ok) return;
-
+    setConfirmDelIdx(idx);
+  }
+  function doDeleteScene(idx: number) {
+    if (scenes.length <= 1) return;
     const nextScenes = scenes.filter((_, i) => i !== idx);
     onUpdateProject({ ...project, scenes: nextScenes });
     setSceneIdx(Math.max(0, idx - 1));
     onSelectLayer(null);
+    setConfirmDelIdx(null);
+    showToast(lang === "zh" ? "已删除分镜" : "Scene deleted");
   }
 
   function addLayer() {
     const layers = scene.layers ?? [];
     const id = nextId("obj", (x) => layers.some((l) => l.id === x));
 
+    // ✅ 优化：新增对象默认“未填写”，避免给模型不必要的先验（比如默认 character）
     const newLayer: Layer = {
       id,
-      type: "character",
+      type: "", // ✅ was "character"
       shape: "rect",
       shapeDesc: "",
       look: "",
@@ -263,12 +299,16 @@ export function Sidebar(props: Props) {
 
     onUpdateScene({ ...scene, layers: [...layers, newLayer] });
     onSelectLayer(id);
+
+    // 可选提示：新对象已创建（不想要就删）
+    // showToast(lang === "zh" ? "已添加对象" : "Object added");
   }
 
   function deleteLayer(layerId: string) {
     const layers = scene.layers ?? [];
     onUpdateScene({ ...scene, layers: layers.filter((l) => l.id !== layerId) });
     if (selectedLayerId === layerId) onSelectLayer(null);
+    showToast(lang === "zh" ? "已删除对象" : "Object deleted");
   }
 
   const shotOptions = useMemo(
@@ -338,6 +378,44 @@ export function Sidebar(props: Props) {
 
   return (
     <div style={styles.wrap}>
+      {/* ✅ toast */}
+      {toastText ? <div style={styles.toast}>{toastText}</div> : null}
+
+      {/* ✅ confirm modal (for delete scene) */}
+      {confirmDelIdx != null ? (
+        <div
+          style={styles.modalMask}
+          role="presentation"
+          onMouseDown={() => setConfirmDelIdx(null)}
+        >
+          <div
+            style={styles.modal}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <div style={styles.modalTitle}>{lang === "zh" ? "删除分镜" : "Delete Scene"}</div>
+            <div style={styles.modalText}>
+              {lang === "zh" ? "确认删除这个分镜吗？（无法撤销）" : "Delete this scene? (Cannot be undone)"}
+            </div>
+            <div style={styles.modalBtns}>
+              <button type="button" style={styles.btnGhost} onMouseDown={(e) => e.preventDefault()} onClick={() => setConfirmDelIdx(null)}>
+                {lang === "zh" ? "取消" : "Cancel"}
+              </button>
+              <button
+                type="button"
+                style={styles.btnDanger}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => doDeleteScene(confirmDelIdx)}
+              >
+                {lang === "zh" ? "删除" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* Scenes */}
       <div style={styles.section}>
         {/* media toggle for current scene */}
@@ -565,7 +643,7 @@ export function Sidebar(props: Props) {
                   onFocus={killFocus}
                   style={styles.iconBtnDanger}
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => deleteScene(i)}
+                  onClick={() => requestDeleteScene(i)}
                   title={tt("sidebar.deleteScene")}
                   disabled={scenes.length <= 1}
                 >
@@ -790,7 +868,8 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     gap: 12,
     minHeight: 0,
-    overflow: "auto"
+    overflow: "auto",
+    position: "relative"
   },
 
   section: {
@@ -893,6 +972,18 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 10,
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(255,255,255,0.06)",
+    color: "inherit",
+    cursor: "pointer",
+    fontSize: 12,
+    fontWeight: 900,
+    outline: "none",
+    boxShadow: "none"
+  },
+  btnDanger: {
+    padding: "6px 10px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,80,80,0.35)",
+    background: "rgba(255,80,80,0.12)",
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
@@ -1021,5 +1112,45 @@ const styles: Record<string, React.CSSProperties> = {
     outline: "none",
     padding: "0 10px",
     fontSize: 12
-  }
+  },
+
+  // ✅ toast（左下角）
+  toast: {
+    position: "sticky",
+    top: 0,
+    zIndex: 50,
+    marginBottom: 8,
+    padding: "8px 10px",
+    borderRadius: 12,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(15,20,35,0.92)",
+    boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+    fontSize: 12,
+    fontWeight: 900,
+    opacity: 0.92
+  },
+
+  // ✅ confirm modal
+  modalMask: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.55)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    zIndex: 9999
+  },
+  modal: {
+    width: 420,
+    maxWidth: "100%",
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(15,20,35,0.96)",
+    boxShadow: "0 18px 60px rgba(0,0,0,0.45)",
+    padding: 14
+  },
+  modalTitle: { fontWeight: 900, fontSize: 14, opacity: 0.95 },
+  modalText: { marginTop: 8, fontSize: 12, opacity: 0.82, lineHeight: 1.6 },
+  modalBtns: { display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", marginTop: 12 }
 };

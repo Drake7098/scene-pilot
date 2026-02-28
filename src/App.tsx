@@ -10,10 +10,28 @@ import { Stage } from "./components/Stage";
 import { PropsPanel } from "./components/PropsPanel";
 import { ExportPanel } from "./components/ExportPanel";
 
-import { Languages, Menu, FilePlus2, Save, SaveAll, FolderOpen, BookOpen, MessageSquareWarning, Info } from "lucide-react";
+import {
+  Languages,
+  Menu,
+  FilePlus2,
+  Save,
+  SaveAll,
+  FolderOpen,
+  BookOpen,
+  MessageSquareWarning,
+  Info
+} from "lucide-react";
 
 // ✅ telemetry (需要你已添加 ./utils/analytics.ts)
-import { isTelemetryOn, setTelemetryOptIn, track, flush, newSession, installGlobalErrorHooks, sendFeedback } from "./utils/analytics";
+import {
+  isTelemetryOn,
+  setTelemetryOptIn,
+  track,
+  flush,
+  newSession,
+  installGlobalErrorHooks,
+  sendFeedback
+} from "./utils/analytics";
 
 type FSFileHandle = any;
 
@@ -62,6 +80,28 @@ export default function App() {
     const idx = clampInt(sceneIdx, 0, Math.max(0, list.length - 1));
     return list[idx] ?? list[0];
   }, [safeProject, sceneIdx]);
+
+  // ---------------------- mediaMode + editT lock (minimal) ----------------------
+  const mediaMode = useMemo<"image" | "video">(() => {
+    // 尽量兼容不同字段命名（按你项目实际字段优先命中）
+    const s: any = scene as any;
+    const m =
+      s?.mediaMode ??
+      s?.mode ??
+      s?.media?.mode ??
+      s?.media?.type ??
+      s?.export?.mediaMode ??
+      "video";
+    return m === "image" ? "image" : "video";
+  }, [scene]);
+
+  // image 模式强制只用 t0
+  const effectiveEditT: 0 | 1 = mediaMode === "image" ? 0 : editT;
+
+  // 当切到 image 时，把状态 editT 拉回 0（避免 UI 残留在 1）
+  useEffect(() => {
+    if (mediaMode === "image" && editT !== 0) setEditT(0);
+  }, [mediaMode, editT]);
 
   // ---------------------- Telemetry boot (最小新增) ----------------------
   useEffect(() => {
@@ -383,12 +423,23 @@ export default function App() {
         </button>
 
         {/* hidden file input for no FS access */}
-        <input ref={fileInputRef} type="file" accept=".json,application/json" style={{ display: "none" }} onChange={onUploadFile} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json,application/json"
+          style={{ display: "none" }}
+          onChange={onUploadFile}
+        />
       </div>
 
       {/* ✅ 下拉菜单：点击外部关闭 */}
       {menuOpen && (
-        <div style={styles.menuMask} onMouseDown={() => setMenuOpen(false)} onClick={() => setMenuOpen(false)} role="presentation">
+        <div
+          style={styles.menuMask}
+          onMouseDown={() => setMenuOpen(false)}
+          onClick={() => setMenuOpen(false)}
+          role="presentation"
+        >
           <div
             style={styles.menu}
             onMouseDown={(e) => {
@@ -402,7 +453,11 @@ export default function App() {
           >
             <div style={styles.menuSectionTitle}>{lang === "zh" ? "项目" : "Project"}</div>
 
-            <button style={styles.menuItem} type="button" onClick={() => menuAction(() => requestNewProject(), "menu_new_project")}>
+            <button
+              style={styles.menuItem}
+              type="button"
+              onClick={() => menuAction(() => requestNewProject(), "menu_new_project")}
+            >
               <FilePlus2 size={16} />
               <span>{tt("top.newProject")}</span>
             </button>
@@ -412,12 +467,20 @@ export default function App() {
               <span>{lang === "zh" ? "保存" : "Save"}</span>
             </button>
 
-            <button style={styles.menuItem} type="button" onClick={() => menuAction(() => saveAsToDisk(), "menu_save_as")}>
+            <button
+              style={styles.menuItem}
+              type="button"
+              onClick={() => menuAction(() => saveAsToDisk(), "menu_save_as")}
+            >
               <SaveAll size={16} />
               <span>{lang === "zh" ? "另存为" : "Save As"}</span>
             </button>
 
-            <button style={styles.menuItem} type="button" onClick={() => menuAction(() => openFromDisk(), "menu_open")}>
+            <button
+              style={styles.menuItem}
+              type="button"
+              onClick={() => menuAction(() => openFromDisk(), "menu_open")}
+            >
               <FolderOpen size={16} />
               <span>{lang === "zh" ? "打开" : "Open"}</span>
             </button>
@@ -510,7 +573,7 @@ export default function App() {
               updateScene(s);
               if (isTelemetryOn()) track("stage_update", { idx: sceneIdx }, lang);
             }}
-            editT={editT}
+            editT={effectiveEditT}
           />
 
           <ExportPanel lang={lang} project={safeProject} sceneIdx={sceneIdx} selectedLayerId={selectedLayerId} />
@@ -528,8 +591,11 @@ export default function App() {
             if (selectedLayerId === oldId) setSelectedLayerId(newId);
             if (isTelemetryOn()) track("layer_rename", { oldId, newId }, lang);
           }}
-          editT={editT}
+          editT={effectiveEditT}
           setEditT={(tv) => {
+            // ✅ image 模式禁止进 t1（保留数据但锁编辑）
+            if (mediaMode === "image" && tv === 1) return;
+
             setEditT(tv);
             if (isTelemetryOn()) track("editT_set", { t: tv }, lang);
           }}
@@ -630,8 +696,6 @@ export default function App() {
                         <b>Step C：导出</b> → 复制 Export 的 prompt，丢到你的生成平台做 A/B 测试。
                       </div>
 
-                      
-
                       <div style={styles.tutBlockTitle}>学习建议（很重要）</div>
                       <div style={styles.tutText}>
                         - <b>先练 3–6 个对象</b>：稳定后再上 10+。<br />
@@ -671,8 +735,6 @@ export default function App() {
                         <b>Step B: Video mode</b> → in t1, change only what needs motion.<br />
                         <b>Step C: Export</b> → copy prompt from Export and A/B test on your generator.
                       </div>
-
-                      
 
                       <div style={styles.tutBlockTitle}>Learning tips</div>
                       <div style={styles.tutText}>
@@ -719,7 +781,11 @@ export default function App() {
                 <textarea
                   value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
-                  placeholder={lang === "zh" ? "把你的反馈写在这里（可选），然后点“发送”或“复制”" : "Write your feedback here (optional), then click Send or Copy"}
+                  placeholder={
+                    lang === "zh"
+                      ? "把你的反馈写在这里（可选），然后点“发送”或“复制”"
+                      : "Write your feedback here (optional), then click Send or Copy"
+                  }
                   style={styles.feedbackArea}
                 />
 
@@ -781,7 +847,9 @@ export default function App() {
                       ? "一个用于“分镜结构 + 精准构图 + 运动轨迹”提示词生成的工具。目标：让大模型更稳定地理解你想要的画面位置、尺寸和运动。"
                       : "A tool for storyboard structure + precise composition + motion paths prompt generation. Goal: make models follow layout/scale/motion more reliably."}
                   </div>
-                  <div style={{ marginTop: 10, opacity: 0.7 }}>{lang === "zh" ? "Version: 1.02 (Universal)" : "Version: 1.02 (Universal)"}</div>
+                  <div style={{ marginTop: 10, opacity: 0.7 }}>
+                    {lang === "zh" ? "Version: 1.02 (Universal)" : "Version: 1.02 (Universal)"}
+                  </div>
                 </div>
 
                 <div style={styles.modalBtns}>

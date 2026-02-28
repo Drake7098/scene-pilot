@@ -28,6 +28,27 @@ const SIZE_MAX = 200;
 const ZOOM_MIN = 0.4;
 const ZOOM_MAX = 2.5;
 
+type MediaMode = "image" | "video";
+function parseMediaModeFromNotes(notes: string | undefined | null): MediaMode {
+  const lines = (notes ?? "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => s.toLowerCase());
+
+  const keys = ["media:", "mode:", "type:"];
+  for (const l of lines) {
+    for (const k of keys) {
+      if (l.startsWith(k)) {
+        const v = l.slice(k.length).trim();
+        if (v.startsWith("image") || v.startsWith("img") || v.includes("图片")) return "image";
+        if (v.startsWith("video") || v.startsWith("vid") || v.includes("视频")) return "video";
+      }
+    }
+  }
+  return "video";
+}
+
 /** ✅ 仅用于渲染：只读不写，不会创建 keyframe */
 function getKFDisplay(layer: Layer, t: 0 | 1): LayerKF {
   const kf = Array.isArray(layer.kf) ? layer.kf : [];
@@ -66,6 +87,9 @@ export function Stage({
   // ✅ 画布缩放：缩小看画外，放大精修
   const [zoom, setZoom] = useState<number>(1);
 
+  const mediaMode: MediaMode = useMemo(() => parseMediaModeFromNotes(scene?.notes), [scene?.notes]);
+  const isImageMode = mediaMode === "image";
+
   const layersSorted = useMemo(() => (scene.layers ?? []).slice().sort((a, b) => a.z - b.z), [scene.layers]);
 
   function getRect() {
@@ -75,6 +99,9 @@ export function Stage({
 
   /** ✅ 只有交互提交时才写入：clone -> ensureKF -> patch */
   function updateLayerKF(layerId: string, t: 0 | 1, patch: Partial<LayerKF>) {
+    // ✅ 图片模式：锁死 t1（数据保留，但不允许编辑/写入）
+    if (isImageMode && t === 1) return;
+
     const next = JSON.parse(JSON.stringify(scene)) as Scene;
     const l = next.layers.find((x) => x.id === layerId);
     if (!l) return;
@@ -94,8 +121,10 @@ export function Stage({
     const rect = getRect();
     if (!rect) return;
 
-    // ✅ 关键：只有选中对象才跟随 editT；未选中对象永远以 t=0 显示/编辑
-    const tForLayer: 0 | 1 = layer.id === selectedLayerId ? editT : 0;
+    // ✅ 关键：
+    // - 未选中对象永远用 t=0 显示/编辑
+    // - 选中对象：视频模式跟随 editT；图片模式强制 t=0（锁死 t1）
+    const tForLayer: 0 | 1 = layer.id === selectedLayerId ? (isImageMode ? 0 : editT) : 0;
 
     const k0 = getKFDisplay(layer, tForLayer);
     setDrag({
@@ -116,7 +145,7 @@ export function Stage({
     const rect = getRect();
     if (!rect) return;
 
-    const tForLayer: 0 | 1 = layer.id === selectedLayerId ? editT : 0;
+    const tForLayer: 0 | 1 = layer.id === selectedLayerId ? (isImageMode ? 0 : editT) : 0;
 
     const k0 = getKFDisplay(layer, tForLayer);
     setDrag({
@@ -203,6 +232,7 @@ export function Stage({
   }
 
   // ✅ 轨迹线：只画“选中对象”且“确实存在 t=1 keyframe”的情况
+  // ✅ 图片模式：不画轨迹（即使历史上有 t1，也只是“数据保留”）
   const sel = useMemo(
     () => (scene.layers ?? []).find((l) => l.id === selectedLayerId) ?? null,
     [scene.layers, selectedLayerId]
@@ -219,13 +249,10 @@ export function Stage({
 
   // ✅ 缩放（滚轮）：让“画面框”变小露出画外区域；或放大精修
   function onWheel(e: React.WheelEvent) {
-    // 你如果想 Ctrl+滚轮 才缩放，把下面 if 去掉即可
     e.preventDefault();
 
     const delta = e.deltaY;
-    // 平滑一点：deltaY>0 缩小，<0 放大
     const factor = delta > 0 ? 0.92 : 1.08;
-
     setZoom((z) => clamp(z * factor, ZOOM_MIN, ZOOM_MAX));
   }
 
@@ -245,19 +272,10 @@ export function Stage({
           {/* ✅ 中间画面框：0~100 是“图片/视频实际画面” */}
           <div style={styles.frame} />
 
-          {sel && selK0 && selK1 && hasExplicitT1 && (
+          {!isImageMode && sel && selK0 && selK1 && hasExplicitT1 && (
             <svg style={styles.pathSvg} viewBox="0 0 100 100" preserveAspectRatio="none">
               <defs>
-                {/* ✅ 箭头 marker */}
-                <marker
-                  id="sp_arrow"
-                  markerWidth="6"
-                  markerHeight="6"
-                  refX="5"
-                  refY="3"
-                  orient="auto"
-                  markerUnits="strokeWidth"
-                >
+                <marker id="sp_arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
                   <path d="M0,0 L6,3 L0,6 Z" fill="rgba(120,180,255,0.75)" />
                 </marker>
               </defs>
@@ -280,8 +298,10 @@ export function Stage({
           {layersSorted.map((layer) => {
             const isSelected = layer.id === selectedLayerId;
 
-            // ✅ 关键：只有选中对象才渲染 editT；其他一律 t=0
-            const tForRender: 0 | 1 = isSelected ? editT : 0;
+            // ✅ 关键：
+            // - 非选中：永远 t0
+            // - 选中：视频跟随 editT；图片强制 t0（锁死 t1）
+            const tForRender: 0 | 1 = isSelected ? (isImageMode ? 0 : editT) : 0;
 
             const k = getKFDisplay(layer, tForRender);
             const left = k.x - k.w / 2;
@@ -310,7 +330,8 @@ export function Stage({
                 onPointerDown={(e) => onPointerDownLayer(e, layer)}
               >
                 <div style={styles.label} title={layer.id}>
-                  {layer.id} {isSelected ? (editT === 0 ? "· t0" : "· t1") : ""}
+                  {layer.id}{" "}
+                  {isSelected ? (isImageMode ? "· t0" : editT === 0 ? "· t0" : "· t1") : ""}
                 </div>
 
                 {isSelected && (

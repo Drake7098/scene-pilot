@@ -22,6 +22,28 @@ const WORLD_MAX = 150;
 const SIZE_MIN = 2;
 const SIZE_MAX = 200;
 
+type MediaMode = "image" | "video";
+function parseMediaModeFromNotes(notes: string | undefined | null): MediaMode {
+  const lines = (notes ?? "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => s.toLowerCase());
+
+  const keys = ["media:", "mode:", "type:"];
+  for (const l of lines) {
+    for (const k of keys) {
+      if (l.startsWith(k)) {
+        const v = l.slice(k.length).trim();
+        if (v.startsWith("image") || v.startsWith("img") || v.includes("图片")) return "image";
+        if (v.startsWith("video") || v.startsWith("vid") || v.includes("视频")) return "video";
+      }
+    }
+  }
+  // 默认：视频（兼容旧数据）
+  return "video";
+}
+
 function parseBg(notes: string): string {
   const lines = (notes ?? "").split("\n");
   const hit = lines.find((l) => l.trim().toLowerCase().startsWith(BG_MARK));
@@ -142,7 +164,10 @@ function buildLookPresets(lang: Lang, typeKey: TypeKey) {
   const base = [
     { value: "", label: zh ? "（未填）" : "(empty)" },
     // ✅ “极简”保留，但去掉 silhouette/outline-only 词，避免剪影误读
-    { value: "minimal, clean design, readable form, keep internal details visible", label: zh ? "极简干净 / 结构可读（非剪影）" : "Minimal / readable form (not silhouette)" }
+    {
+      value: "minimal, clean design, readable form, keep internal details visible",
+      label: zh ? "极简干净 / 结构可读（非剪影）" : "Minimal / readable form (not silhouette)"
+    }
   ];
 
   const sciFiMetal = [
@@ -168,9 +193,7 @@ function buildLookPresets(lang: Lang, typeKey: TypeKey) {
     { value: "documentary, natural light, realistic texture", label: zh ? "纪实自然光 / 真实纹理" : "Documentary natural / realistic texture" }
   ];
 
-  const text = [
-    { value: "clean typography, high legibility, minimal styling", label: zh ? "清晰排版 / 高可读" : "Clean typography / high legibility" }
-  ];
+  const text = [{ value: "clean typography, high legibility, minimal styling", label: zh ? "清晰排版 / 高可读" : "Clean typography / high legibility" }];
 
   let typed: { value: string; label: string }[] = [];
   if (typeKey === "station" || typeKey === "spacecraft") typed = sciFiMetal;
@@ -180,11 +203,7 @@ function buildLookPresets(lang: Lang, typeKey: TypeKey) {
   else if (typeKey === "text") typed = text;
   else typed = [...sciFiMetal, ...celestial, ...character, ...env];
 
-  return [
-    ...base,
-    ...typed,
-    { value: CUSTOM, label: zh ? "自定义…" : "Custom…" }
-  ];
+  return [...base, ...typed, { value: CUSTOM, label: zh ? "自定义…" : "Custom…" }];
 }
 
 function buildShapePresets(lang: Lang, typeKey: TypeKey) {
@@ -215,9 +234,7 @@ function buildShapePresets(lang: Lang, typeKey: TypeKey) {
     { value: "rocky terrain, scattered debris, strong scale cues", label: zh ? "岩地/碎石（尺度线索）" : "Rocky terrain (scale cues)" }
   ];
 
-  const text = [
-    { value: "centered title block, safe margins, clean layout", label: zh ? "标题区块（安全边距/居中）" : "Title block (safe margins)" }
-  ];
+  const text = [{ value: "centered title block, safe margins, clean layout", label: zh ? "标题区块（安全边距/居中）" : "Title block (safe margins)" }];
 
   let typed: { value: string; label: string }[] = [];
   if (typeKey === "station" || typeKey === "spacecraft") typed = stationShip;
@@ -227,11 +244,7 @@ function buildShapePresets(lang: Lang, typeKey: TypeKey) {
   else if (typeKey === "text") typed = text;
   else typed = [...stationShip, ...celestial, ...character, ...env];
 
-  return [
-    ...base,
-    ...typed,
-    { value: CUSTOM, label: zh ? "自定义…" : "Custom…" }
-  ];
+  return [...base, ...typed, { value: CUSTOM, label: zh ? "自定义…" : "Custom…" }];
 }
 
 // ---------- “信息量开关”作为 notes 的高级选项（避免 look/shape 歧义） ----------
@@ -256,6 +269,15 @@ const VIS_PRESETS = [
 export function PropsPanel(props: Props) {
   const { lang, scene, selectedLayerId, onUpdateScene, onRenameLayer, editT, setEditT } = props;
   const tt = useMemo(() => (key: string) => t(lang, key), [lang]);
+
+  const mediaMode: MediaMode = useMemo(() => parseMediaModeFromNotes(scene?.notes), [scene?.notes]);
+  const isImageMode = mediaMode === "image";
+
+  // ✅ 图片模式强制回到 t0（避免“图片模式却在编辑终点”的矛盾状态）
+  React.useEffect(() => {
+    if (!isImageMode) return;
+    if (editT === 1) setEditT(0);
+  }, [isImageMode, editT, setEditT]);
 
   const layers = scene.layers ?? [];
   const layer = useMemo(() => layers.find((l) => l.id === selectedLayerId) ?? null, [layers, selectedLayerId]);
@@ -332,19 +354,19 @@ export function PropsPanel(props: Props) {
   }
 
   // -------------------- Type / Look / ShapeDesc: preset + custom --------------------
-  const typePresets = useMemo(
-    () => [
-      { value: "station", label: lang === "zh" ? "空间站 / 基地" : "Station / Base" },
-      { value: "spacecraft", label: lang === "zh" ? "飞船 / 舰艇" : "Spacecraft / Ship" },
-      { value: "planet", label: lang === "zh" ? "行星" : "Planet" },
-      { value: "satellite", label: lang === "zh" ? "卫星 / 月球" : "Satellite / Moon" },
-      { value: "character", label: lang === "zh" ? "人物 / 生物" : "Character" },
-      { value: "text", label: lang === "zh" ? "文字 / 标题" : "Text / Title" },
-      { value: "environment", label: lang === "zh" ? "环境 / 场景元素" : "Environment element" },
-      { value: CUSTOM, label: lang === "zh" ? "自定义…" : "Custom…" }
-    ],
-    [lang]
-  );
+const typePresets = useMemo(
+  () => [
+    { value: "station", label: lang === "zh" ? "空间站" : "Station" },
+    { value: "spacecraft", label: lang === "zh" ? "飞船" : "Spacecraft" },
+    { value: "planet", label: lang === "zh" ? "行星" : "Planet" },
+    { value: "satellite", label: lang === "zh" ? "卫星" : "Satellite" },
+    { value: "character", label: lang === "zh" ? "人物" : "Character" },
+    { value: "text", label: lang === "zh" ? "文字" : "Text" },
+    { value: "environment", label: lang === "zh" ? "环境" : "Environment" },
+    { value: CUSTOM, label: lang === "zh" ? "自定义…" : "Custom…" }
+  ],
+  [lang]
+);
 
   const typeKey = useMemo(() => normalizeType(layer?.type ?? ""), [layer?.type]);
 
@@ -477,6 +499,7 @@ export function PropsPanel(props: Props) {
 
   function patchKF(tVal: 0 | 1, patch: Partial<LayerKF>) {
     if (!layer) return;
+    if (isImageMode && tVal === 1) return; // ✅ 图片模式锁死 t1（数据保留，但不允许改）
     const next: Scene = JSON.parse(JSON.stringify(scene));
     const l = next.layers.find((x) => x.id === layer.id);
     if (!l) return;
@@ -488,6 +511,7 @@ export function PropsPanel(props: Props) {
 
   function commitKFField(tVal: 0 | 1, key: keyof LayerKF, valStr: string) {
     if (!layer) return;
+    if (isImageMode && tVal === 1) return; // ✅ 图片模式锁死 t1
     const base = tVal === 0 ? k0 : k1;
     if (!base) return;
 
@@ -996,43 +1020,146 @@ export function PropsPanel(props: Props) {
                 >
                   {lang === "zh" ? "编辑起点" : "Edit Start"}
                 </button>
+
                 <button
                   type="button"
                   tabIndex={-1}
                   onFocus={killFocus}
                   onMouseDown={(e) => e.preventDefault()}
-                  style={{ ...styles.pillBtn, ...(editT === 1 ? styles.pillBtnOn : {}) }}
-                  onClick={() => setEditT(1)}
+                  disabled={isImageMode}
+                  title={
+                    isImageMode
+                      ? lang === "zh"
+                        ? "图片模式：终点 t1 已锁定（切换到视频可编辑）"
+                        : "Image mode: End keyframe t1 is locked (switch to Video to edit)"
+                      : ""
+                  }
+                  style={{
+                    ...styles.pillBtn,
+                    ...(editT === 1 ? styles.pillBtnOn : {}),
+                    ...(isImageMode ? styles.pillBtnDisabled : {})
+                  }}
+                  onClick={() => {
+                    if (isImageMode) return;
+                    setEditT(1);
+                  }}
                 >
                   {lang === "zh" ? "编辑终点" : "Edit End"}
                 </button>
               </div>
             </div>
 
+            {isImageMode ? (
+              <div style={styles.lockHint}>
+                {lang === "zh"
+                  ? "图片模式：终点 t=1 已锁定（数据保留，切换到视频可继续编辑）"
+                  : "Image mode: End t=1 is locked (data preserved; switch to Video to edit)."}
+              </div>
+            ) : null}
+
             <div style={styles.grid2}>
               <div style={styles.subCard}>
                 <div style={styles.subTitle}>{lang === "zh" ? "起点 t=0" : "Start t=0"}</div>
-                <KRow tVal={0} label="x" v={draft0.x ?? fmt1(k0.x)} onCh={(v) => setDraft0((d) => ({ ...d, x: v }))} onCm={(v) => commitKFField(0, "x", v)} setActiveKfField={setActiveKfField} />
-                <KRow tVal={0} label="y" v={draft0.y ?? fmt1(k0.y)} onCh={(v) => setDraft0((d) => ({ ...d, y: v }))} onCm={(v) => commitKFField(0, "y", v)} setActiveKfField={setActiveKfField} />
-                <KRow tVal={0} label="w" v={draft0.w ?? fmt1(k0.w)} onCh={(v) => setDraft0((d) => ({ ...d, w: v }))} onCm={(v) => commitKFField(0, "w", v)} setActiveKfField={setActiveKfField} />
-                <KRow tVal={0} label="h" v={draft0.h ?? fmt1(k0.h)} onCh={(v) => setDraft0((d) => ({ ...d, h: v }))} onCm={(v) => commitKFField(0, "h", v)} setActiveKfField={setActiveKfField} />
-                <KRow tVal={0} label="rot" v={draft0.rot ?? fmt1(k0.rot || 0)} onCh={(v) => setDraft0((d) => ({ ...d, rot: v }))} onCm={(v) => commitKFField(0, "rot", v)} setActiveKfField={setActiveKfField} />
+                <KRow
+                  tVal={0}
+                  label="x"
+                  v={draft0.x ?? fmt1(k0.x)}
+                  onCh={(v) => setDraft0((d) => ({ ...d, x: v }))}
+                  onCm={(v) => commitKFField(0, "x", v)}
+                  setActiveKfField={setActiveKfField}
+                />
+                <KRow
+                  tVal={0}
+                  label="y"
+                  v={draft0.y ?? fmt1(k0.y)}
+                  onCh={(v) => setDraft0((d) => ({ ...d, y: v }))}
+                  onCm={(v) => commitKFField(0, "y", v)}
+                  setActiveKfField={setActiveKfField}
+                />
+                <KRow
+                  tVal={0}
+                  label="w"
+                  v={draft0.w ?? fmt1(k0.w)}
+                  onCh={(v) => setDraft0((d) => ({ ...d, w: v }))}
+                  onCm={(v) => commitKFField(0, "w", v)}
+                  setActiveKfField={setActiveKfField}
+                />
+                <KRow
+                  tVal={0}
+                  label="h"
+                  v={draft0.h ?? fmt1(k0.h)}
+                  onCh={(v) => setDraft0((d) => ({ ...d, h: v }))}
+                  onCm={(v) => commitKFField(0, "h", v)}
+                  setActiveKfField={setActiveKfField}
+                />
+                <KRow
+                  tVal={0}
+                  label="rot"
+                  v={draft0.rot ?? fmt1(k0.rot || 0)}
+                  onCh={(v) => setDraft0((d) => ({ ...d, rot: v }))}
+                  onCm={(v) => commitKFField(0, "rot", v)}
+                  setActiveKfField={setActiveKfField}
+                />
               </div>
 
-              <div style={styles.subCard}>
+              <div style={{ ...styles.subCard, ...(isImageMode ? styles.subCardDisabled : {}) }}>
                 <div style={styles.subTitle}>{lang === "zh" ? "终点 t=1" : "End t=1"}</div>
-                <KRow tVal={1} label="x" v={draft1.x ?? fmt1(k1.x)} onCh={(v) => setDraft1((d) => ({ ...d, x: v }))} onCm={(v) => commitKFField(1, "x", v)} setActiveKfField={setActiveKfField} />
-                <KRow tVal={1} label="y" v={draft1.y ?? fmt1(k1.y)} onCh={(v) => setDraft1((d) => ({ ...d, y: v }))} onCm={(v) => commitKFField(1, "y", v)} setActiveKfField={setActiveKfField} />
-                <KRow tVal={1} label="w" v={draft1.w ?? fmt1(k1.w)} onCh={(v) => setDraft1((d) => ({ ...d, w: v }))} onCm={(v) => commitKFField(1, "w", v)} setActiveKfField={setActiveKfField} />
-                <KRow tVal={1} label="h" v={draft1.h ?? fmt1(k1.h)} onCh={(v) => setDraft1((d) => ({ ...d, h: v }))} onCm={(v) => commitKFField(1, "h", v)} setActiveKfField={setActiveKfField} />
-                <KRow tVal={1} label="rot" v={draft1.rot ?? fmt1(k1.rot || 0)} onCh={(v) => setDraft1((d) => ({ ...d, rot: v }))} onCm={(v) => commitKFField(1, "rot", v)} setActiveKfField={setActiveKfField} />
+                <KRow
+                  tVal={1}
+                  label="x"
+                  v={draft1.x ?? fmt1(k1.x)}
+                  onCh={(v) => setDraft1((d) => ({ ...d, x: v }))}
+                  onCm={(v) => commitKFField(1, "x", v)}
+                  setActiveKfField={setActiveKfField}
+                  disabled={isImageMode}
+                />
+                <KRow
+                  tVal={1}
+                  label="y"
+                  v={draft1.y ?? fmt1(k1.y)}
+                  onCh={(v) => setDraft1((d) => ({ ...d, y: v }))}
+                  onCm={(v) => commitKFField(1, "y", v)}
+                  setActiveKfField={setActiveKfField}
+                  disabled={isImageMode}
+                />
+                <KRow
+                  tVal={1}
+                  label="w"
+                  v={draft1.w ?? fmt1(k1.w)}
+                  onCh={(v) => setDraft1((d) => ({ ...d, w: v }))}
+                  onCm={(v) => commitKFField(1, "w", v)}
+                  setActiveKfField={setActiveKfField}
+                  disabled={isImageMode}
+                />
+                <KRow
+                  tVal={1}
+                  label="h"
+                  v={draft1.h ?? fmt1(k1.h)}
+                  onCh={(v) => setDraft1((d) => ({ ...d, h: v }))}
+                  onCm={(v) => commitKFField(1, "h", v)}
+                  setActiveKfField={setActiveKfField}
+                  disabled={isImageMode}
+                />
+                <KRow
+                  tVal={1}
+                  label="rot"
+                  v={draft1.rot ?? fmt1(k1.rot || 0)}
+                  onCh={(v) => setDraft1((d) => ({ ...d, rot: v }))}
+                  onCm={(v) => commitKFField(1, "rot", v)}
+                  setActiveKfField={setActiveKfField}
+                  disabled={isImageMode}
+                />
               </div>
             </div>
 
             <div style={styles.miniHint}>
               {lang === "zh"
-                ? "提示：点“编辑起点/终点”后，去画布拖拽/缩放就是在改对应关键帧；数值保留 1 位小数。"
-                : "Tip: after choosing Edit Start/End, dragging/resizing on stage edits that keyframe; values are 1-decimal."}
+                ? `提示：点“编辑起点/终点”后，去画布拖拽/缩放就是在改对应关键帧；数值保留 1 位小数。${
+                    isImageMode ? "（图片模式只编辑起点 t=0）" : ""
+                  }`
+                : `Tip: after choosing Edit Start/End, dragging/resizing on stage edits that keyframe; values are 1-decimal.${
+                    isImageMode ? " (Image mode edits Start t=0 only.)" : ""
+                  }`}
             </div>
           </>
         )}
@@ -1047,7 +1174,8 @@ function KRow({
   v,
   onCh,
   onCm,
-  setActiveKfField
+  setActiveKfField,
+  disabled
 }: {
   tVal: 0 | 1;
   label: "x" | "y" | "w" | "h" | "rot";
@@ -1055,27 +1183,35 @@ function KRow({
   onCh: (v: string) => void;
   onCm: (v: string) => void;
   setActiveKfField: (k: string | null) => void;
+  disabled?: boolean;
 }) {
+  const dis = !!disabled;
   return (
     <div style={styles.kfRow}>
-      <div style={styles.kfLabel}>{label}</div>
+      <div style={{ ...styles.kfLabel, ...(dis ? styles.kfLabelDisabled : {}) }}>{label}</div>
       <input
         value={v}
         onChange={(e) => onCh(e.target.value)}
-        onFocus={() => setActiveKfField(`${tVal}:${label}`)}
+        onFocus={() => {
+          if (dis) return;
+          setActiveKfField(`${tVal}:${label}`);
+        }}
         onKeyDown={(e) => {
+          if (dis) return;
           if (isComposing(e)) return;
           if (e.key === "Enter") onCm((e.target as HTMLInputElement).value);
           if (e.key === "Escape") (e.target as HTMLInputElement).blur();
         }}
         onBlur={(e) => {
+          if (dis) return;
           setActiveKfField(null);
           onCm(e.target.value);
         }}
-        style={styles.kfInput}
+        style={{ ...styles.kfInput, ...(dis ? styles.kfInputDisabled : {}) }}
         inputMode="decimal"
         autoComplete="off"
         spellCheck={false}
+        disabled={dis}
       />
     </div>
   );
@@ -1183,11 +1319,15 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(0,0,0,0.16)",
     padding: 10
   },
+  subCardDisabled: {
+    opacity: 0.55
+  },
 
   subTitle: { fontWeight: 900, fontSize: 12, opacity: 0.92, marginBottom: 8 },
 
   kfRow: { display: "flex", alignItems: "center", gap: 10, marginBottom: 8 },
   kfLabel: { width: 36, fontSize: 11, opacity: 0.75, fontWeight: 900 },
+  kfLabelDisabled: { opacity: 0.55 },
 
   kfInput: {
     width: 96,
@@ -1199,6 +1339,10 @@ const styles: Record<string, React.CSSProperties> = {
     outline: "none",
     padding: "0 10px",
     fontSize: 12
+  },
+  kfInputDisabled: {
+    opacity: 0.6,
+    cursor: "not-allowed"
   },
 
   btnRow: { display: "flex", gap: 8, alignItems: "center" },
@@ -1221,6 +1365,18 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(120,180,255,0.78)",
     background: "rgba(120,180,255,0.12)",
     boxShadow: "0 0 0 2px rgba(120,180,255,0.18) inset"
+  },
+  pillBtnDisabled: {
+    opacity: 0.55,
+    cursor: "not-allowed"
+  },
+
+  lockHint: {
+    marginTop: -2,
+    marginBottom: 8,
+    fontSize: 11,
+    opacity: 0.72,
+    lineHeight: 1.35
   },
 
   // ---- notes panel ----

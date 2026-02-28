@@ -35,25 +35,46 @@ function parseMediaModeFromNotes(notes: string | undefined | null): MediaMode {
       }
     }
   }
+
+  // 默认保持你原来的逻辑：没标就按视频（因为很多人需要 t0/t1）
   return "video";
 }
 
-/** 将末尾“机器语言”分离出来，用于 UI 灰显（复制仍保留完整） */
+/**
+ * 将末尾“系统追加/机器语言块”分离出来，用于 UI 灰显（复制仍保留完整）
+ * 关键：不要把这段“机器语言/控制层”展示给用户当正文，但复制导出时仍附带。
+ *
+ * 兼容多种 marker（你改过文案，会变）：
+ * - 中文旧： （以下为机器语言，可忽略...）
+ * - 英文旧： (Machine Notes — you can ignore...)
+ * - 英文可能： (Machine Notes ...)
+ * - 中文可能： （系统结构控制层）/（系统追加结构控制层）
+ * - 英文可能： (System Structural Control Layer)
+ */
 function splitMachineNotes(allText: string): { main: string; notes: string } {
-  const lines = (allText ?? "").split("\n");
-  const idx = lines.findIndex((l) => {
-    const t = (l ?? "").trim();
-    if (!t) return false;
-    return (
-      t.includes("Machine Notes") ||
-      t.includes("machine notes") ||
-      t.includes("以下为机器语言") ||
-      t.includes("（以下为机器语言") ||
-      t.includes("(Machine Notes")
-    );
-  });
+  const text = allText ?? "";
+  const lines = text.split("\n");
 
-  if (idx < 0) return { main: (allText ?? "").trimEnd(), notes: "" };
+  const isMarker = (line: string) => {
+    const t = (line ?? "").trim();
+    if (!t) return false;
+    const low = t.toLowerCase();
+
+    // 中文 marker
+    if (t.includes("以下为机器语言")) return true;
+    if (t.startsWith("（以下为机器语言")) return true;
+    if (t.includes("系统结构控制层")) return true;
+    if (t.includes("系统追加结构控制层")) return true;
+
+    // 英文 marker
+    if (low.includes("machine notes")) return true;
+    if (low.includes("system structural control layer")) return true;
+
+    return false;
+  };
+
+  const idx = lines.findIndex((l) => isMarker(l));
+  if (idx < 0) return { main: text.trimEnd(), notes: "" };
 
   const main = lines.slice(0, idx).join("\n").trimEnd();
   const notes = lines.slice(idx).join("\n").trimEnd();
@@ -293,7 +314,7 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
   }, [promptProject, lang, safeIdx, selectedLayerId, mediaMode]);
 
   const prompts = useMemo(() => {
-    // 先分离“机器语言块”，只修正文案/裁剪 main，notes 保持原样
+    // 先分离“机器语言/控制层块”，只修正文案/裁剪 main，notes 保持原样
     const { main: main0, notes } = splitMachineNotes(rawPrompts);
 
     let main = main0;
@@ -324,8 +345,7 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
       document.body.appendChild(ta);
       ta.select();
       document.execCommand("copy");
-      (document.body as any).removeItem?.(ta);
-      document.body.removeChild(ta);
+      ta.remove(); // ✅ 标准方式移除
       setCopied(true);
       setTimeout(() => setCopied(false), 900);
     }
@@ -487,7 +507,7 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.35
   },
 
-  // ✅ 末尾机器语言：略暗显示（但复制仍包含）
+  // ✅ 末尾机器语言/控制层：略暗显示（但复制仍包含）
   preNotes: {
     flex: "0 0 auto",
     margin: 0,
