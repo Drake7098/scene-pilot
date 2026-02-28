@@ -75,7 +75,7 @@ export default function App() {
     newSession();
 
     if (isTelemetryOn()) {
-      track("app_open", { app: "ScenePilotix", ver: "1.01" }, lang);
+      track("app_open", { app: "ScenePilotix", ver: "1.02" }, lang);
       installGlobalErrorHooks(lang);
 
       // ✅ 在线心跳
@@ -334,7 +334,7 @@ export default function App() {
 
     try {
       // 备注：sendFeedback 只在 telemetry on 时才会发；你已默认开启
-      const ok = await sendFeedback(msg, { app: "ScenePilotix", ver: "1.01", sceneIdx }, lang);
+      const ok = await sendFeedback(msg, { app: "ScenePilotix", ver: "1.02", sceneIdx }, lang);
       setFeedbackSent(ok ? "ok" : "fail");
       if (ok) {
         if (isTelemetryOn()) track("feedback_sent", { len: msg.length }, lang);
@@ -599,39 +599,87 @@ export default function App() {
                 <div style={styles.modalText}>
                   {lang === "zh" ? (
                     <>
-                      <div style={styles.tutBlockTitle}>1) 选择模式：图片 / 视频</div>
-                      <div style={styles.tutText}>左侧「分镜」顶部切换：<b>图片</b>只用 t0；<b>视频</b>用 t0/t1 形成运动与变化。</div>
-
-                      <div style={styles.tutBlockTitle}>2) 添加对象 & 命名</div>
-                      <div style={styles.tutText}>左侧「对象」点 + 添加；双击对象 ID 可改名。建议用语义名：ship1 / earth / hero。</div>
-
-                      <div style={styles.tutBlockTitle}>3) 画布精准布局（核心）</div>
+                      <div style={styles.tutBlockTitle}>这工具适合谁（你属于哪类）</div>
                       <div style={styles.tutText}>
-                        点右侧「编辑起点 / 编辑终点」，然后在画布拖拽/缩放对象，即在改对应关键帧。需要精确就直接在 x/y/w/h 输入框里改数值。
+                        <b>电商 / 品牌</b>：多物品套图、主图构图稳定、小标签占位（后期加字更省事）。<br />
+                        <b>影视 / 动画</b>：分镜结构、机位与光照、人物走位与运动轨迹。<br />
+                        <b>短视频创作者</b>：封面构图、口播道具摆放、系列内容风格一致。<br />
+                        <b>产品 / 设计 / 提案</b>：概念图、对比图、信息层级占位（文字建议后期加）。
                       </div>
 
-                      <div style={styles.tutBlockTitle}>4) 一键生成提示词</div>
-                      <div style={styles.tutText}>底部「导出」面板复制 prompts，粘贴到任意图像/视频模型。注意切换图片/视频模式会影响导出结构。</div>
+                      <div style={styles.tutBlockTitle}>ScenePilotix 能做什么（核心能力）</div>
+                      <div style={styles.tutText}>
+                        <b>1) 精准构图</b>：用 x/y/w/h 把“位置与大小”锁住，减少模型自动居中、自动平衡、自动拉齐。<br />
+                        <b>2) 运动轨迹</b>：视频模式用 t0→t1 定义“从哪到哪、变大变小、怎么转”。<br />
+                        <b>3) 一致性控制</b>：稳定层/曝光修正/语言强化层统一放到暗区尾部，不污染你的正文结构。<br />
+                        <b>4) 多目标布局</b>：在 5–15 个对象规模下，对“画面结构”控制最明显。
+                      </div>
 
-                      <div style={styles.tutBlockTitle}>5) 常用注意事项</div>
-                      <div style={styles.tutText}>建议在「备注」里加：no text / no watermark / consistent style 等，能明显减少水印与文字跑偏。</div>
+                      <div style={styles.tutBlockTitle}>它解决什么痛点（你会立刻感到差异）</div>
+                      <div style={styles.tutText}>
+                        - 模型总想“自动居中/自动平衡” → 坐标把区域固定。<br />
+                        - 多对象比例乱、配件/小标签容易跑位 → 相对尺寸与区域约束更稳定。<br />
+                        - 图里出现 UI 框/标尺/数字/水印 → 暗区规则降低发生率。<br />
+                        - 视频前后不连续、细节漂移 → t0/t1 + 连续性规则减少漂移。
+                      </div>
+
+                      <div style={styles.tutBlockTitle}>30 秒上手流程（按这个做就不会乱）</div>
+                      <div style={styles.tutText}>
+                        <b>Step A：先出图</b>（图片模式）→ 只编辑 t0，先把构图锁死。<br />
+                        <b>Step B：再出视频</b>（视频模式）→ 在 t1 只改“需要运动的对象”，不要全改。<br />
+                        <b>Step C：导出</b> → 复制 Export 的 prompt，丢到你的生成平台做 A/B 测试。
+                      </div>
+
+                      
+
+                      <div style={styles.tutBlockTitle}>学习建议（很重要）</div>
+                      <div style={styles.tutText}>
+                        - <b>先练 3–6 个对象</b>：稳定后再上 10+。<br />
+                        - <b>避免冲突描述</b>：例如“极简”同时写“剪影/轮廓”，容易被理解成纯黑剪影。<br />
+                        - <b>look 只放一个主方向</b>：写实 / 赛博 / 极简 选其一，别混搭。
+                      </div>
                     </>
                   ) : (
                     <>
-                      <div style={styles.tutBlockTitle}>1) Choose mode: Image / Video</div>
-                      <div style={styles.tutText}>In the left “Scenes” panel: <b>Image</b> uses t0 only; <b>Video</b> uses t0/t1 for motion & change.</div>
+                      <div style={styles.tutBlockTitle}>Who it’s for</div>
+                      <div style={styles.tutText}>
+                        <b>E-commerce / Brands</b>: product sets, stable hero composition, small label placeholders (add text in post).<br />
+                        <b>Film / Animation</b>: storyboards, camera & lighting, blocking and motion paths.<br />
+                        <b>Short-form creators</b>: cover composition, props placement, consistent series style.<br />
+                        <b>Product/Design/Decks</b>: concept visuals, comparisons, clean layout placeholders (add text later).
+                      </div>
 
-                      <div style={styles.tutBlockTitle}>2) Add objects & rename</div>
-                      <div style={styles.tutText}>Click + in “Objects”. Double-click object ID to rename (ship1 / earth / hero).</div>
+                      <div style={styles.tutBlockTitle}>What ScenePilotix does (core)</div>
+                      <div style={styles.tutText}>
+                        <b>1) Precise composition</b>: lock position & scale via x/y/w/h to reduce auto-centering, auto-balancing, auto-equalizing.<br />
+                        <b>2) Motion paths</b>: video mode uses t0→t1 for movement, scale, rotation.<br />
+                        <b>3) Consistency controls</b>: Stability / Exposure / LRL live in the tail “dark zone”, without polluting your main structure.<br />
+                        <b>4) Multi-object layouts</b>: strongest impact at 5–15 objects for structural control.
+                      </div>
 
-                      <div style={styles.tutBlockTitle}>3) Precise layout (core)</div>
-                      <div style={styles.tutText}>Use “Edit Start / Edit End”, then drag/resize on the stage to edit that keyframe. For exact control, edit x/y/w/h numbers.</div>
+                      <div style={styles.tutBlockTitle}>Pain points it solves</div>
+                      <div style={styles.tutText}>
+                        - Models auto-center / auto-balance → coordinates fix regions.<br />
+                        - Accessories / small labels drift & scale randomly → relative constraints stabilize layouts.<br />
+                        - UI frames/rulers/numbers/watermarks appear → dark-zone rules reduce it.<br />
+                        - Video continuity drifts → t0/t1 + continuity rules help.
+                      </div>
 
-                      <div style={styles.tutBlockTitle}>4) Copy prompts</div>
-                      <div style={styles.tutText}>In “Export”, copy prompts and paste into any image/video model. Mode affects the exported structure.</div>
+                      <div style={styles.tutBlockTitle}>30-second workflow</div>
+                      <div style={styles.tutText}>
+                        <b>Step A: Image mode</b> → edit t0 only, lock the layout first.<br />
+                        <b>Step B: Video mode</b> → in t1, change only what needs motion.<br />
+                        <b>Step C: Export</b> → copy prompt from Export and A/B test on your generator.
+                      </div>
 
-                      <div style={styles.tutBlockTitle}>5) Common tips</div>
-                      <div style={styles.tutText}>Add notes like “no text / no watermark / consistent style” to reduce unwanted text and keep consistency.</div>
+                      
+
+                      <div style={styles.tutBlockTitle}>Learning tips</div>
+                      <div style={styles.tutText}>
+                        - Start with <b>3–6 objects</b> before pushing 10+.<br />
+                        - Avoid conflicting descriptors (e.g., “minimal” + “silhouette”).<br />
+                        - Keep <b>one</b> main look direction (photoreal / cyberpunk / minimal).
+                      </div>
                     </>
                   )}
                 </div>
@@ -716,12 +764,7 @@ export default function App() {
                     {lang === "zh" ? "复制" : "Copy"}
                   </button>
 
-                  <button
-                    style={styles.modalBtn}
-                    onClick={submitFeedback}
-                    type="button"
-                    disabled={feedbackSending}
-                  >
+                  <button style={styles.modalBtn} onClick={submitFeedback} type="button" disabled={feedbackSending}>
                     {feedbackSending ? (lang === "zh" ? "发送中…" : "Sending…") : lang === "zh" ? "发送" : "Send"}
                   </button>
                 </div>
@@ -738,9 +781,7 @@ export default function App() {
                       ? "一个用于“分镜结构 + 精准构图 + 运动轨迹”提示词生成的工具。目标：让大模型更稳定地理解你想要的画面位置、尺寸和运动。"
                       : "A tool for storyboard structure + precise composition + motion paths prompt generation. Goal: make models follow layout/scale/motion more reliably."}
                   </div>
-                  <div style={{ marginTop: 10, opacity: 0.7 }}>
-                    {lang === "zh" ? "Version: 1.01 (Universal)" : "Version: 1.01 (Universal)"}
-                  </div>
+                  <div style={{ marginTop: 10, opacity: 0.7 }}>{lang === "zh" ? "Version: 1.02 (Universal)" : "Version: 1.02 (Universal)"}</div>
                 </div>
 
                 <div style={styles.modalBtns}>
