@@ -310,7 +310,7 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
     void selectedLayerId;
     void safeIdx;
     // ✅ 关键：按模式生成不同末尾坐标解释（机器语言块）
-    return generatePrompts(promptProject, lang, mediaMode);
+    return generatePrompts(promptProject, lang);
   }, [promptProject, lang, safeIdx, selectedLayerId, mediaMode]);
 
   const prompts = useMemo(() => {
