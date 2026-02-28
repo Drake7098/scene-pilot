@@ -1,0 +1,7 @@
+name = "scene-pilot"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "scene-pilot-db"
+database_id = "f8f6d9be-2d2c-4300-8a6a-a2b31e1681b3"
