@@ -16,8 +16,28 @@ export const onRequestPost: PagesFunction = async (context) => {
       )
       .run();
 
-    return new Response("ok");
+    return new Response("ok", {
+  headers: {
+    "access-control-allow-origin": "*",
+  },
+});
   } catch {
-    return new Response("error", { status: 500 });
+return new Response("error", {
+  status: 500,
+  headers: {
+    "access-control-allow-origin": "*",
+  },
+});
   }
+};
+export const onRequestOptions: PagesFunction = async () => {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "access-control-allow-headers": "content-type",
+      "access-control-max-age": "86400",
+    },
+  });
 };

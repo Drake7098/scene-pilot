@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Scene, Layer, LayerKF } from "../model";
 import { ensureKF } from "../model";
 
@@ -247,14 +247,32 @@ export function Stage({
   const selK0 = sel ? getKFDisplay(sel, 0) : null;
   const selK1 = sel ? getKFDisplay(sel, 1) : null;
 
-  // ✅ 缩放（滚轮）：让“画面框”变小露出画外区域；或放大精修
-  function onWheel(e: React.WheelEvent) {
-    e.preventDefault();
+  /**
+   * ✅ 关键修复（方案1）：
+   * - 不再用 React onWheel + preventDefault（会落入 passive 造成报错）
+   * - 用原生 wheel listener 且 passive:false
+   * - 只在 “捏合缩放/ctrlKey” 时拦截并缩放
+   * - 普通双指滚动：不拦截，让页面滚动（你说页面要滚动）
+   */
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
 
-    const delta = e.deltaY;
-    const factor = delta > 0 ? 0.92 : 1.08;
-    setZoom((z) => clamp(z * factor, ZOOM_MIN, ZOOM_MAX));
-  }
+    const onWheelNative = (e: WheelEvent) => {
+      // Trackpad pinch 在 Chrome 通常表现为 ctrlKey=true 的 wheel
+      // 只有这种情况才接管缩放，避免双指滚动时阻止页面滚动 & 避免报错
+      if (!e.ctrlKey) return;
+
+      e.preventDefault();
+
+      const delta = e.deltaY;
+      const factor = delta > 0 ? 0.92 : 1.08;
+      setZoom((z) => clamp(z * factor, ZOOM_MIN, ZOOM_MAX));
+    };
+
+    el.addEventListener("wheel", onWheelNative, { passive: false });
+    return () => el.removeEventListener("wheel", onWheelNative as any, { passive: false } as any);
+  }, []);
 
   return (
     <div style={styles.outer}>
@@ -265,7 +283,6 @@ export function Stage({
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        onWheel={onWheel}
       >
         {/* ✅ world：所有元素都放在 world 中，统一 scale */}
         <div style={{ ...styles.world, transform: `translate(-50%, -50%) scale(${zoom})` }}>
@@ -330,8 +347,7 @@ export function Stage({
                 onPointerDown={(e) => onPointerDownLayer(e, layer)}
               >
                 <div style={styles.label} title={layer.id}>
-                  {layer.id}{" "}
-                  {isSelected ? (isImageMode ? "· t0" : editT === 0 ? "· t0" : "· t1") : ""}
+                  {layer.id} {isSelected ? (isImageMode ? "· t0" : editT === 0 ? "· t0" : "· t1") : ""}
                 </div>
 
                 {isSelected && (

@@ -72,9 +72,9 @@ function saveQueue(q: any[]) {
 }
 
 function apiBase(): string {
-  // 你把 Worker 绑定到域名后，最好同域：/api/collect
-  // 如果你先用 workers.dev 的 URL，可把它写成完整 URL
-  return "";
+  return import.meta.env.PROD
+    ? ""
+    : "https://scene-pilot-12y.pages.dev";
 }
 
 function endpoint(path: string): string {
