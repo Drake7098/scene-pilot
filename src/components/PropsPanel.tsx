@@ -279,7 +279,7 @@ export function PropsPanel(props: Props) {
     if (editT === 1) setEditT(0);
   }, [isImageMode, editT, setEditT]);
 
-  const layers = scene.layers ?? [];
+  const layers = useMemo(() => scene.layers ?? [], [scene.layers]);
   const layer = useMemo(() => layers.find((l) => l.id === selectedLayerId) ?? null, [layers, selectedLayerId]);
 
   // ✅ 新增：当前正在编辑的坐标字段（避免拖动时抢输入/覆盖草稿）

@@ -59,10 +59,6 @@ function parseBg(notes: string): string {
   return hit.trim().slice(BG_MARK.length).trim();
 }
 
-function joinNonEmpty(parts: (string | undefined | null)[], sep = ", ") {
-  return parts.map((x) => (x ?? "").trim()).filter(Boolean).join(sep);
-}
-
 /* -------------------- Media Mode (per-scene) -------------------- */
 
 type MediaMode = "image" | "video";
@@ -134,7 +130,7 @@ function formatLayerLine(lang: Lang, layer: Layer, mode: MediaMode): string {
 /**
  * ✅ FIX: camera/lighting 未选择（空字符串/undefined）时，不输出默认 wide/static/sunset...
  */
-function formatScenePrompt(lang: Lang, scene: Scene, idx: number): string {
+function formatScenePrompt(lang: Lang, scene: Scene): string {
   const camera = (scene.camera ?? {}) as any;
   const lighting = (scene.lighting ?? {}) as any;
 
@@ -337,12 +333,25 @@ function sizeLabel(w: number, h: number, lang: Lang) {
   const s = Math.max(ww, hh);
   let tagEn = "medium";
   let tagZh = "中等";
-  if (s < 12) (tagEn = "small"), (tagZh = "偏小");
-  else if (s < 18) (tagEn = "medium-small"), (tagZh = "中小");
-  else if (s < 26) (tagEn = "medium"), (tagZh = "中等");
-  else if (s < 34) (tagEn = "medium-large"), (tagZh = "中大");
-  else if (s < 50) (tagEn = "large"), (tagZh = "偏大");
-  else (tagEn = "very large"), (tagZh = "很大");
+  if (s < 12) {
+    tagEn = "small";
+    tagZh = "偏小";
+  } else if (s < 18) {
+    tagEn = "medium-small";
+    tagZh = "中小";
+  } else if (s < 26) {
+    tagEn = "medium";
+    tagZh = "中等";
+  } else if (s < 34) {
+    tagEn = "medium-large";
+    tagZh = "中大";
+  } else if (s < 50) {
+    tagEn = "large";
+    tagZh = "偏大";
+  } else {
+    tagEn = "very large";
+    tagZh = "很大";
+  }
   return lang === "zh" ? `${tagZh}` : `${tagEn}`;
 }
 
@@ -596,9 +605,8 @@ export function generatePrompts(project: Project, lang: Lang): string {
     );
   }
 
-  scenes.forEach((s, i) => {
-    void i;
-    out.push(formatScenePrompt(lang, s, 0));
+  scenes.forEach((s) => {
+    out.push(formatScenePrompt(lang, s));
   });
 
   const prompt = out.join("\n\n---\n\n");

@@ -200,8 +200,9 @@ export const dict = {
 } as const;
 
 export function t(lang: Lang, key: string): string {
-  // @ts-ignore
-  return dict[lang][key] || dict["en"][key] || key;
+  const langDict = dict[lang] as Record<string, string>;
+  const enDict = dict.en as Record<string, string>;
+  return langDict[key] || enDict[key] || key;
 }
 
 export function tAny(lang: Lang, key: string): string {

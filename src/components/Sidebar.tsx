@@ -118,8 +118,9 @@ export function Sidebar(props: Props) {
   const [durDraft, setDurDraft] = useState<string>("");
 
   // per-scene markers (current scene)
-  const mediaMode = useMemo<MediaMode>(() => parseMedia(scene?.notes ?? ""), [scene?.notes]);
-  const stabilityMode = useMemo<StabilityMode>(() => parseStability(scene?.notes ?? ""), [scene?.notes]);
+  const sceneNotes = scene?.notes ?? "";
+  const mediaMode = useMemo<MediaMode>(() => parseMedia(sceneNotes), [sceneNotes]);
+  const stabilityMode = useMemo<StabilityMode>(() => parseStability(sceneNotes), [sceneNotes]);
   const stabilityOn = stabilityMode === "on";
 
   // ✅ NEW: add scene mini panel

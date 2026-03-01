@@ -47,7 +47,9 @@ function getOptIn(): boolean {
 export function setTelemetryOptIn(on: boolean) {
   try {
     localStorage.setItem(LS_OPTIN, on ? "1" : "0");
-  } catch {}
+  } catch {
+    // Ignore storage write errors.
+  }
 }
 
 export function isTelemetryOn(): boolean {
@@ -68,7 +70,9 @@ function loadQueue(): any[] {
 function saveQueue(q: any[]) {
   try {
     localStorage.setItem(LS_QUEUE, JSON.stringify(q.slice(-500))); // 限制长度
-  } catch {}
+  } catch {
+    // Ignore storage write errors.
+  }
 }
 
 function apiBase(): string {

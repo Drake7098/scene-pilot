@@ -104,13 +104,13 @@ function stripDurationForImageMode(prompts: string): string {
   const stripInline = (line: string) => {
     let s = line;
 
-    s = s.replace(/[\(\（]\s*\d+(\.\d+)?\s*(s|sec|secs|second|seconds)\s*[\)\）]/gi, "");
-    s = s.replace(/[\(\（]\s*\d+(\.\d+)?\s*秒\s*[\)\）]/g, "");
+    s = s.replace(/[(（]\s*\d+(\.\d+)?\s*(s|sec|secs|second|seconds)\s*[)）]/gi, "");
+    s = s.replace(/[(（]\s*\d+(\.\d+)?\s*秒\s*[)）]/g, "");
     s = s.replace(/\[\s*\d+(\.\d+)?\s*(s|sec|secs|second|seconds)\s*\]/gi, "");
     s = s.replace(/\[\s*\d+(\.\d+)?\s*秒\s*\]/g, "");
 
-    s = s.replace(/\s*(\-|—|–|·|\||\/)\s*\d+(\.\d+)?\s*(s|sec|secs|second|seconds)\b/gi, "");
-    s = s.replace(/\s*(\-|—|–|·|\||\/)\s*\d+(\.\d+)?\s*秒\b/g, "");
+    s = s.replace(/\s*(-|—|–|·|\||\/)\s*\d+(\.\d+)?\s*(s|sec|secs|second|seconds)\b/gi, "");
+    s = s.replace(/\s*(-|—|–|·|\||\/)\s*\d+(\.\d+)?\s*秒\b/g, "");
 
     s = s.replace(/duration\s*[:：]\s*\d+(\.\d+)?\s*(s|sec|secs|second|seconds)\b/gi, "");
     s = s.replace(/时长\s*[:：]\s*\d+(\.\d+)?\s*秒\b/g, "");
@@ -169,8 +169,8 @@ function stripT1ForImageMode(prompts: string): string {
     s = s.replace(/(起点.*?)(\s*(->|→|到|至)\s*.*)$/i, "$1");
     s = s.replace(/(\bstart\b.*?)(\s*(->|→|to)\s*.*)$/i, "$1");
 
-    s = s.replace(/[\(\（][^)\）]*\b(t1|t\s*=\s*1|end|kf1)\b[^)\）]*[\)\）]/gi, "");
-    s = s.replace(/[\(\（][^)\）]*(终点|终帧|结束|结尾)[^)\）]*[\)\）]/g, "");
+    s = s.replace(/[(（][^)）]*\b(t1|t\s*=\s*1|end|kf1)\b[^)）]*[)）]/gi, "");
+    s = s.replace(/[(（][^)）]*(终点|终帧|结束|结尾)[^)）]*[)）]/g, "");
 
     s = s.replace(/\bend\s*[:：]\s*[^,，;；]+/gi, "");
     s = s.replace(/\bt1\s*[:：]\s*[^,，;；]+/gi, "");
@@ -311,7 +311,7 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
     void safeIdx;
     // ✅ 关键：按模式生成不同末尾坐标解释（机器语言块）
     return generatePrompts(promptProject, lang);
-  }, [promptProject, lang, safeIdx, selectedLayerId, mediaMode]);
+  }, [promptProject, lang, safeIdx, selectedLayerId]);
 
   const prompts = useMemo(() => {
     // 先分离“机器语言/控制层块”，只修正文案/裁剪 main，notes 保持原样

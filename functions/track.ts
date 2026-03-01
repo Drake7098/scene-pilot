@@ -20,7 +20,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       .run();
 
     return new Response("ok");
-  } catch (err) {
+  } catch {
     return new Response("error", { status: 500 });
   }
 };

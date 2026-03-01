@@ -109,7 +109,9 @@ export default function App() {
     try {
       const v = localStorage.getItem("spx_telemetry_on");
       if (v == null) setTelemetryOptIn(true);
-    } catch {}
+    } catch {
+      // Ignore localStorage access failures (privacy mode / blocked storage).
+    }
 
     // ✅ 新会话
     newSession();
@@ -143,7 +145,6 @@ export default function App() {
   // 语言切换埋点
   useEffect(() => {
     if (isTelemetryOn()) track("lang_view", { lang }, lang);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang]);
 
   function updateProject(next: Project) {
@@ -200,7 +201,9 @@ export default function App() {
     try {
       if (label) localStorage.setItem("scene_pilot_last_file_label", label);
       else localStorage.removeItem("scene_pilot_last_file_label");
-    } catch {}
+    } catch {
+      // Ignore localStorage access failures when persisting file label.
+    }
   }
 
   async function writeHandle(handle: any, p: Project) {
@@ -259,7 +262,9 @@ export default function App() {
       setLabelPersist(prettyHandleLabel(handle) || "scene_pilot_project.json");
 
       if (isTelemetryOn()) track("project_save_as", { via: "fs" }, lang);
-    } catch {}
+    } catch {
+      // User may cancel save picker; ignore and keep current state.
+    }
   }
 
   async function saveToDisk() {
@@ -308,7 +313,9 @@ export default function App() {
 
         if (isTelemetryOn()) track("project_open", { via: "fs" }, lang);
       }
-    } catch {}
+    } catch {
+      // User may cancel open picker; ignore and keep current state.
+    }
   }
 
   async function onUploadFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -327,7 +334,9 @@ export default function App() {
       setLabelPersist(f.name);
 
       if (isTelemetryOn()) track("project_open", { via: "upload" }, lang);
-    } catch {}
+    } catch {
+      // Ignore invalid upload payloads and JSON parse failures.
+    }
   }
 
   // ---------------------- Helpers: dropdown actions ----------------------
