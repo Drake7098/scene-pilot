@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
 import type { Project, Scene, Layer } from "../model";
+import { UI_FONT, UI_OPACITY, UI_SIZE } from "../uiTokens";
 import { Plus, Minus } from "lucide-react";
 
 type Props = {
@@ -378,7 +379,9 @@ export function Sidebar(props: Props) {
       kf: [{ t: 0, x: spawn.x, y: spawn.y, w: spawn.w, h: spawn.h, rot: 0 }],
       notes: "",
       externalPrompt: "",
-      referenceLinks: ""
+      referenceLinks: "",
+      localRefs: [],
+      referencePolicy: "optional"
     };
 
     onUpdateScene({ ...scene, layers: [...layers, newLayer] });
@@ -590,7 +593,9 @@ export function Sidebar(props: Props) {
               <div style={styles.addLabel}>{tt("sidebar.name")}</div>
               <input
                 value={newScene.name}
+                onMouseDown={(e) => e.stopPropagation()}
                 onChange={(e) => setNewScene((s) => ({ ...s, name: e.target.value }))}
+                maxLength={40}
                 style={styles.addInput}
                 placeholder={tt("sidebar.namePlaceholder")}
               />
@@ -993,7 +998,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   sectionHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 },
-  sectionTitle: { fontWeight: 900, fontSize: 12, opacity: 0.92 },
+  sectionTitle: { fontWeight: 900, fontSize: UI_FONT.section, opacity: UI_OPACITY.title },
 
   mediaRow: {
     display: "grid",
@@ -1048,29 +1053,39 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8
   },
   addRow: { display: "flex", alignItems: "center", gap: 12, minHeight: 40 },
-  addLabel: { width: 64, fontSize: 11, opacity: 0.75, fontWeight: 900 },
+  addLabel: {
+    width: UI_SIZE.labelWSidebar,
+    minHeight: UI_SIZE.controlH,
+    display: "flex",
+    alignItems: "center",
+    fontSize: UI_FONT.body,
+    opacity: UI_OPACITY.label,
+    fontWeight: 900,
+    lineHeight: 1.3
+  },
   addInput: {
     flex: 1,
-    height: 34,
-    borderRadius: 12,
+    width: "100%",
+    height: UI_SIZE.controlH,
+    borderRadius: UI_SIZE.controlRadius,
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     padding: "0 10px",
-    fontSize: 12,
+    fontSize: UI_FONT.body,
     fontWeight: 800
   },
   addInputSmall: {
     width: 92,
-    height: 34,
-    borderRadius: 12,
+    height: UI_SIZE.controlH,
+    borderRadius: UI_SIZE.controlRadius,
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     padding: "0 10px",
-    fontSize: 12,
+    fontSize: UI_FONT.body,
     fontWeight: 800,
     textAlign: "right"
   },
@@ -1104,7 +1119,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(255,255,255,0.03)",
     color: "inherit",
     cursor: "pointer",
-    fontSize: 12,
+    fontSize: UI_FONT.body,
     fontWeight: 900,
     outline: "none",
     boxShadow: "none"
@@ -1116,7 +1131,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(255,255,255,0.06)",
     color: "inherit",
     cursor: "pointer",
-    fontSize: 12,
+    fontSize: UI_FONT.body,
     fontWeight: 900,
     outline: "none",
     boxShadow: "none"
@@ -1173,20 +1188,20 @@ const styles: Record<string, React.CSSProperties> = {
 
   renameInput: {
     flex: 1,
-    height: 30,
-    borderRadius: 10,
+    height: UI_SIZE.compactH,
+    borderRadius: UI_SIZE.compactRadius,
     border: "1px solid rgba(120,180,255,0.55)",
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     padding: "0 10px",
-    fontSize: 12,
+    fontSize: UI_FONT.body,
     fontWeight: 900
   },
 
   badgeBtn: {
     flex: "0 0 auto",
-    fontSize: 11,
+    fontSize: UI_FONT.body,
     fontWeight: 900,
     opacity: 0.85,
     padding: "3px 8px",
@@ -1207,7 +1222,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     padding: "0 10px",
-    fontSize: 11,
+    fontSize: UI_FONT.body,
     fontWeight: 900,
     textAlign: "right"
   },
@@ -1243,17 +1258,26 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   formRow: { display: "flex", alignItems: "center", gap: 10, marginBottom: 8 },
-  formLabel: { width: 78, fontSize: 11, opacity: 0.75, fontWeight: 900 },
+  formLabel: {
+    width: UI_SIZE.labelWSidebar,
+    minHeight: UI_SIZE.controlH,
+    display: "flex",
+    alignItems: "center",
+    fontSize: UI_FONT.body,
+    opacity: UI_OPACITY.label,
+    fontWeight: 900,
+    lineHeight: 1.3
+  },
   select: {
     flex: 1,
-    height: 34,
-    borderRadius: 12,
+    height: UI_SIZE.controlH,
+    borderRadius: UI_SIZE.controlRadius,
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     padding: "0 10px",
-    fontSize: 12
+    fontSize: UI_FONT.body
   },
 
   // ✅ toast（左下角）

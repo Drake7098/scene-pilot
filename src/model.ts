@@ -36,6 +36,19 @@ export type Layer = {
   notes: string;
   externalPrompt: string;
   referenceLinks: string;
+  localRefs?: LocalRefMeta[];
+  referencePolicy?: "optional" | "required";
+};
+
+export type LocalRefType = "identity" | "appearance" | "style";
+
+export type LocalRefMeta = {
+  id: string;
+  type: LocalRefType;
+  name: string;
+  mime: string;
+  size: number;
+  updatedAt: number;
 };
 
 export type Camera = {
@@ -143,6 +156,8 @@ export function sanitizeProject(p: Project): Project {
       l.notes = (l as any).notes ?? "";
       l.externalPrompt = (l as any).externalPrompt ?? "";
       l.referenceLinks = (l as any).referenceLinks ?? "";
+      l.localRefs = Array.isArray((l as any).localRefs) ? (l as any).localRefs : [];
+      l.referencePolicy = (l as any).referencePolicy === "required" ? "required" : "optional";
       l.type = (l as any).type ?? "";
       l.shape = ((l as any).shape ?? "rect") as Shape;
 
@@ -206,7 +221,9 @@ export function defaultProject(): Project {
             ],
             notes: "",
             externalPrompt: "",
-            referenceLinks: ""
+            referenceLinks: "",
+            localRefs: [],
+            referencePolicy: "optional"
           }
         ],
         notes: ""

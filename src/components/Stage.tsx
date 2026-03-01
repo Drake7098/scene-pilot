@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Scene, Layer, LayerKF } from "../model";
 import { ensureKF } from "../model";
+import { getRefBlob } from "../utils/localRefs";
 
 type Handle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 type DragMode =
@@ -83,6 +84,7 @@ export function Stage({
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<DragMode>(null);
+  const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
 
   // ✅ 画布缩放：缩小看画外，放大精修
   const [zoom, setZoom] = useState<number>(1);
@@ -91,6 +93,31 @@ export function Stage({
   const isImageMode = mediaMode === "image";
 
   const layersSorted = useMemo(() => (scene.layers ?? []).slice().sort((a, b) => a.z - b.z), [scene.layers]);
+
+  useEffect(() => {
+    let dead = false;
+    const revokeList: string[] = [];
+    async function loadThumbs() {
+      const entries: Array<[string, string]> = [];
+      for (const l of scene.layers ?? []) {
+        const ref = l.localRefs?.[0];
+        if (!ref) continue;
+        const blob = await getRefBlob(ref.id);
+        if (!blob) continue;
+        const url = URL.createObjectURL(blob);
+        revokeList.push(url);
+        entries.push([l.id, url]);
+      }
+      if (dead) return;
+      setThumbUrls(Object.fromEntries(entries));
+    }
+    void loadThumbs();
+    return () => {
+      dead = true;
+      revokeList.forEach((u) => URL.revokeObjectURL(u));
+      setThumbUrls({});
+    };
+  }, [scene.layers]);
 
   function getRect() {
     const el = wrapRef.current;
@@ -330,13 +357,7 @@ export function Stage({
             const left = k.x - k.w / 2;
             const top = k.y - k.h / 2;
             const accent = pickLayerAccent(layer.id);
-            const layerType = (layer.type ?? "").trim();
-            const lookSnippet = (layer.look ?? "").trim();
-            const hint = isSelected
-              ? isImageMode
-                ? "拖拽移动 · 角点拉伸 · Shift 等比 · Alt 中心缩放"
-                : "拖拽移动 · 角点拉伸 · Shift 等比 · Alt 中心缩放 · 按 t0/t1 设轨迹"
-              : "";
+            const thumb = thumbUrls[layer.id] ?? "";
 
             return (
               <div
@@ -368,15 +389,8 @@ export function Stage({
               >
                 <div style={styles.label} title={layer.id}>
                   <span style={styles.labelTitle}>{layer.id}</span>
-                  {layerType ? <span style={styles.labelType}>{layerType}</span> : null}
-                  {isSelected ? <span style={styles.labelTag}>{isImageMode ? "t0" : editT === 0 ? "t0" : "t1"}</span> : null}
                 </div>
-                {lookSnippet ? (
-                  <div style={styles.metaLine} title={lookSnippet}>
-                    {lookSnippet}
-                  </div>
-                ) : null}
-                {isSelected ? <div style={styles.helperLine}>{hint}</div> : null}
+                {thumb ? <img src={thumb} alt={layer.id} style={styles.thumbImg} /> : null}
 
                 {isSelected && (
                   <>
@@ -561,6 +575,18 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "4px 6px",
     pointerEvents: "none",
     whiteSpace: "normal"
+  },
+  thumbImg: {
+    position: "absolute",
+    left: 8,
+    right: 8,
+    top: 38,
+    width: "calc(100% - 16px)",
+    maxHeight: 52,
+    objectFit: "cover",
+    borderRadius: 8,
+    border: "1px solid rgba(255,255,255,0.18)",
+    pointerEvents: "none"
   },
 
   handle: {

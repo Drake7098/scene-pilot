@@ -67,9 +67,13 @@ export default function App() {
   // ✅ 反馈发送状态
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState<"ok" | "fail" | "">("");
+  const [viewportWidth, setViewportWidth] = useState<number>(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1440
+  );
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const tt = useMemo(() => (key: string) => t(lang, key), [lang]);
+  const useDesktopFixedLayout = viewportWidth >= 1400;
 
   const safeProject = useMemo(() => {
     if (project.scenes && project.scenes.length > 0) return project;
@@ -118,7 +122,7 @@ export default function App() {
     newSession();
 
     if (isTelemetryOn()) {
-      track("app_open", { app: "ScenePilotix", ver: "1.02" }, lang);
+      track("app_open", { app: "ScenePilotix", ver: "1.03" }, lang);
       installGlobalErrorHooks(lang);
 
       // ✅ 在线心跳
@@ -147,6 +151,12 @@ export default function App() {
   useEffect(() => {
     if (isTelemetryOn()) track("lang_view", { lang }, lang);
   }, [lang]);
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   function updateProject(next: Project) {
     setProject(next);
@@ -384,7 +394,7 @@ export default function App() {
 
     try {
       // 备注：sendFeedback 只在 telemetry on 时才会发；你已默认开启
-      const ok = await sendFeedback(msg, { app: "ScenePilotix", ver: "1.02", sceneIdx }, lang);
+      const ok = await sendFeedback(msg, { app: "ScenePilotix", ver: "1.03", sceneIdx }, lang);
       setFeedbackSent(ok ? "ok" : "fail");
       if (ok) {
         if (isTelemetryOn()) track("feedback_sent", { len: msg.length }, lang);
@@ -543,7 +553,7 @@ export default function App() {
         </div>
       )}
 
-      <div style={styles.main}>
+      <div style={{ ...styles.main, ...(useDesktopFixedLayout ? styles.mainDesktop : {}) }}>
         <Sidebar
           lang={lang}
           project={safeProject}
@@ -906,7 +916,7 @@ export default function App() {
                       : "A tool for storyboard structure + precise composition + motion paths prompt generation. Goal: make models follow layout/scale/motion more reliably."}
                   </div>
                   <div style={{ marginTop: 10, opacity: 0.7 }}>
-                    {lang === "zh" ? "Version: 1.02 (Universal)" : "Version: 1.02 (Universal)"}
+                    {lang === "zh" ? "Version: 1.03 (Universal)" : "Version: 1.03 (Universal)"}
                   </div>
                 </div>
 
@@ -977,6 +987,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   main: { flex: 1, display: "flex", minHeight: 0 },
+  mainDesktop: {
+    display: "grid",
+    gridTemplateColumns: "320px minmax(0, 1fr) 344px"
+  },
 
   center: {
     flex: 1,

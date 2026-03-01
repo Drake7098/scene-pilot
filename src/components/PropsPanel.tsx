@@ -1,8 +1,10 @@
 import React, { useMemo, useRef, useState } from "react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
-import type { Scene, Layer, LayerKF } from "../model";
+import type { Scene, Layer, LayerKF, LocalRefMeta, LocalRefType } from "../model";
 import { ensureKF } from "../model";
+import { deleteRefBlob, getRefBlob, putRefBlob } from "../utils/localRefs";
+import { UI_FONT, UI_OPACITY, UI_SIZE } from "../uiTokens";
 
 type Props = {
   lang: Lang;
@@ -119,6 +121,12 @@ function addLine(lines: string[], line: string) {
 function removeLine(lines: string[], line: string) {
   const norm = line.trim().toLowerCase();
   return lines.filter((x) => x.trim().toLowerCase() !== norm);
+}
+
+function localRefOrder(t: LocalRefType) {
+  if (t === "identity") return 0;
+  if (t === "appearance") return 1;
+  return 2;
 }
 
 // ---------- UI helpers ----------
@@ -525,11 +533,10 @@ const typePresets = useMemo(
   const [shapeMode, setShapeMode] = useState<string>("");
   const [shapeDraft, setShapeDraft] = useState<string>("");
   const [externalDraft, setExternalDraft] = useState<string>("");
-  const [refsDraft, setRefsDraft] = useState<string>("");
   const [localPromptToast, setLocalPromptToast] = useState<string>("");
-  const [localMaterial, setLocalMaterial] = useState<string>("");
-  const [localAction, setLocalAction] = useState<string>("");
-  const [localAvoid, setLocalAvoid] = useState<string>("");
+  const [localRefToast, setLocalRefToast] = useState<string>("");
+  const [showRefHelp, setShowRefHelp] = useState(false);
+  const [localRefThumb, setLocalRefThumb] = useState<string>("");
   const localSyncPauseRef = useRef(false);
 
   React.useEffect(() => {
@@ -554,10 +561,6 @@ const typePresets = useMemo(
     setShapeDraft(sv);
     const localPrompt = layer.externalPrompt ?? "";
     setExternalDraft(localPrompt);
-    setRefsDraft(layer.referenceLinks ?? "");
-    setLocalMaterial(extractTaggedValue(localPrompt, ["material", "材质"]));
-    setLocalAction(extractTaggedValue(localPrompt, ["local_action", "action", "局部动作"]));
-    setLocalAvoid(extractTaggedValue(localPrompt, ["local_avoid", "avoid", "局部禁令"]));
     queueMicrotask(() => {
       localSyncPauseRef.current = false;
     });
@@ -569,6 +572,11 @@ const typePresets = useMemo(
     const timer = window.setTimeout(() => setLocalPromptToast(""), 3000);
     return () => window.clearTimeout(timer);
   }, [localPromptToast]);
+  React.useEffect(() => {
+    if (!localRefToast) return;
+    const timer = window.setTimeout(() => setLocalRefToast(""), 3000);
+    return () => window.clearTimeout(timer);
+  }, [localRefToast]);
 
   function commitType(v: string) {
     patchLayer({ type: v.trim() });
@@ -585,17 +593,78 @@ const typePresets = useMemo(
     if (!tags.length) return;
     setLocalPromptToast(tt("props.localPromptGlobalHint").replace("{tags}", tags.join(", ")));
   }
-  React.useEffect(() => {
-    if (!layer) return;
-    if (localSyncPauseRef.current) return;
-    const tagged = buildTemplateTaggedLines(lang, localMaterial, localAction, localAvoid);
-    const next = replaceTaggedLines(externalDraft, tagged);
-    if (next === externalDraft) return;
-    setExternalDraft(next);
-    commitExternalPrompt(next);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localMaterial, localAction, localAvoid, lang, layer?.id]);
 
+  const localRefs = useMemo<LocalRefMeta[]>(() => {
+    return (layer?.localRefs ?? []).slice().sort((a, b) => {
+      const d = localRefOrder(a.type) - localRefOrder(b.type);
+      if (d !== 0) return d;
+      return a.updatedAt - b.updatedAt;
+    });
+  }, [layer?.localRefs]);
+  React.useEffect(() => {
+    let revoked = "";
+    let dead = false;
+    const first = localRefs[0];
+    if (!first) {
+      setLocalRefThumb("");
+      return;
+    }
+    void getRefBlob(first.id).then((blob) => {
+      if (dead || !blob) return;
+      const url = URL.createObjectURL(blob);
+      revoked = url;
+      setLocalRefThumb(url);
+    });
+    return () => {
+      dead = true;
+      if (revoked) URL.revokeObjectURL(revoked);
+    };
+  }, [localRefs]);
+
+  async function addLocalRefs(type: LocalRefType, files: FileList | null) {
+    if (!layer || !files?.length) return;
+    const picked = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (!picked.length) {
+      setLocalRefToast(lang === "zh" ? "未选择有效图片。" : "No valid images selected.");
+      return;
+    }
+    const current = layer.localRefs ?? [];
+    if (current.length >= 1) {
+      setLocalRefToast(lang === "zh" ? "每个对象只保留 1 张参考图。" : "One reference image per object.");
+      return;
+    }
+    const using = picked.slice(0, 1);
+    const created: LocalRefMeta[] = [];
+    for (const f of using) {
+      const id = `lref_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+      await putRefBlob(id, f);
+      created.push({
+        id,
+        type,
+        name: f.name,
+        mime: f.type,
+        size: f.size,
+        updatedAt: Date.now()
+      });
+    }
+    patchLayer({ localRefs: [...current, ...created] });
+    setLocalRefToast(
+      lang === "zh"
+        ? `已添加 ${created.length} 张本地参考图（仅本地保存）。`
+        : `Added ${created.length} local refs (stored locally only).`
+    );
+  }
+
+  async function removeLocalRef(meta: LocalRefMeta) {
+    if (!layer) return;
+    try {
+      await deleteRefBlob(meta.id);
+    } catch {
+      // no-op: missing blob still allows metadata cleanup
+    }
+    const next = (layer.localRefs ?? []).filter((x) => x.id !== meta.id);
+    patchLayer({ localRefs: next });
+  }
   // -------------------- Notes elements --------------------
   type NotesMode = "" | "custom" | "paste";
   const [notesMode, setNotesMode] = useState<NotesMode>("");
@@ -799,7 +868,7 @@ const typePresets = useMemo(
 
       {/* Object Properties */}
       <div style={styles.card}>
-        <div style={styles.cardTitle}>{tt("props.title")}</div>
+        <div style={styles.cardTitle}>{lang === "zh" ? "对象属性" : tt("props.title")}</div>
 
         {!layer ? (
           <div style={styles.miniHint}>{tt("props.noSelection")}</div>
@@ -889,7 +958,7 @@ const typePresets = useMemo(
 
             {/* Look */}
             <div style={styles.row}>
-              <div style={styles.label}>{lang === "zh" ? "外观（风格/材质）" : "Look (style/material)"}</div>
+              <div style={styles.label}>{lang === "zh" ? "外观" : "Look"}</div>
               <select
                 value={lookMode}
                 onChange={(e) => {
@@ -912,11 +981,6 @@ const typePresets = useMemo(
                   </option>
                 ))}
               </select>
-            </div>
-            <div style={styles.miniHint}>
-              {lang === "zh"
-                ? "外观：描述材质、光学质感和风格，不负责几何轮廓。"
-                : "Look: define material/optical style, not geometric silhouette."}
             </div>
 
             {lookMode === CUSTOM && (
@@ -941,7 +1005,7 @@ const typePresets = useMemo(
 
             {/* ShapeDesc */}
             <div style={styles.row}>
-              <div style={styles.label}>{lang === "zh" ? "形态（几何/结构）" : "Form (geometry/structure)"}</div>
+              <div style={styles.label}>{lang === "zh" ? "形态" : "Form"}</div>
               <select
                 value={shapeMode}
                 onChange={(e) => {
@@ -965,11 +1029,6 @@ const typePresets = useMemo(
                 ))}
               </select>
             </div>
-            <div style={styles.miniHint}>
-              {lang === "zh"
-                ? "形态：描述轮廓、比例和结构，不负责材质风格。"
-                : "Form: define silhouette/proportions/structure, not material style."}
-            </div>
 
             {shapeMode === CUSTOM && (
               <div style={styles.row}>
@@ -991,11 +1050,8 @@ const typePresets = useMemo(
               </div>
             )}
 
-            <div style={styles.notesHeadRow}>
-              <div style={styles.label}>{tt("props.localPromptTitle")}</div>
-            </div>
             <div style={styles.rowTop}>
-              <div style={{ width: 82 }} />
+              <div style={{ ...styles.label, ...styles.labelTop }}>{tt("props.localPromptTitle")}</div>
               <textarea
                 value={externalDraft}
                 onChange={(e) => {
@@ -1011,112 +1067,63 @@ const typePresets = useMemo(
                 spellCheck={false}
               />
             </div>
-            <div style={styles.miniHint}>
-              {tt("props.localPromptHint")}
-            </div>
-            <div style={styles.miniHint}>
-              {lang === "zh"
-                ? "插图实用：若目标平台支持参考图，先插 1-3 张身份/材质图，再粘贴这里的局部约束，成功率更高。"
-                : "Ref tip: if the target platform supports image references, add 1-3 identity/material refs first, then paste local constraints here."}
-            </div>
-            <div style={styles.localTemplateWrap}>
-              <div style={styles.localTemplateTitle}>
-                {tt("props.localTemplateTitle")}
-              </div>
-              <div style={styles.templateGrid}>
-                <input
-                  value={localMaterial}
-                  onChange={(e) => setLocalMaterial(e.target.value)}
-                  placeholder={tt("props.localMaterialPlaceholder")}
-                  style={styles.smallInput}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <input
-                  value={localAction}
-                  onChange={(e) => setLocalAction(e.target.value)}
-                  placeholder={tt("props.localActionPlaceholder")}
-                  style={styles.smallInput}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <input
-                  value={localAvoid}
-                  onChange={(e) => setLocalAvoid(e.target.value)}
-                  placeholder={tt("props.localAvoidPlaceholder")}
-                  style={styles.smallInput}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-              </div>
-              <div style={styles.menuBtns}>
+            <div style={styles.localRefCard}>
+              <div style={styles.localRefHead}>
+                <div style={styles.localRefTitle}>
+                  {lang === "zh" ? "对象参考图" : "Object Refs"}
+                </div>
+                <div style={styles.localRefActions}>
+                  <label style={{ ...styles.smallBtnGhost, ...styles.localRefImportBtn }}>
+                    {lang === "zh" ? "导入对象图片" : "Import Object Image"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple={false}
+                      style={styles.hiddenInput}
+                      onChange={async (e) => {
+                        await addLocalRefs("identity" as LocalRefType, e.target.files);
+                        e.currentTarget.value = "";
+                      }}
+                    />
+                  </label>
                 <button
                   type="button"
-                  style={styles.smallBtnGhost}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    setLocalMaterial("");
-                    setLocalAction("");
-                    setLocalAvoid("");
-                  }}
+                  style={styles.qBtn}
+                  onMouseEnter={() => setShowRefHelp(true)}
+                  onMouseLeave={() => setShowRefHelp(false)}
+                  onFocus={() => setShowRefHelp(true)}
+                  onBlur={() => setShowRefHelp(false)}
                 >
-                  {tt("props.localTemplateClear")}
+                  ?
                 </button>
+                </div>
               </div>
-            </div>
-            <div style={styles.notesHeadRow}>
-              <div style={styles.label}>{lang === "zh" ? "参考插图链接" : "Reference Image Links"}</div>
-            </div>
-            <div style={styles.rowTop}>
-              <div style={{ width: 82 }} />
-              <textarea
-                value={refsDraft}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setRefsDraft(v);
-                  patchLayer({ referenceLinks: v });
-                }}
-                onBlur={() => patchLayer({ referenceLinks: refsDraft })}
-                placeholder={
-                  lang === "zh"
-                    ? "每行一个图链接（Quick 导出每对象最多 2 条，Pro 最多 6 条）"
-                    : "One link per line (Quick export uses up to 2 refs per object, Pro up to 6)."
-                }
-                style={styles.objectPromptArea}
-                spellCheck={false}
-              />
+              {showRefHelp ? (
+                <div style={styles.helpFloat}>
+                  {lang === "zh"
+                    ? "用法：每个对象导入 1 张本地图。导出时会自动按对象顺序整理配图文件。"
+                    : "Usage: import 1 local image per object. Export arranges files in object order."}
+                </div>
+              ) : null}
+              <div style={styles.localRefList}>
+                {localRefs[0] ? (
+                  <div style={styles.localRefItem}>
+                    {localRefThumb ? <img src={localRefThumb} alt={localRefs[0].name} style={styles.localRefThumb} /> : null}
+                    <div style={styles.localRefText}>{localRefs[0].name}</div>
+                    <button
+                      type="button"
+                      style={styles.smallBtnGhost}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => void removeLocalRef(localRefs[0])}
+                    >
+                      {lang === "zh" ? "移除" : "Remove"}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              {localRefToast ? <div style={styles.toastHint}>{localRefToast}</div> : null}
             </div>
             {localPromptToast ? <div style={styles.toastHint}>{localPromptToast}</div> : null}
-
-            {/* Advanced: visibility/detail toggles -> notes */}
-            <div style={styles.notesHeadRow}>
-              <div style={styles.label}>{lang === "zh" ? "信息量" : "Visibility"}</div>
-              <div style={{ flex: 1 }} />
-              <select
-                value=""
-                onChange={(e) => {
-                  const v = e.target.value;
-                  (e.target as HTMLSelectElement).value = "";
-                  if (!v) return;
-                  const exists = hasLine(currentNoteLines, v);
-                  togglePresetLine(v, !exists);
-                }}
-                style={styles.select}
-                title={lang === "zh" ? "控制“是否剪影/是否保留细节”" : "Control silhouette/details"}
-              >
-                <option value="">{lang === "zh" ? "选择…" : "Pick…"}</option>
-                {VIS_PRESETS.map((p) => {
-                  const checked = hasLine(currentNoteLines, p.line);
-                  const label = lang === "zh" ? p.zh : p.line;
-                  return (
-                    <option key={p.key} value={p.line}>
-                      {checked ? "✓ " : ""}
-                      {label}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
 
             {conflictHints.length > 0 && (
               <div style={styles.warnHint}>
@@ -1270,7 +1277,7 @@ const typePresets = useMemo(
             )}
 
             <div style={styles.rowTop}>
-              <div style={{ width: 82 }} />
+              <div style={styles.labelSpacer} />
               <textarea
                 value={layer.notes ?? ""}
                 onChange={(e) => patchLayer({ notes: e.target.value })}
@@ -1289,7 +1296,7 @@ const typePresets = useMemo(
 
       {/* Composition + Trajectory buttons */}
       <div style={styles.card}>
-        <div style={styles.cardTitle}>{lang === "zh" ? "构图（起点/终点）" : "Composition (Start / End)"}</div>
+        <div style={styles.cardTitle}>{lang === "zh" ? "对象构图" : "Composition (Start / End)"}</div>
 
         {!layer || !k0 || !k1 ? (
           <div style={styles.miniHint}>{lang === "zh" ? "先选择一个对象" : "Select an object first"}</div>
@@ -1436,15 +1443,6 @@ const typePresets = useMemo(
               </div>
             </div>
 
-            <div style={styles.miniHint}>
-              {lang === "zh"
-                ? `提示：点“编辑起点/终点”后，去画布拖拽/缩放就是在改对应关键帧；数值保留 1 位小数。${
-                    isImageMode ? "（图片模式只编辑起点 t=0）" : ""
-                  }`
-                : `Tip: after choosing Edit Start/End, dragging/resizing on stage edits that keyframe; values are 1-decimal.${
-                    isImageMode ? " (Image mode edits Start t=0 only.)" : ""
-                  }`}
-            </div>
           </>
         )}
       </div>
@@ -1503,8 +1501,8 @@ function KRow({
 
 const styles: Record<string, React.CSSProperties> = {
   wrap: {
-    width: 360,
-    minWidth: 320,
+    width: 344,
+    minWidth: 300,
     borderLeft: "1px solid rgba(255,255,255,0.08)",
     background: "rgba(0,0,0,0.12)",
     padding: 10,
@@ -1522,62 +1520,71 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 10
   },
 
-  cardTitle: { fontWeight: 900, fontSize: 12, opacity: 0.92, marginBottom: 8 },
+  cardTitle: { fontWeight: 900, fontSize: UI_FONT.title, opacity: UI_OPACITY.title, marginBottom: 10 },
 
-  row: { display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8, minWidth: 0 },
-  rowTop: { display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8, minWidth: 0 },
+  row: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8, minWidth: 0 },
+  rowTop: { display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8, minWidth: 0 },
 
   label: {
-    width: 108,
+    width: UI_SIZE.labelWProps,
+    minHeight: UI_SIZE.controlH,
+    display: "flex",
+    alignItems: "center",
     flexShrink: 0,
-    fontSize: 11,
-    opacity: 0.75,
+    fontSize: UI_FONT.body,
+    opacity: UI_OPACITY.label,
     fontWeight: 900,
-    lineHeight: 1.25,
+    lineHeight: 1.3,
     wordBreak: "break-word",
     overflowWrap: "anywhere"
+  },
+  labelSpacer: { width: UI_SIZE.labelWProps, flexShrink: 0 },
+  labelTop: {
+    minHeight: 0,
+    alignItems: "flex-start",
+    paddingTop: 6
   },
 
   select: {
     flex: "1 1 0",
     minWidth: 0,
     maxWidth: "100%",
-    height: 34,
-    borderRadius: 12,
+    height: UI_SIZE.controlH,
+    borderRadius: UI_SIZE.controlRadius,
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     padding: "0 10px",
-    fontSize: 12
+    fontSize: UI_FONT.body
   },
 
   input: {
     flex: "1 1 0",
     minWidth: 0,
     maxWidth: "100%",
-    height: 34,
-    borderRadius: 12,
+    height: UI_SIZE.controlH,
+    borderRadius: UI_SIZE.controlRadius,
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     padding: "0 10px",
-    fontSize: 12
+    fontSize: UI_FONT.body
   },
 
   clickablePill: {
     flex: "1 1 0",
     minWidth: 0,
     maxWidth: "100%",
-    height: 34,
-    borderRadius: 12,
+    height: UI_SIZE.controlH,
+    borderRadius: UI_SIZE.controlRadius,
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(0,0,0,0.20)",
     display: "flex",
     alignItems: "center",
     padding: "0 10px",
-    fontSize: 12,
+    fontSize: UI_FONT.body,
     fontWeight: 900,
     cursor: "pointer",
     userSelect: "none"
@@ -1601,7 +1608,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     padding: "8px 10px",
-    fontSize: 12,
+    fontSize: UI_FONT.body,
     lineHeight: 1.35
   },
 
@@ -1615,7 +1622,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     padding: "8px 10px",
-    fontSize: 12,
+    fontSize: UI_FONT.body,
     lineHeight: 1.35
   },
 
@@ -1639,7 +1646,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 8
   },
   localTemplateTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 900,
     opacity: 0.82,
     marginBottom: 8
@@ -1648,6 +1655,119 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gridTemplateColumns: "1fr",
     gap: 8
+  },
+  localRefCard: {
+    position: "relative",
+    border: "1px solid rgba(255,255,255,0.10)",
+    borderRadius: 12,
+    background: "rgba(0,0,0,0.14)",
+    padding: 8,
+    marginBottom: 8
+  },
+  localRefHead: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    minHeight: UI_SIZE.compactH,
+    marginBottom: 6
+  },
+  localRefActions: {
+    marginLeft: "auto",
+    display: "flex",
+    alignItems: "center",
+    gap: 8
+  },
+  localRefImportBtn: {
+    minWidth: 146,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    whiteSpace: "nowrap",
+    textAlign: "center"
+  },
+  localRefTitle: {
+    display: "inline-flex",
+    alignItems: "center",
+    fontSize: 12,
+    fontWeight: 900,
+    opacity: 0.86,
+    lineHeight: 1
+  },
+  qBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.04)",
+    color: "inherit",
+    fontWeight: 900,
+    cursor: "pointer",
+    outline: "none"
+  },
+  helpFloat: {
+    position: "absolute",
+    right: 8,
+    top: 34,
+    zIndex: 20,
+    maxWidth: 280,
+    padding: "8px 10px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.16)",
+    background: "rgba(12,16,30,0.97)",
+    fontSize: 11,
+    lineHeight: 1.4,
+    boxShadow: "0 10px 30px rgba(0,0,0,0.35)"
+  },
+  localRefPolicy: {
+    marginLeft: "auto",
+    height: 28,
+    borderRadius: 9,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(0,0,0,0.20)",
+    color: "rgba(255,255,255,0.92)",
+    outline: "none",
+    fontSize: 12,
+    padding: "0 8px"
+  },
+  localRefBtns: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 6
+  },
+  localRefList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    marginTop: 8
+  },
+  localRefItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    justifyContent: "space-between",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 10,
+    padding: "6px 8px",
+    background: "rgba(255,255,255,0.03)"
+  },
+  localRefText: {
+    fontSize: 12,
+    lineHeight: 1.3,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
+  },
+  localRefThumb: {
+    width: 48,
+    height: 48,
+    objectFit: "cover",
+    borderRadius: 8,
+    border: "1px solid rgba(255,255,255,0.16)",
+    flexShrink: 0
+  },
+  hiddenInput: {
+    display: "none"
   },
 
   grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
@@ -1662,22 +1782,28 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.55
   },
 
-  subTitle: { fontWeight: 900, fontSize: 12, opacity: 0.92, marginBottom: 8 },
+  subTitle: { fontWeight: 900, fontSize: UI_FONT.section, opacity: UI_OPACITY.title, marginBottom: 8 },
 
   kfRow: { display: "flex", alignItems: "center", gap: 10, marginBottom: 8 },
-  kfLabel: { width: 36, fontSize: 11, opacity: 0.75, fontWeight: 900 },
+  kfLabel: {
+    width: UI_SIZE.labelWKf,
+    fontSize: UI_FONT.body,
+    opacity: UI_OPACITY.label,
+    fontWeight: 900,
+    lineHeight: 1.3
+  },
   kfLabelDisabled: { opacity: 0.55 },
 
   kfInput: {
     width: 96,
-    height: 30,
-    borderRadius: 10,
+    height: UI_SIZE.compactH,
+    borderRadius: UI_SIZE.compactRadius,
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     padding: "0 10px",
-    fontSize: 12
+    fontSize: UI_FONT.body
   },
   kfInputDisabled: {
     opacity: 0.6,
@@ -1687,7 +1813,7 @@ const styles: Record<string, React.CSSProperties> = {
   btnRow: { display: "flex", gap: 8, alignItems: "center" },
 
   pillBtn: {
-    height: 30,
+    height: UI_SIZE.compactH,
     padding: "0 10px",
     borderRadius: 999,
     border: "1px solid rgba(255,255,255,0.07)",
@@ -1728,42 +1854,48 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 10,
     marginBottom: 10
   },
-  notesMenuTitle: { fontWeight: 900, fontSize: 12, opacity: 0.92, marginBottom: 8 },
+  notesMenuTitle: { fontWeight: 900, fontSize: UI_FONT.section, opacity: UI_OPACITY.title, marginBottom: 8 },
 
-  smallLabel: { width: 54, fontSize: 11, opacity: 0.75, fontWeight: 900 },
+  smallLabel: {
+    width: UI_SIZE.labelWSmall,
+    fontSize: UI_FONT.body,
+    opacity: UI_OPACITY.label,
+    fontWeight: 900,
+    lineHeight: 1.3
+  },
 
   smallInput: {
     flex: 1,
-    height: 30,
-    borderRadius: 10,
+    height: UI_SIZE.compactH,
+    borderRadius: UI_SIZE.compactRadius,
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     padding: "0 10px",
-    fontSize: 12
+    fontSize: UI_FONT.body
   },
 
   smallBtn: {
-    height: 30,
+    height: UI_SIZE.compactH,
     padding: "0 10px",
-    borderRadius: 10,
+    borderRadius: UI_SIZE.compactRadius,
     border: "1px solid rgba(120,180,255,0.35)",
     background: "rgba(120,180,255,0.12)",
     color: "inherit",
     cursor: "pointer",
-    fontSize: 12,
+    fontSize: UI_FONT.body,
     fontWeight: 900
   },
   smallBtnGhost: {
-    height: 30,
+    height: UI_SIZE.compactH,
     padding: "0 10px",
-    borderRadius: 10,
+    borderRadius: UI_SIZE.compactRadius,
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(255,255,255,0.06)",
     color: "inherit",
     cursor: "pointer",
-    fontSize: 12,
+    fontSize: UI_FONT.body,
     fontWeight: 900
   },
 
@@ -1771,13 +1903,13 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     minHeight: 68,
     resize: "vertical",
-    borderRadius: 10,
+    borderRadius: UI_SIZE.compactRadius,
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     padding: "8px 10px",
-    fontSize: 12,
+    fontSize: UI_FONT.body,
     lineHeight: 1.35
   },
 
