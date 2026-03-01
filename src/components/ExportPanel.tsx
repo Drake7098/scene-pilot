@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { Lang } from "../i18n";
 import { tAny } from "../i18n";
 import type { Project } from "../model";
 import { generatePrompts } from "../utils/prompt";
+import type { PromptProfile } from "../utils/prompt";
+import { CURRENT_PLATFORM_MODE } from "../config/platformMode";
 
 type Props = {
   lang: Lang;
@@ -17,6 +19,145 @@ function clampInt(v: number, a: number, b: number) {
 }
 
 type MediaMode = "image" | "video";
+type GenMode = "quick" | "pro";
+type FlowMode = "one-pass" | "two-step";
+
+type PlatformPresetId =
+  | "universal"
+  | "midjourney"
+  | "runway"
+  | "pika"
+  | "luma"
+  | "krea"
+  | "jimeng"
+  | "keling"
+  | "vidu"
+  | "hailuo"
+  | "wanx";
+
+type PlatformPreset = {
+  id: PlatformPresetId;
+  profile: PromptProfile;
+  labelZh: string;
+  labelEn: string;
+  url: string;
+  maxRefsPerObject: number;
+  uploadMode: "upload-first" | "prompt-first";
+  promptStyle: "short" | "long";
+};
+
+const PLATFORM_PRESETS: PlatformPreset[] = [
+  {
+    id: "universal",
+    profile: "universal",
+    labelZh: "通用",
+    labelEn: "Universal",
+    url: "",
+    maxRefsPerObject: 3,
+    uploadMode: "upload-first",
+    promptStyle: "long"
+  },
+  {
+    id: "midjourney",
+    profile: "midjourney",
+    labelZh: "Midjourney",
+    labelEn: "Midjourney",
+    url: "https://www.midjourney.com/",
+    maxRefsPerObject: 3,
+    uploadMode: "upload-first",
+    promptStyle: "short"
+  },
+  {
+    id: "runway",
+    profile: "runway",
+    labelZh: "Runway",
+    labelEn: "Runway",
+    url: "https://runwayml.com/",
+    maxRefsPerObject: 3,
+    uploadMode: "upload-first",
+    promptStyle: "long"
+  },
+  {
+    id: "pika",
+    profile: "runway",
+    labelZh: "Pika",
+    labelEn: "Pika",
+    url: "https://pika.art/",
+    maxRefsPerObject: 2,
+    uploadMode: "upload-first",
+    promptStyle: "short"
+  },
+  {
+    id: "luma",
+    profile: "runway",
+    labelZh: "Luma",
+    labelEn: "Luma",
+    url: "https://lumalabs.ai/dream-machine",
+    maxRefsPerObject: 2,
+    uploadMode: "upload-first",
+    promptStyle: "short"
+  },
+  {
+    id: "krea",
+    profile: "midjourney",
+    labelZh: "Krea",
+    labelEn: "Krea",
+    url: "https://www.krea.ai/",
+    maxRefsPerObject: 2,
+    uploadMode: "upload-first",
+    promptStyle: "short"
+  },
+  {
+    id: "jimeng",
+    profile: "jimeng",
+    labelZh: "即梦",
+    labelEn: "Jimeng",
+    url: "https://jimeng.jianying.com/",
+    maxRefsPerObject: 3,
+    uploadMode: "upload-first",
+    promptStyle: "short"
+  },
+  {
+    id: "keling",
+    profile: "jimeng",
+    labelZh: "可灵",
+    labelEn: "Keling",
+    url: "https://klingai.com/",
+    maxRefsPerObject: 3,
+    uploadMode: "upload-first",
+    promptStyle: "short"
+  },
+  {
+    id: "vidu",
+    profile: "runway",
+    labelZh: "Vidu",
+    labelEn: "Vidu",
+    url: "https://www.vidu.cn/",
+    maxRefsPerObject: 3,
+    uploadMode: "upload-first",
+    promptStyle: "long"
+  },
+  {
+    id: "hailuo",
+    profile: "runway",
+    labelZh: "海螺 AI",
+    labelEn: "Hailuo AI",
+    url: "https://hailuoai.com/",
+    maxRefsPerObject: 3,
+    uploadMode: "upload-first",
+    promptStyle: "long"
+  },
+  {
+    id: "wanx",
+    profile: "qwen",
+    labelZh: "通义万相",
+    labelEn: "Wanx",
+    url: "https://tongyi.aliyun.com/wanxiang/",
+    maxRefsPerObject: 3,
+    uploadMode: "upload-first",
+    promptStyle: "long"
+  }
+];
 
 function parseMediaModeFromNotes(notes: string | undefined | null): MediaMode {
   const lines = (notes ?? "")
@@ -38,6 +179,18 @@ function parseMediaModeFromNotes(notes: string | undefined | null): MediaMode {
 
   // 默认保持你原来的逻辑：没标就按视频（因为很多人需要 t0/t1）
   return "video";
+}
+
+function parseGenModeFromNotes(notes: string | undefined | null): GenMode {
+  const lines = (notes ?? "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => s.toLowerCase());
+  const hit = lines.find((l) => l.startsWith("genmode:"));
+  if (!hit) return "quick";
+  const v = hit.slice("genmode:".length).trim();
+  return v === "pro" ? "pro" : "quick";
 }
 
 /**
@@ -285,21 +438,119 @@ function fixPromptCopy(input: string, lang: Lang, mediaMode: MediaMode, sceneTit
   return dedupHeaders.join("\n");
 }
 
+function limitRefLinks(raw: string, max: number): string {
+  const lines = (raw ?? "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return lines.slice(0, max).join("\n");
+}
+
+function safeName(input: string): string {
+  return (input ?? "")
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, "_")
+    .replace(/_+/g, "_")
+    .slice(0, 64);
+}
+
+function ymd() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = `${d.getMonth() + 1}`.padStart(2, "0");
+  const day = `${d.getDate()}`.padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function splitRefs(raw: string, max: number) {
+  return (raw ?? "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, max);
+}
+
+function refTypeByIndex(i: number): "identity" | "appearance" | "style" {
+  if (i === 0) return "identity";
+  if (i === 1) return "appearance";
+  return "style";
+}
+
+function refShort(type: "identity" | "appearance" | "style") {
+  if (type === "identity") return "id";
+  if (type === "appearance") return "app";
+  return "style";
+}
+
+function extFromRef(ref: string) {
+  const clean = ref.split("?")[0].trim();
+  const m = clean.match(/\.([a-zA-Z0-9]{2,5})$/);
+  return m ? m[1].toLowerCase() : "jpg";
+}
+
+function downloadTextFile(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+
+type FlowFile = { path: string; content: string };
+
+async function writeTextToDirectory(dirHandle: any, fullPath: string, content: string) {
+  const parts = fullPath.split("/").filter(Boolean);
+  let current = dirHandle;
+  for (let i = 0; i < parts.length - 1; i++) {
+    current = await current.getDirectoryHandle(parts[i], { create: true });
+  }
+  const file = await current.getFileHandle(parts[parts.length - 1], { create: true });
+  const writable = await file.createWritable();
+  await writable.write(content);
+  await writable.close();
+}
+
 export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props) {
-  const [tab, setTab] = useState<"prompts" | "json">("prompts");
   const [copied, setCopied] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [platformPresetId, setPlatformPresetId] = useState<PlatformPresetId>("universal");
+  const [exportMode, setExportMode] = useState<"quick" | "pro">("quick");
+  const [flowMode, setFlowMode] = useState<FlowMode>("two-step");
+  const [qualityMode, setQualityMode] = useState<"balanced" | "quality" | "cost">("balanced");
 
   const scenes = project.scenes ?? [];
   const safeIdx = clampInt(sceneIdx, 0, Math.max(0, scenes.length - 1));
   const currentScene = scenes[safeIdx] ?? null;
 
   const mediaMode: MediaMode = useMemo(() => parseMediaModeFromNotes(currentScene?.notes), [currentScene?.notes]);
+  const sceneGenMode: GenMode = useMemo(() => parseGenModeFromNotes(currentScene?.notes), [currentScene?.notes]);
+  useEffect(() => {
+    setExportMode(sceneGenMode);
+  }, [sceneGenMode]);
+
+  const platformPreset = useMemo(
+    () => PLATFORM_PRESETS.find((p) => p.id === platformPresetId) ?? PLATFORM_PRESETS[0],
+    [platformPresetId]
+  );
+  const exportProfile = platformPreset.profile;
 
   // ✅ 只导出当前分镜 prompts
   const promptProject = useMemo<Project>(() => {
     if (!currentScene) return { ...project, scenes: [] };
-    return { ...project, scenes: [currentScene] };
-  }, [project, currentScene]);
+    const modeLimit = exportMode === "quick" ? 2 : 6;
+    const refLimit = Math.min(modeLimit, platformPreset.maxRefsPerObject);
+    const nextScene = {
+      ...currentScene,
+      layers: (currentScene.layers ?? []).map((l) => ({
+        ...l,
+        referenceLinks: limitRefLinks(l.referenceLinks ?? "", refLimit)
+      }))
+    };
+    return { ...project, scenes: [nextScene] };
+  }, [project, currentScene, exportMode, platformPreset.maxRefsPerObject]);
 
   const sceneTitle = useMemo(() => {
     if (!currentScene) return lang === "zh" ? `分镜 ${safeIdx + 1}` : `Scene ${safeIdx + 1}`;
@@ -310,8 +561,8 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
     void selectedLayerId;
     void safeIdx;
     // ✅ 关键：按模式生成不同末尾坐标解释（机器语言块）
-    return generatePrompts(promptProject, lang);
-  }, [promptProject, lang, safeIdx, selectedLayerId]);
+    return generatePrompts(promptProject, lang, exportProfile);
+  }, [promptProject, lang, safeIdx, selectedLayerId, exportProfile]);
 
   const prompts = useMemo(() => {
     // 先分离“机器语言/控制层块”，只修正文案/裁剪 main，notes 保持原样
@@ -331,8 +582,20 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
   }, [rawPrompts, mediaMode, lang, sceneTitle]);
 
   const { main: promptsMain, notes: promptsNotes } = useMemo(() => splitMachineNotes(prompts), [prompts]);
-
-  const json = useMemo(() => JSON.stringify(project, null, 2), [project]);
+  const profileHint = useMemo(() => {
+    if (lang === "zh") {
+      const uploadHint = platformPreset.uploadMode === "upload-first" ? "先上传参考图再粘贴提示词。" : "先粘贴提示词再补图。";
+      const styleHint = platformPreset.promptStyle === "short" ? "建议短句高密度关键词。" : "建议分段结构化描述。";
+      return `${platformPreset.labelZh}：${uploadHint}${styleHint}`;
+    }
+    const uploadHint =
+      platformPreset.uploadMode === "upload-first"
+        ? "Upload reference images first, then paste prompts."
+        : "Paste prompts first, then upload references.";
+    const styleHint = platformPreset.promptStyle === "short" ? "Use short dense keywords." : "Use sectioned structured text.";
+    return `${platformPreset.labelEn}: ${uploadHint} ${styleHint}`;
+  }, [platformPreset, lang]);
+  const platformUrl = platformPreset.url;
 
   async function copy(text: string) {
     try {
@@ -351,10 +614,239 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
     }
   }
 
-  const tabBtn = (on: boolean): React.CSSProperties => ({
-    ...styles.tab,
-    ...(on ? styles.tabOn : styles.tabOff)
-  });
+  const flowBundle = useMemo(() => {
+    const scene = promptProject.scenes?.[0];
+    const layers = scene?.layers ?? [];
+    const objects = layers.map((layer, idx) => {
+      const code = `OBJ_${String.fromCharCode(65 + (idx % 26))}${idx >= 26 ? `_${idx + 1}` : ""}`;
+      const refs = splitRefs(layer.referenceLinks ?? "", platformPreset.maxRefsPerObject);
+      const refItems = refs.map((ref, i) => {
+        const type = refTypeByIndex(i);
+        const ext = extFromRef(ref);
+        const fileName = `${code}__${refShort(type)}__${String(i + 1).padStart(2, "0")}.${ext}`;
+        return { source: ref, type, fileName };
+      });
+      return {
+        code,
+        layerId: layer.id,
+        type: (layer.type ?? "").trim(),
+        look: (layer.look ?? "").trim(),
+        notes: (layer.notes ?? "").trim(),
+        refItems
+      };
+    });
+
+    const now = ymd();
+    const projectName = safeName(`project_${project.project?.mode ?? "storyboard"}`);
+    const sceneName = safeName(sceneTitle || "Scene");
+    const rootDir = `ScenePilot_${projectName}_${sceneName}_${now}`;
+    const modeLabelZh = flowMode === "two-step" ? "稳妥高质（两步）" : "极速直出（一次）";
+    const modeLabelEn = flowMode === "two-step" ? "Stable Quality (Two-step)" : "Fast Direct (One-pass)";
+
+    const usageGuide = lang === "zh"
+      ? [
+          "ScenePilot 导出流程先看我",
+          "",
+          `平台：${platformPreset.labelZh}`,
+          `生成方式：${modeLabelZh}`,
+          "",
+          "步骤：",
+          "1) 打开 01_对象参考包/对象参考包.txt，复制并粘贴到目标平台。",
+          "2) 按 02_素材图片_按此顺序上传/ 的目录顺序上传本地素材。",
+          flowMode === "two-step"
+            ? "3) 上传完成后，打开 03_分镜提示词包/分镜提示词_逐条复制.txt，逐条复制生成。"
+            : "3) 打开 03_分镜提示词包/分镜提示词_整段版.txt，一次粘贴执行。",
+          "",
+          "说明：",
+          "- 本流程不调用 API，不上传到云端。",
+          "- 文件名已包含对象代号，可按对象对齐上传。",
+          "- 结构化字段优先于风格形容词。"
+        ].join("\n")
+      : [
+          "ScenePilot Export Workflow",
+          "",
+          `Platform: ${platformPreset.labelEn}`,
+          `Mode: ${modeLabelEn}`,
+          "",
+          "Steps:",
+          "1) Open 01_对象参考包/对象参考包.txt and paste it to your target platform.",
+          "2) Upload local assets in folder order under 02_素材图片_按此顺序上传/.",
+          flowMode === "two-step"
+            ? "3) After upload, open 03_分镜提示词包/分镜提示词_逐条复制.txt and copy per shot."
+            : "3) Open 03_分镜提示词包/分镜提示词_整段版.txt and paste once.",
+          "",
+          "Notes:",
+          "- No API call and no cloud image hosting.",
+          "- Filenames already include object codes.",
+          "- Structural constraints override style adjectives."
+        ].join("\n");
+
+    const objectRefText = [
+      lang === "zh" ? "对象参考包" : "Object Reference Pack",
+      "",
+      lang === "zh"
+        ? `平台：${platformPreset.labelZh}  |  模式：${modeLabelZh}`
+        : `Platform: ${platformPreset.labelEn} | Mode: ${modeLabelEn}`,
+      "",
+      ...objects.flatMap((obj) => {
+        const head =
+          lang === "zh"
+            ? `# ${obj.code} (${obj.layerId})`
+            : `# ${obj.code} (${obj.layerId})`;
+        const lines = [
+          head,
+          obj.type ? (lang === "zh" ? `- 类型: ${obj.type}` : `- Type: ${obj.type}`) : "",
+          obj.look ? (lang === "zh" ? `- 外观: ${obj.look}` : `- Look: ${obj.look}`) : "",
+          obj.notes ? (lang === "zh" ? `- 备注: ${obj.notes}` : `- Notes: ${obj.notes}`) : "",
+          obj.refItems.length
+            ? lang === "zh"
+              ? `- 参考文件: ${obj.refItems.map((r) => `${r.fileName}(${r.type})`).join(", ")}`
+              : `- Ref files: ${obj.refItems.map((r) => `${r.fileName}(${r.type})`).join(", ")}`
+            : lang === "zh"
+              ? "- 参考文件: 无（仅文本描述）"
+              : "- Ref files: none (text-only fallback)"
+        ].filter(Boolean);
+        return [...lines, ""];
+      })
+    ].join("\n");
+
+    const uploadChecklist = [
+      lang === "zh" ? "素材上传清单（按顺序）" : "Asset Upload Checklist (ordered)",
+      "",
+      ...objects.flatMap((obj) => {
+        const lines = [lang === "zh" ? `${obj.code} / ${obj.layerId}` : `${obj.code} / ${obj.layerId}`];
+        if (!obj.refItems.length) {
+          lines.push(lang === "zh" ? "- 无本地参考图，跳过上传。" : "- No local refs, skip upload.");
+          return [...lines, ""];
+        }
+        obj.refItems.forEach((ref, index) => {
+          const typeZh = ref.type === "identity" ? "身份" : ref.type === "appearance" ? "外观" : "风格";
+          const typeEn = ref.type;
+          lines.push(
+            lang === "zh"
+              ? `${index + 1}. [ ] 上传 ${ref.fileName}（${typeZh}）`
+              : `${index + 1}. [ ] Upload ${ref.fileName} (${typeEn})`
+          );
+          lines.push(lang === "zh" ? `    来源：${ref.source}` : `    Source: ${ref.source}`);
+        });
+        return [...lines, ""];
+      })
+    ].join("\n");
+
+    const promptsPerShot = promptsMain;
+    const promptsCombined =
+      flowMode === "two-step"
+        ? [
+            lang === "zh" ? "第二步：分镜提示词" : "Step 2: Storyboard Prompt",
+            "",
+            promptsMain
+          ].join("\n")
+        : [
+            lang === "zh" ? "一次直出：对象参考 + 分镜提示词" : "One-pass: Object Refs + Storyboard Prompt",
+            "",
+            objectRefText,
+            "",
+            promptsMain
+          ].join("\n");
+
+    const manifest = {
+      version: 1,
+      createdAt: new Date().toISOString(),
+      platform: platformPreset.id,
+      profile: exportProfile,
+      flowMode,
+      exportMode,
+      qualityMode,
+      project: projectName,
+      scene: sceneTitle,
+      objects: objects.map((obj) => ({
+        code: obj.code,
+        layerId: obj.layerId,
+        type: obj.type,
+        look: obj.look,
+        notes: obj.notes,
+        refs: obj.refItems
+      }))
+    };
+
+    const assetFolderFiles: FlowFile[] = objects.flatMap((obj) => {
+      const buckets: Array<{ key: "identity" | "appearance" | "style"; dir: string }> = [
+        { key: "identity", dir: "01_identity" },
+        { key: "appearance", dir: "02_appearance" },
+        { key: "style", dir: "03_style" }
+      ];
+      return buckets.map((bucket) => {
+        const refs = obj.refItems.filter((r) => r.type === bucket.key);
+        const lines = [
+          lang === "zh" ? `${obj.code} ${bucket.dir} 上传说明` : `${obj.code} ${bucket.dir} Upload Notes`,
+          "",
+          refs.length
+            ? lang === "zh"
+              ? "建议文件名顺序："
+              : "Recommended filename order:"
+            : lang === "zh"
+              ? "当前无该分类参考图，可跳过。"
+              : "No references in this category. You can skip."
+        ];
+        refs.forEach((r, idx) => {
+          lines.push(`${idx + 1}. ${r.fileName}`);
+        });
+        return {
+          path: `02_素材图片_按此顺序上传/${obj.code}/${bucket.dir}/上传说明.txt`,
+          content: lines.join("\n")
+        };
+      });
+    });
+
+    const files: FlowFile[] = [
+      { path: "00_先看我.txt", content: usageGuide },
+      { path: "01_对象参考包/对象参考包.txt", content: objectRefText },
+      { path: "01_对象参考包/对象上传清单.txt", content: uploadChecklist },
+      ...assetFolderFiles,
+      { path: "03_分镜提示词包/分镜提示词_逐条复制.txt", content: promptsPerShot },
+      { path: "03_分镜提示词包/分镜提示词_整段版.txt", content: promptsCombined },
+      { path: "99_manifest/manifest.json", content: JSON.stringify(manifest, null, 2) }
+    ];
+
+    return {
+      rootDir,
+      objectRefText,
+      promptsPerShot,
+      promptsCombined,
+      files
+    };
+  }, [
+    promptProject.scenes,
+    platformPreset,
+    project.project?.mode,
+    sceneTitle,
+    flowMode,
+    lang,
+    promptsMain,
+    exportProfile,
+    exportMode,
+    qualityMode
+  ]);
+
+  async function exportFlowPackage() {
+    const hasDirPicker = typeof window !== "undefined" && "showDirectoryPicker" in window;
+    if (hasDirPicker) {
+      try {
+        const picker = (window as any).showDirectoryPicker;
+        const pickedDir = await picker({ mode: "readwrite" });
+        const root = await pickedDir.getDirectoryHandle(flowBundle.rootDir, { create: true });
+        for (const file of flowBundle.files) {
+          await writeTextToDirectory(root, file.path, file.content);
+        }
+        return;
+      } catch {
+        // fallback to downloads
+      }
+    }
+    for (const file of flowBundle.files) {
+      downloadTextFile(`${flowBundle.rootDir}__${file.path.replaceAll("/", "__")}`, file.content);
+    }
+  }
 
   return (
     <div style={styles.wrap}>
@@ -371,35 +863,162 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
 
         <div style={{ flex: 1 }} />
 
-        <button style={tabBtn(tab === "prompts")} onClick={() => setTab("prompts")} type="button">
-          {tAny(lang, "export.promptsTab")}
-        </button>
-
-        <button style={tabBtn(tab === "json")} onClick={() => setTab("json")} type="button">
-          {tAny(lang, "export.jsonTab")}
-        </button>
-
         <button
           style={styles.btnPrimary}
-          onClick={() => copy(tab === "prompts" ? prompts : json)}
+          onClick={() => setShowExportModal(true)}
           type="button"
-          title={tab === "prompts" ? tAny(lang, "export.copyPrompts") : tAny(lang, "export.copyJson")}
+          title={lang === "zh" ? "选择导出条件并仅复制提示词" : "Choose export conditions and copy prompt only"}
         >
-          {copied
-            ? tAny(lang, "common.copied")
-            : tab === "prompts"
-              ? tAny(lang, "export.copyPrompts")
-              : tAny(lang, "export.copyJson")}
+          {copied ? tAny(lang, "common.copied") : lang === "zh" ? "导出" : "Export"}
         </button>
       </div>
+      <div style={styles.platformTips}>
+        {CURRENT_PLATFORM_MODE === "export-only"
+          ? lang === "zh"
+            ? "当前模式：仅导出，不调用 API，不直接生成图像/视频。"
+            : "Current mode: export-only. No API calls, no direct image/video generation."
+          : ""}
+        <br />
+        {profileHint}
+        <br />
+        {lang === "zh"
+          ? mediaMode === "video"
+            ? "视频实用：先确认 t0/t1 轨迹，再粘贴到平台，必要时分镜拆段生成。"
+            : "图片实用：先锁对象位置和数量，再做风格增强，避免一次改太多变量。"
+          : mediaMode === "video"
+            ? "Video tip: lock t0/t1 trajectory first, then paste prompt; split long shots when needed."
+            : "Image tip: lock object positions/count first, then add style enhancements in a second pass."}
+      </div>
 
-      {tab === "prompts" ? (
-        <div style={styles.preWrap}>
-          <pre style={styles.pre}>{promptsMain}</pre>
-          {promptsNotes ? <pre style={styles.preNotes}>{promptsNotes}</pre> : null}
+      <div style={styles.preWrap}>
+        <pre style={styles.pre}>{promptsMain}</pre>
+        {promptsNotes ? <pre style={styles.preNotes}>{promptsNotes}</pre> : null}
+      </div>
+
+      {showExportModal && (
+        <div style={styles.floatingPanel}>
+          <div style={styles.modalTitle}>{lang === "zh" ? "导出条件" : "Export Conditions"}</div>
+          <div style={styles.modalRow}>
+            <div style={styles.profileLabel}>{lang === "zh" ? "平台" : "Platform"}</div>
+            <div style={styles.optionWrap}>
+              {PLATFORM_PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPlatformPresetId(p.id)}
+                  style={{ ...styles.optionBtn, ...(platformPresetId === p.id ? styles.optionBtnOn : {}) }}
+                >
+                  {lang === "zh" ? p.labelZh : p.labelEn}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={styles.modalRow}>
+            <div style={styles.profileLabel}>{lang === "zh" ? "流程" : "Flow"}</div>
+            <div style={styles.optionWrap}>
+              <button
+                type="button"
+                onClick={() => setFlowMode("one-pass")}
+                style={{ ...styles.optionBtn, ...(flowMode === "one-pass" ? styles.optionBtnOn : {}) }}
+              >
+                {lang === "zh" ? "极速直出（一次）" : "Fast Direct (One-pass)"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setFlowMode("two-step")}
+                style={{ ...styles.optionBtn, ...(flowMode === "two-step" ? styles.optionBtnOn : {}) }}
+              >
+                {lang === "zh" ? "稳妥高质（两步）" : "Stable Quality (Two-step)"}
+              </button>
+            </div>
+          </div>
+          <div style={styles.modalRow}>
+            <div style={styles.profileLabel}>{lang === "zh" ? "模式" : "Mode"}</div>
+            <div style={styles.optionWrap}>
+              <button
+                type="button"
+                onClick={() => setExportMode("quick")}
+                style={{ ...styles.optionBtn, ...(exportMode === "quick" ? styles.optionBtnOn : {}) }}
+              >
+                {lang === "zh" ? "Quick" : "Quick"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setExportMode("pro")}
+                style={{ ...styles.optionBtn, ...(exportMode === "pro" ? styles.optionBtnOn : {}) }}
+              >
+                {lang === "zh" ? "PRO" : "PRO"}
+              </button>
+            </div>
+          </div>
+          <div style={styles.modalRow}>
+            <div style={styles.profileLabel}>{lang === "zh" ? "策略" : "Strategy"}</div>
+            <div style={styles.optionWrap}>
+              {(["balanced", "quality", "cost"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setQualityMode(m)}
+                  style={{ ...styles.optionBtn, ...(qualityMode === m ? styles.optionBtnOn : {}) }}
+                >
+                  {m === "balanced" ? (lang === "zh" ? "平衡" : "Balanced") : m === "quality" ? (lang === "zh" ? "质量" : "Quality") : lang === "zh" ? "成本" : "Cost"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={styles.platformTips}>
+            {lang === "zh"
+              ? `仅复制提示词，不会发起生成请求。当前：${exportMode.toUpperCase()} / ${qualityMode} / ${flowMode === "two-step" ? "两步" : "一步"}`
+              : `Prompt copy only, no generation request. Current: ${exportMode.toUpperCase()} / ${qualityMode} / ${flowMode === "two-step" ? "two-step" : "one-pass"}`}
+          </div>
+          <div style={styles.modalBtns}>
+            <button style={styles.btnGhost} onClick={() => setShowExportModal(false)} type="button">
+              {lang === "zh" ? "关闭" : "Close"}
+            </button>
+            {platformUrl ? (
+              <button style={styles.btnGhost} onClick={() => window.open(platformUrl, "_blank", "noopener,noreferrer")} type="button">
+                {lang === "zh" ? "前往平台" : "Open Platform"}
+              </button>
+            ) : null}
+            <button
+              style={styles.btnGhost}
+              onClick={async () => {
+                await copy(flowBundle.objectRefText);
+              }}
+              type="button"
+            >
+              {lang === "zh" ? "复制对象参考包" : "Copy Object Pack"}
+            </button>
+            <button
+              style={styles.btnGhost}
+              onClick={async () => {
+                await copy(flowMode === "two-step" ? flowBundle.promptsPerShot : flowBundle.promptsCombined);
+              }}
+              type="button"
+            >
+              {lang === "zh" ? "复制分镜提示词包" : "Copy Storyboard Pack"}
+            </button>
+            <button
+              style={styles.btnGhost}
+              onClick={async () => {
+                await exportFlowPackage();
+              }}
+              type="button"
+            >
+              {lang === "zh" ? "导出流程目录包" : "Export Workflow Folder"}
+            </button>
+            <button
+              style={styles.btnPrimary}
+              onClick={async () => {
+                await copy(prompts);
+                setShowExportModal(false);
+              }}
+              type="button"
+            >
+              {lang === "zh" ? "仅复制提示词" : "Copy Prompt Only"}
+            </button>
+          </div>
         </div>
-      ) : (
-        <pre style={styles.pre}>{json}</pre>
       )}
     </div>
   );
@@ -409,12 +1028,13 @@ const styles: Record<string, React.CSSProperties> = {
   wrap: {
     borderTop: "1px solid rgba(255,255,255,0.08)",
     padding: 10,
-    minHeight: 130,
-    height: 150,
+    minHeight: 170,
+    height: "min(38vh, 340px)",
     display: "flex",
     flexDirection: "column",
     gap: 8,
-    background: "rgba(0,0,0,0.10)"
+    background: "rgba(0,0,0,0.10)",
+    position: "relative"
   },
 
   head: { display: "flex", alignItems: "center", gap: 8 },
@@ -425,13 +1045,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     opacity: 0.68,
     padding: "4px 8px",
-    borderRadius: 999,
+    borderRadius: 10,
     border: "1px solid rgba(255,255,255,0.10)",
     background: "rgba(255,255,255,0.04)",
-    maxWidth: 180,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis"
+    maxWidth: 260,
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    lineHeight: 1.25
   },
 
   modeHint: {
@@ -482,6 +1102,103 @@ const styles: Record<string, React.CSSProperties> = {
     outline: "none",
     boxShadow: "none",
     WebkitTapHighlightColor: "transparent" as any
+  },
+  btnGhost: {
+    padding: "6px 10px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.03)",
+    color: "inherit",
+    cursor: "pointer",
+    fontSize: 12,
+    outline: "none",
+    boxShadow: "none",
+    WebkitTapHighlightColor: "transparent" as any
+  },
+  profileRow: { display: "flex", alignItems: "center", gap: 8 },
+  profileLabel: {
+    fontSize: 11,
+    fontWeight: 900,
+    opacity: 0.72,
+    width: 72,
+    flexShrink: 0
+  },
+  profileSelect: {
+    flex: 1,
+    height: 32,
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(0,0,0,0.20)",
+    color: "rgba(255,255,255,0.92)",
+    outline: "none",
+    padding: "0 10px",
+    fontSize: 12
+  },
+  platformTips: {
+    fontSize: 11,
+    lineHeight: 1.4,
+    opacity: 0.7,
+    border: "1px solid rgba(255,255,255,0.10)",
+    borderRadius: 10,
+    background: "rgba(255,255,255,0.04)",
+    padding: "8px 10px"
+  },
+  modalMask: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.55)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    zIndex: 9999
+  },
+  modal: {
+    width: 560,
+    maxWidth: "100%",
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(16,20,34,0.96)",
+    boxShadow: "0 16px 56px rgba(0,0,0,0.45)",
+    padding: 12,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8
+  },
+  modalTitle: { fontWeight: 900, fontSize: 13, opacity: 0.95 },
+  modalRow: { display: "flex", alignItems: "center", gap: 8 },
+  modalBtns: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 },
+  floatingPanel: {
+    position: "absolute",
+    right: 10,
+    top: 44,
+    width: 520,
+    maxWidth: "calc(100% - 20px)",
+    borderRadius: 12,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(12,16,30,0.97)",
+    boxShadow: "0 14px 52px rgba(0,0,0,0.45)",
+    padding: 10,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    zIndex: 40
+  },
+  optionWrap: { display: "flex", flexWrap: "wrap", gap: 6, flex: 1 },
+  optionBtn: {
+    padding: "5px 8px",
+    borderRadius: 9,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.04)",
+    color: "inherit",
+    cursor: "pointer",
+    fontSize: 11,
+    fontWeight: 800,
+    outline: "none"
+  },
+  optionBtnOn: {
+    border: "1px solid rgba(120,180,255,0.68)",
+    background: "rgba(120,180,255,0.14)"
   },
 
   preWrap: {

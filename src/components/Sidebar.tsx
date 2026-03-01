@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
 import type { Project, Scene, Layer } from "../model";
@@ -36,6 +36,29 @@ function fmtDuration(lang: Lang, s: number) {
   return lang === "zh" ? `${n}秒` : `${n}s`;
 }
 
+function kf0(layer: Layer) {
+  return (layer.kf ?? []).find((k) => k.t === 0) ?? layer.kf?.[0] ?? { x: 50, y: 50, w: 24, h: 24 };
+}
+
+function suggestSpawnKf(layers: Layer[]) {
+  const w = 24;
+  const h = 24;
+  let best = { x: 50, y: 50, w, h };
+  for (let i = 0; i < 24; i++) {
+    const x = 50 + (Math.random() * 30 - 15);
+    const y = 50 + (Math.random() * 20 - 10);
+    const candidate = { x: Math.max(18, Math.min(82, x)), y: Math.max(18, Math.min(82, y)), w, h };
+    const minDist = (layers ?? []).reduce((m, l) => {
+      const k = kf0(l);
+      const d = Math.hypot(k.x - candidate.x, k.y - candidate.y);
+      return Math.min(m, d);
+    }, 9999);
+    if (minDist > 14) return candidate;
+    if (minDist > 8) best = candidate;
+  }
+  return best;
+}
+
 // ✅ NEW: pick next default scene name by scanning existing names
 function nextSceneDefaultName(lang: Lang, scenes: Scene[]) {
   const zh = lang === "zh";
@@ -59,6 +82,8 @@ function nextSceneDefaultName(lang: Lang, scenes: Scene[]) {
 // -------------------- Media mode marker in scene.notes --------------------
 type MediaMode = "image" | "video";
 const MEDIA_MARK = "media:";
+type GenMode = "quick" | "pro";
+const GEN_MARK = "genmode:";
 
 function parseMedia(notes: string): MediaMode {
   const lines = (notes ?? "").split("\n");
@@ -74,16 +99,35 @@ function setMedia(notes: string, mode: MediaMode): string {
   return [`${MEDIA_MARK} ${mode}`, ...rest].join("\n");
 }
 
+function parseGenMode(notes: string): GenMode {
+  const lines = (notes ?? "").split("\n");
+  const hit = lines.find((l) => l.trim().toLowerCase().startsWith(GEN_MARK));
+  if (!hit) return "quick";
+  const v = hit.trim().slice(GEN_MARK.length).trim().toLowerCase();
+  return v === "pro" ? "pro" : "quick";
+}
+
+function setGenMode(notes: string, mode: GenMode): string {
+  const lines = (notes ?? "").split("\n").filter(Boolean);
+  const rest = lines.filter((l) => !l.trim().toLowerCase().startsWith(GEN_MARK));
+  return [`${GEN_MARK} ${mode}`, ...rest].join("\n");
+}
+
 // -------------------- Stability marker in scene.notes --------------------
-type StabilityMode = "on" | "off";
+type StabilityMode = "off" | "standard" | "strict";
+type FloatingHintTone = "info" | "danger";
 const STAB_MARK = "stability:";
 
 function parseStability(notes: string): StabilityMode {
   const lines = (notes ?? "").split("\n");
   const hit = lines.find((l) => l.trim().toLowerCase().startsWith(STAB_MARK));
-  if (!hit) return "on"; // default ON
+  if (!hit) return "standard"; // default
   const v = hit.trim().slice(STAB_MARK.length).trim().toLowerCase();
-  return v === "off" ? "off" : "on";
+  // backward compatibility: historical "on" maps to "standard"
+  if (v === "on") return "standard";
+  if (v === "strict") return "strict";
+  if (v === "off") return "off";
+  return "standard";
 }
 
 function setStability(notes: string, mode: StabilityMode): string {
@@ -96,13 +140,23 @@ function setStability(notes: string, mode: StabilityMode): string {
 type NewSceneDraft = {
   open: boolean;
   mode: MediaMode;
+  genMode: GenMode;
   name: string;
   duration_s: string; // for input
 };
 
 export function Sidebar(props: Props) {
-  const { lang, project, sceneIdx, setSceneIdx, onUpdateProject, scene, selectedLayerId, onSelectLayer, onUpdateScene } =
-    props;
+  const {
+    lang,
+    project,
+    sceneIdx,
+    setSceneIdx,
+    onUpdateProject,
+    scene,
+    selectedLayerId,
+    onSelectLayer,
+    onUpdateScene
+  } = props;
 
   const tt = useMemo(() => (key: string) => t(lang, key), [lang]);
   const scenes = project.scenes ?? [];
@@ -121,19 +175,22 @@ export function Sidebar(props: Props) {
   const sceneNotes = scene?.notes ?? "";
   const mediaMode = useMemo<MediaMode>(() => parseMedia(sceneNotes), [sceneNotes]);
   const stabilityMode = useMemo<StabilityMode>(() => parseStability(sceneNotes), [sceneNotes]);
-  const stabilityOn = stabilityMode === "on";
-
   // ✅ NEW: add scene mini panel
   const [newScene, setNewScene] = useState<NewSceneDraft>({
     open: false,
     mode: "image",
+    genMode: "quick",
     name: "",
     duration_s: "6"
   });
+  const [showGenHint, setShowGenHint] = useState(false);
 
   // ✅ 替代 alert/confirm：轻量 toast + 自定义确认框
   const [toastText, setToastText] = useState<string>("");
   const toastTimerRef = useRef<number | null>(null);
+  const [floatingHint, setFloatingHint] = useState<{ text: string; top: number; left: number; tone: FloatingHintTone } | null>(null);
+  const floatingHintTimerRef = useRef<number | null>(null);
+  const deleteHintAnchorRef = useRef<HTMLElement | null>(null);
 
   const [confirmDelIdx, setConfirmDelIdx] = useState<number | null>(null);
 
@@ -143,9 +200,28 @@ export function Sidebar(props: Props) {
     toastTimerRef.current = window.setTimeout(() => setToastText(""), 1400);
   }
 
-  function killFocus(e: React.FocusEvent<HTMLElement>) {
-    (e.currentTarget as HTMLElement).blur();
+  function showFloatingHint(text: string, anchorEl: HTMLElement | null, tone: FloatingHintTone = "info") {
+    if (!anchorEl) {
+      showToast(text);
+      return;
+    }
+    const rect = anchorEl.getBoundingClientRect();
+    setFloatingHint({
+      text,
+      top: rect.bottom + 8,
+      left: rect.left + rect.width / 2,
+      tone
+    });
+    if (floatingHintTimerRef.current != null) window.clearTimeout(floatingHintTimerRef.current);
+    floatingHintTimerRef.current = window.setTimeout(() => setFloatingHint(null), 3000);
   }
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current);
+      if (floatingHintTimerRef.current != null) window.clearTimeout(floatingHintTimerRef.current);
+    };
+  }, []);
 
   function commitSceneName(sid: string) {
     const name = sceneNameDraft.trim();
@@ -185,17 +261,17 @@ export function Sidebar(props: Props) {
     setEditingLayerId(null);
   }
 
-  // ✅ 修复：1) 点击同一模式不再重复触发；2) 不用 alert；3) 用 toast
-  function commitMediaMode(mode: MediaMode) {
+  // ✅ 媒体切换提示：悬浮在控件旁，不占位
+  function commitMediaMode(mode: MediaMode, anchorEl: HTMLElement | null) {
     if (mode === mediaMode) return; // ✅ already in this mode, no-op (no toast)
 
     const nextNotes = setMedia(scene.notes ?? "", mode);
     onUpdateScene({ ...scene, notes: nextNotes });
 
     if (mode === "image") {
-      showToast(lang === "zh" ? "已切换到图片：仅编辑 T0（T1 保留但锁定）" : "Switched to Image: edit T0 only (T1 kept but locked)");
+      showFloatingHint(tt("sidebar.switchToImage"), anchorEl, "info");
     } else {
-      showToast(lang === "zh" ? "已切换到视频：可编辑 T0/T1" : "Switched to Video: edit T0/T1");
+      showFloatingHint(tt("sidebar.switchToVideo"), anchorEl, "info");
     }
   }
 
@@ -203,13 +279,11 @@ export function Sidebar(props: Props) {
     const nextNotes = setStability(scene.notes ?? "", mode);
     onUpdateScene({ ...scene, notes: nextNotes });
     showToast(
-      mode === "on"
-        ? lang === "zh"
-          ? "画面稳定：开（只追加尾部规则）"
-          : "Stability: ON (tail safeguards only)"
-        : lang === "zh"
-          ? "画面稳定：关"
-          : "Stability: OFF"
+      mode === "strict"
+        ? tt("sidebar.constraintToastStrict")
+        : mode === "standard"
+          ? tt("sidebar.constraintToastStandard")
+          : tt("sidebar.constraintToastOff")
     );
   }
 
@@ -220,13 +294,16 @@ export function Sidebar(props: Props) {
     setNewScene({
       open: true,
       mode: "image", // ✅ default image
+      genMode: "quick",
       name: suggested,
       duration_s: "6"
     });
+    setShowGenHint(false);
   }
 
   function cancelAddScenePanel() {
     setNewScene((s) => ({ ...s, open: false }));
+    setShowGenHint(false);
   }
 
   function confirmAddScene() {
@@ -235,6 +312,7 @@ export function Sidebar(props: Props) {
     const fallbackName = nextSceneDefaultName(lang, scenes);
     const name = (newScene.name ?? "").trim() || fallbackName;
     const mode: MediaMode = newScene.mode;
+    const genMode: GenMode = newScene.genMode;
 
     // ✅ keep data stable: even image keeps duration_s in data, but UI badge won't show it
     const duration_s = mode === "video" ? Math.max(0, Math.round(Number(newScene.duration_s) || 0)) : 6;
@@ -253,7 +331,7 @@ export function Sidebar(props: Props) {
       } as any,
       lighting: { time: "", key_dir: "", mood: "" } as any,
       layers: [],
-      notes: setMedia("", mode) // ✅ explicit marker for new scenes
+      notes: setGenMode(setMedia("", mode), genMode) // ✅ explicit markers for new scenes
     };
 
     const next: Project = { ...project, scenes: [...scenes, newSceneObj] };
@@ -262,12 +340,14 @@ export function Sidebar(props: Props) {
     onSelectLayer(null);
 
     setNewScene((s) => ({ ...s, open: false }));
-    showToast(lang === "zh" ? "已创建新分镜" : "Scene created");
+    setShowGenHint(false);
+    showToast(tt("sidebar.sceneCreated"));
   }
 
   // ✅ 修复：删除分镜不用 window.confirm（同样是怪弹窗）
-  function requestDeleteScene(idx: number) {
+  function requestDeleteScene(idx: number, anchorEl: HTMLElement | null) {
     if (scenes.length <= 1) return;
+    deleteHintAnchorRef.current = anchorEl;
     setConfirmDelIdx(idx);
   }
   function doDeleteScene(idx: number) {
@@ -277,12 +357,13 @@ export function Sidebar(props: Props) {
     setSceneIdx(Math.max(0, idx - 1));
     onSelectLayer(null);
     setConfirmDelIdx(null);
-    showToast(lang === "zh" ? "已删除分镜" : "Scene deleted");
+    showFloatingHint(tt("sidebar.sceneDeleted"), deleteHintAnchorRef.current, "danger");
   }
 
   function addLayer() {
     const layers = scene.layers ?? [];
     const id = nextId("obj", (x) => layers.some((l) => l.id === x));
+    const spawn = suggestSpawnKf(layers);
 
     // ✅ 优化：新增对象默认“未填写”，避免给模型不必要的先验（比如默认 character）
     const newLayer: Layer = {
@@ -294,8 +375,10 @@ export function Sidebar(props: Props) {
       z: layers.length ? Math.max(...layers.map((l) => l.z)) + 1 : 10,
       color: "#b7c3ff",
       opacity: 1,
-      kf: [{ t: 0, x: 50, y: 50, w: 18, h: 18, rot: 0 }],
-      notes: ""
+      kf: [{ t: 0, x: spawn.x, y: spawn.y, w: spawn.w, h: spawn.h, rot: 0 }],
+      notes: "",
+      externalPrompt: "",
+      referenceLinks: ""
     };
 
     onUpdateScene({ ...scene, layers: [...layers, newLayer] });
@@ -309,12 +392,12 @@ export function Sidebar(props: Props) {
     const layers = scene.layers ?? [];
     onUpdateScene({ ...scene, layers: layers.filter((l) => l.id !== layerId) });
     if (selectedLayerId === layerId) onSelectLayer(null);
-    showToast(lang === "zh" ? "已删除对象" : "Object deleted");
+    showToast(tt("sidebar.objectDeleted"));
   }
 
   const shotOptions = useMemo(
     () => [
-      { v: "", label: lang === "zh" ? "（未选择）" : "(unset)" },
+      { v: "", label: tt("sidebar.unset") },
       { v: "wide", label: tt("opt.wide") },
       { v: "medium", label: tt("opt.medium") },
       { v: "close", label: tt("opt.close") },
@@ -326,7 +409,7 @@ export function Sidebar(props: Props) {
   );
   const moveOptions = useMemo(
     () => [
-      { v: "", label: lang === "zh" ? "（未选择）" : "(unset)" },
+      { v: "", label: tt("sidebar.unset") },
       { v: "static", label: tt("opt.static") },
       { v: "slow_push_in", label: tt("opt.slow_push_in") },
       { v: "slow_pull_out", label: tt("opt.slow_pull_out") },
@@ -341,7 +424,7 @@ export function Sidebar(props: Props) {
   );
   const timeOptions = useMemo(
     () => [
-      { v: "", label: lang === "zh" ? "（未选择）" : "(unset)" },
+      { v: "", label: tt("sidebar.unset") },
       { v: "day", label: tt("opt.day") },
       { v: "dawn", label: tt("opt.dawn") },
       { v: "sunset", label: tt("opt.sunset") },
@@ -353,7 +436,7 @@ export function Sidebar(props: Props) {
   );
   const dirOptions = useMemo(
     () => [
-      { v: "", label: lang === "zh" ? "（未选择）" : "(unset)" },
+      { v: "", label: tt("sidebar.unset") },
       { v: "top_left", label: tt("opt.top_left") },
       { v: "top_right", label: tt("opt.top_right") },
       { v: "bottom_left", label: tt("opt.bottom_left") },
@@ -365,7 +448,7 @@ export function Sidebar(props: Props) {
   );
   const moodOptions = useMemo(
     () => [
-      { v: "", label: lang === "zh" ? "（未选择）" : "(unset)" },
+      { v: "", label: tt("sidebar.unset") },
       { v: "cinematic", label: tt("opt.cinematic") },
       { v: "mysterious", label: tt("opt.mysterious") },
       { v: "bright", label: tt("opt.bright") },
@@ -381,6 +464,18 @@ export function Sidebar(props: Props) {
     <div style={styles.wrap}>
       {/* ✅ toast */}
       {toastText ? <div style={styles.toast}>{toastText}</div> : null}
+      {floatingHint ? (
+        <div
+          style={{
+            ...styles.floatingHint,
+            ...(floatingHint.tone === "danger" ? styles.floatingHintDanger : styles.floatingHintInfo),
+            top: floatingHint.top,
+            left: floatingHint.left
+          }}
+        >
+          {floatingHint.text}
+        </div>
+      ) : null}
 
       {/* ✅ confirm modal (for delete scene) */}
       {confirmDelIdx != null ? (
@@ -396,13 +491,13 @@ export function Sidebar(props: Props) {
               e.stopPropagation();
             }}
           >
-            <div style={styles.modalTitle}>{lang === "zh" ? "删除分镜" : "Delete Scene"}</div>
+            <div style={styles.modalTitle}>{tt("sidebar.deleteScene")}</div>
             <div style={styles.modalText}>
-              {lang === "zh" ? "确认删除这个分镜吗？（无法撤销）" : "Delete this scene? (Cannot be undone)"}
+              {tt("sidebar.deleteConfirm")}
             </div>
             <div style={styles.modalBtns}>
               <button type="button" style={styles.btnGhost} onMouseDown={(e) => e.preventDefault()} onClick={() => setConfirmDelIdx(null)}>
-                {lang === "zh" ? "取消" : "Cancel"}
+                {tt("sidebar.cancel")}
               </button>
               <button
                 type="button"
@@ -410,7 +505,124 @@ export function Sidebar(props: Props) {
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => doDeleteScene(confirmDelIdx)}
               >
-                {lang === "zh" ? "删除" : "Delete"}
+                {tt("sidebar.delete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ✅ create scene modal */}
+      {newScene.open ? (
+        <div
+          style={styles.modalMask}
+          role="presentation"
+          onMouseDown={() => cancelAddScenePanel()}
+        >
+          <div
+            style={styles.modal}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <div style={styles.modalTitle}>{tt("sidebar.createScene")}</div>
+
+            <div style={styles.addRow}>
+              <div style={styles.addLabel}>{tt("sidebar.type")}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, flex: 1 }}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setNewScene((s) => ({ ...s, mode: "image" }))}
+                  style={{ ...styles.mediaBtn, ...(newScene.mode === "image" ? styles.mediaBtnOn : {}) }}
+                >
+                  {tt("sidebar.image")}
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setNewScene((s) => ({ ...s, mode: "video" }))}
+                  style={{ ...styles.mediaBtn, ...(newScene.mode === "video" ? styles.mediaBtnOn : {}) }}
+                >
+                  {tt("sidebar.video")}
+                </button>
+              </div>
+            </div>
+
+            <div style={styles.addRow}>
+              <div style={styles.addLabel}>{tt("sidebar.mode")}</div>
+              <div style={styles.genModeRow}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setNewScene((s) => ({ ...s, genMode: "quick" }))}
+                  style={{ ...styles.mediaBtn, ...(newScene.genMode === "quick" ? styles.mediaBtnOn : {}) }}
+                >
+                  {tt("sidebar.quick")}
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setNewScene((s) => ({ ...s, genMode: "pro" }))}
+                  style={{ ...styles.mediaBtn, ...(newScene.genMode === "pro" ? styles.mediaBtnOn : {}) }}
+                >
+                  PRO
+                </button>
+                <button
+                  type="button"
+                  style={styles.qBtn}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setShowGenHint((v) => !v)}
+                  title={tt("sidebar.showModeDiff")}
+                >
+                  ?
+                </button>
+              </div>
+            </div>
+            {showGenHint ? (
+              <div style={styles.genHintFloat}>
+                {tt("sidebar.modeDiffHint")}
+              </div>
+            ) : null}
+
+            <div style={styles.addRow}>
+              <div style={styles.addLabel}>{tt("sidebar.name")}</div>
+              <input
+                value={newScene.name}
+                onChange={(e) => setNewScene((s) => ({ ...s, name: e.target.value }))}
+                style={styles.addInput}
+                placeholder={tt("sidebar.namePlaceholder")}
+              />
+            </div>
+
+            <div style={{ ...styles.addRow, visibility: newScene.mode === "video" ? "visible" : "hidden" }}>
+              <div style={styles.addLabel}>{tt("sidebar.seconds")}</div>
+              <input
+                value={newScene.duration_s}
+                onChange={(e) => setNewScene((s) => ({ ...s, duration_s: e.target.value }))}
+                style={styles.addInputSmall}
+                inputMode="numeric"
+                disabled={newScene.mode !== "video"}
+              />
+            </div>
+
+            <div style={styles.modalBtns}>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={cancelAddScenePanel}
+                style={styles.btnGhost}
+              >
+                {tt("sidebar.cancel")}
+              </button>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={confirmAddScene}
+                style={styles.btnPrimary}
+              >
+                {tt("sidebar.create")}
               </button>
             </div>
           </div>
@@ -423,32 +635,22 @@ export function Sidebar(props: Props) {
         <div style={styles.mediaRow}>
           <button
             type="button"
-            tabIndex={-1}
-            onFocus={killFocus}
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => commitMediaMode("image")}
+            onClick={(e) => commitMediaMode("image", e.currentTarget as HTMLElement)}
             style={{ ...styles.mediaBtn, ...(mediaMode === "image" ? styles.mediaBtnOn : {}) }}
-            title={lang === "zh" ? "图片模式：仅 T0（可随时切换）" : "Image mode: T0 only (switch anytime)"}
+            title={tt("sidebar.imageModeHint")}
           >
-            {lang === "zh" ? "图片" : "Image"}
+            {tt("sidebar.image")}
           </button>
           <button
             type="button"
-            tabIndex={-1}
-            onFocus={killFocus}
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => commitMediaMode("video")}
+            onClick={(e) => commitMediaMode("video", e.currentTarget as HTMLElement)}
             style={{ ...styles.mediaBtn, ...(mediaMode === "video" ? styles.mediaBtnOn : {}) }}
-            title={lang === "zh" ? "视频模式：T0/T1（可随时切换）" : "Video mode: T0/T1 (switch anytime)"}
+            title={tt("sidebar.videoModeHint")}
           >
-            {lang === "zh" ? "视频" : "Video"}
+            {tt("sidebar.video")}
           </button>
-        </div>
-
-        <div style={styles.mediaHint}>
-          {lang === "zh"
-            ? "提示词末尾会自动追加“机器语言坐标解释”（灰字显示，可忽略）。"
-            : "A muted “machine-notes coordinate guide” will be appended at the end of the prompt (safe to ignore)."}
         </div>
 
         <div style={styles.sectionHead}>
@@ -456,8 +658,6 @@ export function Sidebar(props: Props) {
           <div style={{ flex: 1 }} />
           <button
             type="button"
-            tabIndex={-1}
-            onFocus={killFocus}
             style={styles.iconBtn}
             onMouseDown={(e) => e.preventDefault()}
             onClick={openAddScenePanel}
@@ -467,87 +667,12 @@ export function Sidebar(props: Props) {
           </button>
         </div>
 
-        {/* ✅ NEW: mini add panel */}
-        {newScene.open ? (
-          <div style={styles.addCard}>
-            <div style={styles.addRow}>
-              <div style={styles.addLabel}>{lang === "zh" ? "类型" : "Type"}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, flex: 1 }}>
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  onFocus={killFocus}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setNewScene((s) => ({ ...s, mode: "image" }))}
-                  style={{ ...styles.mediaBtn, ...(newScene.mode === "image" ? styles.mediaBtnOn : {}) }}
-                >
-                  {lang === "zh" ? "图片" : "Image"}
-                </button>
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  onFocus={killFocus}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setNewScene((s) => ({ ...s, mode: "video" }))}
-                  style={{ ...styles.mediaBtn, ...(newScene.mode === "video" ? styles.mediaBtnOn : {}) }}
-                >
-                  {lang === "zh" ? "视频" : "Video"}
-                </button>
-              </div>
-            </div>
-
-            <div style={styles.addRow}>
-              <div style={styles.addLabel}>{lang === "zh" ? "名称" : "Name"}</div>
-              <input
-                value={newScene.name}
-                onChange={(e) => setNewScene((s) => ({ ...s, name: e.target.value }))}
-                style={styles.addInput}
-                placeholder={lang === "zh" ? "例如：三位美女" : "e.g. Three women"}
-              />
-            </div>
-
-            {newScene.mode === "video" ? (
-              <div style={styles.addRow}>
-                <div style={styles.addLabel}>{lang === "zh" ? "秒数" : "Seconds"}</div>
-                <input
-                  value={newScene.duration_s}
-                  onChange={(e) => setNewScene((s) => ({ ...s, duration_s: e.target.value }))}
-                  style={styles.addInputSmall}
-                  inputMode="numeric"
-                />
-              </div>
-            ) : null}
-
-            <div style={styles.addActions}>
-              <button
-                type="button"
-                tabIndex={-1}
-                onFocus={killFocus}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={cancelAddScenePanel}
-                style={styles.btnGhost}
-              >
-                {lang === "zh" ? "取消" : "Cancel"}
-              </button>
-              <button
-                type="button"
-                tabIndex={-1}
-                onFocus={killFocus}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={confirmAddScene}
-                style={styles.btnPrimary}
-              >
-                {lang === "zh" ? "创建" : "Create"}
-              </button>
-            </div>
-          </div>
-        ) : null}
-
         <div style={styles.list}>
           {scenes.map((s, i) => {
             const isOn = i === safeIdx;
             const mode = parseMedia(s.notes ?? "");
-            const badgeText = mode === "image" ? (lang === "zh" ? "图片" : "IMG") : fmtDuration(lang, s.duration_s);
+            const genMode = parseGenMode(s.notes ?? "");
+            const badgeText = mode === "image" ? tt("sidebar.image") : fmtDuration(lang, s.duration_s);
 
             return (
               <div key={s.id} style={styles.itemRowWrap}>
@@ -590,7 +715,7 @@ export function Sidebar(props: Props) {
                           setEditingSceneId(s.id);
                           setSceneNameDraft(s.name ?? "");
                         }}
-                        title={lang === "zh" ? "双击改名" : "Double-click to rename"}
+                        title={tt("sidebar.renameHint")}
                       >
                         {s.name ?? s.id}
                       </div>
@@ -625,26 +750,27 @@ export function Sidebar(props: Props) {
                             setEditingDurSceneId(s.id);
                             setDurDraft(String(Math.max(0, Math.round(Number(s.duration_s) || 0))));
                           }}
-                          title={lang === "zh" ? "点击修改秒数" : "Click to edit duration"}
+                          title={tt("sidebar.editDuration")}
                         >
                           {badgeText}
                         </div>
                       )
                     ) : (
-                      <div style={{ ...styles.badgeBtn, opacity: 0.78 }} title={lang === "zh" ? "图片分镜" : "Image scene"}>
+                      <div style={{ ...styles.badgeBtn, opacity: 0.78 }} title={tt("sidebar.imageScene")}>
                         {badgeText}
                       </div>
                     )}
+                    <div style={{ ...styles.badgeBtn, opacity: 0.78 }} title={tt("sidebar.generationMode")}>
+                      {genMode === "pro" ? "PRO" : tt("sidebar.quick")}
+                    </div>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  tabIndex={-1}
-                  onFocus={killFocus}
                   style={styles.iconBtnDanger}
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => requestDeleteScene(i)}
+                  onClick={(e) => requestDeleteScene(i, e.currentTarget as HTMLElement)}
                   title={tt("sidebar.deleteScene")}
                   disabled={scenes.length <= 1}
                 >
@@ -659,12 +785,10 @@ export function Sidebar(props: Props) {
       {/* Objects */}
       <div style={styles.section}>
         <div style={styles.sectionHead}>
-          <div style={styles.sectionTitle}>{lang === "zh" ? "对象" : "Objects"}</div>
+          <div style={styles.sectionTitle}>{tt("sidebar.layers")}</div>
           <div style={{ flex: 1 }} />
           <button
             type="button"
-            tabIndex={-1}
-            onFocus={killFocus}
             style={styles.iconBtn}
             onMouseDown={(e) => e.preventDefault()}
             onClick={addLayer}
@@ -716,7 +840,7 @@ export function Sidebar(props: Props) {
                             setEditingLayerId(l.id);
                             setLayerIdDraft(l.id);
                           }}
-                          title={lang === "zh" ? "双击改名" : "Double-click to rename"}
+                          title={tt("sidebar.renameHint")}
                         >
                           {l.id}
                         </div>
@@ -727,8 +851,6 @@ export function Sidebar(props: Props) {
 
                   <button
                     type="button"
-                    tabIndex={-1}
-                    onFocus={killFocus}
                     style={styles.iconBtnDanger}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => deleteLayer(l.id)}
@@ -740,35 +862,25 @@ export function Sidebar(props: Props) {
               );
             })}
         </div>
+
       </div>
 
       {/* Stability */}
       <div style={styles.section}>
         <div style={styles.sectionHead}>
-          <div style={styles.sectionTitle}>{lang === "zh" ? "生成稳定" : "Stability"}</div>
-          <div style={{ flex: 1 }} />
-          <button
-            type="button"
-            tabIndex={-1}
-            onFocus={killFocus}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => commitStabilityMode(stabilityOn ? "off" : "on")}
-            style={{ ...styles.mediaBtn, ...(stabilityOn ? styles.mediaBtnOn : {}) }}
-            title={
-              lang === "zh"
-                ? "默认开启：仅在提示词末尾追加稳定规则（不改坐标/镜头/时间）"
-                : "Default ON: append tail safeguards only (no coord/camera/time edits)"
-            }
-          >
-            {lang === "zh" ? (stabilityOn ? "画面稳定：开" : "画面稳定：关") : stabilityOn ? "Stability: ON" : "Stability: OFF"}
-          </button>
+          <div style={styles.sectionTitle}>{tt("sidebar.constraintTitle")}</div>
         </div>
 
-        <div style={styles.mediaHint}>
-          {lang === "zh"
-            ? "仅在提示词末尾追加“系统稳定规则”，不修改坐标/镜头/时间/风格。"
-            : "Adds only end-of-prompt safeguards; never edits coords/camera/time/style."}
+        <div style={styles.formRow}>
+          <div style={styles.formLabel}>{tt("sidebar.constraintField")}</div>
+          <select value={stabilityMode} onChange={(e) => commitStabilityMode(e.target.value as StabilityMode)} style={styles.select}>
+            <option value="off">{tt("sidebar.constraintOff")}</option>
+            <option value="standard">{tt("sidebar.constraintStandard")}</option>
+            <option value="strict">{tt("sidebar.constraintStrict")}</option>
+          </select>
         </div>
+
+        <div style={styles.mediaHint}>{tt("sidebar.constraintHint")}</div>
       </div>
 
       {/* Camera + Lighting */}
@@ -896,6 +1008,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     padding: "0 2px 10px 2px"
   },
+  profileHint: {
+    fontSize: 11,
+    lineHeight: 1.35,
+    opacity: 0.68,
+    fontWeight: 800,
+    padding: "0 2px 6px 2px"
+  },
 
   mediaBtn: {
     height: 36,
@@ -928,8 +1047,8 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     gap: 8
   },
-  addRow: { display: "flex", alignItems: "center", gap: 10 },
-  addLabel: { width: 56, fontSize: 11, opacity: 0.75, fontWeight: 900 },
+  addRow: { display: "flex", alignItems: "center", gap: 12, minHeight: 40 },
+  addLabel: { width: 64, fontSize: 11, opacity: 0.75, fontWeight: 900 },
   addInput: {
     flex: 1,
     height: 34,
@@ -956,6 +1075,28 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign: "right"
   },
   addActions: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 },
+  genModeRow: { display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 8, flex: 1, alignItems: "center" },
+  qBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.04)",
+    color: "inherit",
+    fontWeight: 900,
+    cursor: "pointer",
+    outline: "none"
+  },
+  genHintFloat: {
+    fontSize: 11,
+    lineHeight: 1.35,
+    border: "1px solid rgba(255,255,255,0.10)",
+    borderRadius: 10,
+    background: "rgba(0,0,0,0.18)",
+    padding: "8px 10px",
+    opacity: 0.78,
+    marginTop: 0
+  },
   btnGhost: {
     padding: "6px 10px",
     borderRadius: 10,
@@ -1130,6 +1271,28 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     opacity: 0.92
   },
+  floatingHint: {
+    position: "fixed",
+    zIndex: 120,
+    transform: "translateX(-50%)",
+    padding: "7px 10px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.14)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+    fontSize: 12,
+    fontWeight: 900,
+    pointerEvents: "none",
+    backdropFilter: "blur(4px)"
+  },
+  floatingHintInfo: {
+    background: "rgba(15,20,35,0.94)",
+    color: "rgba(255,255,255,0.95)"
+  },
+  floatingHintDanger: {
+    background: "rgba(55,20,20,0.95)",
+    border: "1px solid rgba(255,120,120,0.45)",
+    color: "rgba(255,235,235,0.96)"
+  },
 
   // ✅ confirm modal
   modalMask: {
@@ -1149,9 +1312,12 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(255,255,255,0.12)",
     background: "rgba(15,20,35,0.96)",
     boxShadow: "0 18px 60px rgba(0,0,0,0.45)",
-    padding: 14
+    padding: 18,
+    display: "flex",
+    flexDirection: "column",
+    gap: 12
   },
   modalTitle: { fontWeight: 900, fontSize: 14, opacity: 0.95 },
-  modalText: { marginTop: 8, fontSize: 12, opacity: 0.82, lineHeight: 1.6 },
-  modalBtns: { display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", marginTop: 12 }
+  modalText: { marginTop: 0, fontSize: 12, opacity: 0.82, lineHeight: 1.6 },
+  modalBtns: { display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", marginTop: 2 }
 };

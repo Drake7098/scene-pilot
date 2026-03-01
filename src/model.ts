@@ -34,6 +34,8 @@ export type Layer = {
   opacity: number;
   kf: LayerKF[];
   notes: string;
+  externalPrompt: string;
+  referenceLinks: string;
 };
 
 export type Camera = {
@@ -139,6 +141,8 @@ export function sanitizeProject(p: Project): Project {
       l.look = (l as any).look ?? "";
       l.color = (l as any).color ?? "#b7c3ff";
       l.notes = (l as any).notes ?? "";
+      l.externalPrompt = (l as any).externalPrompt ?? "";
+      l.referenceLinks = (l as any).referenceLinks ?? "";
       l.type = (l as any).type ?? "";
       l.shape = ((l as any).shape ?? "rect") as Shape;
 
@@ -200,7 +204,9 @@ export function defaultProject(): Project {
               { t: 0, x: 58, y: 55, w: 26, h: 18, rot: 12 },
               { t: 1, x: 58, y: 55, w: 26, h: 18, rot: 12 }
             ],
-            notes: ""
+            notes: "",
+            externalPrompt: "",
+            referenceLinks: ""
           }
         ],
         notes: ""

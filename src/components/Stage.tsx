@@ -309,6 +309,12 @@ export function Stage({
               />
               <circle cx={selK0.x} cy={selK0.y} r="0.9" fill="rgba(120,180,255,0.92)" />
               <circle cx={selK1.x} cy={selK1.y} r="0.9" fill="rgba(255,255,255,0.85)" />
+              <text x={selK0.x + 1.2} y={selK0.y - 1} fontSize="2.4" fill="rgba(120,180,255,0.95)" fontWeight="700">
+                t0
+              </text>
+              <text x={selK1.x + 1.2} y={selK1.y - 1} fontSize="2.4" fill="rgba(255,255,255,0.9)" fontWeight="700">
+                t1
+              </text>
             </svg>
           )}
 
@@ -323,6 +329,14 @@ export function Stage({
             const k = getKFDisplay(layer, tForRender);
             const left = k.x - k.w / 2;
             const top = k.y - k.h / 2;
+            const accent = pickLayerAccent(layer.id);
+            const layerType = (layer.type ?? "").trim();
+            const lookSnippet = (layer.look ?? "").trim();
+            const hint = isSelected
+              ? isImageMode
+                ? "拖拽移动 · 角点拉伸 · Shift 等比 · Alt 中心缩放"
+                : "拖拽移动 · 角点拉伸 · Shift 等比 · Alt 中心缩放 · 按 t0/t1 设轨迹"
+              : "";
 
             return (
               <div
@@ -335,20 +349,34 @@ export function Stage({
                   height: `${k.h}%`,
                   transform: `rotate(${k.rot || 0}deg)`,
                   opacity: clamp01(layer.opacity),
-                  background: layer.shape === "ring" ? "transparent" : layer.color,
+                  background:
+                    layer.shape === "ring"
+                      ? "transparent"
+                      : `linear-gradient(160deg, ${withAlpha(accent, isSelected ? 0.22 : 0.12)}, rgba(8,10,18,0.08))`,
                   border:
                     layer.shape === "ring"
-                      ? `3px solid ${layer.color}`
+                      ? `3px solid ${accent}`
                       : isSelected
-                        ? "2px solid rgba(120,180,255,0.9)"
-                        : "1px solid rgba(255,255,255,0.20)",
-                  outline: isSelected ? "2px solid rgba(120,180,255,0.35)" : "none"
+                        ? `2px solid ${withAlpha(accent, 0.98)}`
+                        : `1px solid ${withAlpha(accent, 0.72)}`,
+                  outline: isSelected ? `2px solid ${withAlpha(accent, 0.38)}` : "none",
+                  boxShadow: isSelected
+                    ? `0 0 0 1px ${withAlpha(accent, 0.32)} inset, 0 8px 24px ${withAlpha(accent, 0.28)}`
+                    : `0 0 0 1px ${withAlpha(accent, 0.18)} inset`
                 }}
                 onPointerDown={(e) => onPointerDownLayer(e, layer)}
               >
                 <div style={styles.label} title={layer.id}>
-                  {layer.id} {isSelected ? (isImageMode ? "· t0" : editT === 0 ? "· t0" : "· t1") : ""}
+                  <span style={styles.labelTitle}>{layer.id}</span>
+                  {layerType ? <span style={styles.labelType}>{layerType}</span> : null}
+                  {isSelected ? <span style={styles.labelTag}>{isImageMode ? "t0" : editT === 0 ? "t0" : "t1"}</span> : null}
                 </div>
+                {lookSnippet ? (
+                  <div style={styles.metaLine} title={lookSnippet}>
+                    {lookSnippet}
+                  </div>
+                ) : null}
+                {isSelected ? <div style={styles.helperLine}>{hint}</div> : null}
 
                 {isSelected && (
                   <>
@@ -399,6 +427,25 @@ const posStyle: Record<string, React.CSSProperties> = {
 function clamp01(v: number) {
   return Math.max(0, Math.min(1, v));
 }
+function hashText(input: string): number {
+  let h = 0;
+  for (let i = 0; i < input.length; i++) h = (h * 31 + input.charCodeAt(i)) >>> 0;
+  return h;
+}
+function pickLayerAccent(layerId: string): string {
+  const palette = ["#5cb6ff", "#39d39f", "#ffb453", "#ff7a8a", "#9f86ff", "#4dd0e1", "#ffd166"];
+  const idx = hashText(layerId || "obj") % palette.length;
+  return palette[idx];
+}
+function withAlpha(hex: string, alpha: number): string {
+  const a = Math.max(0, Math.min(1, alpha));
+  const n = hex.replace("#", "");
+  const full = n.length === 3 ? n.split("").map((x) => x + x).join("") : n.padEnd(6, "0").slice(0, 6);
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
 }
@@ -446,24 +493,74 @@ const styles: Record<string, React.CSSProperties> = {
     pointerEvents: "none"
   },
 
-  obj: { position: "absolute", borderRadius: 14 },
+  obj: { position: "absolute", borderRadius: 14, overflow: "hidden" },
 
   label: {
     position: "absolute",
-    left: 6,
-    top: 6,
-    maxWidth: "80%",
-    padding: "2px 6px",
+    left: 8,
+    right: 8,
+    top: 8,
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    maxWidth: "calc(100% - 16px)",
+    padding: "3px 7px",
     fontSize: 11,
     fontWeight: 900,
-    borderRadius: 999,
-    background: "rgba(0,0,0,0.55)",
-    border: "1px solid rgba(255,255,255,0.18)",
+    borderRadius: 10,
+    background: "rgba(3,6,12,0.62)",
+    border: "1px solid rgba(255,255,255,0.26)",
     color: "rgba(255,255,255,0.92)",
+    pointerEvents: "none",
+    whiteSpace: "nowrap"
+  },
+  labelTitle: {
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis"
+  },
+  labelType: {
+    fontSize: 10,
+    opacity: 0.76,
+    whiteSpace: "nowrap"
+  },
+  labelTag: {
+    marginLeft: "auto",
+    fontSize: 10,
+    fontWeight: 900,
+    borderRadius: 999,
+    padding: "1px 6px",
+    border: "1px solid rgba(255,255,255,0.30)",
+    background: "rgba(255,255,255,0.14)"
+  },
+  metaLine: {
+    position: "absolute",
+    left: 8,
+    right: 8,
+    top: 34,
+    fontSize: 10,
+    lineHeight: 1.25,
+    color: "rgba(255,255,255,0.84)",
+    textShadow: "0 1px 2px rgba(0,0,0,0.35)",
     pointerEvents: "none",
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis"
+  },
+  helperLine: {
+    position: "absolute",
+    left: 8,
+    right: 8,
+    bottom: 8,
+    fontSize: 10,
+    lineHeight: 1.25,
+    color: "rgba(255,255,255,0.88)",
+    background: "rgba(0,0,0,0.44)",
+    border: "1px solid rgba(255,255,255,0.18)",
+    borderRadius: 8,
+    padding: "4px 6px",
+    pointerEvents: "none",
+    whiteSpace: "normal"
   },
 
   handle: {

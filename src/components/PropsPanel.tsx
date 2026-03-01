@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
 import type { Scene, Layer, LayerKF } from "../model";
@@ -63,10 +63,6 @@ function isComposing(e: any) {
   return !!e?.nativeEvent?.isComposing;
 }
 
-function killFocus(e: React.FocusEvent<HTMLElement>) {
-  (e.currentTarget as HTMLElement).blur();
-}
-
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
 }
@@ -128,10 +124,66 @@ function removeLine(lines: string[], line: string) {
 // ---------- UI helpers ----------
 const CUSTOM = "__custom__";
 const NOTES_PASTE = "__paste__";
+const GLOBAL_SCOPE_PATTERNS: Array<{ re: RegExp; tag: string }> = [
+  { re: /\b(camera|lens|shot|framing|composition|global)\b/i, tag: "camera/global" },
+  { re: /\b(add|insert|extra|new)\s+(person|people|character|object|subject)s?\b/i, tag: "add-object" },
+  { re: /\b(all objects|all subjects|entire scene|whole scene|full frame)\b/i, tag: "whole-scene" },
+  { re: /\b(style of all|global style|unified style|overall style)\b/i, tag: "global-style" },
+  { re: /(镜头|全局|整幅|全画面|全场景|新增人物|新增对象|统一风格)/, tag: "全局词" }
+];
 
 function isCelestialHint(layerId: string) {
   const id = (layerId ?? "").toLowerCase();
   return id.includes("earth") || id.includes("moon") || id.includes("地球") || id.includes("月球");
+}
+
+function detectGlobalScopeTags(text: string): string[] {
+  const s = (text ?? "").trim();
+  if (!s) return [];
+  const hit = new Set<string>();
+  for (const rule of GLOBAL_SCOPE_PATTERNS) {
+    if (rule.re.test(s)) hit.add(rule.tag);
+  }
+  return Array.from(hit);
+}
+
+function extractTaggedValue(text: string, keys: string[]): string {
+  const lines = (text ?? "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  for (const line of lines) {
+    for (const k of keys) {
+      const re = new RegExp(`^${k}\\s*[:：]\\s*(.+)$`, "i");
+      const m = line.match(re);
+      if (m?.[1]) return m[1].trim();
+    }
+  }
+  return "";
+}
+
+function replaceTaggedLines(base: string, nextTaggedLines: string[]): string {
+  const lines = (base ?? "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const drop = /^(material|材质|local_action|action|局部动作|local_avoid|avoid|局部禁令)\s*[:：]/i;
+  const kept = lines.filter((l) => !drop.test(l));
+  const next = [...kept, ...nextTaggedLines].filter(Boolean);
+  return next.join("\n");
+}
+
+function buildTemplateTaggedLines(
+  lang: Lang,
+  localMaterial: string,
+  localAction: string,
+  localAvoid: string
+): string[] {
+  const lines: string[] = [];
+  if (localMaterial.trim()) lines.push(lang === "zh" ? `材质: ${localMaterial.trim()}` : `Material: ${localMaterial.trim()}`);
+  if (localAction.trim()) lines.push(lang === "zh" ? `局部动作: ${localAction.trim()}` : `Local_Action: ${localAction.trim()}`);
+  if (localAvoid.trim()) lines.push(lang === "zh" ? `局部禁令: ${localAvoid.trim()}` : `Local_Avoid: ${localAvoid.trim()}`);
+  return lines;
 }
 
 // ---------- Type-aware presets (核心改动：避免冲突/歧义) ----------
@@ -171,29 +223,67 @@ function buildLookPresets(lang: Lang, typeKey: TypeKey) {
   ];
 
   const sciFiMetal = [
-    { value: "metallic, detailed panels, cinematic", label: zh ? "金属细节 / 电影感" : "Metallic detail / cinematic" },
-    { value: "photorealistic, hard sci-fi, high detail", label: zh ? "写实硬科幻 / 高细节" : "Photoreal hard-SF / high detail" },
-    { value: "cyberpunk, neon accents, gritty", label: zh ? "赛博朋克 / 霓虹点缀" : "Cyberpunk / neon accents" },
-    { value: "dark, mysterious, powerful", label: zh ? "暗黑神秘 / 强大感" : "Dark / mysterious / powerful" }
+    {
+      value: "metallic materials, brushed panels, industrial wear, realistic reflections",
+      label: zh ? "金属工业质感（拉丝面板/真实反射）" : "Metal-industrial (brushed panels / realistic reflections)"
+    },
+    {
+      value: "photoreal hard sci-fi, physically based materials, dense micro details",
+      label: zh ? "写实硬科幻（PBR 材质/微细节）" : "Photoreal hard-SF (PBR materials / micro detail)"
+    },
+    {
+      value: "cyberpunk style, neon accents, wet surfaces, gritty texture",
+      label: zh ? "赛博霓虹（潮湿表面/粗粝纹理）" : "Cyberpunk neon (wet surfaces / gritty texture)"
+    },
+    {
+      value: "low-key dramatic lighting, deep contrast, powerful mood, visible details",
+      label: zh ? "低调戏剧光（高反差但保留细节）" : "Low-key dramatic (high contrast with detail)"
+    }
   ];
 
   const celestial = [
-    { value: "photorealistic, atmospheric scattering, limb glow, high dynamic range", label: zh ? "写实天体 / 边缘辉光 HDR" : "Photoreal celestial / limb glow HDR" },
-    { value: "cold tone, crisp terminator line, subtle haze", label: zh ? "冷色调 / 明确明暗交界" : "Cold tone / crisp terminator" }
+    {
+      value: "photoreal celestial body, atmospheric scattering, limb glow, high dynamic range",
+      label: zh ? "写实天体（大气散射/边缘辉光）" : "Photoreal celestial (scattering / limb glow)"
+    },
+    {
+      value: "cold color temperature, crisp terminator boundary, subtle space haze",
+      label: zh ? "冷色天体（清晰明暗界线）" : "Cold celestial (crisp terminator boundary)"
+    }
   ];
 
   const character = [
-    { value: "photorealistic, natural skin, detailed face, realistic proportions", label: zh ? "写实人物 / 自然皮肤" : "Photoreal character / natural skin" },
-    { value: "cinematic portrait lighting, shallow depth of field, detailed eyes", label: zh ? "电影肖像光 / 浅景深" : "Cinematic portrait / shallow DOF" },
-    { value: "stylized but grounded, clean design, consistent features", label: zh ? "风格化但可信 / 特征一致" : "Stylized but grounded / consistent features" }
+    {
+      value: "photoreal character, natural skin texture, realistic anatomy and proportions",
+      label: zh ? "写实人物（自然皮肤/真实比例）" : "Photoreal character (natural skin / real proportions)"
+    },
+    {
+      value: "cinematic portrait lighting, shallow depth of field, detailed eyes and facial micro details",
+      label: zh ? "电影肖像（浅景深/面部微细节）" : "Cinematic portrait (shallow DOF / facial micro detail)"
+    },
+    {
+      value: "stylized realism, clean design language, consistent identity features",
+      label: zh ? "风格化写实（人设特征一致）" : "Stylized realism (consistent identity features)"
+    }
   ];
 
   const env = [
-    { value: "cinematic, volumetric light, rich atmosphere, film still", label: zh ? "电影感 / 体积光氛围" : "Cinematic / volumetric atmosphere" },
-    { value: "documentary, natural light, realistic texture", label: zh ? "纪实自然光 / 真实纹理" : "Documentary natural / realistic texture" }
+    {
+      value: "cinematic environment, volumetric lighting, layered atmosphere, film-still style",
+      label: zh ? "电影环境（体积光/层次氛围）" : "Cinematic environment (volumetric / layered atmosphere)"
+    },
+    {
+      value: "documentary natural lighting, realistic materials, physically plausible textures",
+      label: zh ? "纪实环境（自然光/真实材质）" : "Documentary environment (natural light / real materials)"
+    }
   ];
 
-  const text = [{ value: "clean typography, high legibility, minimal styling", label: zh ? "清晰排版 / 高可读" : "Clean typography / high legibility" }];
+  const text = [
+    {
+      value: "clean typography, strong hierarchy, high legibility, minimal decoration",
+      label: zh ? "文字排版（层级清晰/高可读）" : "Typography (clear hierarchy / high legibility)"
+    }
+  ];
 
   let typed: { value: string; label: string }[] = [];
   if (typeKey === "station" || typeKey === "spacecraft") typed = sciFiMetal;
@@ -212,29 +302,67 @@ function buildShapePresets(lang: Lang, typeKey: TypeKey) {
 
   // ✅ 去掉 silhouette 词：shape 只描述几何/结构，不描述“轮廓化/剪影化”
   const stationShip = [
-    { value: "ring station, modular segments, visible spokes", label: zh ? "环形空间站（模块化/辐条）" : "Ring station (modular / spokes)" },
-    { value: "cylindrical habitat, layered decks, docking ports", label: zh ? "圆柱居住舱（分层甲板）" : "Cylindrical habitat (layered decks)" },
-    { value: "long spacecraft hull, greebles, engine cluster", label: zh ? "长船体（细节结构/引擎组）" : "Long hull (greebles / engines)" }
+    {
+      value: "ring station geometry, modular segments, clear spoke structure",
+      label: zh ? "环形结构（模块分段/辐条清晰）" : "Ring structure (modular segments / clear spokes)"
+    },
+    {
+      value: "cylindrical habitat shape, layered decks, visible docking interfaces",
+      label: zh ? "圆柱结构（分层甲板/对接口）" : "Cylindrical structure (layered decks / docking ports)"
+    },
+    {
+      value: "elongated spacecraft hull silhouette, surface greebles, rear engine cluster",
+      label: zh ? "长船体轮廓（表面细节/尾部引擎组）" : "Long-hull silhouette (surface greebles / rear engines)"
+    }
   ];
 
   const celestial = [
-    { value: "spherical planet, cloud layers, terminator line", label: zh ? "球形行星（云层/明暗界线）" : "Spherical planet (clouds / terminator)" },
-    { value: "crescent moon, cratered surface, rough regolith", label: zh ? "弯月（陨石坑/粗糙月壤）" : "Crescent moon (cratered)" },
-    { value: "partial limb in frame, curvature visible", label: zh ? "画面边缘弧面（只露一部分）" : "Partial limb in frame (curvature)" }
+    {
+      value: "spherical body shape, cloud bands, visible terminator boundary",
+      label: zh ? "球体天体（云层带/明暗边界）" : "Spherical body (cloud bands / terminator boundary)"
+    },
+    {
+      value: "crescent body silhouette, cratered surface, rough regolith texture",
+      label: zh ? "弯月轮廓（陨坑表面/粗糙纹理）" : "Crescent body (cratered surface / rough texture)"
+    },
+    {
+      value: "partial planetary limb in frame, strong curvature cue",
+      label: zh ? "局部弧面入镜（强曲率线索）" : "Partial limb in frame (strong curvature cue)"
+    }
   ];
 
   const character = [
-    { value: "humanoid full body, clear proportions, visible face", label: zh ? "人形全身（比例清晰/可见面部）" : "Humanoid full body (face visible)" },
-    { value: "half body, shoulders and head, clear expression", label: zh ? "半身（肩部以上/表情清晰）" : "Half body (shoulders & head)" },
-    { value: "creature anatomy, readable limbs, non-human traits", label: zh ? "生物体态（肢体清晰/非人特征）" : "Creature anatomy (readable limbs)" }
+    {
+      value: "humanoid full-body framing, clear body proportions, visible face region",
+      label: zh ? "人形全身构图（比例明确/面部可见）" : "Humanoid full-body framing (clear proportions)"
+    },
+    {
+      value: "half-body framing, shoulders and head emphasized, readable expression",
+      label: zh ? "半身构图（肩颈到头部/表情可读）" : "Half-body framing (shoulders + head)"
+    },
+    {
+      value: "creature body plan, readable limbs and joints, non-human morphology",
+      label: zh ? "生物体型（肢体关节清晰/非人形）" : "Creature anatomy (readable limbs / non-human)"
+    }
   ];
 
   const env = [
-    { value: "industrial corridor, pipes, panels, depth layers", label: zh ? "工业走廊（管线/层次深度）" : "Industrial corridor (pipes / depth)" },
-    { value: "rocky terrain, scattered debris, strong scale cues", label: zh ? "岩地/碎石（尺度线索）" : "Rocky terrain (scale cues)" }
+    {
+      value: "industrial corridor structure, pipe networks, panel modules, depth layering",
+      label: zh ? "工业走廊结构（管网/面板模块/纵深）" : "Industrial corridor (pipe network / panel modules)"
+    },
+    {
+      value: "rocky terrain shape, scattered debris clusters, strong scale reference cues",
+      label: zh ? "岩地结构（碎石簇/尺度参照）" : "Rocky terrain (debris clusters / scale cues)"
+    }
   ];
 
-  const text = [{ value: "centered title block, safe margins, clean layout", label: zh ? "标题区块（安全边距/居中）" : "Title block (safe margins)" }];
+  const text = [
+    {
+      value: "title block layout, centered alignment, safe margins, clean composition",
+      label: zh ? "标题版式（居中对齐/安全边距）" : "Title layout (centered / safe margins)"
+    }
+  ];
 
   let typed: { value: string; label: string }[] = [];
   if (typeKey === "station" || typeKey === "spacecraft") typed = stationShip;
@@ -297,11 +425,25 @@ export function PropsPanel(props: Props) {
   const bgPresets = useMemo(
     () => [
       { value: "", label: lang === "zh" ? "（无）" : "(none)" },
-      { value: "deep space, starfield", label: lang === "zh" ? "深空星海" : "Deep space starfield" },
-      { value: "earth in frame, limb glow", label: lang === "zh" ? "地球边缘辉光" : "Earth limb glow" },
-      { value: "moon distant, cold tone", label: lang === "zh" ? "远月冷色调" : "Distant moon, cold tone" },
-      { value: "nebula, volumetric haze", label: lang === "zh" ? "星云体积雾" : "Nebula haze" },
-      { value: "industrial interior, metallic", label: lang === "zh" ? "工业舱内金属" : "Industrial interior" },
+      // common/high-frequency first
+      { value: "plain white seamless backdrop, studio soft light", label: lang === "zh" ? "白底棚拍（柔光无缝背景）" : "White seamless studio backdrop" },
+      { value: "plain black seamless backdrop, controlled rim light", label: lang === "zh" ? "黑底棚拍（轮廓光）" : "Black seamless studio backdrop" },
+      { value: "neutral gray studio backdrop, balanced soft lighting", label: lang === "zh" ? "灰底棚拍（均匀柔光）" : "Gray studio backdrop" },
+      { value: "modern indoor living room, natural window light", label: lang === "zh" ? "现代客厅（自然窗光）" : "Modern living room (natural window light)" },
+      { value: "minimal office interior, clean daylight, tidy desk area", label: lang === "zh" ? "简洁办公室（日光）" : "Minimal office interior (daylight)" },
+      { value: "city street at night, neon signs, wet pavement reflections", label: lang === "zh" ? "夜晚城市街道（霓虹反射）" : "City street at night (neon reflections)" },
+      { value: "urban rooftop skyline at dusk, cinematic atmosphere", label: lang === "zh" ? "黄昏城市天台（天际线）" : "Urban rooftop skyline at dusk" },
+      { value: "industrial interior, metallic structures, depth layers", label: lang === "zh" ? "工业舱内（金属结构）" : "Industrial interior (metal structures)" },
+      { value: "clean futuristic corridor, sci-fi lighting accents", label: lang === "zh" ? "未来科幻走廊（冷色灯带）" : "Futuristic corridor (sci-fi accents)" },
+      { value: "forest clearing, soft volumetric sunlight, natural haze", label: lang === "zh" ? "森林空地（体积阳光）" : "Forest clearing (volumetric sunlight)" },
+      { value: "mountain valley, distant peaks, crisp atmosphere", label: lang === "zh" ? "山谷远山（空气通透）" : "Mountain valley (distant peaks)" },
+      { value: "desert dunes, warm tone, long shadows", label: lang === "zh" ? "沙漠沙丘（暖色长阴影）" : "Desert dunes (warm long shadows)" },
+      { value: "coastal beach, open sky, soft sea haze", label: lang === "zh" ? "海岸沙滩（开阔天空）" : "Coastal beach (open sky)" },
+      { value: "snow field landscape, high albedo, cold atmosphere", label: lang === "zh" ? "雪地场景（冷色高反照）" : "Snow field landscape (cold high albedo)" },
+      { value: "deep space, dense starfield", label: lang === "zh" ? "深空（密集星场）" : "Deep space (dense starfield)" },
+      { value: "earth limb in frame, atmospheric glow", label: lang === "zh" ? "地球弧面（大气辉光）" : "Earth limb (atmospheric glow)" },
+      { value: "distant moon, cold tone", label: lang === "zh" ? "远月背景（冷色调）" : "Distant moon (cold tone)" },
+      { value: "nebula clouds, volumetric cosmic haze", label: lang === "zh" ? "星云背景（体积雾）" : "Nebula background (volumetric haze)" },
       { value: CUSTOM, label: lang === "zh" ? "自定义…" : "Custom…" }
     ],
     [lang]
@@ -356,13 +498,13 @@ export function PropsPanel(props: Props) {
   // -------------------- Type / Look / ShapeDesc: preset + custom --------------------
 const typePresets = useMemo(
   () => [
-    { value: "station", label: lang === "zh" ? "空间站" : "Station" },
-    { value: "spacecraft", label: lang === "zh" ? "飞船" : "Spacecraft" },
-    { value: "planet", label: lang === "zh" ? "行星" : "Planet" },
-    { value: "satellite", label: lang === "zh" ? "卫星" : "Satellite" },
-    { value: "character", label: lang === "zh" ? "人物" : "Character" },
-    { value: "text", label: lang === "zh" ? "文字" : "Text" },
-    { value: "environment", label: lang === "zh" ? "环境" : "Environment" },
+    { value: "station", label: lang === "zh" ? "空间站（大型人造结构）" : "Station (large artificial structure)" },
+    { value: "spacecraft", label: lang === "zh" ? "飞船（可移动载具）" : "Spacecraft (mobile vehicle)" },
+    { value: "planet", label: lang === "zh" ? "行星（自然天体）" : "Planet (natural celestial body)" },
+    { value: "satellite", label: lang === "zh" ? "卫星（月球/人造卫星）" : "Satellite (moon / artificial satellite)" },
+    { value: "character", label: lang === "zh" ? "人物（人形主体）" : "Character (humanoid subject)" },
+    { value: "text", label: lang === "zh" ? "文字（排版元素）" : "Text (typography element)" },
+    { value: "environment", label: lang === "zh" ? "环境（场景主体）" : "Environment (scene-level subject)" },
     { value: CUSTOM, label: lang === "zh" ? "自定义…" : "Custom…" }
   ],
   [lang]
@@ -382,9 +524,17 @@ const typePresets = useMemo(
 
   const [shapeMode, setShapeMode] = useState<string>("");
   const [shapeDraft, setShapeDraft] = useState<string>("");
+  const [externalDraft, setExternalDraft] = useState<string>("");
+  const [refsDraft, setRefsDraft] = useState<string>("");
+  const [localPromptToast, setLocalPromptToast] = useState<string>("");
+  const [localMaterial, setLocalMaterial] = useState<string>("");
+  const [localAction, setLocalAction] = useState<string>("");
+  const [localAvoid, setLocalAvoid] = useState<string>("");
+  const localSyncPauseRef = useRef(false);
 
   React.useEffect(() => {
     if (!layer) return;
+    localSyncPauseRef.current = true;
 
     const tv = (layer.type ?? "").trim();
     const lv = (layer.look ?? "").trim();
@@ -402,8 +552,23 @@ const typePresets = useMemo(
     const sIn = shapePresets.some((p) => p.value === sv);
     setShapeMode(sv ? (sIn ? sv : CUSTOM) : "");
     setShapeDraft(sv);
+    const localPrompt = layer.externalPrompt ?? "";
+    setExternalDraft(localPrompt);
+    setRefsDraft(layer.referenceLinks ?? "");
+    setLocalMaterial(extractTaggedValue(localPrompt, ["material", "材质"]));
+    setLocalAction(extractTaggedValue(localPrompt, ["local_action", "action", "局部动作"]));
+    setLocalAvoid(extractTaggedValue(localPrompt, ["local_avoid", "avoid", "局部禁令"]));
+    queueMicrotask(() => {
+      localSyncPauseRef.current = false;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layer?.id, scene.id, typeKey, lang]);
+
+  React.useEffect(() => {
+    if (!localPromptToast) return;
+    const timer = window.setTimeout(() => setLocalPromptToast(""), 3000);
+    return () => window.clearTimeout(timer);
+  }, [localPromptToast]);
 
   function commitType(v: string) {
     patchLayer({ type: v.trim() });
@@ -414,6 +579,22 @@ const typePresets = useMemo(
   function commitShapeDesc(v: string) {
     patchLayer({ shapeDesc: v.trim() });
   }
+  function commitExternalPrompt(v: string) {
+    patchLayer({ externalPrompt: v });
+    const tags = detectGlobalScopeTags(v);
+    if (!tags.length) return;
+    setLocalPromptToast(tt("props.localPromptGlobalHint").replace("{tags}", tags.join(", ")));
+  }
+  React.useEffect(() => {
+    if (!layer) return;
+    if (localSyncPauseRef.current) return;
+    const tagged = buildTemplateTaggedLines(lang, localMaterial, localAction, localAvoid);
+    const next = replaceTaggedLines(externalDraft, tagged);
+    if (next === externalDraft) return;
+    setExternalDraft(next);
+    commitExternalPrompt(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localMaterial, localAction, localAvoid, lang, layer?.id]);
 
   // -------------------- Notes elements --------------------
   type NotesMode = "" | "custom" | "paste";
@@ -732,6 +913,11 @@ const typePresets = useMemo(
                 ))}
               </select>
             </div>
+            <div style={styles.miniHint}>
+              {lang === "zh"
+                ? "外观：描述材质、光学质感和风格，不负责几何轮廓。"
+                : "Look: define material/optical style, not geometric silhouette."}
+            </div>
 
             {lookMode === CUSTOM && (
               <div style={styles.row}>
@@ -779,6 +965,11 @@ const typePresets = useMemo(
                 ))}
               </select>
             </div>
+            <div style={styles.miniHint}>
+              {lang === "zh"
+                ? "形态：描述轮廓、比例和结构，不负责材质风格。"
+                : "Form: define silhouette/proportions/structure, not material style."}
+            </div>
 
             {shapeMode === CUSTOM && (
               <div style={styles.row}>
@@ -799,6 +990,103 @@ const typePresets = useMemo(
                 />
               </div>
             )}
+
+            <div style={styles.notesHeadRow}>
+              <div style={styles.label}>{tt("props.localPromptTitle")}</div>
+            </div>
+            <div style={styles.rowTop}>
+              <div style={{ width: 82 }} />
+              <textarea
+                value={externalDraft}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setExternalDraft(v);
+                  commitExternalPrompt(v);
+                }}
+                onBlur={() => commitExternalPrompt(externalDraft)}
+                placeholder={
+                  tt("props.localPromptPlaceholder")
+                }
+                style={styles.objectPromptArea}
+                spellCheck={false}
+              />
+            </div>
+            <div style={styles.miniHint}>
+              {tt("props.localPromptHint")}
+            </div>
+            <div style={styles.miniHint}>
+              {lang === "zh"
+                ? "插图实用：若目标平台支持参考图，先插 1-3 张身份/材质图，再粘贴这里的局部约束，成功率更高。"
+                : "Ref tip: if the target platform supports image references, add 1-3 identity/material refs first, then paste local constraints here."}
+            </div>
+            <div style={styles.localTemplateWrap}>
+              <div style={styles.localTemplateTitle}>
+                {tt("props.localTemplateTitle")}
+              </div>
+              <div style={styles.templateGrid}>
+                <input
+                  value={localMaterial}
+                  onChange={(e) => setLocalMaterial(e.target.value)}
+                  placeholder={tt("props.localMaterialPlaceholder")}
+                  style={styles.smallInput}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <input
+                  value={localAction}
+                  onChange={(e) => setLocalAction(e.target.value)}
+                  placeholder={tt("props.localActionPlaceholder")}
+                  style={styles.smallInput}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <input
+                  value={localAvoid}
+                  onChange={(e) => setLocalAvoid(e.target.value)}
+                  placeholder={tt("props.localAvoidPlaceholder")}
+                  style={styles.smallInput}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </div>
+              <div style={styles.menuBtns}>
+                <button
+                  type="button"
+                  style={styles.smallBtnGhost}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setLocalMaterial("");
+                    setLocalAction("");
+                    setLocalAvoid("");
+                  }}
+                >
+                  {tt("props.localTemplateClear")}
+                </button>
+              </div>
+            </div>
+            <div style={styles.notesHeadRow}>
+              <div style={styles.label}>{lang === "zh" ? "参考插图链接" : "Reference Image Links"}</div>
+            </div>
+            <div style={styles.rowTop}>
+              <div style={{ width: 82 }} />
+              <textarea
+                value={refsDraft}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setRefsDraft(v);
+                  patchLayer({ referenceLinks: v });
+                }}
+                onBlur={() => patchLayer({ referenceLinks: refsDraft })}
+                placeholder={
+                  lang === "zh"
+                    ? "每行一个图链接（Quick 导出每对象最多 2 条，Pro 最多 6 条）"
+                    : "One link per line (Quick export uses up to 2 refs per object, Pro up to 6)."
+                }
+                style={styles.objectPromptArea}
+                spellCheck={false}
+              />
+            </div>
+            {localPromptToast ? <div style={styles.toastHint}>{localPromptToast}</div> : null}
 
             {/* Advanced: visibility/detail toggles -> notes */}
             <div style={styles.notesHeadRow}>
@@ -1012,8 +1300,6 @@ const typePresets = useMemo(
               <div style={styles.btnRow}>
                 <button
                   type="button"
-                  tabIndex={-1}
-                  onFocus={killFocus}
                   onMouseDown={(e) => e.preventDefault()}
                   style={{ ...styles.pillBtn, ...(editT === 0 ? styles.pillBtnOn : {}) }}
                   onClick={() => setEditT(0)}
@@ -1023,8 +1309,6 @@ const typePresets = useMemo(
 
                 <button
                   type="button"
-                  tabIndex={-1}
-                  onFocus={killFocus}
                   onMouseDown={(e) => e.preventDefault()}
                   disabled={isImageMode}
                   title={
@@ -1240,14 +1524,24 @@ const styles: Record<string, React.CSSProperties> = {
 
   cardTitle: { fontWeight: 900, fontSize: 12, opacity: 0.92, marginBottom: 8 },
 
-  row: { display: "flex", alignItems: "center", gap: 10, marginBottom: 8 },
-  rowTop: { display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8 },
+  row: { display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8, minWidth: 0 },
+  rowTop: { display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8, minWidth: 0 },
 
-  label: { width: 82, fontSize: 11, opacity: 0.75, fontWeight: 900 },
+  label: {
+    width: 108,
+    flexShrink: 0,
+    fontSize: 11,
+    opacity: 0.75,
+    fontWeight: 900,
+    lineHeight: 1.25,
+    wordBreak: "break-word",
+    overflowWrap: "anywhere"
+  },
 
   select: {
-    flex: 1,
-    maxWidth: 220,
+    flex: "1 1 0",
+    minWidth: 0,
+    maxWidth: "100%",
     height: 34,
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,0.14)",
@@ -1259,8 +1553,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   input: {
-    flex: 1,
-    maxWidth: 220,
+    flex: "1 1 0",
+    minWidth: 0,
+    maxWidth: "100%",
     height: 34,
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,0.14)",
@@ -1272,8 +1567,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   clickablePill: {
-    flex: 1,
-    maxWidth: 220,
+    flex: "1 1 0",
+    minWidth: 0,
+    maxWidth: "100%",
     height: 34,
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,0.14)",
@@ -1309,7 +1605,50 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.35
   },
 
+  objectPromptArea: {
+    flex: 1,
+    minHeight: 86,
+    resize: "vertical",
+    borderRadius: 12,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(0,0,0,0.20)",
+    color: "rgba(255,255,255,0.92)",
+    outline: "none",
+    padding: "8px 10px",
+    fontSize: 12,
+    lineHeight: 1.35
+  },
+
   miniHint: { fontSize: 11, opacity: 0.65, lineHeight: 1.4, marginTop: 4 },
+  toastHint: {
+    marginTop: 6,
+    marginBottom: 8,
+    fontSize: 11,
+    lineHeight: 1.35,
+    opacity: 0.72,
+    border: "1px solid rgba(255,255,255,0.16)",
+    borderRadius: 10,
+    background: "rgba(255,255,255,0.06)",
+    padding: "6px 8px"
+  },
+  localTemplateWrap: {
+    marginTop: 8,
+    border: "1px solid rgba(255,255,255,0.10)",
+    borderRadius: 12,
+    background: "rgba(0,0,0,0.14)",
+    padding: 8
+  },
+  localTemplateTitle: {
+    fontSize: 11,
+    fontWeight: 900,
+    opacity: 0.82,
+    marginBottom: 8
+  },
+  templateGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 8
+  },
 
   grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
 

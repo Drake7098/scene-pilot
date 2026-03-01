@@ -61,6 +61,7 @@ export default function App() {
 
   // ✅ 帮助类弹窗：新手教程 / 问题反馈 / 关于
   const [helpModal, setHelpModal] = useState<HelpModal>(null);
+  const [tutorialPage, setTutorialPage] = useState<0 | 1>(0);
   const [feedbackText, setFeedbackText] = useState("");
 
   // ✅ 反馈发送状态
@@ -251,7 +252,7 @@ export default function App() {
         suggestedName: fileLabel || "scene_pilot_project.json",
         types: [
           {
-            description: "ScenePilot Project (JSON)",
+            description: "ScenePilotix Project (JSON)",
             accept: { "application/json": [".json"] }
           }
         ]
@@ -296,7 +297,7 @@ export default function App() {
         multiple: false,
         types: [
           {
-            description: "ScenePilot Project (JSON)",
+            description: "ScenePilotix Project (JSON)",
             accept: { "application/json": [".json"] }
           }
         ]
@@ -504,6 +505,7 @@ export default function App() {
               onClick={() =>
                 menuAction(() => {
                   setHelpModal("tutorial");
+                  setTutorialPage(0);
                 }, "menu_tutorial")
               }
             >
@@ -585,7 +587,12 @@ export default function App() {
             editT={effectiveEditT}
           />
 
-          <ExportPanel lang={lang} project={safeProject} sceneIdx={sceneIdx} selectedLayerId={selectedLayerId} />
+          <ExportPanel
+            lang={lang}
+            project={safeProject}
+            sceneIdx={sceneIdx}
+            selectedLayerId={selectedLayerId}
+          />
         </div>
 
         <PropsPanel
@@ -670,96 +677,138 @@ export default function App() {
           >
             {helpModal === "tutorial" && (
               <>
-                <div style={styles.modalTitle}>{lang === "zh" ? "新手教程" : "Beginner Tutorial"}</div>
+                <div style={styles.tutorialTop}>
+                  <div style={styles.modalTitle}>{lang === "zh" ? "新手教程" : "Beginner Tutorial"}</div>
+                  {tutorialPage === 0 ? (
+                    <button
+                      style={styles.tutorialPill}
+                      onClick={() => {
+                        setTutorialPage(1);
+                        if (isTelemetryOn()) track("tutorial_advanced_open", {}, lang);
+                      }}
+                      type="button"
+                    >
+                      {lang === "zh" ? "高阶用户提醒" : "Advanced Tips"}
+                    </button>
+                  ) : (
+                    <div style={styles.tutorialPageTag}>{lang === "zh" ? "进阶工作流" : "Advanced Workflow"}</div>
+                  )}
+                </div>
                 <div style={styles.modalText}>
-                  {lang === "zh" ? (
+                  {tutorialPage === 0 ? (
+                    lang === "zh" ? (
+                      <>
+                        <div style={styles.tutBlockTitle}>ScenePilotix 的核心作用</div>
+                        <div style={styles.tutText}>
+                          把“对象位置、大小、层级、镜头、光照、运动轨迹”先结构化，再导出到生成平台。<br />
+                          目标不是替你写花哨提示词，而是让模型更遵守你的画面结构。
+                        </div>
+
+                        <div style={styles.tutBlockTitle}>你怎么用（新手最快路径）</div>
+                        <div style={styles.tutText}>
+                          1) 创建分镜，先选图片模式，Quick 起步。<br />
+                          2) 在画布放对象，先锁布局（位置/大小/层级），再补对象属性。<br />
+                          3) 点导出，选择平台并复制提示词去目标平台生成。<br />
+                          4) 如果结果偏离，再回到对象和镜头字段微调，而不是堆长提示词。
+                        </div>
+
+                        <div style={styles.tutBlockTitle}>上手原则</div>
+                        <div style={styles.tutText}>
+                          先少对象（3-6 个）跑通，再扩大复杂度；先稳定结构，再加风格细节。
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={styles.tutBlockTitle}>Core Value of ScenePilotix</div>
+                        <div style={styles.tutText}>
+                          Structure object position, scale, layering, camera, lighting, and motion paths first, then export for generation.<br />
+                          The goal is not fancy prompts. The goal is stronger structural compliance.
+                        </div>
+
+                        <div style={styles.tutBlockTitle}>Fast Start (Beginner Path)</div>
+                        <div style={styles.tutText}>
+                          1) Create a scene, start in Image mode with Quick.<br />
+                          2) Place objects on canvas and lock layout first (position/size/z-order), then fill object details.<br />
+                          3) Click Export, choose platform, copy prompt and run it on target platform.<br />
+                          4) If output drifts, tune object/camera fields first instead of stacking long prompt text.
+                        </div>
+
+                        <div style={styles.tutBlockTitle}>Starter Rule</div>
+                        <div style={styles.tutText}>
+                          Start with 3-6 objects. Stabilize structure first, then add style details.
+                        </div>
+                      </>
+                    )
+                  ) : lang === "zh" ? (
                     <>
-                      <div style={styles.tutBlockTitle}>这工具适合谁（你属于哪类）</div>
+                      <div style={styles.tutBlockTitle}>进阶工作流：从生图到 PRO 构建</div>
                       <div style={styles.tutText}>
-                        <b>电商 / 品牌</b>：多物品套图、主图构图稳定、小标签占位（后期加字更省事）。<br />
-                        <b>影视 / 动画</b>：分镜结构、机位与光照、人物走位与运动轨迹。<br />
-                        <b>短视频创作者</b>：封面构图、口播道具摆放、系列内容风格一致。<br />
-                        <b>产品 / 设计 / 提案</b>：概念图、对比图、信息层级占位（文字建议后期加）。
+                        <b>Step 1 生图基线（Quick）</b><br />
+                        用图片模式先拿到“结构正确”的基线图：对象是否在正确区域、比例是否合理、主体是否清晰。
                       </div>
 
-                      <div style={styles.tutBlockTitle}>ScenePilotix 能做什么（核心能力）</div>
+                      <div style={styles.tutBlockTitle}>Step 2 PRO 多目标构建</div>
                       <div style={styles.tutText}>
-                        <b>1) 精准构图</b>：用 x/y/w/h 把“位置与大小”锁住，减少模型自动居中、自动平衡、自动拉齐。<br />
-                        <b>2) 运动轨迹</b>：视频模式用 t0→t1 定义“从哪到哪、变大变小、怎么转”。<br />
-                        <b>3) 一致性控制</b>：稳定层/曝光修正/语言强化层统一放到暗区尾部，不污染你的正文结构。<br />
-                        <b>4) 多目标布局</b>：在 5–15 个对象规模下，对“画面结构”控制最明显。
+                        切到 PRO 后，再加复杂目标：插图参考、局部约束、平台导出策略。<br />
+                        建议每次只新增一类复杂度（例如先加参考图，再加局部风格），便于定位偏差来源。
                       </div>
 
-                      <div style={styles.tutBlockTitle}>它解决什么痛点（你会立刻感到差异）</div>
+                      <div style={styles.tutBlockTitle}>Step 3 连续一致性（视频/多图批次）</div>
                       <div style={styles.tutText}>
-                        - 模型总想“自动居中/自动平衡” → 坐标把区域固定。<br />
-                        - 多对象比例乱、配件/小标签容易跑位 → 相对尺寸与区域约束更稳定。<br />
-                        - 图里出现 UI 框/标尺/数字/水印 → 暗区规则降低发生率。<br />
-                        - 视频前后不连续、细节漂移 → t0/t1 + 连续性规则减少漂移。
+                        进入视频模式后，用 t0→t1 只控制必要运动对象；静止对象不改。<br />
+                        连续性检查重点：主体身份、服装材质、关键道具位置、光照方向、镜头运动逻辑。
                       </div>
 
-                      <div style={styles.tutBlockTitle}>30 秒上手流程（按这个做就不会乱）</div>
+                      <div style={styles.tutBlockTitle}>进阶提醒</div>
                       <div style={styles.tutText}>
-                        <b>Step A：先出图</b>（图片模式）→ 只编辑 t0，先把构图锁死。<br />
-                        <b>Step B：再出视频</b>（视频模式）→ 在 t1 只改“需要运动的对象”，不要全改。<br />
-                        <b>Step C：导出</b> → 复制 Export 的 prompt，丢到你的生成平台做 A/B 测试。
-                      </div>
-
-                      <div style={styles.tutBlockTitle}>学习建议（很重要）</div>
-                      <div style={styles.tutText}>
-                        - <b>先练 3–6 个对象</b>：稳定后再上 10+。<br />
-                        - <b>避免冲突描述</b>：例如“极简”同时写“剪影/轮廓”，容易被理解成纯黑剪影。<br />
-                        - <b>look 只放一个主方向</b>：写实 / 赛博 / 极简 选其一，别混搭。
+                        PRO 的价值在“多约束协同”，不是“更长提示词”。<br />
+                        如果结果变差，优先回退到上一个稳定版本，再逐项加回。
                       </div>
                     </>
                   ) : (
                     <>
-                      <div style={styles.tutBlockTitle}>Who it’s for</div>
+                      <div style={styles.tutBlockTitle}>Advanced Workflow: From Image to PRO</div>
                       <div style={styles.tutText}>
-                        <b>E-commerce / Brands</b>: product sets, stable hero composition, small label placeholders (add text in post).<br />
-                        <b>Film / Animation</b>: storyboards, camera & lighting, blocking and motion paths.<br />
-                        <b>Short-form creators</b>: cover composition, props placement, consistent series style.<br />
-                        <b>Product/Design/Decks</b>: concept visuals, comparisons, clean layout placeholders (add text later).
+                        <b>Step 1 Image Baseline (Quick)</b><br />
+                        First get a structurally-correct still: object region, scale relationship, and subject clarity.
                       </div>
 
-                      <div style={styles.tutBlockTitle}>What ScenePilotix does (core)</div>
+                      <div style={styles.tutBlockTitle}>Step 2 PRO Multi-Target Build</div>
                       <div style={styles.tutText}>
-                        <b>1) Precise composition</b>: lock position & scale via x/y/w/h to reduce auto-centering, auto-balancing, auto-equalizing.<br />
-                        <b>2) Motion paths</b>: video mode uses t0→t1 for movement, scale, rotation.<br />
-                        <b>3) Consistency controls</b>: Stability / Exposure / LRL live in the tail “dark zone”, without polluting your main structure.<br />
-                        <b>4) Multi-object layouts</b>: strongest impact at 5–15 objects for structural control.
+                        Then switch to PRO and add complexity in layers: reference images, local constraints, and platform-specific export strategy.<br />
+                        Add one complexity class at a time to isolate regressions.
                       </div>
 
-                      <div style={styles.tutBlockTitle}>Pain points it solves</div>
+                      <div style={styles.tutBlockTitle}>Step 3 Continuity Lock (Video / Batch)</div>
                       <div style={styles.tutText}>
-                        - Models auto-center / auto-balance → coordinates fix regions.<br />
-                        - Accessories / small labels drift & scale randomly → relative constraints stabilize layouts.<br />
-                        - UI frames/rulers/numbers/watermarks appear → dark-zone rules reduce it.<br />
-                        - Video continuity drifts → t0/t1 + continuity rules help.
+                        In video mode, only animate what must move from t0→t1. Keep static objects untouched.<br />
+                        Continuity checks: subject identity, outfit/material, key prop position, light direction, camera logic.
                       </div>
 
-                      <div style={styles.tutBlockTitle}>30-second workflow</div>
+                      <div style={styles.tutBlockTitle}>Advanced Reminder</div>
                       <div style={styles.tutText}>
-                        <b>Step A: Image mode</b> → edit t0 only, lock the layout first.<br />
-                        <b>Step B: Video mode</b> → in t1, change only what needs motion.<br />
-                        <b>Step C: Export</b> → copy prompt from Export and A/B test on your generator.
-                      </div>
-
-                      <div style={styles.tutBlockTitle}>Learning tips</div>
-                      <div style={styles.tutText}>
-                        - Start with <b>3–6 objects</b> before pushing 10+.<br />
-                        - Avoid conflicting descriptors (e.g., “minimal” + “silhouette”).<br />
-                        - Keep <b>one</b> main look direction (photoreal / cyberpunk / minimal).
+                        PRO wins by coordinated constraints, not by longer prompts.<br />
+                        If quality drops, roll back to the last stable version and re-add constraints one by one.
                       </div>
                     </>
                   )}
                 </div>
 
                 <div style={styles.modalBtns}>
+                  {tutorialPage === 1 ? (
+                    <button style={styles.modalBtnGhost} onClick={() => setTutorialPage(0)} type="button">
+                      {lang === "zh" ? "返回基础页" : "Back to Basics"}
+                    </button>
+                  ) : (
+                    <button style={styles.modalBtnGhost} onClick={() => setTutorialPage(1)} type="button">
+                      {lang === "zh" ? "下一页：进阶工作流" : "Next: Advanced Workflow"}
+                    </button>
+                  )}
                   <button
                     style={styles.modalBtnGhost}
                     onClick={() => {
                       setHelpModal(null);
+                      setTutorialPage(0);
                       if (isTelemetryOn()) track("tutorial_close", {}, lang);
                     }}
                     type="button"
@@ -1041,6 +1090,30 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   // ---- tutorial formatting ----
+  tutorialTop: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8
+  },
+  tutorialPill: {
+    padding: "5px 8px",
+    borderRadius: 999,
+    border: "1px solid rgba(120,180,255,0.4)",
+    background: "rgba(120,180,255,0.12)",
+    color: "inherit",
+    cursor: "pointer",
+    fontSize: 11,
+    fontWeight: 900
+  },
+  tutorialPageTag: {
+    fontSize: 11,
+    fontWeight: 900,
+    opacity: 0.78,
+    padding: "5px 8px",
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.16)"
+  },
   tutBlockTitle: { marginTop: 10, fontWeight: 900, opacity: 0.92 },
   tutText: { marginTop: 6, opacity: 0.82 },
 
