@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Robot Console</title>
+    <link rel="stylesheet" href="/dashboard/styles.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="header">
+        <div>
+          <div class="title">Robot Console</div>
+          <div class="sub">Phase 5 test cockpit</div>
+        </div>
+        <div id="status"></div>
+      </section>
+
+      <section class="grid">
+        <div class="card"><div class="k">Total</div><div id="tests" class="v">0</div></div>
+        <div class="card"><div class="k">Passed</div><div id="passed" class="v">0</div></div>
+        <div class="card"><div class="k">Failed</div><div id="failed" class="v">0</div></div>
+        <div class="card"><div class="k">Skipped</div><div id="skipped" class="v">0</div></div>
+        <div class="card"><div class="k">Duration</div><div id="duration" class="v">0.0s</div></div>
+      </section>
+
+      <section class="row">
+        <div class="panel">
+          <h3>Run Info</h3>
+          <div class="list">
+            <div class="item">Started: <span id="startedAt"></span></div>
+            <div class="item">Finished: <span id="finishedAt"></span></div>
+            <div class="item">APP_URL: <span id="appUrl"></span></div>
+            <div class="item">Summary generated: <span id="generatedAt"></span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Artifacts</h3>
+          <div id="links" class="list"></div>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-top:12px;">
+        <h3>Latest Failures</h3>
+        <div id="failures" class="list"></div>
+      </section>
+    </main>
+    <script src="/dashboard/app.js" type="module"></script>
+  </body>
+</html>

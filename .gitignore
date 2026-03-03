@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Robot test generated artifacts (keep scripts/configs under tests/robots tracked)
+tests/robots/artifacts/

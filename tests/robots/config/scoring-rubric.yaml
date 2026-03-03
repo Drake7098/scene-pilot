@@ -1,0 +1,20 @@
+version: "v1"
+pass_threshold: 75
+weights:
+  consistency: 30
+  composition: 20
+  character_stability: 20
+  usability: 15
+  efficiency: 15
+
+rules:
+  - id: consistency
+    description: "Prompt and output alignment"
+  - id: composition
+    description: "Subject clarity and framing"
+  - id: character_stability
+    description: "Cross-shot consistency"
+  - id: usability
+    description: "Artifact quality and publish readiness"
+  - id: efficiency
+    description: "Success rate and latency under SLA"

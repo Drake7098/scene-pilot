@@ -7,7 +7,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "robots:test": "npx playwright test -c tests/robots/playwright.config.ts",
+    "robots:test:ui": "npx playwright test -c tests/robots/playwright.config.ts --ui",
+    "robots:test:headed": "npx playwright test -c tests/robots/playwright.config.ts --headed",
+    "robots:run": "node tests/robots/scripts/run-robots.mjs",
+    "robots:summary": "node tests/robots/scripts/generate-summary.mjs",
+    "robots:dashboard": "node tests/robots/scripts/serve-dashboard.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.575.0",
@@ -16,6 +22,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.58.2",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
