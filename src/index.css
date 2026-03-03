@@ -20,6 +20,22 @@ body {
   box-sizing: border-box;
 }
 
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+input,
+textarea {
+  line-height: 1.35;
+}
+
+select {
+  line-height: 1.25;
+  padding-right: 34px !important;
+}
+
 /* --- ScenePilot: button baseline (single source of truth) --- */
 button {
   -webkit-tap-highlight-color: transparent;
@@ -39,6 +55,33 @@ button:active {
 button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:hover:not(:disabled) {
+    border-color: rgba(170, 205, 255, 0.34);
+    background-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 1px rgba(160, 200, 255, 0.16) inset;
+  }
+}
+
+/* Wizard-specific state isolation: prevent brightness/flicker bugs */
+.spx-wizard-modal button,
+.spx-wizard-modal button:hover:not(:disabled),
+.spx-wizard-modal button:focus,
+.spx-wizard-modal button:focus-visible,
+.spx-wizard-modal button:active {
+  filter: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.spx-wizard-modal button:hover:not(:disabled),
+.spx-wizard-modal button:focus,
+.spx-wizard-modal button:focus-visible,
+.spx-wizard-modal button:active {
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 /* ✅ IMPORTANT:

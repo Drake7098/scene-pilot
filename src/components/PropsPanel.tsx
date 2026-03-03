@@ -352,6 +352,8 @@ export function PropsPanel(props: Props) {
   const isImageMode = mediaMode === "image";
 
   // ✅ 图片模式强制回到 t0（避免“图片模式却在编辑终点”的矛盾状态）
+  const backgroundRefId = scene.backgroundRef?.id;
+
   React.useEffect(() => {
     if (!isImageMode) return;
     if (editT === 1) setEditT(0);
@@ -574,12 +576,11 @@ const typePresets = useMemo(
   React.useEffect(() => {
     let revoked = "";
     let dead = false;
-    const bgRef = scene.backgroundRef;
-    if (!bgRef?.id) {
+    if (!backgroundRefId) {
       setBgRefThumb("");
       return;
     }
-    void getRefBlob(bgRef.id).then((blob) => {
+    void getRefBlob(backgroundRefId).then((blob) => {
       if (dead || !blob) return;
       const url = URL.createObjectURL(blob);
       revoked = url;
@@ -589,7 +590,7 @@ const typePresets = useMemo(
       dead = true;
       if (revoked) URL.revokeObjectURL(revoked);
     };
-  }, [scene.backgroundRef?.id]);
+  }, [backgroundRefId]);
 
   async function setSceneBackgroundRef(files: FileList | null) {
     const picked = Array.from(files ?? []).filter((f) => f.type.startsWith("image/"));
@@ -1571,10 +1572,10 @@ const styles: Record<string, React.CSSProperties> = {
     minWidth: 300,
     borderLeft: "1px solid rgba(255,255,255,0.08)",
     background: "rgba(0,0,0,0.12)",
-    padding: 10,
+    padding: 12,
     display: "flex",
     flexDirection: "column",
-    gap: 10,
+    gap: 12,
     minHeight: 0,
     overflow: "auto"
   },
@@ -1583,13 +1584,13 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(255,255,255,0.10)",
     borderRadius: 14,
     background: "rgba(255,255,255,0.03)",
-    padding: 10
+    padding: 12
   },
 
   cardTitle: { fontWeight: 900, fontSize: UI_FONT.title, opacity: UI_OPACITY.title, marginBottom: 10 },
 
-  row: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8, minWidth: 0 },
-  rowTop: { display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8, minWidth: 0 },
+  row: { display: "flex", alignItems: "center", gap: 10, marginBottom: 10, minWidth: 0 },
+  rowTop: { display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10, minWidth: 0 },
 
   label: {
     width: UI_SIZE.labelWProps,
@@ -1621,8 +1622,9 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
     outline: "none",
-    padding: "0 10px",
-    fontSize: UI_FONT.body
+    padding: "0 34px 0 10px",
+    fontSize: UI_FONT.body,
+    fontWeight: 700
   },
 
   input: {
@@ -1793,7 +1795,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     fontSize: 12,
-    padding: "0 8px"
+    padding: "0 28px 0 8px"
   },
   localRefBtns: {
     display: "flex",

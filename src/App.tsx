@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "./i18n";
 import { t } from "./i18n";
 import { defaultProject, sanitizeProject } from "./model";
@@ -206,13 +206,7 @@ export default function App() {
       return "universal";
     }
   });
-  const [savePlatformLocked, setSavePlatformLocked] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem(SAVE_PLATFORM_KEY) != null;
-    } catch {
-      return false;
-    }
-  });
+  const [savePlatformLocked, setSavePlatformLocked] = useState<boolean>(false);
   const [savePlatformModalOpen, setSavePlatformModalOpen] = useState(false);
   const [savePlatformPickMode, setSavePlatformPickMode] = useState<SavePlatformPickMode>("save");
   const [pendingSavePlatformId, setPendingSavePlatformId] = useState<SavePlatformId>("universal");
@@ -224,23 +218,27 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const tt = useMemo(() => (key: string) => t(lang, key), [lang]);
   const useDesktopFixedLayout = viewportWidth >= 1400;
-  const emitEvent = (event: "ui_action" | "project_flow" | "editor_change" | "export_flow", props: Record<string, any>, eventLang: Lang = lang) => {
+  const emitEvent = useCallback((
+    event: "ui_action" | "project_flow" | "editor_change" | "export_flow",
+    props: Record<string, any>,
+    eventLang: Lang = lang
+  ) => {
     if (!isTelemetryOn()) return;
     track(event, props, eventLang);
-  };
-  const trackUiAction = (
+  }, [lang]);
+  const trackUiAction = useCallback((
     area: string,
     action: string,
     target: string,
     props: Record<string, any> = {},
     eventLang: Lang = lang
-  ) => emitEvent("ui_action", { area, action, target, ...props }, eventLang);
-  const trackProjectFlow = (step: string, props: Record<string, any> = {}, eventLang: Lang = lang) =>
-    emitEvent("project_flow", { step, ...props }, eventLang);
-  const trackEditorChange = (scope: string, op: string, props: Record<string, any> = {}, eventLang: Lang = lang) =>
-    emitEvent("editor_change", { scope, op, ...props }, eventLang);
-  const trackExportFlow = (action: string, props: Record<string, any> = {}, eventLang: Lang = lang) =>
-    emitEvent("export_flow", { action, ...props }, eventLang);
+  ) => emitEvent("ui_action", { area, action, target, ...props }, eventLang), [emitEvent, lang]);
+  const trackProjectFlow = useCallback((step: string, props: Record<string, any> = {}, eventLang: Lang = lang) =>
+    emitEvent("project_flow", { step, ...props }, eventLang), [emitEvent, lang]);
+  const trackEditorChange = useCallback((scope: string, op: string, props: Record<string, any> = {}, eventLang: Lang = lang) =>
+    emitEvent("editor_change", { scope, op, ...props }, eventLang), [emitEvent, lang]);
+  const trackExportFlow = useCallback((action: string, props: Record<string, any> = {}, eventLang: Lang = lang) =>
+    emitEvent("export_flow", { action, ...props }, eventLang), [emitEvent, lang]);
 
   const safeProject = useMemo(() => {
     if (project.scenes && project.scenes.length > 0) return project;
@@ -253,6 +251,9 @@ export default function App() {
     return list[idx] ?? list[0];
   }, [safeProject, sceneIdx]);
   const sceneNo = useMemo(() => clampInt(sceneIdx, 0, Math.max(0, safeProject.scenes.length - 1)) + 1, [sceneIdx, safeProject.scenes.length]);
+  const currentLibrarySnapshot = useMemo(() => JSON.stringify({ project: safeProject, fileLabel: fileLabel || "" }), [safeProject, fileLabel]);
+  const [lastLibrarySavedSnapshot, setLastLibrarySavedSnapshot] = useState<string>("");
+  const hasUnsavedLibraryChanges = currentLibrarySnapshot !== lastLibrarySavedSnapshot;
 
   // ---------------------- mediaMode + editT lock (minimal) ----------------------
   const mediaMode = useMemo<"image" | "video">(() => {
@@ -318,13 +319,17 @@ export default function App() {
   // 语言切换埋点
   useEffect(() => {
     trackUiAction("app", "view", "language", { lang }, lang);
-  }, [lang]);
+  }, [lang, trackUiAction]);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  useEffect(() => {
+    if (!lastLibrarySavedSnapshot) setLastLibrarySavedSnapshot(currentLibrarySnapshot);
+  }, [currentLibrarySnapshot, lastLibrarySavedSnapshot]);
 
   useEffect(() => {
     if (!libraryHint) return;
@@ -443,7 +448,7 @@ export default function App() {
     if (plan === "single") return 1;
     if (plan === "multicam") return 4;
     if (plan === "continuous") return 4;
-    return 5;
+    return 4;
   }
 
   function nextWizardDraft(base?: Partial<WizardDraft>): WizardDraft {
@@ -468,13 +473,9 @@ export default function App() {
   }
 
   function openCreateWizard(showWelcome: boolean) {
-    if (showWelcome && lang !== "en") {
-      setLang("en");
-      saveLang("en");
-    }
     setWizardCancelable(!showWelcome);
     setWizardDraft(nextWizardDraft());
-    setWizardStep(showWelcome ? "welcome_1" : "media");
+    setWizardStep("media");
     setWizardOpen(true);
   }
 
@@ -492,6 +493,11 @@ export default function App() {
   }
 
   function requestNewProject() {
+    if (!hasUnsavedLibraryChanges) {
+      openCreateWizard(false);
+      trackProjectFlow("wizard_open", { withSave: false, skippedSavePrompt: true }, lang);
+      return;
+    }
     setNewProjectConfirmOpen(true);
   }
 
@@ -515,12 +521,13 @@ export default function App() {
   async function createNewProjectAfterSave() {
     setNewProjectConfirmBusy(true);
     try {
-      await saveToDisk();
-    } finally {
-      setNewProjectConfirmBusy(false);
+      const ok = await saveToDisk();
+      if (!ok) return;
       setNewProjectConfirmOpen(false);
       openCreateWizard(false);
       trackProjectFlow("wizard_open", { withSave: true }, lang);
+    } finally {
+      setNewProjectConfirmBusy(false);
     }
   }
 
@@ -649,9 +656,9 @@ export default function App() {
     }
   }
 
-  async function saveAsToDisk() {
+  async function saveAsToDisk(): Promise<boolean> {
     const pickedPlatform = await requestSavePlatform("save_as", true);
-    if (!pickedPlatform) return;
+    if (!pickedPlatform) return false;
     setSavePlatformId(pickedPlatform);
     setSavePlatformLocked(true);
     try {
@@ -661,20 +668,23 @@ export default function App() {
     }
     const defaultProjectName = safeFsName(fileLabel || (lang === "zh" ? "未命名项目" : "Untitled")) || (lang === "zh" ? "未命名项目" : "Untitled");
     const input = window.prompt(lang === "zh" ? "另存为：输入项目目录名（同名将覆盖）" : "Save As: enter project folder name (same name will overwrite)", defaultProjectName);
-    if (input == null) return;
+    if (input == null) return false;
     const pickedName = safeFsName(input) || defaultProjectName;
     setLibraryHint(
       lang === "zh"
         ? `另存项目：${pickedName}（平台 ${savePlatformLabel(pickedPlatform, lang)}，同名覆盖）`
         : `Save As project: ${pickedName} (platform ${savePlatformLabel(pickedPlatform, lang)}, same name will be overwritten)`
     );
-    await saveSceneProToLibrary(pickedPlatform, pickedName);
+    const ok = await saveSceneProToLibrary(pickedPlatform, pickedName);
+    if (!ok) return false;
+    setLastLibrarySavedSnapshot(currentLibrarySnapshot);
     trackExportFlow("save_as", { mode: "pro", via: "library", platform: pickedPlatform }, lang);
+    return true;
   }
 
-  async function saveToDisk() {
+  async function saveToDisk(): Promise<boolean> {
     const pickedPlatform = await requestSavePlatform("save", !savePlatformLocked);
-    if (!pickedPlatform) return;
+    if (!pickedPlatform) return false;
     setSavePlatformId(pickedPlatform);
     setSavePlatformLocked(true);
     try {
@@ -687,8 +697,11 @@ export default function App() {
         ? `保存当前分镜到项目目录（平台 ${savePlatformLabel(pickedPlatform, lang)}）。`
         : `Saving current shot to project folder (platform ${savePlatformLabel(pickedPlatform, lang)}).`
     );
-    await saveSceneQuickToLibrary(pickedPlatform);
+    const ok = await saveSceneQuickToLibrary(pickedPlatform);
+    if (!ok) return false;
+    setLastLibrarySavedSnapshot(currentLibrarySnapshot);
     trackExportFlow("save", { mode: "quick", via: "library", platform: pickedPlatform }, lang);
+    return true;
   }
 
   async function onUploadFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -744,6 +757,18 @@ export default function App() {
     await writable.close();
   }
 
+  async function copyDirectoryRecursive(srcDir: any, dstDir: any) {
+    for await (const [, handle] of srcDir.entries()) {
+      if (handle.kind === "file") {
+        const file = await handle.getFile();
+        await writeBlobToDirectory(dstDir, handle.name, file);
+      } else if (handle.kind === "directory") {
+        const nextDst = await dstDir.getDirectoryHandle(handle.name, { create: true });
+        await copyDirectoryRecursive(handle, nextDst);
+      }
+    }
+  }
+
   async function writeSceneRefsToDirectory(sceneDir: any, sceneItem: Scene, sceneFolder: string) {
     if (sceneItem.backgroundRef?.id) {
       const bgBlob = await getRefBlob(sceneItem.backgroundRef.id);
@@ -764,18 +789,6 @@ export default function App() {
         const objCode = `obj${String(layerIdx + 1).padStart(2, "0")}`;
         const imgName = `${sceneFolder}__${objCode}__ref${String(refIdx + 1).padStart(2, "0")}.${ext}`;
         await writeBlobToDirectory(sceneDir, imgName, blob);
-      }
-    }
-  }
-
-  async function cloneDirectoryRecursive(srcDir: any, dstDir: any) {
-    for await (const [, handle] of srcDir.entries()) {
-      if (handle.kind === "file") {
-        const file = await handle.getFile();
-        await writeBlobToDirectory(dstDir, handle.name, file);
-      } else if (handle.kind === "directory") {
-        const nextDst = await dstDir.getDirectoryHandle(handle.name, { create: true });
-        await cloneDirectoryRecursive(handle, nextDst);
       }
     }
   }
@@ -815,12 +828,19 @@ export default function App() {
             ? "需要重新确认分镜库目录权限。"
             : "Please re-confirm library folder permission."
           : lang === "zh"
-            ? "首次保存：请选择位置，我会自动创建 ScenePilotix 目录。"
-            : "First save: choose location, I will create ScenePilotix automatically."
+            ? "请选择分镜库目录（可直接选择已有 ScenePilotix 目录）。"
+            : "Choose your storyboard library folder (you can select existing ScenePilotix directly)."
       );
       const picker = (window as any).showDirectoryPicker;
-      const parent = await picker({ mode: "readwrite", id: "scenepilotix-library-root" });
-      const root = await parent.getDirectoryHandle("ScenePilotix", { create: true });
+      const picked = await picker({ mode: "readwrite", id: "scenepilotix-library-root" });
+      let root = picked;
+      if (picked.name !== "ScenePilotix") {
+        try {
+          root = await picked.getDirectoryHandle("ScenePilotix");
+        } catch {
+          root = picked;
+        }
+      }
       setLibraryRootHandle(root);
       setLibraryRootName(root.name || "ScenePilotix");
       setLibraryProjectName(null);
@@ -831,10 +851,49 @@ export default function App() {
         // ignore
       }
       await refreshLibraryEntries(root, null);
-      setLibraryHint(lang === "zh" ? "已连接分镜库目录 ScenePilotix" : "Connected to ScenePilotix library");
+      setLibraryHint(lang === "zh" ? `已连接分镜库：${root.name || "ScenePilotix"}` : `Connected library: ${root.name || "ScenePilotix"}`);
       return root;
     } catch {
       return null;
+    }
+  }
+
+  async function importLibraryFromExternalDirectory() {
+    const root = await ensureLibraryRoot(true);
+    if (!root) return false;
+    try {
+      const picker = (window as any).showDirectoryPicker;
+      const source = await picker({ mode: "read", id: "scenepilotix-import-source" });
+      setLibraryBusy(true);
+      let importedDirs = 0;
+      let importedFiles = 0;
+      for await (const [, handle] of source.entries()) {
+        if (handle.kind === "directory") {
+          try {
+            await root.removeEntry(handle.name, { recursive: true });
+          } catch {
+            // ignore when target doesn't exist
+          }
+          const dst = await root.getDirectoryHandle(handle.name, { create: true });
+          await copyDirectoryRecursive(handle, dst);
+          importedDirs += 1;
+        } else if (handle.kind === "file") {
+          const file = await handle.getFile();
+          await writeBlobToDirectory(root, handle.name, file);
+          importedFiles += 1;
+        }
+      }
+      await refreshLibraryEntries(root, null);
+      setLibraryHint(
+        lang === "zh"
+          ? `已导入：${importedDirs} 个目录${importedFiles ? `，${importedFiles} 个文件` : ""}`
+          : `Imported: ${importedDirs} folder(s)${importedFiles ? `, ${importedFiles} file(s)` : ""}`
+      );
+      return true;
+    } catch {
+      return false;
+    } finally {
+      setLibraryBusy(false);
     }
   }
 
@@ -862,9 +921,9 @@ export default function App() {
     return await parent.getDirectoryHandle(dirName, { create: true });
   }
 
-  async function saveSceneQuickToLibrary(platformId: SavePlatformId) {
+  async function saveSceneQuickToLibrary(platformId: SavePlatformId): Promise<boolean> {
     const root = await ensureLibraryRoot(true);
-    if (!root) return;
+    if (!root) return false;
     setLibraryBusy(true);
     try {
       const proj = projectDirName();
@@ -879,17 +938,19 @@ export default function App() {
       await refreshLibraryEntries(root, libraryProjectName);
       setLibraryHint(lang === "zh" ? `已保存：${proj}/${sceneDir.name}` : `Saved: ${proj}/${sceneDir.name}`);
       trackExportFlow("save_scene", { mode: "quick", platform: platformId, result: "success" }, lang);
+      return true;
     } catch {
       setLibraryHint(lang === "zh" ? "快速存储失败" : "Quick save failed");
       trackExportFlow("save_scene", { mode: "quick", platform: platformId, result: "fail" }, lang);
+      return false;
     } finally {
       setLibraryBusy(false);
     }
   }
 
-  async function saveSceneProToLibrary(platformId: SavePlatformId, pickedName?: string) {
+  async function saveSceneProToLibrary(platformId: SavePlatformId, pickedName?: string): Promise<boolean> {
     const root = await ensureLibraryRoot(true);
-    if (!root) return;
+    if (!root) return false;
     setLibraryBusy(true);
     try {
       const proj = projectDirName(pickedName);
@@ -904,17 +965,19 @@ export default function App() {
       await refreshLibraryEntries(root, libraryProjectName);
       setLibraryHint(lang === "zh" ? `已保存：${proj}/${sceneDir.name}` : `Saved: ${proj}/${sceneDir.name}`);
       trackExportFlow("save_scene", { mode: "pro", platform: platformId, result: "success" }, lang);
+      return true;
     } catch {
       setLibraryHint(lang === "zh" ? "PRO 存储失败" : "PRO save failed");
       trackExportFlow("save_scene", { mode: "pro", platform: platformId, result: "fail" }, lang);
+      return false;
     } finally {
       setLibraryBusy(false);
     }
   }
 
-  async function saveAllScenesToLibrary() {
+  async function saveAllScenesToLibrary(): Promise<boolean> {
     const pickedPlatform = await requestSavePlatform("save_all", !savePlatformLocked);
-    if (!pickedPlatform) return;
+    if (!pickedPlatform) return false;
     setSavePlatformId(pickedPlatform);
     setSavePlatformLocked(true);
     try {
@@ -923,7 +986,7 @@ export default function App() {
       // ignore
     }
     const root = await ensureLibraryRoot(true);
-    if (!root) return;
+    if (!root) return false;
     setLibraryBusy(true);
     try {
       const proj = projectDirName();
@@ -939,98 +1002,97 @@ export default function App() {
       }
       await refreshLibraryEntries(root, libraryProjectName);
       setLibraryHint(lang === "zh" ? `已保存全部分镜：${proj}` : `Saved all shots: ${proj}`);
+      setLastLibrarySavedSnapshot(currentLibrarySnapshot);
       trackExportFlow("save_all", { platform: pickedPlatform, scenes: safeProject.scenes.length, result: "success" }, lang);
+      return true;
     } catch {
       setLibraryHint(lang === "zh" ? "保存全部失败" : "Save all failed");
       trackExportFlow("save_all", { platform: pickedPlatform, scenes: safeProject.scenes.length, result: "fail" }, lang);
+      return false;
     } finally {
       setLibraryBusy(false);
     }
   }
 
-  function uniqueSceneName(name: string, scenes: Scene[]) {
-    const base = (name || "").trim() || (lang === "zh" ? "导入分镜" : "Imported Scene");
-    let candidate = base;
-    let i = 2;
-    const used = new Set((scenes ?? []).map((s) => (s.name ?? "").trim()));
-    while (used.has(candidate)) {
-      candidate = `${base} ${i}`;
-      i += 1;
+  async function ensureReadyForLibraryOpen(): Promise<boolean> {
+    if (!hasUnsavedLibraryChanges) return true;
+    const askSave = window.confirm(
+      lang === "zh"
+        ? "当前项目有未保存改动。点击“确定”先保存再打开分镜库项目。"
+        : "Current project has unsaved changes. Click OK to save first before opening a library project."
+    );
+    if (askSave) {
+      return await saveToDisk();
     }
-    return candidate;
-  }
-
-  function uniqueSceneId(id: string, scenes: Scene[]) {
-    const base = safeFsName(id || "scene").toLowerCase() || "scene";
-    let candidate = base;
-    let i = 2;
-    const used = new Set((scenes ?? []).map((s) => (s.id ?? "").trim().toLowerCase()));
-    while (used.has(candidate)) {
-      candidate = `${base}_${i}`;
-      i += 1;
-    }
-    return candidate;
+    return window.confirm(
+      lang === "zh"
+        ? "是否放弃未保存改动并直接打开分镜库项目？"
+        : "Discard unsaved changes and open the library project directly?"
+    );
   }
 
   async function importLibraryEntryToEditor(entry: LibraryEntry) {
     const root = await ensureLibraryRoot(false);
     if (!root) return;
+    const canOpen = await ensureReadyForLibraryOpen();
+    if (!canOpen) return;
     setLibraryBusy(true);
     try {
-      if (!libraryProjectName) {
-        setLibraryProjectName(entry.name);
-        await refreshLibraryEntries(root, entry.name);
-        setLibraryHint(lang === "zh" ? `已进入项目：${entry.name}` : `Entered project: ${entry.name}`);
+      const projectDir = await root.getDirectoryHandle(entry.name);
+      const importedScenes: Scene[] = [];
+      let importedMode: "static" | "storyboard" = "storyboard";
+      for await (const [, handle] of projectDir.entries()) {
+        if (handle.kind !== "directory") continue;
+        try {
+          const sceneFile = await handle.getFileHandle("scene.json");
+          const text = await (await sceneFile.getFile()).text();
+          const parsed = JSON.parse(text);
+          const sourceScene: Scene | undefined = Array.isArray(parsed?.scenes) ? parsed.scenes[0] : parsed?.scene ?? parsed;
+          if (!sourceScene || !Array.isArray(sourceScene.layers)) continue;
+          importedScenes.push(JSON.parse(JSON.stringify(sourceScene)) as Scene);
+          if (parsed?.project?.mode === "static" || parsed?.project?.mode === "storyboard") {
+            importedMode = parsed.project.mode;
+          }
+        } catch {
+          // skip invalid scene folder
+        }
+      }
+      if (!importedScenes.length) {
+        setLibraryHint(lang === "zh" ? "导入失败：项目下未找到有效分镜(scene.json)" : "Import failed: no valid shot scene.json found");
         return;
       }
-      const projectDir = await root.getDirectoryHandle(libraryProjectName);
-      const dir = await projectDir.getDirectoryHandle(entry.name);
-      const sceneFile = await dir.getFileHandle("scene.json");
-      const text = await (await sceneFile.getFile()).text();
-      const parsed = JSON.parse(text);
-      const sourceScene: Scene | undefined = Array.isArray(parsed?.scenes) ? parsed.scenes[0] : parsed;
-      if (!sourceScene || !Array.isArray(sourceScene.layers)) {
-        setLibraryHint(lang === "zh" ? "导入失败：scene.json 无效" : "Import failed: invalid scene.json");
-        return;
-      }
-      const nextScene: Scene = JSON.parse(JSON.stringify(sourceScene));
-      nextScene.name = uniqueSceneName(nextScene.name, safeProject.scenes);
-      nextScene.id = uniqueSceneId(nextScene.id, safeProject.scenes);
-      const merged: Project = sanitizeProject({
-        ...safeProject,
-        scenes: [...safeProject.scenes, nextScene]
+      importedScenes.sort((a, b) => {
+        const ai = Number.isFinite(a.index) ? Number(a.index) : Number.MAX_SAFE_INTEGER;
+        const bi = Number.isFinite(b.index) ? Number(b.index) : Number.MAX_SAFE_INTEGER;
+        if (ai !== bi) return ai - bi;
+        return String(a.name || a.id).localeCompare(String(b.name || b.id), undefined, { numeric: true, sensitivity: "base" });
       });
-      updateProject(merged);
-      setSceneIdx(merged.scenes.length - 1);
+      const opened: Project = sanitizeProject({
+        project: { mode: importedMode },
+        scenes: importedScenes
+      });
+      updateProject(opened);
+      setLabelPersist(entry.name);
+      setLastLibrarySavedSnapshot(JSON.stringify({ project: opened, fileLabel: entry.name }));
+      setSceneIdx(0);
       setSelectedLayerId(null);
       setEditT(0);
       setLibraryOpen(false);
-      setLibraryHint(lang === "zh" ? `已导入：${nextScene.name}` : `Imported: ${nextScene.name}`);
+      setLibraryHint(lang === "zh" ? `已打开分镜库项目：${entry.name}` : `Opened library project: ${entry.name}`);
     } catch {
-      setLibraryHint(lang === "zh" ? "导入失败：缺少 scene.json" : "Import failed: missing scene.json");
-    } finally {
-      setLibraryBusy(false);
-    }
-  }
-
-  async function openLibraryEntryFolder(entry: LibraryEntry) {
-    const root = await ensureLibraryRoot(false);
-    if (!root) return;
-    setLibraryBusy(true);
-    try {
-      const parentDir = libraryProjectName ? await root.getDirectoryHandle(libraryProjectName) : root;
-      const dir = await parentDir.getDirectoryHandle(entry.name);
-      const picker = (window as any).showDirectoryPicker;
-      await picker({ mode: "read", startIn: dir });
-      setLibraryHint(lang === "zh" ? `已定位目录：${entry.name}` : `Folder located: ${entry.name}`);
-    } catch {
-      setLibraryHint(lang === "zh" ? `请在 ScenePilotix 中打开：${entry.name}` : `Open this folder under ScenePilotix: ${entry.name}`);
+      setLibraryHint(lang === "zh" ? "导入失败：无法读取项目目录" : "Import failed: unable to read project folder");
     } finally {
       setLibraryBusy(false);
     }
   }
 
   async function deleteLibraryEntry(entry: LibraryEntry) {
+    const ok = window.confirm(
+      lang === "zh"
+        ? `确认完全删除「${entry.name}」吗？删除后无法恢复。`
+        : `Confirm permanent deletion of "${entry.name}"? This cannot be undone.`
+    );
+    if (!ok) return;
     const root = await ensureLibraryRoot(false);
     if (!root) return;
     setLibraryBusy(true);
@@ -1041,40 +1103,6 @@ export default function App() {
       setLibraryHint(lang === "zh" ? `已删除：${entry.name}` : `Deleted: ${entry.name}`);
     } catch {
       setLibraryHint(lang === "zh" ? "删除失败" : "Delete failed");
-    } finally {
-      setLibraryBusy(false);
-    }
-  }
-
-  async function renameLibraryEntry(entry: LibraryEntry) {
-    const root = await ensureLibraryRoot(false);
-    if (!root) return;
-    const nextRaw = window.prompt(lang === "zh" ? "输入新名字" : "Enter new name", entry.name);
-    if (nextRaw == null) return;
-    const nextName = safeFsName(nextRaw);
-    if (!nextName) {
-      setLibraryHint(lang === "zh" ? "重命名失败：名字为空" : "Rename failed: empty name");
-      return;
-    }
-    if (nextName === entry.name) return;
-    setLibraryBusy(true);
-    try {
-      const parentDir = libraryProjectName ? await root.getDirectoryHandle(libraryProjectName) : root;
-      try {
-        await parentDir.getDirectoryHandle(nextName);
-        setLibraryHint(lang === "zh" ? "重命名失败：名字已存在" : "Rename failed: name exists");
-        return;
-      } catch {
-        // target not exists
-      }
-      const src = await parentDir.getDirectoryHandle(entry.name);
-      const dst = await parentDir.getDirectoryHandle(nextName, { create: true });
-      await cloneDirectoryRecursive(src, dst);
-      await parentDir.removeEntry(entry.name, { recursive: true });
-      await refreshLibraryEntries(root, libraryProjectName);
-      setLibraryHint(lang === "zh" ? `已重命名：${nextName}` : `Renamed: ${nextName}`);
-    } catch {
-      setLibraryHint(lang === "zh" ? "重命名失败" : "Rename failed");
     } finally {
       setLibraryBusy(false);
     }
@@ -1170,10 +1198,10 @@ export default function App() {
             });
           }}
           type="button"
-          title={lang === "zh" ? "分镜库" : "Storyboard Library"}
+          title={lang === "zh" ? "我的分镜库" : "My Storyboard Library"}
         >
           <BookOpen size={16} />
-          <span>{lang === "zh" ? "分镜库" : "Library"}</span>
+          <span>{lang === "zh" ? "我的分镜库" : "My Library"}</span>
         </button>
 
         {/* ✅ 其它按钮：统一收入口径 -> 下拉菜单 */}
@@ -1252,7 +1280,7 @@ export default function App() {
               style={{ ...styles.menuItem, ...(hoveredMenuItem === "menu_save" ? styles.menuItemHover : {}) }}
               type="button"
               onMouseEnter={() => setHoveredMenuItem("menu_save")}
-              onClick={() => menuAction(() => saveToDisk(), "menu_save")}
+              onClick={() => menuAction(() => void saveToDisk(), "menu_save")}
             >
               <Save size={16} />
               <span>{lang === "zh" ? "保存" : "Save"}</span>
@@ -1262,7 +1290,7 @@ export default function App() {
               style={{ ...styles.menuItem, ...(hoveredMenuItem === "menu_save_all" ? styles.menuItemHover : {}) }}
               type="button"
               onMouseEnter={() => setHoveredMenuItem("menu_save_all")}
-              onClick={() => menuAction(() => saveAllScenesToLibrary(), "menu_save_all")}
+              onClick={() => menuAction(() => void saveAllScenesToLibrary(), "menu_save_all")}
             >
               <Save size={16} />
               <span>{lang === "zh" ? "保存全部分镜" : "Save All Shots"}</span>
@@ -1272,7 +1300,7 @@ export default function App() {
               style={{ ...styles.menuItem, ...(hoveredMenuItem === "menu_save_as" ? styles.menuItemHover : {}) }}
               type="button"
               onMouseEnter={() => setHoveredMenuItem("menu_save_as")}
-              onClick={() => menuAction(() => saveAsToDisk(), "menu_save_as")}
+              onClick={() => menuAction(() => void saveAsToDisk(), "menu_save_as")}
             >
               <SaveAll size={16} />
               <span>{lang === "zh" ? "另存为" : "Save As"}</span>
@@ -1440,61 +1468,19 @@ export default function App() {
           >
             <div style={styles.libraryHead}>
               <div style={styles.modalTitle}>
-                {libraryProjectName
-                  ? (lang === "zh" ? `项目：${libraryProjectName}` : `Project: ${libraryProjectName}`)
-                  : (lang === "zh" ? "我的分镜库（项目列表）" : "Storyboard Library (Projects)")}
+                {lang === "zh" ? "我的分镜库（项目列表）" : "My Storyboard Library (Projects)"}
               </div>
               <div style={styles.libraryPath}>
                 {libraryRootName
-                  ? (libraryProjectName ? `${libraryRootName}/${libraryProjectName}` : libraryRootName)
+                  ? libraryRootName
                   : (lang === "zh" ? "未选择目录" : "No directory selected")}
-              </div>
-            </div>
-
-            <div style={styles.libraryActions}>
-              {libraryProjectName ? (
-                <button
-                  style={styles.modalBtnGhost}
-                  type="button"
-                  disabled={libraryBusy}
-                  onClick={async () => {
-                    const root = await ensureLibraryRoot(false);
-                    if (!root) return;
-                    setLibraryProjectName(null);
-                    await refreshLibraryEntries(root, null);
-                  }}
-                >
-                  {lang === "zh" ? "返回项目列表" : "Back to Projects"}
-                </button>
-              ) : null}
-              <button
-                style={styles.modalBtnGhost}
-                type="button"
-                disabled={libraryBusy}
-                onClick={async () => {
-                  const root = await ensureLibraryRoot(true);
-                  if (root) await refreshLibraryEntries(root, libraryProjectName);
-                }}
-              >
-                {lang === "zh" ? "切换目录" : "Switch Folder"}
-              </button>
-              <div style={styles.librarySubHint}>
-                {lang === "zh"
-                  ? libraryProjectName
-                    ? "当前显示该项目下的分镜目录。"
-                    : "当前显示根目录下的项目名列表。"
-                  : libraryProjectName
-                    ? "Now showing shot folders under this project."
-                    : "Now showing project folders under root."}
               </div>
             </div>
 
             <div style={styles.libraryList}>
               {libraryEntries.length === 0 ? (
                 <div style={styles.libraryEmpty}>
-                  {libraryProjectName
-                    ? (lang === "zh" ? "该项目下暂无分镜目录。" : "No shot folders in this project yet.")
-                    : (lang === "zh" ? "根目录下暂无项目，先保存一个项目。" : "No projects in root yet. Save a project first.")}
+                  {lang === "zh" ? "当前目录下暂无可打开的分镜项目。" : "No storyboard projects found in this folder."}
                 </div>
               ) : (
                 libraryEntries.map((entry) => (
@@ -1504,27 +1490,9 @@ export default function App() {
                       style={styles.modalBtnGhost}
                       type="button"
                       disabled={libraryBusy}
-                      onClick={() => void renameLibraryEntry(entry)}
-                    >
-                      {lang === "zh" ? "重命名" : "Rename"}
-                    </button>
-                    <button
-                      style={styles.modalBtnGhost}
-                      type="button"
-                      disabled={libraryBusy}
                       onClick={() => void importLibraryEntryToEditor(entry)}
                     >
-                      {libraryProjectName
-                        ? (lang === "zh" ? "打开分镜" : "Open Shot")
-                        : (lang === "zh" ? "进入项目" : "Enter Project")}
-                    </button>
-                    <button
-                      style={styles.modalBtnGhost}
-                      type="button"
-                      disabled={libraryBusy}
-                      onClick={() => void openLibraryEntryFolder(entry)}
-                    >
-                      {lang === "zh" ? "打开本地目录" : "Open Folder"}
+                      {lang === "zh" ? "打开分镜库项目" : "Open Project"}
                     </button>
                     <button
                       style={styles.modalBtnDanger}
@@ -1540,6 +1508,16 @@ export default function App() {
             </div>
 
             <div style={styles.modalBtns}>
+              <button
+                style={styles.modalBtnGhost}
+                type="button"
+                disabled={libraryBusy}
+                onClick={async () => {
+                  await importLibraryFromExternalDirectory();
+                }}
+              >
+                {lang === "zh" ? "导入分镜库" : "Import Library"}
+              </button>
               <button style={styles.modalBtnGhost} type="button" onClick={() => setLibraryOpen(false)}>
                 {lang === "zh" ? "关闭" : "Close"}
               </button>
@@ -2191,9 +2169,10 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(255,255,255,0.04)",
     color: "inherit",
-    padding: "0 10px",
+    padding: "0 34px 0 10px",
     outline: "none",
-    fontSize: 12
+    fontSize: 12,
+    fontWeight: 700
   },
   manualDurGrid: {
     marginTop: 8,
@@ -2211,11 +2190,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "6px 8px"
   },
   libraryActions: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  librarySubHint: {
-    fontSize: 12,
-    opacity: 0.72,
-    marginLeft: 2
-  },
   libraryHint: {
     fontSize: 12,
     border: "1px solid rgba(120,180,255,0.35)",

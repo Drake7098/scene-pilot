@@ -86,6 +86,7 @@ export function Stage({
   const [drag, setDrag] = useState<DragMode>(null);
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
   const [backgroundRefUrl, setBackgroundRefUrl] = useState("");
+  const backgroundRefId = scene.backgroundRef?.id;
 
   // ✅ 画布缩放：缩小看画外，放大精修
   const [zoom, setZoom] = useState<number>(1);
@@ -124,12 +125,11 @@ export function Stage({
     let dead = false;
     let revoke = "";
     void (async () => {
-      const bgRef = scene.backgroundRef;
-      if (!bgRef?.id) {
+      if (!backgroundRefId) {
         if (!dead) setBackgroundRefUrl("");
         return;
       }
-      const blob = await getRefBlob(bgRef.id);
+      const blob = await getRefBlob(backgroundRefId);
       if (dead || !blob) return;
       const url = URL.createObjectURL(blob);
       revoke = url;
@@ -143,7 +143,7 @@ export function Stage({
         setBackgroundRefUrl("");
       });
     };
-  }, [scene.backgroundRef?.id]);
+  }, [backgroundRefId]);
 
   function getRect() {
     const el = wrapRef.current;

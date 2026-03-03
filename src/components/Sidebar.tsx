@@ -567,7 +567,7 @@ export function Sidebar(props: Props) {
       { v: "over_shoulder", label: tt("opt.over_shoulder") },
       { v: "dutch_angle", label: tt("opt.dutch_angle") }
     ],
-    [tt, lang]
+    [tt]
   );
   const moveOptions = useMemo(
     () => [
@@ -582,7 +582,7 @@ export function Sidebar(props: Props) {
       { v: "handheld", label: tt("opt.handheld") },
       { v: "orbit", label: tt("opt.orbit") }
     ],
-    [tt, lang]
+    [tt]
   );
   const timeOptions = useMemo(
     () => [
@@ -594,7 +594,7 @@ export function Sidebar(props: Props) {
       { v: "blue_hour", label: tt("opt.blue_hour") },
       { v: "night", label: tt("opt.night") }
     ],
-    [tt, lang]
+    [tt]
   );
   const dirOptions = useMemo(
     () => [
@@ -606,7 +606,7 @@ export function Sidebar(props: Props) {
       { v: "backlight", label: tt("opt.backlight") },
       { v: "rim_light", label: tt("opt.rim_light") }
     ],
-    [tt, lang]
+    [tt]
   );
   const moodOptions = useMemo(
     () => [
@@ -619,7 +619,7 @@ export function Sidebar(props: Props) {
       { v: "warm", label: tt("opt.warm") },
       { v: "cold", label: tt("opt.cold") }
     ],
-    [tt, lang]
+    [tt]
   );
 
   return (
@@ -1297,10 +1297,10 @@ const styles: Record<string, React.CSSProperties> = {
     minWidth: 280,
     borderRight: "1px solid rgba(255,255,255,0.08)",
     background: "rgba(0,0,0,0.12)",
-    padding: 10,
+    padding: 12,
     display: "flex",
     flexDirection: "column",
-    gap: 12,
+    gap: 14,
     minHeight: 0,
     overflow: "auto",
     position: "relative"
@@ -1310,7 +1310,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(255,255,255,0.08)",
     borderRadius: 14,
     background: "rgba(255,255,255,0.03)",
-    padding: 10
+    padding: 12
   },
 
   sectionHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 },
@@ -1393,7 +1393,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 14,
     border: "1px solid rgba(255,255,255,0.08)",
     background: "rgba(0,0,0,0.18)",
-    padding: 10,
+    padding: 12,
     marginBottom: 10,
     display: "flex",
     flexDirection: "column",
@@ -1497,7 +1497,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   list: { display: "flex", flexDirection: "column", gap: 8 },
-  itemRowWrap: { display: "flex", gap: 8, alignItems: "stretch" },
+  itemRowWrap: { display: "flex", gap: 8, alignItems: "center" },
 
   rowBtn: {
     flex: 1,
@@ -1597,6 +1597,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
+    flex: "0 0 34px",
+    lineHeight: 0,
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,0.12)",
     background: "rgba(255,255,255,0.04)",
@@ -1607,7 +1609,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "none"
   },
 
-  formRow: { display: "flex", alignItems: "center", gap: 10, marginBottom: 8 },
+  formRow: { display: "flex", alignItems: "center", gap: 10, marginBottom: 10 },
   formLabel: {
     width: UI_SIZE.labelWSidebar,
     minHeight: UI_SIZE.controlH,
@@ -1620,14 +1622,16 @@ const styles: Record<string, React.CSSProperties> = {
   },
   select: {
     flex: 1,
+    minWidth: 0,
     height: UI_SIZE.controlH,
     borderRadius: UI_SIZE.controlRadius,
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
     outline: "none",
-    padding: "0 10px",
-    fontSize: UI_FONT.body
+    padding: "0 34px 0 10px",
+    fontSize: UI_FONT.body,
+    fontWeight: 700
   },
 
   // ✅ toast（左下角）

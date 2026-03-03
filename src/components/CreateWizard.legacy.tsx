@@ -34,66 +34,6 @@ type Props = {
   onCancel: () => void;
 };
 
-type PrimaryActionButtonProps = {
-  label: string;
-  onClick: () => void;
-};
-
-type SecondaryActionButtonProps = {
-  label: string;
-  onClick: () => void;
-};
-
-function PrimaryActionButton({ label, onClick }: PrimaryActionButtonProps) {
-  const [hovered, setHovered] = useState(false);
-  const [pressed, setPressed] = useState(false);
-  return (
-    <button
-      type="button"
-      style={{
-        ...styles.modalBtn,
-        ...(hovered ? styles.modalBtnHover : {}),
-        ...(pressed ? styles.modalBtnPressed : {})
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => {
-        setHovered(false);
-        setPressed(false);
-      }}
-      onMouseDown={() => setPressed(true)}
-      onMouseUp={() => setPressed(false)}
-      onClick={onClick}
-    >
-      {label}
-    </button>
-  );
-}
-
-function SecondaryActionButton({ label, onClick }: SecondaryActionButtonProps) {
-  const [hovered, setHovered] = useState(false);
-  const [pressed, setPressed] = useState(false);
-  return (
-    <button
-      type="button"
-      style={{
-        ...styles.modalBtnGhost,
-        ...(hovered ? styles.modalBtnGhostHover : {}),
-        ...(pressed ? styles.modalBtnGhostPressed : {})
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => {
-        setHovered(false);
-        setPressed(false);
-      }}
-      onMouseDown={() => setPressed(true)}
-      onMouseUp={() => setPressed(false)}
-      onClick={onClick}
-    >
-      {label}
-    </button>
-  );
-}
-
 function normalizeDurations(draft: WizardDraft): number[] {
   const count = Math.max(1, Math.round(draft.shotCount));
   if (count === 1) return [Math.max(1, Math.round(draft.totalDuration || 6))];
@@ -130,10 +70,6 @@ export function CreateWizard(props: Props) {
   } = props;
   const [floatingHint, setFloatingHint] = useState("");
   const [showDurationHelp, setShowDurationHelp] = useState(false);
-  const [mediaTouched, setMediaTouched] = useState(false);
-  const [planTouched, setPlanTouched] = useState(false);
-  const [hoveredMedia, setHoveredMedia] = useState<NewProjectMedia | null>(null);
-  const [hoveredPlan, setHoveredPlan] = useState<ShotPlan | null>(null);
 
   const skeletonRows = useMemo(() => {
     const count = Math.max(1, Math.round(draft.shotCount));
@@ -272,13 +208,16 @@ export function CreateWizard(props: Props) {
               )}
             </div>
             <div style={styles.modalBtns}>
-              <PrimaryActionButton
-                label={lang === "zh" ? "开始创建" : "Start Creating"}
+              <button
+                style={styles.modalBtn}
                 onClick={() => {
                   onMarkOnboardingDone();
                   setStep("media");
                 }}
-              />
+                type="button"
+              >
+                {lang === "zh" ? "开始创建" : "Start Creating"}
+              </button>
             </div>
           </>
         ) : null}
@@ -290,45 +229,28 @@ export function CreateWizard(props: Props) {
             <div style={styles.newProjectMediaRow}>
               <button
                 type="button"
-                style={{
-                  ...styles.newProjectMediaBtn,
-                  ...(hoveredMedia === "image" ? styles.newProjectMediaBtnHover : {}),
-                  ...(mediaTouched && draft.mediaType === "image" ? styles.newProjectMediaBtnOn : {})
-                }}
-                onMouseEnter={() => setHoveredMedia("image")}
-                onMouseLeave={() => setHoveredMedia(null)}
-                onClick={() => {
-                  setMediaTouched(true);
-                  setDraft((s) => nextWizardDraft({ ...s, mediaType: "image", shotPlan: "single", shotCount: 1 }));
-                }}
+                style={{ ...styles.newProjectMediaBtn, ...(draft.mediaType === "image" ? styles.newProjectMediaBtnOn : {}) }}
+                onClick={() => setDraft((s) => nextWizardDraft({ ...s, mediaType: "image", shotPlan: "single", shotCount: 1 }))}
               >
                 {lang === "zh" ? "图片" : "Image"}
               </button>
               <button
                 type="button"
-                style={{
-                  ...styles.newProjectMediaBtn,
-                  ...(hoveredMedia === "video" ? styles.newProjectMediaBtnHover : {}),
-                  ...(mediaTouched && draft.mediaType === "video" ? styles.newProjectMediaBtnOn : {})
-                }}
-                onMouseEnter={() => setHoveredMedia("video")}
-                onMouseLeave={() => setHoveredMedia(null)}
-                onClick={() => {
-                  setMediaTouched(true);
-                  setDraft((s) => nextWizardDraft({ ...s, mediaType: "video", shotPlan: "single", shotCount: 1 }));
-                }}
+                style={{ ...styles.newProjectMediaBtn, ...(draft.mediaType === "video" ? styles.newProjectMediaBtnOn : {}) }}
+                onClick={() => setDraft((s) => nextWizardDraft({ ...s, mediaType: "video", shotPlan: "single", shotCount: 1 }))}
               >
                 {lang === "zh" ? "视频" : "Video"}
               </button>
             </div>
             <div style={styles.modalBtns}>
               {canCancel ? (
-                <SecondaryActionButton label={lang === "zh" ? "取消" : "Cancel"} onClick={onCancel} />
+                <button style={styles.modalBtnGhost} onClick={onCancel} type="button">
+                  {lang === "zh" ? "取消" : "Cancel"}
+                </button>
               ) : null}
-              <PrimaryActionButton
-                label={lang === "zh" ? "下一步" : "Next"}
-                onClick={() => setStep(draft.mediaType === "image" ? "image_setup" : "video_plan")}
-              />
+              <button style={styles.modalBtn} onClick={() => setStep(draft.mediaType === "image" ? "image_setup" : "video_plan")} type="button">
+                {lang === "zh" ? "下一步" : "Next"}
+              </button>
             </div>
           </>
         ) : null}
@@ -360,10 +282,16 @@ export function CreateWizard(props: Props) {
             </div>
             <div style={styles.modalBtns}>
               {canCancel ? (
-                <SecondaryActionButton label={lang === "zh" ? "取消" : "Cancel"} onClick={onCancel} />
+                <button style={styles.modalBtnGhost} onClick={onCancel} type="button">
+                  {lang === "zh" ? "取消" : "Cancel"}
+                </button>
               ) : null}
-              <SecondaryActionButton label={lang === "zh" ? "上一步" : "Back"} onClick={() => setStep("media")} />
-              <PrimaryActionButton label={lang === "zh" ? "开始编辑" : "Start Editing"} onClick={onCreateProject} />
+              <button style={styles.modalBtnGhost} onClick={() => setStep("media")} type="button">
+                {lang === "zh" ? "上一步" : "Back"}
+              </button>
+              <button style={styles.modalBtn} onClick={onCreateProject} type="button">
+                {lang === "zh" ? "开始编辑" : "Start Editing"}
+              </button>
             </div>
           </>
         ) : null}
@@ -384,19 +312,12 @@ export function CreateWizard(props: Props) {
                   <button
                     key={p.id}
                     type="button"
-                    style={{
-                      ...styles.wizardPlanCard,
-                      ...(hoveredPlan === (p.id as ShotPlan) ? styles.wizardPlanCardHover : {}),
-                      ...(planTouched && on ? styles.wizardPlanCardOn : {})
-                    }}
-                    onMouseEnter={() => setHoveredPlan(p.id as ShotPlan)}
-                    onMouseLeave={() => setHoveredPlan(null)}
-                    onClick={() => {
-                      setPlanTouched(true);
+                    style={{ ...styles.wizardPlanCard, ...(on ? styles.wizardPlanCardOn : {}) }}
+                    onClick={() =>
                       setDraft((s) =>
                         nextWizardDraft({ ...s, shotPlan: p.id as ShotPlan, shotCount: defaultShotCount(p.id as ShotPlan) })
-                      );
-                    }}
+                      )
+                    }
                   >
                     <div style={styles.wizardPlanTitle}>{lang === "zh" ? p.zh : p.en}</div>
                     <div style={styles.wizardPlanDesc}>{lang === "zh" ? p.descZh : p.descEn}</div>
@@ -406,10 +327,16 @@ export function CreateWizard(props: Props) {
             </div>
             <div style={styles.modalBtns}>
               {canCancel ? (
-                <SecondaryActionButton label={lang === "zh" ? "取消" : "Cancel"} onClick={onCancel} />
+                <button style={styles.modalBtnGhost} onClick={onCancel} type="button">
+                  {lang === "zh" ? "取消" : "Cancel"}
+                </button>
               ) : null}
-              <SecondaryActionButton label={lang === "zh" ? "上一步" : "Back"} onClick={() => setStep("media")} />
-              <PrimaryActionButton label={lang === "zh" ? "下一步" : "Next"} onClick={() => setStep("video_setup")} />
+              <button style={styles.modalBtnGhost} onClick={() => setStep("media")} type="button">
+                {lang === "zh" ? "上一步" : "Back"}
+              </button>
+              <button style={styles.modalBtn} onClick={() => setStep("video_setup")} type="button">
+                {lang === "zh" ? "下一步" : "Next"}
+              </button>
             </div>
           </>
         ) : null}
@@ -531,16 +458,23 @@ export function CreateWizard(props: Props) {
             </div>
             <div style={styles.modalBtns}>
               {canCancel ? (
-                <SecondaryActionButton label={lang === "zh" ? "取消" : "Cancel"} onClick={onCancel} />
+                <button style={styles.modalBtnGhost} onClick={onCancel} type="button">
+                  {lang === "zh" ? "取消" : "Cancel"}
+                </button>
               ) : null}
-              <SecondaryActionButton label={lang === "zh" ? "上一步" : "Back"} onClick={() => setStep("video_plan")} />
-              <PrimaryActionButton
-                label={lang === "zh" ? "开始编辑" : "Start Editing"}
+              <button style={styles.modalBtnGhost} onClick={() => setStep("video_plan")} type="button">
+                {lang === "zh" ? "上一步" : "Back"}
+              </button>
+              <button
+                style={styles.modalBtn}
                 onClick={() => {
                   if (!validateVideoSetup()) return;
                   onCreateProject();
                 }}
-              />
+                type="button"
+              >
+                {lang === "zh" ? "开始编辑" : "Start Editing"}
+              </button>
             </div>
           </>
         ) : null}
@@ -642,20 +576,12 @@ const styles: Record<string, CSSProperties> = {
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
-    fontWeight: 800,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    textAlign: "center"
-  },
-  newProjectMediaBtnHover: {
-    border: "1px solid rgba(170,205,255,0.38)",
-    background: "rgba(255,255,255,0.08)"
+    fontWeight: 800
   },
   newProjectMediaBtnOn: {
-    border: "1px solid rgba(120,180,255,0.72)",
-    background: "rgba(120,180,255,0.14)",
-    boxShadow: "0 0 0 1px rgba(120,180,255,0.22) inset"
+    border: "1px solid rgba(255,255,255,0.16)",
+    background: "rgba(255,255,255,0.05)",
+    boxShadow: "none"
   },
   wizardBullets: {
     marginTop: 8,
@@ -709,27 +635,20 @@ const styles: Record<string, CSSProperties> = {
     marginTop: 8
   },
   wizardPlanCard: {
-    textAlign: "center",
+    textAlign: "left",
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,0.12)",
     background: "rgba(255,255,255,0.04)",
     padding: "10px 12px",
     cursor: "pointer",
-    color: "inherit",
-    display: "grid",
-    placeItems: "center"
-  },
-  wizardPlanCardHover: {
-    border: "1px solid rgba(170,205,255,0.38)",
-    background: "rgba(255,255,255,0.08)"
+    color: "inherit"
   },
   wizardPlanCardOn: {
-    border: "1px solid rgba(120,180,255,0.72)",
-    background: "rgba(120,180,255,0.14)",
-    boxShadow: "0 0 0 1px rgba(120,180,255,0.22) inset"
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.04)"
   },
-  wizardPlanTitle: { fontSize: 13, fontWeight: 900, marginBottom: 4, textAlign: "center", width: "100%" },
-  wizardPlanDesc: { fontSize: 12, opacity: 0.76, lineHeight: 1.4, textAlign: "center", width: "100%" },
+  wizardPlanTitle: { fontSize: 13, fontWeight: 900, marginBottom: 4 },
+  wizardPlanDesc: { fontSize: 12, opacity: 0.76, lineHeight: 1.4 },
   modalFormRow: {
     display: "grid",
     gridTemplateColumns: "120px minmax(0,1fr)",
@@ -897,21 +816,12 @@ const styles: Record<string, CSSProperties> = {
     height: 34,
     padding: "0 14px",
     borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(120,180,255,0.62)",
+    background: "rgba(120,180,255,0.22)",
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
     fontWeight: 900
-  },
-  modalBtnHover: {
-    border: "1px solid rgba(170,205,255,0.42)",
-    background: "rgba(255,255,255,0.09)"
-  },
-  modalBtnPressed: {
-    border: "1px solid rgba(120,180,255,0.78)",
-    background: "rgba(120,180,255,0.14)",
-    boxShadow: "0 0 0 1px rgba(120,180,255,0.24) inset"
   },
   modalBtnGhost: {
     height: 34,
@@ -923,14 +833,5 @@ const styles: Record<string, CSSProperties> = {
     cursor: "pointer",
     fontSize: 12,
     fontWeight: 800
-  },
-  modalBtnGhostHover: {
-    border: "1px solid rgba(170,205,255,0.36)",
-    background: "rgba(255,255,255,0.08)"
-  },
-  modalBtnGhostPressed: {
-    border: "1px solid rgba(120,180,255,0.72)",
-    background: "rgba(120,180,255,0.12)",
-    boxShadow: "0 0 0 1px rgba(120,180,255,0.20) inset"
   }
 };

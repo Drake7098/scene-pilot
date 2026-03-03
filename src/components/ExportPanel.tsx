@@ -22,7 +22,6 @@ function clampInt(v: number, a: number, b: number) {
 
 type MediaMode = "image" | "video";
 type GenMode = "quick" | "pro";
-type FlowMode = "two-step";
 
 type PlatformPresetId =
   | "universal"
@@ -677,7 +676,6 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
   const [exportDone, setExportDone] = useState(false);
   const [exportFolderLabel, setExportFolderLabel] = useState("");
   const [exportResultType, setExportResultType] = useState<"none" | "dir" | "zip">("none");
-  const flowMode: FlowMode = "two-step";
   const canSaveDirectory = typeof window !== "undefined" && "showDirectoryPicker" in window;
 
   const scenes = project.scenes ?? [];
@@ -1004,7 +1002,7 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
       files,
       blobFiles
     };
-  }, [promptProject.scenes, platformPreset, sceneTitle, flowMode, lang, promptsMainWithRefs, projectLabel]);
+  }, [promptProject.scenes, platformPreset, sceneTitle, lang, promptsMainWithRefs, projectLabel]);
   const manualSaveGuide = useMemo(() => {
     const fileLines = [
       ...flowBundle.files.map((f) => `- ${f.path}`),
@@ -1298,12 +1296,12 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
 const styles: Record<string, React.CSSProperties> = {
   wrap: {
     borderTop: "1px solid rgba(255,255,255,0.08)",
-    padding: 10,
+    padding: 12,
     minHeight: 132,
     height: "min(30vh, 250px)",
     display: "flex",
     flexDirection: "column",
-    gap: 8,
+    gap: 10,
     background: "rgba(0,0,0,0.10)",
     position: "relative"
   },
@@ -1342,8 +1340,9 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
     outline: "none",
-    padding: "0 10px",
-    fontSize: UI_FONT.body
+    padding: "0 34px 0 10px",
+    fontSize: UI_FONT.body,
+    fontWeight: 700
   },
 
   tab: {
@@ -1453,8 +1452,9 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
     outline: "none",
-    padding: "0 10px",
-    fontSize: UI_FONT.body
+    padding: "0 34px 0 10px",
+    fontSize: UI_FONT.body,
+    fontWeight: 700
   },
   platformTips: {
     fontSize: UI_FONT.hint,
@@ -1519,7 +1519,7 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: "auto"
   },
   modalTitle: { fontWeight: 900, fontSize: UI_FONT.title, opacity: UI_OPACITY.title },
-  modalRow: { display: "flex", alignItems: "center", gap: 8 },
+  modalRow: { display: "flex", alignItems: "center", gap: 10 },
   modalBtns: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 },
   successCard: {
     border: "1px solid rgba(120,180,255,0.35)",
