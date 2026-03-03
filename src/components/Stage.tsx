@@ -85,6 +85,7 @@ export function Stage({
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<DragMode>(null);
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
+  const [backgroundRefUrl, setBackgroundRefUrl] = useState("");
 
   // ✅ 画布缩放：缩小看画外，放大精修
   const [zoom, setZoom] = useState<number>(1);
@@ -119,6 +120,31 @@ export function Stage({
     };
   }, [scene.layers]);
 
+  useEffect(() => {
+    let dead = false;
+    let revoke = "";
+    void (async () => {
+      const bgRef = scene.backgroundRef;
+      if (!bgRef?.id) {
+        if (!dead) setBackgroundRefUrl("");
+        return;
+      }
+      const blob = await getRefBlob(bgRef.id);
+      if (dead || !blob) return;
+      const url = URL.createObjectURL(blob);
+      revoke = url;
+      setBackgroundRefUrl(url);
+    })();
+    return () => {
+      dead = true;
+      if (revoke) URL.revokeObjectURL(revoke);
+      queueMicrotask(() => {
+        if (!dead) return;
+        setBackgroundRefUrl("");
+      });
+    };
+  }, [scene.backgroundRef?.id]);
+
   function getRect() {
     const el = wrapRef.current;
     return el ? el.getBoundingClientRect() : null;
@@ -142,8 +168,8 @@ export function Stage({
 
   function onPointerDownLayer(e: React.PointerEvent, layer: Layer) {
     e.stopPropagation();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     onSelectLayer(layer.id);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 
     const rect = getRect();
     if (!rect) return;
@@ -313,6 +339,14 @@ export function Stage({
       >
         {/* ✅ world：所有元素都放在 world 中，统一 scale */}
         <div style={{ ...styles.world, transform: `translate(-50%, -50%) scale(${zoom})` }}>
+          {backgroundRefUrl ? (
+            <div
+              style={{
+                ...styles.backgroundRefLayer,
+                backgroundImage: `url(${backgroundRefUrl})`
+              }}
+            />
+          ) : null}
           {/* ✅ 中间画面框：0~100 是“图片/视频实际画面” */}
           <div style={styles.frame} />
 
@@ -498,6 +532,17 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 0 0 1px rgba(0,0,0,0.35) inset",
     pointerEvents: "none"
   },
+  backgroundRefLayer: {
+    position: "absolute",
+    inset: 0,
+    borderRadius: 18,
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "contain",
+    backgroundPosition: "center center",
+    opacity: 0.2,
+    filter: "blur(2px) saturate(0.82)",
+    pointerEvents: "none"
+  },
 
   pathSvg: {
     position: "absolute",
@@ -611,5 +656,6 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.85,
     pointerEvents: "none",
     userSelect: "none"
-  }
+  },
+  
 };

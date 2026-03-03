@@ -1,4 +1,9 @@
 export type Mode = "static" | "storyboard";
+export type MediaType = "image" | "video";
+export type ShotPlan = "single" | "multicam" | "continuous" | "edit";
+export type Direction = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
+export type TransitionType = "cut" | "reverse_angle" | "camera_continues" | "dissolve" | "time_jump";
+export type ObjectRefInheritMode = "off" | "identity_only" | "all";
 
 export type Shape = "circle" | "rect" | "ring" | "arrow";
 
@@ -51,6 +56,14 @@ export type LocalRefMeta = {
   updatedAt: number;
 };
 
+export type SceneRefMeta = {
+  id: string;
+  name: string;
+  mime: string;
+  size: number;
+  updatedAt: number;
+};
+
 export type Camera = {
   shot: string; // wide/medium/close/custom
   movement: string; // static/pan_left/custom
@@ -62,7 +75,18 @@ export type Lighting = { time: string; key_dir: string; mood: string };
 export type Scene = {
   id: string;
   name: string;
+  index?: number;
+  layoutLocked?: boolean;
+  backgroundRef?: SceneRefMeta;
+  inheritFromPrevious?: boolean;
+  inheritBgRefFromPrevious?: boolean;
+  inheritObjectRefsFromPrevious?: ObjectRefInheritMode;
+  transitionType?: TransitionType;
   duration_s: number;
+  cameraPreset?: string;
+  shotNote?: string;
+  entryDir?: Direction;
+  exitDir?: Direction;
   camera: Camera;
   lighting: Lighting;
   layers: Layer[];
@@ -70,7 +94,7 @@ export type Scene = {
 };
 
 export type Project = {
-  project: { mode: Mode };
+  project: { mode: Mode; mediaType?: MediaType; shotPlan?: ShotPlan };
   scenes: Scene[];
 };
 
@@ -82,6 +106,21 @@ function clamp(n: number, min: number, max: number): number {
 
 function ensureArray<T>(v: unknown, fallback: T[] = []): T[] {
   return Array.isArray(v) ? (v as T[]) : fallback;
+}
+
+function inferMediaTypeFromScenes(scenes: Scene[]): MediaType {
+  let hasImage = false;
+  let hasVideo = false;
+  for (const s of scenes) {
+    const lines = (s?.notes ?? "")
+      .split("\n")
+      .map((x) => x.trim().toLowerCase());
+    const mediaLine = lines.find((x) => x.startsWith("media:"));
+    if (mediaLine?.includes("image")) hasImage = true;
+    else hasVideo = true;
+  }
+  if (hasImage && !hasVideo) return "image";
+  return "video";
 }
 
 /**
@@ -178,19 +217,96 @@ export function sanitizeProject(p: Project): Project {
     s.notes = (s as any).notes ?? "";
     s.name = (s as any).name ?? "Scene";
     s.id = (s as any).id ?? `s_${Math.random().toString(16).slice(2)}`;
+    s.index = Number.isFinite((s as any).index) ? Math.max(1, Math.round((s as any).index)) : undefined;
+    s.layoutLocked = !!(s as any).layoutLocked;
+    const bgRefRaw = (s as any).backgroundRef;
+    if (bgRefRaw && typeof bgRefRaw === "object" && typeof bgRefRaw.id === "string") {
+      s.backgroundRef = {
+        id: String(bgRefRaw.id),
+        name: String(bgRefRaw.name ?? "background.jpg"),
+        mime: String(bgRefRaw.mime ?? "image/jpeg"),
+        size: Number.isFinite(bgRefRaw.size) ? Math.max(0, Number(bgRefRaw.size)) : 0,
+        updatedAt: Number.isFinite(bgRefRaw.updatedAt) ? Number(bgRefRaw.updatedAt) : Date.now()
+      };
+    } else {
+      s.backgroundRef = undefined;
+    }
+    s.cameraPreset = typeof (s as any).cameraPreset === "string" ? (s as any).cameraPreset : "";
+    s.shotNote = typeof (s as any).shotNote === "string" ? (s as any).shotNote : "";
+    const entryRaw = String((s as any).entryDir ?? "").toUpperCase();
+    const exitRaw = String((s as any).exitDir ?? "").toUpperCase();
+    s.entryDir = (["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const).includes(entryRaw as any) ? (entryRaw as Direction) : undefined;
+    s.exitDir = (["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const).includes(exitRaw as any) ? (exitRaw as Direction) : undefined;
   }
 
   // project meta
   if (!p.project) p.project = { mode: "storyboard" };
   p.project.mode = (p.project.mode ?? "storyboard") as Mode;
+  p.project.mediaType = p.project.mediaType === "image" || p.project.mediaType === "video"
+    ? p.project.mediaType
+    : inferMediaTypeFromScenes(scenes);
+  const rawPlan = (p.project.shotPlan ?? "single") as ShotPlan;
+  p.project.shotPlan = (["single", "multicam", "continuous", "edit"] as const).includes(rawPlan as any) ? rawPlan : "single";
 
+  scenes.forEach((s, i) => {
+    if (!s.index) s.index = i + 1;
+    const isFirst = i === 0;
+    const rawTransition = String((s as any).transitionType ?? "");
+    const transition = (["cut", "reverse_angle", "camera_continues", "dissolve", "time_jump"] as const).includes(rawTransition as any)
+      ? (rawTransition as TransitionType)
+      : undefined;
+
+    if (p.project.mediaType === "image" || p.project.shotPlan === "single") {
+      s.inheritFromPrevious = false;
+      s.inheritBgRefFromPrevious = false;
+      s.inheritObjectRefsFromPrevious = "off";
+      s.transitionType = "cut";
+    } else if (p.project.shotPlan === "multicam") {
+      s.inheritFromPrevious = isFirst ? false : (typeof (s as any).inheritFromPrevious === "boolean" ? !!(s as any).inheritFromPrevious : true);
+      s.inheritBgRefFromPrevious = isFirst
+        ? false
+        : (typeof (s as any).inheritBgRefFromPrevious === "boolean" ? !!(s as any).inheritBgRefFromPrevious : true);
+      s.inheritObjectRefsFromPrevious = isFirst
+        ? "off"
+        : (String((s as any).inheritObjectRefsFromPrevious ?? "").toLowerCase() === "identity_only"
+            ? "identity_only"
+            : String((s as any).inheritObjectRefsFromPrevious ?? "").toLowerCase() === "off"
+              ? "off"
+              : "all");
+      s.transitionType = transition ?? "reverse_angle";
+    } else if (p.project.shotPlan === "continuous") {
+      s.inheritFromPrevious = isFirst ? false : true;
+      s.inheritBgRefFromPrevious = isFirst ? false : true;
+      s.inheritObjectRefsFromPrevious = isFirst
+        ? "off"
+        : (String((s as any).inheritObjectRefsFromPrevious ?? "").toLowerCase() === "identity_only"
+            ? "identity_only"
+            : String((s as any).inheritObjectRefsFromPrevious ?? "").toLowerCase() === "off"
+              ? "off"
+              : "all");
+      s.transitionType = "camera_continues";
+    } else {
+      s.inheritFromPrevious = isFirst ? false : (typeof (s as any).inheritFromPrevious === "boolean" ? !!(s as any).inheritFromPrevious : false);
+      s.inheritBgRefFromPrevious = isFirst
+        ? false
+        : (typeof (s as any).inheritBgRefFromPrevious === "boolean" ? !!(s as any).inheritBgRefFromPrevious : false);
+      s.inheritObjectRefsFromPrevious = isFirst
+        ? "off"
+        : (String((s as any).inheritObjectRefsFromPrevious ?? "").toLowerCase() === "all"
+            ? "all"
+            : String((s as any).inheritObjectRefsFromPrevious ?? "").toLowerCase() === "off"
+              ? "off"
+              : "identity_only");
+      s.transitionType = transition ?? "cut";
+    }
+  });
   p.scenes = scenes;
   return p;
 }
 
 export function defaultProject(): Project {
   const p: Project = {
-    project: { mode: "storyboard" },
+    project: { mode: "storyboard", mediaType: "video", shotPlan: "single" },
     scenes: [
       {
         id: "s1",

@@ -10,6 +10,7 @@ import { UI_FONT, UI_OPACITY, UI_SIZE } from "../uiTokens";
 type Props = {
   lang: Lang;
   project: Project;
+  projectLabel?: string;
   sceneIdx: number;
   selectedLayerId: string | null;
 };
@@ -456,14 +457,6 @@ function safeName(input: string): string {
     .slice(0, 64);
 }
 
-function ymd() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = `${d.getMonth() + 1}`.padStart(2, "0");
-  const day = `${d.getDate()}`.padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 function refShort(type: "identity" | "appearance" | "style") {
   if (type === "identity") return "id";
   if (type === "appearance") return "app";
@@ -475,27 +468,180 @@ function extFromName(name: string) {
   return m ? m[1].toLowerCase() : "jpg";
 }
 
-function downloadTextFile(filename: string, content: string) {
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 500);
+function extractShotSection(main: string): string {
+  const lines = (main ?? "").split("\n");
+  const idx = lines.findIndex((l) => l.trim().startsWith("# "));
+  if (idx >= 0) return lines.slice(idx).join("\n").trim();
+  return (main ?? "").trim();
 }
 
-function downloadBlobFile(filename: string, blob: Blob) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 500);
+function collapseStaticKeyframes(text: string, lang: Lang): string {
+  const lines = (text ?? "").split("\n");
+  const out: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const cur = lines[i] ?? "";
+    const next = lines[i + 1] ?? "";
+    const mZhStart = cur.match(/^起点t0[:：]\s*(.+)$/);
+    const mZhEnd = next.match(/^终点t1[:：]\s*(.+)$/);
+    const mEnStart = cur.match(/^Start t0[:：]\s*(.+)$/i);
+    const mEnEnd = next.match(/^End t1[:：]\s*(.+)$/i);
+
+    if (mZhStart && mZhEnd && mZhStart[1].trim() === mZhEnd[1].trim()) {
+      out.push(`位置：${mZhStart[1].trim()}`);
+      i += 2;
+      continue;
+    }
+    if (mEnStart && mEnEnd && mEnStart[1].trim() === mEnEnd[1].trim()) {
+      out.push(`${lang === "zh" ? "位置" : "Position"}: ${mEnStart[1].trim()}`);
+      i += 2;
+      continue;
+    }
+
+    out.push(cur);
+    i += 1;
+  }
+  return out.join("\n").trim();
+}
+
+function insertAfterHeader(shotSection: string, injectedLines: string[]): string {
+  if (!injectedLines.length) return shotSection.trim();
+  const lines = (shotSection ?? "").split("\n");
+  if (lines.length && lines[0].trim().startsWith("# ")) {
+    return [lines[0], "", ...injectedLines, "", ...lines.slice(1)].join("\n").trim();
+  }
+  return [...injectedLines, "", ...lines].join("\n").trim();
+}
+
+function stripAttachmentLines(text: string): string {
+  return (text ?? "")
+    .split("\n")
+    .filter((line) => !/附件照片|attachments/i.test(line))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 type FlowFile = { path: string; content: string };
 type FlowBlobFile = { path: string; refId: string };
+type ZipEntry = { path: string; data: Uint8Array };
+
+let crcTable: Uint32Array | null = null;
+
+function getCrcTable(): Uint32Array {
+  if (crcTable) return crcTable;
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) {
+      c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    table[i] = c >>> 0;
+  }
+  crcTable = table;
+  return table;
+}
+
+function crc32(data: Uint8Array): number {
+  const table = getCrcTable();
+  let c = 0xffffffff;
+  for (let i = 0; i < data.length; i++) {
+    c = table[(c ^ data[i]) & 0xff] ^ (c >>> 8);
+  }
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function u16LE(v: number): Uint8Array {
+  return new Uint8Array([v & 255, (v >>> 8) & 255]);
+}
+
+function u32LE(v: number): Uint8Array {
+  return new Uint8Array([v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255]);
+}
+
+function concatBytes(chunks: Uint8Array[]): Uint8Array {
+  const size = chunks.reduce((sum, c) => sum + c.length, 0);
+  const out = new Uint8Array(size);
+  let offset = 0;
+  for (const c of chunks) {
+    out.set(c, offset);
+    offset += c.length;
+  }
+  return out;
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
+function buildZipStored(entries: ZipEntry[]): Blob {
+  const encoder = new TextEncoder();
+  const localParts: Uint8Array[] = [];
+  const centralParts: Uint8Array[] = [];
+  let localOffset = 0;
+
+  for (const entry of entries) {
+    const name = encoder.encode(entry.path.replace(/^\/+/, ""));
+    const data = entry.data;
+    const crc = crc32(data);
+    const size = data.length >>> 0;
+    const flags = 0x0800; // UTF-8 filename
+
+    const localHeader = concatBytes([
+      u32LE(0x04034b50),
+      u16LE(20),
+      u16LE(flags),
+      u16LE(0), // store
+      u16LE(0),
+      u16LE(0),
+      u32LE(crc),
+      u32LE(size),
+      u32LE(size),
+      u16LE(name.length),
+      u16LE(0),
+      name
+    ]);
+    localParts.push(localHeader, data);
+
+    const centralHeader = concatBytes([
+      u32LE(0x02014b50),
+      u16LE(20),
+      u16LE(20),
+      u16LE(flags),
+      u16LE(0), // store
+      u16LE(0),
+      u16LE(0),
+      u32LE(crc),
+      u32LE(size),
+      u32LE(size),
+      u16LE(name.length),
+      u16LE(0),
+      u16LE(0),
+      u16LE(0),
+      u16LE(0),
+      u32LE(0),
+      u32LE(localOffset),
+      name
+    ]);
+    centralParts.push(centralHeader);
+    localOffset += localHeader.length + data.length;
+  }
+
+  const centralDirectory = concatBytes(centralParts);
+  const localBlob = concatBytes(localParts);
+  const eocd = concatBytes([
+    u32LE(0x06054b50),
+    u16LE(0),
+    u16LE(0),
+    u16LE(entries.length),
+    u16LE(entries.length),
+    u32LE(centralDirectory.length),
+    u32LE(localBlob.length),
+    u16LE(0)
+  ]);
+
+  return new Blob([toArrayBuffer(localBlob), toArrayBuffer(centralDirectory), toArrayBuffer(eocd)], { type: "application/zip" });
+}
 
 async function writeTextToDirectory(dirHandle: any, fullPath: string, content: string) {
   const parts = fullPath.split("/").filter(Boolean);
@@ -521,12 +667,18 @@ async function writeBlobToDirectory(dirHandle: any, fullPath: string, blob: Blob
   await writable.close();
 }
 
-export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props) {
+export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLayerId }: Props) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showExportDiff, setShowExportDiff] = useState(false);
+  const [showSaveHint, setShowSaveHint] = useState(false);
   const [actionHint, setActionHint] = useState("");
   const [platformPresetId, setPlatformPresetId] = useState<PlatformPresetId>("universal");
+  const [exporting, setExporting] = useState(false);
+  const [exportDone, setExportDone] = useState(false);
+  const [exportFolderLabel, setExportFolderLabel] = useState("");
+  const [exportResultType, setExportResultType] = useState<"none" | "dir" | "zip">("none");
   const flowMode: FlowMode = "two-step";
+  const canSaveDirectory = typeof window !== "undefined" && "showDirectoryPicker" in window;
 
   const scenes = project.scenes ?? [];
   const safeIdx = clampInt(sceneIdx, 0, Math.max(0, scenes.length - 1));
@@ -544,17 +696,17 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
 
   // ✅ 只导出当前分镜 prompts
   const promptProject = useMemo<Project>(() => {
-    if (!currentScene) return { ...project, scenes: [] };
     const modeLimit = 6;
     const refLimit = Math.min(modeLimit, platformPreset.maxRefsPerObject);
-    const nextScene = {
-      ...currentScene,
-      layers: (currentScene.layers ?? []).map((l) => ({
+    const sourceScenes = currentScene ? [currentScene] : [];
+    const nextScenes = sourceScenes.map((s) => ({
+      ...s,
+      layers: (s.layers ?? []).map((l) => ({
         ...l,
         referenceLinks: limitRefLinks(l.referenceLinks ?? "", refLimit)
       }))
-    };
-    return { ...project, scenes: [nextScene] };
+    }));
+    return { ...project, scenes: nextScenes };
   }, [project, currentScene, platformPreset.maxRefsPerObject]);
 
   const sceneTitle = useMemo(() => {
@@ -587,7 +739,53 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
   }, [rawPrompts, mediaMode, lang, sceneTitle]);
 
   const { main: promptsMain, notes: promptsNotes } = useMemo(() => splitMachineNotes(prompts), [prompts]);
-  const platformUrl = platformPreset.url;
+  const promptsMainWithRefs = useMemo(() => {
+    const scene = currentScene;
+    if (!scene) return promptsMain;
+    const sceneTag = String(scene.index ?? safeIdx + 1).padStart(2, "0");
+    const bgFileName = scene.backgroundRef?.id
+      ? `${sceneTag}__BG__${safeName(scene.backgroundRef.name || `background.${extFromName(scene.backgroundRef.name || "")}`)}`
+      : "";
+    const objRefLines = (scene.layers ?? []).flatMap((layer, idx) => {
+      const code = `OBJ_${String.fromCharCode(65 + (idx % 26))}${idx >= 26 ? `_${idx + 1}` : ""}`;
+      const localRefs = (layer.localRefs ?? []).slice(0, platformPreset.maxRefsPerObject);
+      return localRefs.map((ref, i) => {
+        const fileName = `${sceneTag}_${code}__${refShort(ref.type)}__${String(i + 1).padStart(2, "0")}.${extFromName(ref.name)}`;
+        return lang === "zh"
+          ? `- 对象 ${layer.id} 参考图见附件照片，名字：${fileName}`
+          : `- Object ${layer.id} reference image is in attachments, name: ${fileName}`;
+      });
+    });
+    const refLines = [
+      ...(bgFileName
+        ? [
+            lang === "zh"
+              ? `- 本分镜参考图见附件照片，名字：${bgFileName}`
+              : `- Shot background reference image is in attachments, name: ${bgFileName}`
+          ]
+        : []),
+      ...objRefLines
+    ];
+
+    const shotSection = extractShotSection(promptsMain);
+    const mergedShot = insertAfterHeader(collapseStaticKeyframes(shotSection, lang), refLines);
+    const constraintTail = lang === "zh"
+      ? [
+          "生成约束：",
+          "- 保持对象数量、对象身份与相对位置，不得新增/删除主体。",
+          "- 先结构后风格；不重排构图。",
+          "- no subtitles / no overlays / no text / no numbers."
+        ].join("\n")
+      : [
+          "Generation constraints:",
+          "- Keep object count, identity, and relative layout. Do not add/remove subjects.",
+          "- Structure first, style second; do not re-layout composition.",
+          "- no subtitles / no overlays / no text / no numbers."
+        ].join("\n");
+
+    return [mergedShot, constraintTail].join("\n\n").trim();
+  }, [currentScene, promptsMain, safeIdx, platformPreset.maxRefsPerObject, lang]);
+  const quickCopyPrompt = useMemo(() => stripAttachmentLines(promptsMainWithRefs), [promptsMainWithRefs]);
 
   async function copy(text: string) {
     try {
@@ -609,18 +807,37 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
   }, [actionHint]);
 
   const flowBundle = useMemo(() => {
-    const scene = promptProject.scenes?.[0];
-    const layers = scene?.layers ?? [];
-    const objects = layers.map((layer, idx) => {
+    const scenesToExport = promptProject.scenes ?? [];
+    const sceneBackgrounds = scenesToExport
+      .map((scene, sceneOrder) => {
+        const bgRef = scene.backgroundRef;
+        if (!bgRef?.id) return null;
+        const sceneTag = String((scene.index ?? sceneOrder + 1)).padStart(2, "0");
+        const ext = extFromName(bgRef.name);
+        const fileName = `${sceneTag}__BG__${safeName(bgRef.name || `background.${ext}`)}`;
+        return {
+          sceneTag,
+          sceneName: scene.name ?? scene.id,
+          fileName,
+          refId: bgRef.id
+        };
+      })
+      .filter(Boolean) as Array<{ sceneTag: string; sceneName: string; fileName: string; refId: string }>;
+
+    const objects = scenesToExport.flatMap((scene, sceneOrder) =>
+      (scene.layers ?? []).map((layer, idx) => {
+      const sceneTag = String((scene.index ?? sceneOrder + 1)).padStart(2, "0");
       const code = `OBJ_${String.fromCharCode(65 + (idx % 26))}${idx >= 26 ? `_${idx + 1}` : ""}`;
       const localRefs = (layer.localRefs ?? []).slice(0, platformPreset.maxRefsPerObject);
       const refItems = localRefs.map((ref, i) => {
         const type = ref.type;
         const ext = extFromName(ref.name);
-        const fileName = `${code}__${refShort(type)}__${String(i + 1).padStart(2, "0")}.${ext}`;
+        const fileName = `${sceneTag}_${code}__${refShort(type)}__${String(i + 1).padStart(2, "0")}.${ext}`;
         return { source: `local:${ref.name}`, type, fileName, refId: ref.id };
       });
       return {
+        sceneTag,
+        sceneName: scene.name ?? scene.id,
         code,
         layerId: layer.id,
         type: (layer.type ?? "").trim(),
@@ -629,43 +846,48 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
         referencePolicy: layer.referencePolicy ?? "optional",
         refItems
       };
-    });
+    }));
 
-    const now = ymd();
-    const sceneName = safeName(sceneTitle || "Scene");
-    const rootDir = lang === "zh" ? "分镜集" : "StoryboardPack";
-    const sceneDir = sceneName || (lang === "zh" ? `分镜_${now}` : `scene_${now}`);
+    const projectNameForFile = safeName(projectLabel || (lang === "zh" ? "未命名项目" : "Untitled"));
+    const shotNameForFile = safeName(sceneTitle || (lang === "zh" ? "分镜" : "shot"));
+    const platformForFile = safeName(lang === "zh" ? platformPreset.labelZh : platformPreset.labelEn);
+    const rootDir = "ScenePilotix";
+    const projectDir = projectNameForFile || (lang === "zh" ? "未命名项目" : "Untitled");
     const modeLabelZh = "稳妥高质（两步）";
     const modeLabelEn = "Stable Quality (Two-step)";
 
     const usageGuide = lang === "zh"
       ? [
-          "ScenePilot PRO 导出说明与提示词",
+          "ScenePilotix 保存说明与提示词",
           "",
           `平台：${platformPreset.labelZh}`,
           `导出方式：${modeLabelZh}`,
           "",
-          "步骤：",
-          "1) 先上传目录中的图片素材（按 identity -> appearance -> style）。",
-          "2) 再复制下面“提示词”到目标平台生成。",
+          "【红字提醒】以下提醒不要复制到大模型，仅供操作指引。",
+          "【红字提醒】先上传目录中的参考图，再复制分隔线下方提示词进行生成。",
+          "________________________________________",
+          "以下为可复制提示词：",
           "",
           "说明：",
           "- 不调用 API，不上传云端。",
-          "- 对象若没图，不会导出空图片文件。"
+          "- 对象若没图，不会导出空图片文件。",
+          "- 分镜背景参考图为可选项，不填也可导出。"
         ].join("\n")
       : [
-          "ScenePilot PRO Export Guide & Prompt",
+          "ScenePilotix Save Guide & Prompt",
           "",
           `Platform: ${platformPreset.labelEn}`,
           `Flow: ${modeLabelEn}`,
           "",
-          "Steps:",
-          "1) Upload image assets first (identity -> appearance -> style).",
-          "2) Then copy the prompt block below to your target platform.",
+          "[RED NOTICE] Do not copy reminders below to model input.",
+          "[RED NOTICE] Upload references first, then copy prompt below the divider.",
+          "________________________________________",
+          "Copyable prompt starts below:",
           "",
           "Notes:",
           "- No API call, no cloud upload.",
-          "- Objects with no images won't generate empty files."
+          "- Objects with no images won't generate empty files.",
+          "- Shot background references are optional."
         ].join("\n");
 
     const objectRefText = [
@@ -675,11 +897,24 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
         ? `平台：${platformPreset.labelZh}  |  模式：${modeLabelZh}`
         : `Platform: ${platformPreset.labelEn} | Mode: ${modeLabelEn}`,
       "",
+      lang === "zh" ? "## 分镜背景参考图" : "## Shot Background Refs",
+      ...(
+        sceneBackgrounds.length
+          ? sceneBackgrounds.flatMap((bg) => [
+              lang === "zh"
+                ? `- [${bg.sceneTag}] ${bg.sceneName} -> ${bg.fileName}`
+                : `- [${bg.sceneTag}] ${bg.sceneName} -> ${bg.fileName}`
+            ])
+          : [lang === "zh" ? "- 无" : "- None"]
+      ),
+      "",
+      lang === "zh" ? "## 对象参考图" : "## Object Refs",
+      "",
       ...objects.flatMap((obj) => {
         const head =
           lang === "zh"
-            ? `# ${obj.code} (${obj.layerId})`
-            : `# ${obj.code} (${obj.layerId})`;
+            ? `# [${obj.sceneTag}] ${obj.sceneName} / ${obj.code} (${obj.layerId})`
+            : `# [${obj.sceneTag}] ${obj.sceneName} / ${obj.code} (${obj.layerId})`;
         const lines = [
           head,
           obj.type ? (lang === "zh" ? `- 类型: ${obj.type}` : `- Type: ${obj.type}`) : "",
@@ -704,8 +939,21 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
     const uploadChecklist = [
       lang === "zh" ? "素材上传清单（按顺序）" : "Asset Upload Checklist (ordered)",
       "",
+      lang === "zh" ? "A. 分镜背景参考图（可选）" : "A. Shot background refs (optional)",
+      ...(
+        sceneBackgrounds.length
+          ? sceneBackgrounds.map((bg, index) =>
+              lang === "zh"
+                ? `${index + 1}. [ ] 上传 ${bg.fileName}（分镜 ${bg.sceneTag}）`
+                : `${index + 1}. [ ] Upload ${bg.fileName} (shot ${bg.sceneTag})`
+            )
+          : [lang === "zh" ? "- 无背景参考图，跳过。" : "- No background refs, skip."]
+      ),
+      "",
+      lang === "zh" ? "B. 对象参考图" : "B. Object refs",
+      "",
       ...objects.flatMap((obj) => {
-        const lines = [lang === "zh" ? `${obj.code} / ${obj.layerId}` : `${obj.code} / ${obj.layerId}`];
+        const lines = [lang === "zh" ? `[${obj.sceneTag}] ${obj.code} / ${obj.layerId}` : `[${obj.sceneTag}] ${obj.code} / ${obj.layerId}`];
         if (!obj.refItems.length) {
           lines.push(lang === "zh" ? "- 无本地参考图，跳过上传。" : "- No local refs, skip upload.");
           return [...lines, ""];
@@ -724,64 +972,115 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
       })
     ].join("\n");
 
-    const promptsPerShot = [lang === "zh" ? "第二步：分镜提示词" : "Step 2: Storyboard Prompt", "", promptsMain].join("\n");
+    const promptsPerShot = [
+      lang === "zh" ? "第三步：分镜提示词" : "Step 3: Storyboard Prompt",
+      "",
+      promptsMainWithRefs
+    ].join("\n");
 
-    let seq = 0;
-    const blobFiles: FlowBlobFile[] = objects.flatMap((obj) =>
+    const bgBlobFiles: FlowBlobFile[] = sceneBackgrounds.map((bg) => ({
+      path: `${projectDir}/${bg.fileName}`,
+      refId: bg.refId
+    }));
+    const objectBlobFiles: FlowBlobFile[] = objects.flatMap((obj) =>
       obj.refItems
         .filter((r) => typeof (r as any).refId === "string")
-        .map((r) => {
-          seq += 1;
-          const ext = extFromName(r.fileName);
-          return {
-            path: `${sceneDir}/${lang === "zh" ? `配图${String(seq).padStart(2, "0")}.${ext}` : `image_${String(seq).padStart(2, "0")}.${ext}`}`,
-            refId: (r as any).refId as string
-          };
-        })
+        .map((r) => ({
+          path: `${projectDir}/${r.fileName}`,
+          refId: (r as any).refId as string
+        }))
     );
+    const blobFiles: FlowBlobFile[] = [...bgBlobFiles, ...objectBlobFiles];
 
     const allPromptText = [usageGuide, "", objectRefText, "", uploadChecklist, "", promptsPerShot].join("\n");
-
-    const files: FlowFile[] = [
-      { path: `${sceneDir}/${lang === "zh" ? "提示文件.txt" : "prompt.txt"}`, content: allPromptText }
-    ];
+    const promptFileName = `${projectNameForFile}__${shotNameForFile}__${platformForFile}.txt`;
+    const files: FlowFile[] = [{ path: `${projectDir}/${promptFileName}`, content: allPromptText }];
 
     return {
       rootDir,
+      projectDir,
       objectRefText,
       promptsPerShot,
       files,
       blobFiles
     };
-  }, [promptProject.scenes, platformPreset, sceneTitle, flowMode, lang, promptsMain]);
+  }, [promptProject.scenes, platformPreset, sceneTitle, flowMode, lang, promptsMainWithRefs, projectLabel]);
+  const manualSaveGuide = useMemo(() => {
+    const fileLines = [
+      ...flowBundle.files.map((f) => `- ${f.path}`),
+      ...flowBundle.blobFiles.map((b) => `- ${b.path}`)
+    ];
+    if (lang === "zh") {
+      return [
+        "手动建目录流程",
+        `1) 在目标位置新建根目录：${flowBundle.rootDir}`,
+        `2) 在根目录下新建项目目录：${flowBundle.projectDir}`,
+        "3) 在项目目录下按以下文件名保存文件：",
+        ...fileLines,
+        "4) 将提示词 txt 与同名参考图一起上传到目标平台。"
+      ].join("\n");
+    }
+    return [
+      "Manual directory workflow",
+      `1) Create root folder: ${flowBundle.rootDir}`,
+      `2) Create project folder under root: ${flowBundle.projectDir}`,
+      "3) Save files in the project folder using these exact names:",
+      ...fileLines,
+      "4) Upload prompt txt and same-name references to your target platform."
+    ].join("\n");
+  }, [flowBundle, lang]);
 
-  async function exportFlowPackage() {
-    const hasDirPicker = typeof window !== "undefined" && "showDirectoryPicker" in window;
-    if (hasDirPicker) {
-      try {
-        const picker = (window as any).showDirectoryPicker;
-        const pickedDir = await picker({ mode: "readwrite" });
-        const root = await pickedDir.getDirectoryHandle(flowBundle.rootDir, { create: true });
-        for (const file of flowBundle.files) {
-          await writeTextToDirectory(root, file.path, file.content);
-        }
-        for (const blobFile of flowBundle.blobFiles) {
-          const blob = await getRefBlob(blobFile.refId);
-          if (!blob) continue;
-          await writeBlobToDirectory(root, blobFile.path, blob);
-        }
-        return;
-      } catch {
-        // fallback to downloads
+  async function exportFlowPackage(): Promise<{ ok: boolean; folderLabel: string }> {
+    if (!canSaveDirectory) {
+      return { ok: false, folderLabel: lang === "zh" ? "当前浏览器不支持目录保存" : "Directory save is not supported" };
+    }
+    try {
+      const picker = (window as any).showDirectoryPicker;
+      const pickedDir = await picker({ mode: "readwrite" });
+      const root = await pickedDir.getDirectoryHandle(flowBundle.rootDir, { create: true });
+      for (const file of flowBundle.files) {
+        await writeTextToDirectory(root, file.path, file.content);
       }
+      for (const blobFile of flowBundle.blobFiles) {
+        const blob = await getRefBlob(blobFile.refId);
+        if (!blob) continue;
+        await writeBlobToDirectory(root, blobFile.path, blob);
+      }
+      return { ok: true, folderLabel: `${pickedDir.name}/${flowBundle.rootDir}` };
+    } catch {
+      return { ok: false, folderLabel: lang === "zh" ? "保存已取消或失败" : "Save cancelled or failed" };
     }
-    for (const file of flowBundle.files) {
-      downloadTextFile(`${flowBundle.rootDir}__${file.path.replaceAll("/", "__")}`, file.content);
-    }
-    for (const blobFile of flowBundle.blobFiles) {
-      const blob = await getRefBlob(blobFile.refId);
-      if (!blob) continue;
-      downloadBlobFile(`${flowBundle.rootDir}__${blobFile.path.replaceAll("/", "__")}`, blob);
+  }
+
+  async function downloadFlowZipPackage(): Promise<{ ok: boolean; fileLabel: string }> {
+    try {
+      const encoder = new TextEncoder();
+      const zipEntries: ZipEntry[] = flowBundle.files.map((f) => ({
+        path: `${flowBundle.rootDir}/${f.path}`.replace(/\/+/g, "/"),
+        data: encoder.encode(f.content)
+      }));
+      for (const blobFile of flowBundle.blobFiles) {
+        const blob = await getRefBlob(blobFile.refId);
+        if (!blob) continue;
+        zipEntries.push({
+          path: `${flowBundle.rootDir}/${blobFile.path}`.replace(/\/+/g, "/"),
+          data: new Uint8Array(await blob.arrayBuffer())
+        });
+      }
+      const zipBlob = buildZipStored(zipEntries);
+      const projectNameForFile = safeName(projectLabel || (lang === "zh" ? "未命名项目" : "Untitled"));
+      const shotNameForFile = safeName(sceneTitle || (lang === "zh" ? "分镜" : "shot"));
+      const platformForFile = safeName(lang === "zh" ? platformPreset.labelZh : platformPreset.labelEn);
+      const zipName = `${projectNameForFile}__${shotNameForFile}__${platformForFile}.zip`;
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = zipName;
+      a.click();
+      URL.revokeObjectURL(url);
+      return { ok: true, fileLabel: zipName };
+    } catch {
+      return { ok: false, fileLabel: lang === "zh" ? "ZIP 下载失败" : "ZIP download failed" };
     }
   }
 
@@ -803,8 +1102,8 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
         <button
           style={styles.btnGhost}
           onClick={async () => {
-            await copy(prompts);
-            setActionHint(lang === "zh" ? "提示词已复制" : "Prompt copied");
+            await copy(quickCopyPrompt);
+            setActionHint(lang === "zh" ? "已复制文字提示词（不含附件引用）" : "Copied text-only prompt (no attachment lines)");
           }}
           type="button"
           title={lang === "zh" ? "一键复制提示词" : "Copy prompt in one click"}
@@ -814,11 +1113,16 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
 
         <button
           style={styles.btnPrimary}
-          onClick={() => setShowExportModal(true)}
+          onClick={() => {
+            setShowExportModal(true);
+            setExportDone(false);
+            setExportResultType("none");
+            setExportFolderLabel("");
+          }}
           type="button"
-          title={lang === "zh" ? "PRO 导出到本地目录" : "PRO export to local folder"}
+          title={lang === "zh" ? "保存到本地目录" : "Save to local folder"}
         >
-          {lang === "zh" ? "PRO 导出" : "PRO Export"}
+          {lang === "zh" ? "保存" : "Save"}
         </button>
         <button
           style={styles.qBtn}
@@ -836,59 +1140,152 @@ export function ExportPanel({ lang, project, sceneIdx, selectedLayerId }: Props)
       {showExportDiff ? (
         <div style={styles.helpFloat}>
           {lang === "zh"
-            ? "导出差异：一键复制=只复制提示词；PRO 导出=生成本地目录（1个说明+提示词文本 + 对象图片素材），按顺序上传图片后粘贴提示词。"
-            : "Difference: Copy Prompt copies text only; PRO Export creates a local folder (one guide+prompt text + object image assets) for ordered upload then prompt paste."}
+            ? "一键复制只保留文字提示词（去掉附件/插图关联行），用于快速测试。保存会生成分镜文件夹（提示词 + 参考图）。平台选择用于切换平台策略，选择后立即生效；点击保存时按当前平台输出。"
+            : "Copy Prompt keeps text-only prompts (attachment/image mapping lines removed) for quick testing. Save generates a shot folder (prompt + references). Platform selection switches platform strategy immediately, and Save exports using the current platform."}
         </div>
       ) : null}
 
       <div style={styles.preWrap}>
-        <pre style={styles.pre}>{promptsMain}</pre>
+        <pre style={styles.pre}>{quickCopyPrompt}</pre>
         {promptsNotes ? <pre style={styles.preNotes}>{promptsNotes}</pre> : null}
       </div>
 
       {showExportModal && (
         <div style={styles.modalMask}>
-          <div style={styles.modal}>
-          <div style={styles.modalTitle}>{lang === "zh" ? "PRO 导出" : "PRO Export"}</div>
+          <div style={{ ...styles.modal, width: "min(560px, calc(100vw - 48px))" }}>
+          <div style={styles.modalTitle}>{lang === "zh" ? "保存分镜文件夹" : "Save Shot Folder"}</div>
           <div style={styles.modalRow}>
             <div style={styles.profileLabel}>{lang === "zh" ? "平台" : "Platform"}</div>
-            <div style={styles.optionWrap}>
+            <select
+              value={platformPresetId}
+              onChange={(e) => setPlatformPresetId(e.target.value as PlatformPresetId)}
+              style={styles.profileSelect}
+            >
               {PLATFORM_PRESETS.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setPlatformPresetId(p.id)}
-                  style={{ ...styles.optionBtn, ...(platformPresetId === p.id ? styles.optionBtnOn : {}) }}
-                >
+                <option key={p.id} value={p.id}>
                   {lang === "zh" ? p.labelZh : p.labelEn}
-                </button>
+                </option>
               ))}
+            </select>
+            <button
+              style={styles.qBtn}
+              type="button"
+              onMouseEnter={() => setShowSaveHint(true)}
+              onMouseLeave={() => setShowSaveHint(false)}
+              onFocus={() => setShowSaveHint(true)}
+              onBlur={() => setShowSaveHint(false)}
+              title={lang === "zh" ? "保存策略说明" : "Save strategy details"}
+            >
+              ?
+            </button>
+          </div>
+          {showSaveHint ? (
+            <div style={styles.platformTips}>
+              {lang === "zh"
+                ? canSaveDirectory
+                  ? "平台选择后立即生效。保存会写入根目录/项目目录，文件名包含分镜与平台标识。"
+                  : "当前浏览器不支持目录保存。可下载 ZIP，或复制“手动建目录流程”按文件名保存。建议使用 Chrome/Edge 获得连续保存体验。"
+                : canSaveDirectory
+                  ? "Platform selection applies immediately. Save writes to root/project folders with shot+platform in filenames."
+                  : "Directory save is not supported in this browser. Use ZIP or copy the manual workflow to save by exact filenames. Chrome/Edge is recommended for smoother repeated saves."}
             </div>
-          </div>
-          <div style={styles.platformTips}>
+          ) : null}
+          <div style={styles.platformPendingHint}>
             {lang === "zh"
-              ? "将导出本地目录：1个文本（说明+提示词）+ 图片素材。"
-              : "Export local folder: one text (guide+prompt) + image assets."}
+              ? `当前平台策略：${platformPreset.labelZh}。点击保存会直接按该平台策略写入文件。`
+              : `Current platform strategy: ${platformPreset.labelEn}. Save writes files directly with this strategy.`}
           </div>
+          {!canSaveDirectory ? (
+            <div style={styles.unsupportedCard}>
+              <div style={styles.unsupportedText}>
+                {lang === "zh"
+                  ? "目录保存不可用：可下载 ZIP，或复制手动建目录流程。"
+                  : "Directory save unavailable: use ZIP download or copy the manual workflow."}
+              </div>
+              <div style={styles.unsupportedActions}>
+                <button
+                  style={styles.btnGhost}
+                  type="button"
+                  onClick={async () => {
+                    await copy(manualSaveGuide);
+                    setActionHint(lang === "zh" ? "已复制手动建目录流程" : "Manual workflow copied");
+                  }}
+                >
+                  {lang === "zh" ? "复制手动建目录流程" : "Copy Manual Workflow"}
+                </button>
+              </div>
+            </div>
+          ) : null}
+          {exportDone ? (
+            <div style={styles.platformTips}>
+              {lang === "zh"
+                ? "保存成功。请按下方保存路径前往对应目录，再复制提示词并上传参考图。"
+                : "Saved. Use the path below to locate the folder, then copy prompt and upload references."}
+            </div>
+          ) : null}
+          {exportDone ? (
+            <div style={styles.successCard}>
+              <div style={styles.successTitle}>
+                {exportResultType === "zip" ? (lang === "zh" ? "ZIP 已下载" : "ZIP downloaded") : (lang === "zh" ? "保存完成" : "Saved")}
+              </div>
+              <div style={styles.successPath}>{exportFolderLabel}</div>
+              <div style={styles.successSteps}>
+                {exportResultType === "zip"
+                  ? (lang === "zh"
+                      ? "1) 解压 ZIP\n2) 按文件名上传分镜背景图和对象图\n3) 打开 txt 复制提示词生成"
+                      : "1) Unzip package\n2) Upload shot/object refs by filename\n3) Open txt, copy prompt, and generate")
+                  : (lang === "zh"
+                      ? "1) 先前往上方保存路径\n2) 打开该目录中的提示词 txt 并复制\n3) 按文件名上传分镜背景图和对象图后生成"
+                      : "1) Go to the saved path above\n2) Open prompt txt and copy\n3) Upload shot/object refs by filename, then generate")}
+              </div>
+            </div>
+          ) : null}
           <div style={styles.modalBtns}>
             <button style={styles.btnGhost} onClick={() => setShowExportModal(false)} type="button">
               {lang === "zh" ? "关闭" : "Close"}
             </button>
-            {platformUrl ? (
-              <button style={styles.btnGhost} onClick={() => window.open(platformUrl, "_blank", "noopener,noreferrer")} type="button">
-                {lang === "zh" ? "前往平台" : "Open Platform"}
-              </button>
-            ) : null}
             <button
               style={styles.btnPrimary}
               onClick={async () => {
-                await exportFlowPackage();
-                setActionHint(lang === "zh" ? "PRO 导出完成" : "PRO export done");
-                setShowExportModal(false);
+                setExporting(true);
+                if (canSaveDirectory) {
+                  const res = await exportFlowPackage();
+                  setExporting(false);
+                  if (res.ok) {
+                    setExportDone(true);
+                    setExportResultType("dir");
+                    setExportFolderLabel(res.folderLabel);
+                    setActionHint(lang === "zh" ? `保存成功：${res.folderLabel}` : `Saved: ${res.folderLabel}`);
+                  } else {
+                    setActionHint(res.folderLabel || (lang === "zh" ? "保存失败" : "Save failed"));
+                  }
+                } else {
+                  const zip = await downloadFlowZipPackage();
+                  setExporting(false);
+                  if (zip.ok) {
+                    setExportDone(true);
+                    setExportResultType("zip");
+                    setExportFolderLabel(zip.fileLabel);
+                    setActionHint(lang === "zh" ? "ZIP 下载成功" : "ZIP downloaded");
+                  } else {
+                    setActionHint(zip.fileLabel || (lang === "zh" ? "ZIP 下载失败" : "ZIP download failed"));
+                  }
+                }
               }}
               type="button"
+              disabled={exporting || exportDone}
             >
-              {lang === "zh" ? "导出到本地目录" : "Export Folder"}
+              {exporting
+                ? lang === "zh"
+                  ? "保存中..."
+                  : "Saving..."
+                : exportDone
+                  ? lang === "zh"
+                    ? "已保存"
+                    : "Saved"
+                  : canSaveDirectory
+                    ? (lang === "zh" ? "保存" : "Save")
+                    : (lang === "zh" ? "下载 ZIP" : "Download ZIP")}
             </button>
           </div>
           </div>
@@ -937,6 +1334,16 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(255,255,255,0.10)",
     background: "rgba(255,255,255,0.03)",
     userSelect: "none"
+  },
+  scopeSelect: {
+    height: UI_SIZE.controlH,
+    borderRadius: UI_SIZE.controlRadius,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(0,0,0,0.20)",
+    color: "rgba(255,255,255,0.92)",
+    outline: "none",
+    padding: "0 10px",
+    fontSize: UI_FONT.body
   },
 
   tab: {
@@ -1058,6 +1465,36 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(255,255,255,0.04)",
     padding: "8px 10px"
   },
+  platformPendingHint: {
+    fontSize: UI_FONT.hint,
+    lineHeight: 1.35,
+    opacity: 0.62,
+    color: "rgba(220,225,235,0.78)"
+  },
+  unsupportedCard: {
+    border: "1px solid rgba(245,190,120,0.35)",
+    borderRadius: 10,
+    background: "rgba(245,190,120,0.10)",
+    padding: "8px 10px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4
+  },
+  unsupportedTitle: {
+    fontSize: UI_FONT.body,
+    fontWeight: 900,
+    opacity: 0.95
+  },
+  unsupportedText: {
+    fontSize: UI_FONT.hint,
+    lineHeight: 1.4,
+    opacity: 0.86
+  },
+  unsupportedActions: {
+    marginTop: 4,
+    display: "flex",
+    justifyContent: "flex-end"
+  },
   modalMask: {
     position: "fixed",
     inset: 0,
@@ -1084,6 +1521,30 @@ const styles: Record<string, React.CSSProperties> = {
   modalTitle: { fontWeight: 900, fontSize: UI_FONT.title, opacity: UI_OPACITY.title },
   modalRow: { display: "flex", alignItems: "center", gap: 8 },
   modalBtns: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 },
+  successCard: {
+    border: "1px solid rgba(120,180,255,0.35)",
+    borderRadius: 12,
+    background: "rgba(120,180,255,0.10)",
+    padding: "10px 12px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 6
+  },
+  successTitle: { fontSize: 12, fontWeight: 900, opacity: 0.95 },
+  successPath: {
+    fontSize: 12,
+    borderRadius: 8,
+    padding: "6px 8px",
+    background: "rgba(0,0,0,0.18)",
+    border: "1px solid rgba(255,255,255,0.10)",
+    wordBreak: "break-word"
+  },
+  successSteps: {
+    fontSize: 12,
+    lineHeight: 1.45,
+    opacity: 0.86,
+    whiteSpace: "pre-line"
+  },
   optionWrap: { display: "flex", flexWrap: "wrap", gap: 6, flex: 1 },
   optionBtn: {
     padding: "5px 8px",

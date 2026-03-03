@@ -1,16 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
-import type { Project, Scene, Layer } from "../model";
+import type { Project, Scene, Layer, ShotPlan, Direction, TransitionType } from "../model";
 import { UI_FONT, UI_OPACITY, UI_SIZE } from "../uiTokens";
 import { Plus, Minus } from "lucide-react";
 
 type Props = {
   lang: Lang;
   project: Project;
+  projectFileLabel?: string;
   sceneIdx: number;
   setSceneIdx: (i: number) => void;
   onUpdateProject: (p: Project) => void;
+  onRequestNewProject: () => void;
 
   scene: Scene;
   selectedLayerId: string | null;
@@ -35,6 +37,14 @@ function nextId(prefix: string, exists: (id: string) => boolean) {
 function fmtDuration(lang: Lang, s: number) {
   const n = Math.max(0, Math.round(Number(s) || 0));
   return lang === "zh" ? `${n}秒` : `${n}s`;
+}
+
+function formatSceneRowName(sceneNo: string, name: string | undefined, fallbackId: string) {
+  const n = (name ?? "").trim();
+  if (!n) return `${sceneNo} ${fallbackId}`;
+  // 避免重复编号：如 "01 01｜镜头01"
+  if (/^\d{1,3}\s*[｜|]/.test(n)) return n;
+  return `${sceneNo} ${n}`;
 }
 
 function kf0(layer: Layer) {
@@ -142,17 +152,70 @@ type NewSceneDraft = {
   open: boolean;
   mode: MediaMode;
   genMode: GenMode;
+  locationScope: "same" | "different";
+  cameraTravel: "angle_only" | "travel";
+  allowJump: "yes" | "no";
+  shotCount: string;
   name: string;
   duration_s: string; // for input
 };
+
+function defaultShotCountForPlan(plan: ShotPlan): number {
+  if (plan === "single") return 1;
+  if (plan === "continuous") return 4;
+  return 3;
+}
+
+function resolveShotPlanFromDraft(draft: NewSceneDraft): ShotPlan {
+  if (draft.mode === "image") return "single";
+  if (draft.locationScope === "same") {
+    return draft.cameraTravel === "travel" ? "continuous" : "multicam";
+  }
+  return draft.allowJump === "yes" ? "edit" : "continuous";
+}
+
+function defaultTransitionByPlan(plan: ShotPlan): TransitionType {
+  if (plan === "continuous") return "camera_continues";
+  if (plan === "multicam") return "reverse_angle";
+  if (plan === "edit") return "cut";
+  return "cut";
+}
+
+function defaultRefInheritByPlan(plan: ShotPlan, isFirst: boolean) {
+  if (isFirst || plan === "single") {
+    return { inheritBgRefFromPrevious: false, inheritObjectRefsFromPrevious: "off" as const };
+  }
+  if (plan === "multicam" || plan === "continuous") {
+    return { inheritBgRefFromPrevious: true, inheritObjectRefsFromPrevious: "all" as const };
+  }
+  return { inheritBgRefFromPrevious: false, inheritObjectRefsFromPrevious: "identity_only" as const };
+}
+
+function transitionLabel(lang: Lang, t: TransitionType | undefined) {
+  const v = t ?? "cut";
+  if (lang === "zh") {
+    if (v === "reverse_angle") return "反打";
+    if (v === "camera_continues") return "连续推进";
+    if (v === "dissolve") return "叠化";
+    if (v === "time_jump") return "时间跳转";
+    return "切换";
+  }
+  if (v === "reverse_angle") return "Reverse";
+  if (v === "camera_continues") return "Continue";
+  if (v === "dissolve") return "Dissolve";
+  if (v === "time_jump") return "Time Jump";
+  return "Cut";
+}
 
 export function Sidebar(props: Props) {
   const {
     lang,
     project,
+    projectFileLabel,
     sceneIdx,
     setSceneIdx,
     onUpdateProject,
+    onRequestNewProject,
     scene,
     selectedLayerId,
     onSelectLayer,
@@ -174,13 +237,19 @@ export function Sidebar(props: Props) {
 
   // per-scene markers (current scene)
   const sceneNotes = scene?.notes ?? "";
-  const mediaMode = useMemo<MediaMode>(() => parseMedia(sceneNotes), [sceneNotes]);
   const stabilityMode = useMemo<StabilityMode>(() => parseStability(sceneNotes), [sceneNotes]);
+  const projectShotPlan: ShotPlan = (project.project?.shotPlan as ShotPlan) ?? "single";
+  const projectMediaType: MediaMode = (project.project?.mediaType as MediaMode) ?? "video";
+  const isImageProject = projectMediaType === "image";
   // ✅ NEW: add scene mini panel
   const [newScene, setNewScene] = useState<NewSceneDraft>({
     open: false,
-    mode: "image",
+    mode: "video",
     genMode: "quick",
+    locationScope: "same",
+    cameraTravel: "angle_only",
+    allowJump: "yes",
+    shotCount: "1",
     name: "",
     duration_s: "6"
   });
@@ -194,6 +263,68 @@ export function Sidebar(props: Props) {
   const deleteHintAnchorRef = useRef<HTMLElement | null>(null);
 
   const [confirmDelIdx, setConfirmDelIdx] = useState<number | null>(null);
+
+  function projectMediaDefault(): MediaMode {
+    return project.project?.mediaType === "image" ? "image" : "video";
+  }
+  function projectShotPlanDefault(): ShotPlan {
+    const p = project.project?.shotPlan as ShotPlan;
+    if (p === "single" || p === "multicam" || p === "continuous" || p === "edit") return p;
+    return "single";
+  }
+
+  function addSceneByProjectDefaults(anchorEl: HTMLElement | null) {
+    const mode = projectMediaDefault();
+    const shotPlan = projectShotPlanDefault();
+    const genMode: GenMode = parseGenMode(scene?.notes ?? "");
+    const duration_s = Math.max(1, Math.round(Number(scene?.duration_s) || 6));
+    const name = nextSceneDefaultName(lang, scenes);
+    const idxNo = scenes.length + 1;
+    const id = nextId("s", (x) => scenes.some((s) => s.id === x));
+    const copyLayers = JSON.parse(JSON.stringify(scene.layers ?? [])) as Layer[];
+    const nextSceneObj: Scene = {
+      id,
+      index: idxNo,
+      name,
+      duration_s,
+      cameraPreset: mode === "video" ? "first-person" : "",
+      inheritFromPrevious: mode === "video" && idxNo > 1 && (shotPlan === "multicam" || shotPlan === "continuous"),
+      ...defaultRefInheritByPlan(shotPlan, mode !== "video" || idxNo <= 1),
+      transitionType: mode === "video" ? defaultTransitionByPlan(shotPlan) : "cut",
+      entryDir: mode === "video" && shotPlan === "continuous" && idxNo > 1 ? "E" : undefined,
+      exitDir: mode === "video" && shotPlan === "continuous" ? "E" : undefined,
+      camera: {
+        shot: "",
+        movement: "",
+        keyframes: [
+          { t: 0, x: 0, y: 0, zoom: 1, rot: 0 },
+          { t: 1, x: 0, y: 0, zoom: 1, rot: 0 }
+        ]
+      } as any,
+      lighting: { time: "", key_dir: "", mood: "" } as any,
+      layoutLocked: false,
+      layers: [],
+      notes: setGenMode(setMedia("", mode), genMode)
+    };
+    if (mode === "video" && shotPlan === "multicam") {
+      nextSceneObj.layers = copyLayers;
+      nextSceneObj.backgroundRef = scene.backgroundRef ? JSON.parse(JSON.stringify(scene.backgroundRef)) : undefined;
+    } else if (mode === "video" && shotPlan === "continuous") {
+      nextSceneObj.layers = copyLayers;
+      nextSceneObj.backgroundRef = scene.backgroundRef ? JSON.parse(JSON.stringify(scene.backgroundRef)) : undefined;
+    } else if (mode === "video" && shotPlan === "edit") {
+      nextSceneObj.layers = [];
+    }
+
+    const next: Project = {
+      ...project,
+      scenes: [...scenes, nextSceneObj].map((s, i) => ({ ...s, index: i + 1 }))
+    };
+    onUpdateProject(next);
+    setSceneIdx(next.scenes.length - 1);
+    onSelectLayer(null);
+    showFloatingHint(lang === "zh" ? "已新增分镜" : "Shot added", anchorEl, "info");
+  }
 
   function showToast(text: string) {
     setToastText(text);
@@ -245,6 +376,9 @@ export function Sidebar(props: Props) {
       scenes: scenes.map((s) => (s.id === sid ? { ...s, duration_s } : s))
     });
     setEditingDurSceneId(null);
+    if (duration_s > 20) {
+      showToast(lang === "zh" ? "已更新时长，建议单镜头时长不宜过长。" : "Duration updated. Keep single-shot duration reasonable.");
+    }
   }
 
   function commitLayerId(oldId: string) {
@@ -262,20 +396,6 @@ export function Sidebar(props: Props) {
     setEditingLayerId(null);
   }
 
-  // ✅ 媒体切换提示：悬浮在控件旁，不占位
-  function commitMediaMode(mode: MediaMode, anchorEl: HTMLElement | null) {
-    if (mode === mediaMode) return; // ✅ already in this mode, no-op (no toast)
-
-    const nextNotes = setMedia(scene.notes ?? "", mode);
-    onUpdateScene({ ...scene, notes: nextNotes });
-
-    if (mode === "image") {
-      showFloatingHint(tt("sidebar.switchToImage"), anchorEl, "info");
-    } else {
-      showFloatingHint(tt("sidebar.switchToVideo"), anchorEl, "info");
-    }
-  }
-
   function commitStabilityMode(mode: StabilityMode) {
     const nextNotes = setStability(scene.notes ?? "", mode);
     onUpdateScene({ ...scene, notes: nextNotes });
@@ -288,61 +408,100 @@ export function Sidebar(props: Props) {
     );
   }
 
-  // ✅ NEW: open mini add panel (instead of creating immediately)
-  function openAddScenePanel() {
-    const suggested = nextSceneDefaultName(lang, scenes);
-
-    setNewScene({
-      open: true,
-      mode: "image", // ✅ default image
-      genMode: "quick",
-      name: suggested,
-      duration_s: "6"
-    });
-    setShowGenHint(false);
-  }
-
   function cancelAddScenePanel() {
     setNewScene((s) => ({ ...s, open: false }));
     setShowGenHint(false);
   }
 
-  function confirmAddScene() {
-    const id = nextId("s", (x) => scenes.some((s) => s.id === x));
-
+  function confirmAddScene(anchorEl: HTMLElement | null) {
     const fallbackName = nextSceneDefaultName(lang, scenes);
     const name = (newScene.name ?? "").trim() || fallbackName;
     const mode: MediaMode = newScene.mode;
     const genMode: GenMode = newScene.genMode;
+    const shotPlan: ShotPlan = resolveShotPlanFromDraft(newScene);
 
     // ✅ keep data stable: even image keeps duration_s in data, but UI badge won't show it
     const duration_s = mode === "video" ? Math.max(0, Math.round(Number(newScene.duration_s) || 0)) : 6;
+    const askedCount = Math.max(1, Math.round(Number(newScene.shotCount) || defaultShotCountForPlan(shotPlan)));
+    const shotCount =
+      mode === "image" || shotPlan === "single" ? 1 : Math.max(2, askedCount);
+    const baseLayers = JSON.parse(JSON.stringify(scene.layers ?? [])) as Layer[];
 
-    const newSceneObj: Scene = {
-      id,
-      name,
-      duration_s,
-      camera: {
-        shot: "",
-        movement: "",
-        keyframes: [
-          { t: 0, x: 0, y: 0, zoom: 1, rot: 0 },
-          { t: 1, x: 0, y: 0, zoom: 1, rot: 0 }
-        ]
-      } as any,
-      lighting: { time: "", key_dir: "", mood: "" } as any,
-      layers: [],
-      notes: setGenMode(setMedia("", mode), genMode) // ✅ explicit markers for new scenes
+    const makeBaseScene = (sceneName: string, index: number): Scene => {
+      const id = nextId("s", (x) => scenes.some((s) => s.id === x) || addedScenes.some((s) => s.id === x));
+      return {
+        id,
+        index,
+        name: sceneName,
+        duration_s,
+        cameraPreset: mode === "video" ? "first-person" : "",
+        inheritFromPrevious: mode === "video" && index > 1 && (shotPlan === "multicam" || shotPlan === "continuous"),
+        ...defaultRefInheritByPlan(shotPlan, mode !== "video" || index <= 1),
+        transitionType: mode === "video" ? defaultTransitionByPlan(shotPlan) : "cut",
+        entryDir: shotPlan === "continuous" && index > 1 ? "E" : undefined,
+        exitDir: shotPlan === "continuous" ? "E" : undefined,
+        camera: {
+          shot: "",
+          movement: "",
+          keyframes: [
+            { t: 0, x: 0, y: 0, zoom: 1, rot: 0 },
+            { t: 1, x: 0, y: 0, zoom: 1, rot: 0 }
+          ]
+        } as any,
+        lighting: { time: "", key_dir: "", mood: "" } as any,
+        layoutLocked: false,
+        layers: [],
+        notes: setGenMode(setMedia("", mode), genMode)
+      };
     };
 
-    const next: Project = { ...project, scenes: [...scenes, newSceneObj] };
+    const addedScenes: Scene[] = [];
+    if (mode === "video" && shotCount > 1) {
+      for (let i = 0; i < shotCount; i++) {
+        const idxNo = scenes.length + i + 1;
+        const padded = String(idxNo).padStart(2, "0");
+        const s = makeBaseScene(`${padded}｜${name}${i === 0 ? "" : ` ${i + 1}`}`, idxNo);
+        if (shotPlan === "multicam") {
+          s.layers = JSON.parse(JSON.stringify(baseLayers));
+          s.backgroundRef = scene.backgroundRef ? JSON.parse(JSON.stringify(scene.backgroundRef)) : undefined;
+        } else if (shotPlan === "continuous") {
+          s.layers = JSON.parse(JSON.stringify(baseLayers));
+          s.backgroundRef = scene.backgroundRef ? JSON.parse(JSON.stringify(scene.backgroundRef)) : undefined;
+        }
+        if (shotPlan === "edit") {
+          s.layers = i === 0 ? JSON.parse(JSON.stringify(baseLayers)) : [];
+        }
+        addedScenes.push(s);
+      }
+      if (addedScenes.length) addedScenes[addedScenes.length - 1].exitDir = undefined;
+    } else {
+      const s = makeBaseScene(name, scenes.length + 1);
+      if (shotPlan === "multicam") {
+        s.layers = JSON.parse(JSON.stringify(baseLayers));
+        s.backgroundRef = scene.backgroundRef ? JSON.parse(JSON.stringify(scene.backgroundRef)) : undefined;
+      } else if (shotPlan === "continuous") {
+        s.layers = JSON.parse(JSON.stringify(baseLayers));
+        s.backgroundRef = scene.backgroundRef ? JSON.parse(JSON.stringify(scene.backgroundRef)) : undefined;
+      }
+      addedScenes.push(s);
+    }
+
+    const next: Project = {
+      ...project,
+      project: {
+        ...project.project,
+        mediaType: mode,
+        shotPlan: mode === "video" ? shotPlan : "single"
+      },
+      scenes: [...scenes, ...addedScenes].map((s, i) => ({ ...s, index: i + 1 }))
+    };
     onUpdateProject(next);
-    setSceneIdx(next.scenes.length - 1);
+    setSceneIdx(scenes.length);
     onSelectLayer(null);
 
     setNewScene((s) => ({ ...s, open: false }));
     setShowGenHint(false);
-    showToast(tt("sidebar.sceneCreated"));
+    showFloatingHint(tt("sidebar.sceneCreated"), anchorEl, "info");
   }
 
   // ✅ 修复：删除分镜不用 window.confirm（同样是怪弹窗）
@@ -537,7 +696,7 @@ export function Sidebar(props: Props) {
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setNewScene((s) => ({ ...s, mode: "image" }))}
+                  onClick={() => setNewScene((s) => ({ ...s, mode: "image", shotCount: "1" }))}
                   style={{ ...styles.mediaBtn, ...(newScene.mode === "image" ? styles.mediaBtnOn : {}) }}
                 >
                   {tt("sidebar.image")}
@@ -545,13 +704,81 @@ export function Sidebar(props: Props) {
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setNewScene((s) => ({ ...s, mode: "video" }))}
+                  onClick={() =>
+                    setNewScene((s) => ({
+                      ...s,
+                      mode: "video",
+                      shotCount: String(defaultShotCountForPlan(resolveShotPlanFromDraft({ ...s, mode: "video" } as NewSceneDraft)))
+                    }))
+                  }
                   style={{ ...styles.mediaBtn, ...(newScene.mode === "video" ? styles.mediaBtnOn : {}) }}
                 >
                   {tt("sidebar.video")}
                 </button>
               </div>
             </div>
+            {newScene.mode === "video" ? (
+              <>
+                <div style={styles.addRow}>
+                  <div style={styles.addLabel}>{lang === "zh" ? "Q1 场景变化" : "Q1 Location"}</div>
+                  <select
+                    value={newScene.locationScope}
+                    onChange={(e) => setNewScene((s) => ({ ...s, locationScope: e.target.value as "same" | "different" }))}
+                    style={styles.select}
+                  >
+                    <option value="same">{lang === "zh" ? "不变（同一地点）" : "Same location"}</option>
+                    <option value="different">{lang === "zh" ? "变化（多地点）" : "Different locations"}</option>
+                  </select>
+                </div>
+                {newScene.locationScope === "same" ? (
+                  <div style={styles.addRow}>
+                    <div style={styles.addLabel}>{lang === "zh" ? "Q2 镜头移动" : "Q2 Camera Move"}</div>
+                    <select
+                      value={newScene.cameraTravel}
+                      onChange={(e) => {
+                        const nextTravel = e.target.value as "angle_only" | "travel";
+                        const nextPlan = nextTravel === "travel" ? "continuous" : "multicam";
+                        setNewScene((s) => ({ ...s, cameraTravel: nextTravel, shotCount: String(defaultShotCountForPlan(nextPlan)) }));
+                      }}
+                      style={styles.select}
+                    >
+                      <option value="angle_only">{lang === "zh" ? "只换机位" : "Angle change only"}</option>
+                      <option value="travel">{lang === "zh" ? "连续移动" : "Continuous travel"}</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div style={styles.addRow}>
+                    <div style={styles.addLabel}>{lang === "zh" ? "Q3 允许跳切" : "Q3 Jump Cut"}</div>
+                    <select
+                      value={newScene.allowJump}
+                      onChange={(e) => {
+                        const v = e.target.value as "yes" | "no";
+                        const nextPlan = v === "yes" ? "edit" : "continuous";
+                        setNewScene((s) => ({ ...s, allowJump: v, shotCount: String(defaultShotCountForPlan(nextPlan)) }));
+                      }}
+                      style={styles.select}
+                    >
+                      <option value="yes">{lang === "zh" ? "允许（标准剪辑）" : "Yes (Edit)"}</option>
+                      <option value="no">{lang === "zh" ? "不允许（连续跨场）" : "No (Continuous)"}</option>
+                    </select>
+                  </div>
+                )}
+                <div style={styles.addRow}>
+                  <div style={styles.addLabel}>{lang === "zh" ? "分镜数量" : "Shot Count"}</div>
+                  <input
+                    value={newScene.shotCount}
+                    onChange={(e) => setNewScene((s) => ({ ...s, shotCount: e.target.value }))}
+                    style={styles.addInputSmall}
+                    inputMode="numeric"
+                  />
+                </div>
+                <div style={styles.genHintFloat}>
+                  {lang === "zh"
+                    ? `已选模式：${resolveShotPlanFromDraft(newScene)}`
+                    : `Mode: ${resolveShotPlanFromDraft(newScene)}`}
+                </div>
+              </>
+            ) : null}
 
             <div style={styles.addRow}>
               <div style={styles.addLabel}>{tt("sidebar.mode")}</div>
@@ -624,7 +851,7 @@ export function Sidebar(props: Props) {
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={confirmAddScene}
+                onClick={(e) => confirmAddScene(e.currentTarget as HTMLElement)}
                 style={styles.btnPrimary}
               >
                 {tt("sidebar.create")}
@@ -636,25 +863,21 @@ export function Sidebar(props: Props) {
 
       {/* Scenes */}
       <div style={styles.section}>
-        {/* media toggle for current scene */}
-        <div style={styles.mediaRow}>
+        <div style={styles.sectionHead}>
+          <div style={styles.sectionTitle}>{lang === "zh" ? "项目" : "Project"}</div>
+        </div>
+        <div style={styles.projectNameRow}>
+          <div style={styles.projectName}>
+            {projectFileLabel?.trim() || (lang === "zh" ? "未命名" : "Untitled")}
+          </div>
           <button
             type="button"
+            style={styles.newProjectBtn}
             onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => commitMediaMode("image", e.currentTarget as HTMLElement)}
-            style={{ ...styles.mediaBtn, ...(mediaMode === "image" ? styles.mediaBtnOn : {}) }}
-            title={tt("sidebar.imageModeHint")}
+            onClick={onRequestNewProject}
+            title={lang === "zh" ? "创建新项目" : "Create New Project"}
           >
-            {tt("sidebar.image")}
-          </button>
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => commitMediaMode("video", e.currentTarget as HTMLElement)}
-            style={{ ...styles.mediaBtn, ...(mediaMode === "video" ? styles.mediaBtnOn : {}) }}
-            title={tt("sidebar.videoModeHint")}
-          >
-            {tt("sidebar.video")}
+            {lang === "zh" ? "创建新项目" : "New Project"}
           </button>
         </div>
 
@@ -665,8 +888,9 @@ export function Sidebar(props: Props) {
             type="button"
             style={styles.iconBtn}
             onMouseDown={(e) => e.preventDefault()}
-            onClick={openAddScenePanel}
+            onClick={(e) => addSceneByProjectDefaults(e.currentTarget as HTMLElement)}
             title={tt("sidebar.addScene")}
+            disabled={isImageProject}
           >
             <Plus size={16} />
           </button>
@@ -676,8 +900,9 @@ export function Sidebar(props: Props) {
           {scenes.map((s, i) => {
             const isOn = i === safeIdx;
             const mode = parseMedia(s.notes ?? "");
-            const genMode = parseGenMode(s.notes ?? "");
             const badgeText = mode === "image" ? tt("sidebar.image") : fmtDuration(lang, s.duration_s);
+            const sceneIndex = Number.isFinite(s.index) ? Number(s.index) : i + 1;
+            const sceneNo = String(sceneIndex).padStart(2, "0");
 
             return (
               <div key={s.id} style={styles.itemRowWrap}>
@@ -722,7 +947,7 @@ export function Sidebar(props: Props) {
                         }}
                         title={tt("sidebar.renameHint")}
                       >
-                        {s.name ?? s.id}
+                        {formatSceneRowName(sceneNo, s.name, s.id)}
                       </div>
                     )}
 
@@ -765,9 +990,16 @@ export function Sidebar(props: Props) {
                         {badgeText}
                       </div>
                     )}
-                    <div style={{ ...styles.badgeBtn, opacity: 0.78 }} title={tt("sidebar.generationMode")}>
-                      {genMode === "pro" ? "PRO" : tt("sidebar.quick")}
-                    </div>
+                    {mode === "video" && i > 0 ? (
+                      <div style={{ ...styles.badgeBtn, opacity: 0.78 }} title={s.inheritFromPrevious ? (lang === "zh" ? "继承上一镜布局" : "Inherit previous shot layout") : (lang === "zh" ? "独立镜头布局" : "Independent shot layout")}>
+                        {s.inheritFromPrevious ? (lang === "zh" ? "继承" : "Inherit") : (lang === "zh" ? "独立" : "Independent")}
+                      </div>
+                    ) : null}
+                    {mode === "video" && i > 0 && i < scenes.length - 1 ? (
+                      <div style={{ ...styles.badgeBtn, opacity: 0.78 }} title={lang === "zh" ? "衔接方式" : "Transition"}>
+                        {transitionLabel(lang, s.transitionType)}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
@@ -777,7 +1009,7 @@ export function Sidebar(props: Props) {
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => requestDeleteScene(i, e.currentTarget as HTMLElement)}
                   title={tt("sidebar.deleteScene")}
-                  disabled={scenes.length <= 1}
+                  disabled={scenes.length <= 1 || isImageProject}
                 >
                   <Minus size={16} />
                 </button>
@@ -804,6 +1036,13 @@ export function Sidebar(props: Props) {
         </div>
 
         <div style={styles.list}>
+          {(scene.layers ?? []).length === 0 ? (
+            <div style={{ ...styles.rowBtn, ...styles.placeholderRow }} title={lang === "zh" ? "示例占位，不会写入项目" : "Example placeholder only"}>
+              <div style={styles.rowInner}>
+                <div style={styles.renameText}>{lang === "zh" ? "人物1" : "character1"}</div>
+              </div>
+            </div>
+          ) : null}
           {(scene.layers ?? [])
             .slice()
             .sort((a, b) => a.z - b.z)
@@ -891,6 +1130,83 @@ export function Sidebar(props: Props) {
       {/* Camera + Lighting */}
       <div style={styles.section}>
         <div style={styles.sectionTitle}>{tt("camera.title")}</div>
+
+        {projectMediaType === "video" && projectShotPlan === "continuous" ? (
+          <>
+            <div style={styles.formRow}>
+              <div style={styles.formLabel}>{lang === "zh" ? "入镜方向" : "Entry"}</div>
+              <select
+                style={styles.select}
+                value={(scene.entryDir ?? "").toString()}
+                onChange={(e) => onUpdateScene({ ...scene, entryDir: (e.target.value || undefined) as Direction | undefined })}
+              >
+                <option value="">{lang === "zh" ? "自动" : "Auto"}</option>
+                <option value="N">N</option>
+                <option value="NE">NE</option>
+                <option value="E">E</option>
+                <option value="SE">SE</option>
+                <option value="S">S</option>
+                <option value="SW">SW</option>
+                <option value="W">W</option>
+                <option value="NW">NW</option>
+              </select>
+            </div>
+            <div style={styles.formRow}>
+              <div style={styles.formLabel}>{lang === "zh" ? "出镜方向" : "Exit"}</div>
+              <select
+                style={styles.select}
+                value={(scene.exitDir ?? "").toString()}
+                onChange={(e) => onUpdateScene({ ...scene, exitDir: (e.target.value || undefined) as Direction | undefined })}
+              >
+                <option value="">{lang === "zh" ? "自动" : "Auto"}</option>
+                <option value="N">N</option>
+                <option value="NE">NE</option>
+                <option value="E">E</option>
+                <option value="SE">SE</option>
+                <option value="S">S</option>
+                <option value="SW">SW</option>
+                <option value="W">W</option>
+                <option value="NW">NW</option>
+              </select>
+            </div>
+          </>
+        ) : null}
+
+        {projectMediaType === "video" && projectShotPlan !== "single" ? (
+          <>
+            <div style={styles.formRow}>
+              <div style={styles.formLabel}>{lang === "zh" ? "对象继承" : "Inherit Objects"}</div>
+              <select
+                style={styles.select}
+                value={scene.inheritFromPrevious ? "on" : "off"}
+                onChange={(e) => {
+                  const on = e.target.value === "on";
+                  const forced = projectShotPlan === "continuous" ? true : on;
+                  onUpdateScene({ ...scene, inheritFromPrevious: forced });
+                }}
+                disabled={safeIdx === 0 || projectShotPlan === "continuous"}
+              >
+                <option value="on">{lang === "zh" ? "开启" : "On"}</option>
+                <option value="off">{lang === "zh" ? "关闭" : "Off"}</option>
+              </select>
+            </div>
+            <div style={styles.formRow}>
+              <div style={styles.formLabel}>{lang === "zh" ? "衔接方式" : "Transition"}</div>
+              <select
+                style={styles.select}
+                value={(scene.transitionType ?? defaultTransitionByPlan(projectShotPlan)).toString()}
+                onChange={(e) => onUpdateScene({ ...scene, transitionType: e.target.value as TransitionType })}
+                disabled={projectShotPlan === "continuous" || safeIdx >= scenes.length - 1}
+              >
+                <option value="cut">{lang === "zh" ? "切换 (cut)" : "Cut"}</option>
+                <option value="reverse_angle">{lang === "zh" ? "反打 (reverse angle)" : "Reverse angle"}</option>
+                <option value="camera_continues">{lang === "zh" ? "连续推进 (camera continues)" : "Camera continues"}</option>
+                <option value="dissolve">{lang === "zh" ? "叠化 (dissolve)" : "Dissolve"}</option>
+                <option value="time_jump">{lang === "zh" ? "时间跳转 (time jump)" : "Time jump"}</option>
+              </select>
+            </div>
+          </>
+        ) : null}
 
         <div style={styles.formRow}>
           <div style={styles.formLabel}>{tt("camera.shot")}</div>
@@ -999,6 +1315,37 @@ const styles: Record<string, React.CSSProperties> = {
 
   sectionHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 },
   sectionTitle: { fontWeight: 900, fontSize: UI_FONT.section, opacity: UI_OPACITY.title },
+  projectNameRow: {
+    display: "grid",
+    gridTemplateColumns: "1fr auto",
+    gap: 8,
+    alignItems: "center",
+    marginBottom: 10
+  },
+  projectName: {
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.04)",
+    padding: "8px 10px",
+    fontSize: UI_FONT.body,
+    fontWeight: 800,
+    opacity: 0.9,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis"
+  },
+  newProjectBtn: {
+    height: 32,
+    padding: "0 10px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.05)",
+    color: "inherit",
+    cursor: "pointer",
+    fontSize: 12,
+    fontWeight: 800,
+    whiteSpace: "nowrap"
+  },
 
   mediaRow: {
     display: "grid",
@@ -1170,6 +1517,10 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(120,180,255,0.12)",
     boxShadow: "0 0 0 2px rgba(120,180,255,0.18) inset"
   },
+  placeholderRow: {
+    opacity: 0.55,
+    cursor: "default"
+  },
 
   rowInner: { display: "flex", alignItems: "center", gap: 10, minWidth: 0 },
 
@@ -1212,7 +1563,6 @@ const styles: Record<string, React.CSSProperties> = {
     outline: "none",
     boxShadow: "none"
   },
-
   durInput: {
     width: 64,
     height: 26,

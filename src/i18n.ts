@@ -58,7 +58,7 @@ export const dict = {
     "sidebar.imageModeHint": "Image mode: T0 only (switch anytime)",
     "sidebar.videoModeHint": "Video mode: T0/T1 (switch anytime)",
 
-    "sidebar.layers": "Layers",
+    "sidebar.layers": "Object List",
     "sidebar.addLayer": "Add Object",
     "sidebar.deleteLayer": "Delete Object",
 
@@ -219,7 +219,7 @@ export const dict = {
     "sidebar.imageModeHint": "图片模式：仅 T0（可随时切换）",
     "sidebar.videoModeHint": "视频模式：T0/T1（可随时切换）",
 
-    "sidebar.layers": "对象",
+    "sidebar.layers": "对象列表",
     "sidebar.addLayer": "添加对象",
     "sidebar.deleteLayer": "删除对象",
 

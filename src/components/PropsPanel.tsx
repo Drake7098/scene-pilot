@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
-import type { Scene, Layer, LayerKF, LocalRefMeta, LocalRefType } from "../model";
+import type { Scene, Layer, LayerKF, LocalRefMeta, LocalRefType, SceneRefMeta } from "../model";
 import { ensureKF } from "../model";
 import { deleteRefBlob, getRefBlob, putRefBlob } from "../utils/localRefs";
 import { UI_FONT, UI_OPACITY, UI_SIZE } from "../uiTokens";
@@ -153,45 +153,6 @@ function detectGlobalScopeTags(text: string): string[] {
     if (rule.re.test(s)) hit.add(rule.tag);
   }
   return Array.from(hit);
-}
-
-function extractTaggedValue(text: string, keys: string[]): string {
-  const lines = (text ?? "")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  for (const line of lines) {
-    for (const k of keys) {
-      const re = new RegExp(`^${k}\\s*[:：]\\s*(.+)$`, "i");
-      const m = line.match(re);
-      if (m?.[1]) return m[1].trim();
-    }
-  }
-  return "";
-}
-
-function replaceTaggedLines(base: string, nextTaggedLines: string[]): string {
-  const lines = (base ?? "")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const drop = /^(material|材质|local_action|action|局部动作|local_avoid|avoid|局部禁令)\s*[:：]/i;
-  const kept = lines.filter((l) => !drop.test(l));
-  const next = [...kept, ...nextTaggedLines].filter(Boolean);
-  return next.join("\n");
-}
-
-function buildTemplateTaggedLines(
-  lang: Lang,
-  localMaterial: string,
-  localAction: string,
-  localAvoid: string
-): string[] {
-  const lines: string[] = [];
-  if (localMaterial.trim()) lines.push(lang === "zh" ? `材质: ${localMaterial.trim()}` : `Material: ${localMaterial.trim()}`);
-  if (localAction.trim()) lines.push(lang === "zh" ? `局部动作: ${localAction.trim()}` : `Local_Action: ${localAction.trim()}`);
-  if (localAvoid.trim()) lines.push(lang === "zh" ? `局部禁令: ${localAvoid.trim()}` : `Local_Avoid: ${localAvoid.trim()}`);
-  return lines;
 }
 
 // ---------- Type-aware presets (核心改动：避免冲突/歧义) ----------
@@ -383,25 +344,6 @@ function buildShapePresets(lang: Lang, typeKey: TypeKey) {
   return [...base, ...typed, { value: CUSTOM, label: zh ? "自定义…" : "Custom…" }];
 }
 
-// ---------- “信息量开关”作为 notes 的高级选项（避免 look/shape 歧义） ----------
-const VIS_PRESETS = [
-  {
-    key: "keep_details",
-    line: "keep internal details visible, avoid silhouette, avoid pure outline",
-    zh: "保留内部细节（避免剪影/纯轮廓）"
-  },
-  {
-    key: "reduce_clutter",
-    line: "simplify secondary details, keep main forms readable",
-    zh: "减少杂乱细节（保留主体可读）"
-  },
-  {
-    key: "silhouette_only",
-    line: "silhouette only, outline-only, no internal details",
-    zh: "⚠️ 仅剪影/轮廓（强烈不建议）"
-  }
-];
-
 export function PropsPanel(props: Props) {
   const { lang, scene, selectedLayerId, onUpdateScene, onRenameLayer, editT, setEditT } = props;
   const tt = useMemo(() => (key: string) => t(lang, key), [lang]);
@@ -537,6 +479,9 @@ const typePresets = useMemo(
   const [localRefToast, setLocalRefToast] = useState<string>("");
   const [showRefHelp, setShowRefHelp] = useState(false);
   const [localRefThumb, setLocalRefThumb] = useState<string>("");
+  const [showBgRefHelp, setShowBgRefHelp] = useState(false);
+  const [bgRefThumb, setBgRefThumb] = useState<string>("");
+  const [bgRefToast, setBgRefToast] = useState<string>("");
   const localSyncPauseRef = useRef(false);
 
   React.useEffect(() => {
@@ -577,6 +522,11 @@ const typePresets = useMemo(
     const timer = window.setTimeout(() => setLocalRefToast(""), 3000);
     return () => window.clearTimeout(timer);
   }, [localRefToast]);
+  React.useEffect(() => {
+    if (!bgRefToast) return;
+    const timer = window.setTimeout(() => setBgRefToast(""), 3000);
+    return () => window.clearTimeout(timer);
+  }, [bgRefToast]);
 
   function commitType(v: string) {
     patchLayer({ type: v.trim() });
@@ -620,6 +570,67 @@ const typePresets = useMemo(
       if (revoked) URL.revokeObjectURL(revoked);
     };
   }, [localRefs]);
+
+  React.useEffect(() => {
+    let revoked = "";
+    let dead = false;
+    const bgRef = scene.backgroundRef;
+    if (!bgRef?.id) {
+      setBgRefThumb("");
+      return;
+    }
+    void getRefBlob(bgRef.id).then((blob) => {
+      if (dead || !blob) return;
+      const url = URL.createObjectURL(blob);
+      revoked = url;
+      setBgRefThumb(url);
+    });
+    return () => {
+      dead = true;
+      if (revoked) URL.revokeObjectURL(revoked);
+    };
+  }, [scene.backgroundRef?.id]);
+
+  async function setSceneBackgroundRef(files: FileList | null) {
+    const picked = Array.from(files ?? []).filter((f) => f.type.startsWith("image/"));
+    if (!picked.length) {
+      setBgRefToast(lang === "zh" ? "未选择有效图片。" : "No valid image selected.");
+      return;
+    }
+
+    const file = picked[0];
+    const nextRef: SceneRefMeta = {
+      id: `bgref_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      name: file.name,
+      mime: file.type,
+      size: file.size,
+      updatedAt: Date.now()
+    };
+    await putRefBlob(nextRef.id, file);
+
+    const prev = scene.backgroundRef;
+    if (prev?.id) {
+      try {
+        await deleteRefBlob(prev.id);
+      } catch {
+        // no-op
+      }
+    }
+    onUpdateScene({ ...scene, backgroundRef: nextRef });
+    setBgRefToast(lang === "zh" ? "已更新分镜背景参考图。" : "Shot background reference updated.");
+  }
+
+  async function removeSceneBackgroundRef() {
+    const prev = scene.backgroundRef;
+    if (!prev?.id) return;
+    try {
+      await deleteRefBlob(prev.id);
+    } catch {
+      // no-op
+    }
+    onUpdateScene({ ...scene, backgroundRef: undefined });
+    setBgRefToast(lang === "zh" ? "已移除分镜背景参考图。" : "Shot background reference removed.");
+  }
 
   async function addLocalRefs(type: LocalRefType, files: FileList | null) {
     if (!layer || !files?.length) return;
@@ -864,6 +875,61 @@ const typePresets = useMemo(
             />
           </div>
         )}
+
+        <div style={styles.localRefCard}>
+          <div style={styles.localRefHead}>
+            <div style={styles.localRefTitle}>{lang === "zh" ? "分镜背景参考图" : "Shot Background Ref"}</div>
+            <div style={styles.localRefActions}>
+              <label style={{ ...styles.smallBtnGhost, ...styles.localRefImportBtn }}>
+                {lang === "zh" ? "导入背景图片" : "Import Background Image"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple={false}
+                  style={styles.hiddenInput}
+                  onChange={async (e) => {
+                    await setSceneBackgroundRef(e.target.files);
+                    e.currentTarget.value = "";
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                style={styles.qBtn}
+                onMouseEnter={() => setShowBgRefHelp(true)}
+                onMouseLeave={() => setShowBgRefHelp(false)}
+                onFocus={() => setShowBgRefHelp(true)}
+                onBlur={() => setShowBgRefHelp(false)}
+              >
+                ?
+              </button>
+            </div>
+          </div>
+          {showBgRefHelp ? (
+            <div style={styles.helpFloat}>
+              {lang === "zh"
+                ? "可选项：每个分镜仅 1 张背景参考图。画布会整图自适应并淡化虚化显示，不影响前景对象编辑。不同大模型对多参考图支持不同，请确认你将使用的大模型支持多参考图。"
+                : "Optional: one background reference per shot. Canvas fits the full image with a faint blur behind objects. Multi-reference support varies across models; confirm your target model supports multiple references."}
+            </div>
+          ) : null}
+          <div style={styles.localRefList}>
+            {scene.backgroundRef ? (
+              <div style={styles.localRefItem}>
+                {bgRefThumb ? <img src={bgRefThumb} alt={scene.backgroundRef.name} style={styles.localRefThumb} /> : null}
+                <div style={styles.localRefText}>{scene.backgroundRef.name}</div>
+                <button
+                  type="button"
+                  style={{ ...styles.smallBtnGhost, whiteSpace: "nowrap", flexShrink: 0 }}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => void removeSceneBackgroundRef()}
+                >
+                  {lang === "zh" ? "移除" : "Remove"}
+                </button>
+              </div>
+            ) : null}
+          </div>
+          {bgRefToast ? <div style={styles.toastHint}>{bgRefToast}</div> : null}
+        </div>
       </div>
 
       {/* Object Properties */}
@@ -1112,7 +1178,7 @@ const typePresets = useMemo(
                     <div style={styles.localRefText}>{localRefs[0].name}</div>
                     <button
                       type="button"
-                      style={styles.smallBtnGhost}
+                      style={{ ...styles.smallBtnGhost, whiteSpace: "nowrap", flexShrink: 0 }}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => void removeLocalRef(localRefs[0])}
                     >

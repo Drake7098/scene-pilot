@@ -1,5 +1,5 @@
 import type { Lang } from "../i18n";
-import type { Project, Scene, Layer, LayerKF } from "../model";
+import type { Project, Scene, Layer, LayerKF, ShotPlan, Direction } from "../model";
 
 /**
  * ScenePilot prompts generator
@@ -90,6 +90,44 @@ export type PromptProfile =
   | "grok"
   | "nano_banana";
 const MEDIA_MARK = "media:";
+const DIRECTION_TO_MOVE: Record<Direction, string> = {
+  N: "up",
+  NE: "up-right",
+  E: "right",
+  SE: "down-right",
+  S: "down",
+  SW: "down-left",
+  W: "left",
+  NW: "up-left"
+};
+const DIRECTION_TO_MOVE_ZH: Record<Direction, string> = {
+  N: "上方",
+  NE: "右上",
+  E: "右侧",
+  SE: "右下",
+  S: "下方",
+  SW: "左下",
+  W: "左侧",
+  NW: "左上"
+};
+
+function transitionLineByType(lang: Lang, fromIdx: number, toIdx: number, type: string | undefined): string {
+  const t = type ?? "cut";
+  const a = String(fromIdx + 1).padStart(2, "0");
+  const b = String(toIdx + 1).padStart(2, "0");
+  if (lang === "zh") {
+    if (t === "reverse_angle") return `衔接 ${a}→${b}：reverse angle，同场景切换反打角度。`;
+    if (t === "camera_continues") return `衔接 ${a}→${b}：camera continues，镜头连续推进进入下一分镜。`;
+    if (t === "dissolve") return `衔接 ${a}→${b}：dissolve，平滑叠化进入下一分镜。`;
+    if (t === "time_jump") return `衔接 ${a}→${b}：time jump，时间向前跳转后进入下一分镜。`;
+    return `衔接 ${a}→${b}：cut，直接切换到下一分镜。`;
+  }
+  if (t === "reverse_angle") return `Transition ${a}→${b}: reverse angle within the same scene.`;
+  if (t === "camera_continues") return `Transition ${a}→${b}: camera continues into the next moment.`;
+  if (t === "dissolve") return `Transition ${a}→${b}: dissolve into the next shot.`;
+  if (t === "time_jump") return `Transition ${a}→${b}: time jump forward before next shot.`;
+  return `Transition ${a}→${b}: cut to the next shot.`;
+}
 
 function parseMedia(notes: string): MediaMode {
   const lines = (notes ?? "").split("\n");
@@ -97,6 +135,12 @@ function parseMedia(notes: string): MediaMode {
   if (!hit) return "video"; // default: video for old scenes
   const v = hit.trim().slice(MEDIA_MARK.length).trim().toLowerCase();
   return v === "image" ? "image" : "video";
+}
+
+function getShotPlan(project: Project): ShotPlan {
+  const raw = (project?.project as any)?.shotPlan;
+  if (raw === "single" || raw === "multicam" || raw === "continuous" || raw === "edit") return raw;
+  return "single";
 }
 
 /* -------------------- Stability Toggle (per-scene) -------------------- */
@@ -175,13 +219,16 @@ function formatLayerLine(lang: Lang, layer: Layer, mode: MediaMode): string {
 function formatScenePrompt(lang: Lang, scene: Scene): string {
   const camera = (scene.camera ?? {}) as any;
   const lighting = (scene.lighting ?? {}) as any;
+  const cameraPreset = ((scene as any).cameraPreset ?? "").toString().trim();
+  const shotNote = ((scene as any).shotNote ?? "").toString().trim();
 
   const bg = parseBg(scene.notes ?? "");
   const duration = Number.isFinite(scene.duration_s) ? Math.round(scene.duration_s) : 0;
 
   const mode: MediaMode = parseMedia(scene?.notes ?? "");
 
-  const shot = typeof camera.shot === "string" ? camera.shot.trim() : "";
+  const shotRaw = typeof camera.shot === "string" ? camera.shot.trim() : "";
+  const shot = shotRaw || cameraPreset;
   const movement = typeof camera.movement === "string" ? camera.movement.trim() : "";
 
   const time = typeof lighting.time === "string" ? lighting.time.trim() : "";
@@ -210,7 +257,8 @@ function formatScenePrompt(lang: Lang, scene: Scene): string {
             .join("，")}`
         : "";
 
-    const sceneMeta = [bg ? `背景：${bg}` : "", cameraLine, lightingLine].filter(Boolean).join("\n");
+    const noteLine = shotNote ? `分镜说明：${shotNote}` : "";
+    const sceneMeta = [bg ? `背景：${bg}` : "", cameraLine, lightingLine, noteLine].filter(Boolean).join("\n");
 
     return [header, sceneMeta, layerLines].filter(Boolean).join("\n\n");
   }
@@ -232,7 +280,8 @@ function formatScenePrompt(lang: Lang, scene: Scene): string {
           .join(", ")}`
       : "";
 
-  const sceneMeta = [bg ? `Background: ${bg}` : "", cameraLine, lightingLine].filter(Boolean).join("\n");
+  const noteLine = shotNote ? `Shot note: ${shotNote}` : "";
+  const sceneMeta = [bg ? `Background: ${bg}` : "", cameraLine, lightingLine, noteLine].filter(Boolean).join("\n");
 
   return [header, sceneMeta, layerLines].filter(Boolean).join("\n\n");
 }
@@ -727,6 +776,7 @@ function platformGuide(profile: PromptProfile, lang: Lang): string {
  */
 export function generatePrompts(project: Project, lang: Lang, profile: PromptProfile = "universal"): string {
   const scenes = project?.scenes ?? [];
+  const shotPlan = getShotPlan(project);
 
   if (!scenes.length) {
     return lang === "zh" ? "（无分镜）" : "(no scenes)";
@@ -753,6 +803,85 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
     const p = platformGuide(profile, lang);
     if (p) lines.push(p);
     out.push(lines.join("\n"));
+  }
+
+  if (shotPlan === "continuous" && scenes.length > 1) {
+    const totalSec = scenes.reduce((sum, s) => sum + Math.max(1, Math.round(Number(s.duration_s) || 0)), 0);
+    if (lang === "zh") {
+      out.push(
+        [
+          `连续镜头模式（总时长约 ${totalSec} 秒）：第一视角，单镜头连续运动，无跳切。`,
+          "强制约束：no text / no subtitles / no overlays / do not show numbers。",
+          "保持对象身份连续、数量稳定；避免突然位移、瞬移、硬切。"
+        ].join("\n")
+      );
+    } else {
+      out.push(
+        [
+          `Continuous mode (~${totalSec}s): first-person perspective, single long take, seamless motion, no cuts.`,
+          "Hard constraints: no text / no subtitles / no overlays / do not show numbers.",
+          "Keep identity and object count consistent; avoid sudden jumps/teleports/hard cuts."
+        ].join("\n")
+      );
+    }
+
+    scenes.forEach((s, i) => {
+      const shotTitle = (s.name ?? "").trim() || (lang === "zh" ? `分镜 ${i + 1}` : `Shot ${i + 1}`);
+      const layerSummary = (s.layers ?? [])
+        .map((l) => [l.id, l.type, l.look, l.notes].filter(Boolean).join(" | "))
+        .filter(Boolean)
+        .join(lang === "zh" ? "；" : "; ");
+      const shotLine =
+        lang === "zh"
+          ? `镜头 ${String(i + 1).padStart(2, "0")}：${shotTitle}（${Math.max(1, Math.round(Number(s.duration_s) || 0))}秒）`
+          : `Shot ${String(i + 1).padStart(2, "0")}: ${shotTitle} (${Math.max(1, Math.round(Number(s.duration_s) || 0))}s)`;
+      const noteLine = (s as any).shotNote ? (lang === "zh" ? `说明：${(s as any).shotNote}` : `Note: ${(s as any).shotNote}`) : "";
+      out.push([shotLine, noteLine, layerSummary].filter(Boolean).join("\n"));
+
+      if (i < scenes.length - 1) {
+        const fromEn = s.exitDir && DIRECTION_TO_MOVE[s.exitDir] ? DIRECTION_TO_MOVE[s.exitDir] : "forward";
+        const toEn = scenes[i + 1].entryDir && DIRECTION_TO_MOVE[scenes[i + 1].entryDir as Direction]
+          ? DIRECTION_TO_MOVE[scenes[i + 1].entryDir as Direction]
+          : fromEn;
+        const fromZh = s.exitDir && DIRECTION_TO_MOVE_ZH[s.exitDir] ? DIRECTION_TO_MOVE_ZH[s.exitDir] : "前方";
+        const toZh = scenes[i + 1].entryDir && DIRECTION_TO_MOVE_ZH[scenes[i + 1].entryDir as Direction]
+          ? DIRECTION_TO_MOVE_ZH[scenes[i + 1].entryDir as Direction]
+          : fromZh;
+        out.push(
+          lang === "zh"
+            ? `衔接 ${String(i + 1).padStart(2, "0")}→${String(i + 2).padStart(2, "0")}：镜头连续推进，先向${fromZh}移动，再自然转向${toZh}进入下一分镜，保持 no-cut 连贯感。`
+            : `Transition ${String(i + 1).padStart(2, "0")}→${String(i + 2).padStart(2, "0")}: camera continues with seamless no-cut motion, moving ${fromEn} then naturally into ${toEn} for the next shot.`
+        );
+      }
+    });
+
+    const prompt = out.join("\n\n---\n\n");
+    return appendUnifiedTail(prompt, lang, project);
+  }
+
+  if ((shotPlan === "multicam" || shotPlan === "edit") && scenes.length > 1) {
+    if (shotPlan === "multicam") {
+      out.push(
+        lang === "zh"
+          ? "同场景多机位：保持同一地点/光线/对象位置连续，仅切换机位与视角。"
+          : "Multi-cam: keep same location/lighting/object placement continuity; only change camera angle."
+      );
+    } else {
+      out.push(
+        lang === "zh"
+          ? "标准剪辑：允许镜头跳切、时间跳跃、地点变化，但每个分镜内部需稳定执行。"
+          : "Standard edit: cut/time jump/location switch allowed, while each shot remains internally consistent."
+      );
+    }
+    scenes.forEach((s, i) => {
+      out.push(formatScenePrompt(lang, s));
+      if (i < scenes.length - 1) {
+        const t = (s as any).transitionType ?? (shotPlan === "multicam" ? "reverse_angle" : "cut");
+        out.push(transitionLineByType(lang, i, i + 1, t));
+      }
+    });
+    const prompt = out.join("\n\n---\n\n");
+    return appendUnifiedTail(prompt, lang, project);
   }
 
   scenes.forEach((s) => {
