@@ -800,6 +800,9 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 700
   },
   modalSelect: {
+    appearance: "none",
+    WebkitAppearance: "none",
+    MozAppearance: "none",
     height: 34,
     borderRadius: 12,
     border: "1px solid rgba(255,255,255,0.14)",
@@ -808,7 +811,12 @@ const styles: Record<string, CSSProperties> = {
     padding: "0 34px 0 10px",
     outline: "none",
     fontSize: 12,
-    fontWeight: 700
+    fontWeight: 700,
+    backgroundImage:
+      "linear-gradient(45deg, transparent 50%, rgba(220,232,255,0.78) 50%), linear-gradient(135deg, rgba(220,232,255,0.78) 50%, transparent 50%), linear-gradient(to right, transparent, transparent)",
+    backgroundPosition: "calc(100% - 18px) calc(50% - 1px), calc(100% - 12px) calc(50% - 1px), 100% 0",
+    backgroundSize: "6px 6px, 6px 6px, 2.2em 2.2em",
+    backgroundRepeat: "no-repeat"
   },
   step3WarnBox: {
     marginTop: 6,

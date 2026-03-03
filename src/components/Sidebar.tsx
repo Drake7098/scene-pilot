@@ -1621,6 +1621,9 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.3
   },
   select: {
+    appearance: "none",
+    WebkitAppearance: "none",
+    MozAppearance: "none",
     flex: 1,
     minWidth: 0,
     height: UI_SIZE.controlH,
@@ -1631,7 +1634,12 @@ const styles: Record<string, React.CSSProperties> = {
     outline: "none",
     padding: "0 34px 0 10px",
     fontSize: UI_FONT.body,
-    fontWeight: 700
+    fontWeight: 700,
+    backgroundImage:
+      "linear-gradient(45deg, transparent 50%, rgba(220,232,255,0.78) 50%), linear-gradient(135deg, rgba(220,232,255,0.78) 50%, transparent 50%), linear-gradient(to right, transparent, transparent)",
+    backgroundPosition: "calc(100% - 18px) calc(50% - 1px), calc(100% - 12px) calc(50% - 1px), 100% 0",
+    backgroundSize: "6px 6px, 6px 6px, 2.2em 2.2em",
+    backgroundRepeat: "no-repeat"
   },
 
   // ✅ toast（左下角）
