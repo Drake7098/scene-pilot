@@ -1,0 +1,49 @@
+{
+  "required": [
+    { "type": "literal", "value": "[V2 SCENEPILOT COMPILE]" },
+    { "type": "regex", "value": "Scene:\\s.*(\\d+s|\\d+秒)" },
+    { "type": "literal", "value": "Layout Contract (obey strictly):" },
+    { "type": "literal", "value": "Camera Contract:" },
+    { "type": "literal", "value": "T0 Frame Spec:" },
+    { "type": "literal", "value": "T1 Frame Spec:" },
+    { "type": "literal", "value": "Anti-Director Rules:" },
+    { "type": "literal", "value": "@compiler:v2" },
+    { "type": "literal", "value": "@scene_tier:open_space", "when_scene_tier": "open_space" }
+  ],
+  "forbidden": [
+    { "type": "literal", "value": "完成 t0→t1 变化", "when": "all_stable" },
+    { "type": "literal", "value": "Apply t0→t1 transition across the full", "when": "all_stable" },
+    { "type": "literal", "value": "x=" },
+    { "type": "literal", "value": "y=" },
+    { "type": "literal", "value": "w=" },
+    { "type": "literal", "value": "h=" },
+    { "type": "regex", "value": "参考图链接: .*\\|.*\\|" },
+    { "type": "literal", "value": "add/remove subjects" },
+    { "type": "literal", "value": "center the hero subject" }
+  ],
+  "conflict_pairs": [
+    ["当前 t0=t1，整段 .* 保持静止构图", "完成 t0→t1 变化"],
+    ["full duration keeps static composition", "complete t0->t1 transition"],
+    ["no text", "add text overlay"],
+    ["no overlays", "ui overlay"],
+    ["不自动居中", "center the hero subject"],
+    ["保持对象数量", "add/remove subjects"],
+    ["不重排构图", "re-layout composition"]
+  ],
+  "synonym_whitelist": [
+    ["保持静止构图", "保持原位"],
+    ["stable layout", "static composition"],
+    ["do not re-layout composition", "preserve relative layout"],
+    ["moves closer to camera", "becomes nearer to camera"],
+    ["moves farther from camera", "becomes farther from camera"],
+    ["no auto-centering", "do not auto center"],
+    ["foreground-midground-background separation", "depth layering"],
+    ["保持层级关系", "preserve depth order"],
+    ["preserve depth order", "keep depth layers stable"]
+  ],
+  "min_chars": 280,
+  "max_chars": 5000,
+  "max_repeat_line_ratio": 0.25,
+  "max_repeat_ngram_ratio": 0.2,
+  "target_conflict_rate": 0.02
+}

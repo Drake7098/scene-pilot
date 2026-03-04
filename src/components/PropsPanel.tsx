@@ -4,6 +4,7 @@ import { t } from "../i18n";
 import type { Scene, Layer, LayerKF, LocalRefMeta, LocalRefType, SceneRefMeta } from "../model";
 import { ensureKF } from "../model";
 import { deleteRefBlob, getRefBlob, putRefBlob } from "../utils/localRefs";
+import { detectSceneConflicts } from "../utils/conflictRules";
 import { UI_FONT, UI_OPACITY, UI_SIZE } from "../uiTokens";
 
 type Props = {
@@ -479,6 +480,7 @@ const typePresets = useMemo(
   const [externalDraft, setExternalDraft] = useState<string>("");
   const [localPromptToast, setLocalPromptToast] = useState<string>("");
   const [localRefToast, setLocalRefToast] = useState<string>("");
+  const [showConflictModal, setShowConflictModal] = useState(false);
   const [showRefHelp, setShowRefHelp] = useState(false);
   const [localRefThumb, setLocalRefThumb] = useState<string>("");
   const [showBgRefHelp, setShowBgRefHelp] = useState(false);
@@ -823,6 +825,14 @@ const typePresets = useMemo(
     return hints;
   }, [layer, lang]);
 
+  const promptConflicts = useMemo(() => detectSceneConflicts(scene, lang), [scene, lang]);
+  const layerPromptConflicts = useMemo(() => {
+    if (!layer) return promptConflicts.filter((c) => c.scope === "scene");
+    return promptConflicts.filter((c) => c.layerId === layer.id || c.scope === "scene");
+  }, [promptConflicts, layer]);
+  const notesHasConflict = layerPromptConflicts.some((c) => c.field === "notes" || c.field === "scene");
+  const externalHasConflict = layerPromptConflicts.some((c) => c.field === "externalPrompt");
+
   return (
     <div style={styles.wrap}>
       {/* Scene Background */}
@@ -1126,11 +1136,14 @@ const typePresets = useMemo(
                   setExternalDraft(v);
                   commitExternalPrompt(v);
                 }}
-                onBlur={() => commitExternalPrompt(externalDraft)}
+                onBlur={() => {
+                  commitExternalPrompt(externalDraft);
+                  if (externalHasConflict) setShowConflictModal(true);
+                }}
                 placeholder={
                   tt("props.localPromptPlaceholder")
                 }
-                style={styles.objectPromptArea}
+                style={{ ...styles.objectPromptArea, ...(externalHasConflict ? styles.conflictField : {}) }}
                 spellCheck={false}
               />
             </div>
@@ -1199,6 +1212,21 @@ const typePresets = useMemo(
                 ))}
               </div>
             )}
+            {layerPromptConflicts.length > 0 ? (
+              <div style={styles.warnHint}>
+                <div style={styles.warnHead}>
+                  <span>{lang === "zh" ? `检测到冲突 ${layerPromptConflicts.length} 处` : `${layerPromptConflicts.length} conflict(s) detected`}</span>
+                  <button
+                    type="button"
+                    style={styles.smallBtnGhost}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setShowConflictModal(true)}
+                  >
+                    {lang === "zh" ? "查看冲突" : "View"}
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             {/* Notes */}
             <div style={styles.notesHeadRow}>
@@ -1348,18 +1376,50 @@ const typePresets = useMemo(
               <textarea
                 value={layer.notes ?? ""}
                 onChange={(e) => patchLayer({ notes: e.target.value })}
+                onBlur={() => {
+                  if (notesHasConflict) setShowConflictModal(true);
+                }}
                 placeholder={
                   lang === "zh"
                     ? "不要什么 / 必须有什么 / 动作 / 情绪 / 限制…（可在上方下拉“要素”里点选）"
                     : "constraints / actions / mood / must-have / avoid... (use elements dropdown above)"
                 }
-                style={styles.textarea}
+                style={{ ...styles.textarea, ...(notesHasConflict ? styles.conflictField : {}) }}
                 spellCheck={false}
               />
             </div>
           </>
         )}
       </div>
+
+      {showConflictModal ? (
+        <div style={styles.modalMask} onMouseDown={() => setShowConflictModal(false)} role="presentation">
+          <div style={styles.modal} onMouseDown={(e) => e.stopPropagation()}>
+            <div style={styles.modalTitle}>{lang === "zh" ? "冲突列表" : "Conflict List"}</div>
+            <div style={styles.modalText}>
+              {lang === "zh"
+                ? "以下冲突建议你手动修改。系统会在导出阶段做保护性修正，但不会改写你的原始输入。"
+                : "Please adjust these conflicts manually. Export adds protective constraints but does not rewrite your raw input."}
+            </div>
+            <div style={styles.conflictList}>
+              {layerPromptConflicts.map((c) => (
+                <div key={c.id} style={{ ...styles.conflictItem, ...(c.severity === "high" ? styles.conflictItemHigh : {}) }}>
+                  <div style={styles.conflictTitle}>
+                    {c.title}
+                    {c.layerId ? ` · ${c.layerId}` : ""}
+                  </div>
+                  <div style={styles.conflictDetail}>{c.detail}</div>
+                </div>
+              ))}
+            </div>
+            <div style={styles.modalBtns}>
+              <button style={styles.modalBtnGhost} type="button" onClick={() => setShowConflictModal(false)}>
+                {lang === "zh" ? "我去修改" : "Back to Edit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Composition + Trajectory buttons */}
       <div style={styles.card}>
@@ -1673,6 +1733,73 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.72,
     lineHeight: 1.35
   },
+  warnHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8
+  },
+  conflictField: {
+    border: "1px solid rgba(255,120,120,0.66)",
+    boxShadow: "0 0 0 1px rgba(255,120,120,0.22) inset"
+  },
+  modalMask: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.55)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    zIndex: 9999
+  },
+  modal: {
+    width: "min(640px, calc(100vw - 48px))",
+    maxHeight: "calc(100vh - 48px)",
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(16,20,34,0.96)",
+    boxShadow: "0 16px 56px rgba(0,0,0,0.45)",
+    padding: 16,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    overflow: "auto"
+  },
+  modalTitle: { fontWeight: 900, fontSize: 14, opacity: 0.95 },
+  modalText: { fontSize: 12, lineHeight: 1.45, opacity: 0.84 },
+  modalBtns: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 },
+  modalBtnGhost: {
+    padding: "7px 10px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.06)",
+    color: "inherit",
+    cursor: "pointer",
+    fontWeight: 800
+  },
+  conflictList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    maxHeight: 280,
+    overflow: "auto"
+  },
+  conflictItem: {
+    border: "1px solid rgba(255,180,120,0.35)",
+    borderRadius: 10,
+    background: "rgba(255,180,120,0.09)",
+    padding: "8px 10px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4
+  },
+  conflictItemHigh: {
+    border: "1px solid rgba(255,120,120,0.56)",
+    background: "rgba(255,120,120,0.12)"
+  },
+  conflictTitle: { fontSize: 12, fontWeight: 900, opacity: 0.95 },
+  conflictDetail: { fontSize: 12, lineHeight: 1.4, opacity: 0.86 },
 
   textarea: {
     flex: 1,

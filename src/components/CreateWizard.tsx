@@ -7,10 +7,12 @@ export type NewProjectMedia = "image" | "video";
 export type CreateStep = "welcome_1" | "welcome_2" | "media" | "image_setup" | "video_plan" | "video_setup";
 export type DurationMode = "average" | "manual";
 export type RatioOption = "16:9" | "9:16" | "1:1";
+export type SceneTier = "indoor" | "small_plaza" | "open_space";
 export type WizardDraft = {
   projectName: string;
   mediaType: NewProjectMedia;
   ratio: RatioOption;
+  sceneTier: SceneTier;
   shotPlan: ShotPlan;
   shotCount: number;
   totalDuration: number;
@@ -112,6 +114,12 @@ function normalizeDurations(draft: WizardDraft): number[] {
   });
 }
 
+function recommendedRatioByTier(tier: SceneTier): RatioOption {
+  if (tier === "indoor") return "9:16";
+  if (tier === "small_plaza") return "1:1";
+  return "16:9";
+}
+
 export function CreateWizard(props: Props) {
   const {
     lang,
@@ -130,6 +138,7 @@ export function CreateWizard(props: Props) {
   } = props;
   const [floatingHint, setFloatingHint] = useState("");
   const [showDurationHelp, setShowDurationHelp] = useState(false);
+  const [showSceneTierHelp, setShowSceneTierHelp] = useState(false);
   const [mediaTouched, setMediaTouched] = useState(false);
   const [planTouched, setPlanTouched] = useState(false);
   const [hoveredMedia, setHoveredMedia] = useState<NewProjectMedia | null>(null);
@@ -444,6 +453,42 @@ export function CreateWizard(props: Props) {
                       {n}
                     </option>
                   ))}
+                </select>
+              </div>
+              <div style={styles.step3FormRow}>
+                <label style={styles.modalLabelWithHelp}>
+                  <span>{lang === "zh" ? "场景级别" : "Scene Tier"}</span>
+                  <span style={styles.helpWrap}>
+                    <span
+                      style={styles.helpQ}
+                      onMouseEnter={() => setShowSceneTierHelp(true)}
+                      onMouseLeave={() => setShowSceneTierHelp(false)}
+                      onFocus={() => setShowSceneTierHelp(true)}
+                      onBlur={() => setShowSceneTierHelp(false)}
+                      tabIndex={0}
+                    >
+                      ?
+                    </span>
+                    {showSceneTierHelp ? (
+                      <span style={styles.helpBubble}>
+                        {lang === "zh"
+                          ? "A: 室内(9:16)，B: 小广场(1:1)，C: 开阔外景(16:9)。选择后会同步推荐画幅比例。"
+                          : "A: Indoor (9:16), B: Small plaza (1:1), C: Open space (16:9). Selection syncs suggested ratio."}
+                      </span>
+                    ) : null}
+                  </span>
+                </label>
+                <select
+                  value={draft.sceneTier}
+                  onChange={(e) => {
+                    const tier = e.target.value as SceneTier;
+                    setDraft((s) => nextWizardDraft({ ...s, sceneTier: tier, ratio: recommendedRatioByTier(tier) }));
+                  }}
+                  style={styles.modalSelect}
+                >
+                  <option value="indoor">{lang === "zh" ? "A｜室内（人物偏近）" : "A | Indoor (closer subjects)"}</option>
+                  <option value="small_plaza">{lang === "zh" ? "B｜小广场（均衡层次）" : "B | Small Plaza (balanced depth)"}</option>
+                  <option value="open_space">{lang === "zh" ? "C｜开阔外景（深度拉开）" : "C | Open Space (strong depth)"}</option>
                 </select>
               </div>
               <div style={styles.step3FormRow}>

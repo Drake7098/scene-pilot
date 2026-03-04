@@ -1,0 +1,63 @@
+{
+  "version": "1.0.0",
+  "description": "Combat prototype patch list for V2 prompt post-processing.",
+  "profiles": {
+    "indoor": {
+      "far_threshold_height_pct": 0.12,
+      "background_density": "low",
+      "anti_director_strength": "low"
+    },
+    "small_plaza": {
+      "far_threshold_height_pct": 0.08,
+      "background_density": "medium",
+      "anti_director_strength": "medium"
+    },
+    "open_space": {
+      "far_threshold_height_pct": 0.05,
+      "background_density": "high",
+      "anti_director_strength": "strong"
+    }
+  },
+  "patches": [
+    {
+      "id": "combat.depth_open_space_boost",
+      "trigger": "depth_separation < 0.75 AND scene_tier = open_space",
+      "actions": [
+        "replace Layout Contract depth line with explicit foreground-mid-background spread",
+        "append anti-director line: keep depth stretched, avoid flattening"
+      ]
+    },
+    {
+      "id": "combat.static_no_fake_motion",
+      "trigger": "is_static_timeline = true",
+      "actions": [
+        "remove any 'complete t0->t1 transition' line",
+        "append camera line: full duration keeps static composition"
+      ]
+    },
+    {
+      "id": "combat.motion_unroll",
+      "trigger": "is_static_timeline = false AND motion_consistency < 0.75",
+      "actions": [
+        "rewrite T1 with qualitative transitions: position/size/depth/rotation",
+        "append camera line with duration-bound transition"
+      ]
+    },
+    {
+      "id": "combat.count_identity_lock",
+      "trigger": "count_fidelity < 0.9",
+      "actions": [
+        "append hard lock: preserve subject count and identity",
+        "append hard lock: no add/remove subjects"
+      ]
+    },
+    {
+      "id": "combat.redundancy_trim",
+      "trigger": "prompt_redundancy > 0.2",
+      "actions": [
+        "dedupe repeated constraints in tail section",
+        "keep shortest unique hard-constraint lines"
+      ]
+    }
+  ]
+}

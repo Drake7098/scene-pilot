@@ -13,7 +13,13 @@
     "robots:test:headed": "npx playwright test -c tests/robots/playwright.config.ts --headed",
     "robots:run": "node tests/robots/scripts/run-robots.mjs",
     "robots:summary": "node tests/robots/scripts/generate-summary.mjs",
-    "robots:dashboard": "node tests/robots/scripts/serve-dashboard.mjs"
+    "robots:dashboard": "node tests/robots/scripts/serve-dashboard.mjs",
+    "robots:prompt:simulate": "node tests/robots/scripts/simulate-prompt-scenarios.mjs",
+    "robots:prompt:evaluate": "node tests/robots/scripts/evaluate-prompts.mjs",
+    "robots:prompt:check": "npm run robots:prompt:simulate && npm run robots:prompt:evaluate",
+    "robots:prompt:ab:clean": "PROMPT_CONFLICT_INJECT_RATE=0 PROMPT_ACTION_CONFLICT_INJECT_RATE=0 node tests/robots/scripts/simulate-prompt-scenarios.mjs 100 tests/robots/artifacts/prompt-eval/ab-clean/simulated && node tests/robots/scripts/evaluate-prompts.mjs tests/robots/artifacts/prompt-eval/ab-clean/simulated tests/robots/artifacts/prompt-eval/ab-clean",
+    "robots:prompt:ab:conflict": "PROMPT_CONFLICT_INJECT_RATE=0.35 PROMPT_ACTION_CONFLICT_INJECT_RATE=0.35 node tests/robots/scripts/simulate-prompt-scenarios.mjs 100 tests/robots/artifacts/prompt-eval/ab-conflict/simulated && node tests/robots/scripts/evaluate-prompts.mjs tests/robots/artifacts/prompt-eval/ab-conflict/simulated tests/robots/artifacts/prompt-eval/ab-conflict",
+    "robots:prompt:ab:check": "npm run robots:prompt:ab:clean && npm run robots:prompt:ab:conflict"
   },
   "dependencies": {
     "lucide-react": "^0.575.0",

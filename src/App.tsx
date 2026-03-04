@@ -169,6 +169,7 @@ export default function App() {
     projectName: "",
     mediaType: "video",
     ratio: "16:9",
+    sceneTier: "small_plaza",
     shotPlan: "single",
     shotCount: 1,
     totalDuration: 12,
@@ -464,6 +465,7 @@ export default function App() {
       projectName: (base?.projectName ?? "").trim(),
       mediaType: media,
       ratio: (base?.ratio ?? "16:9") as "16:9" | "9:16" | "1:1",
+      sceneTier: (base?.sceneTier ?? "small_plaza") as "indoor" | "small_plaza" | "open_space",
       shotPlan,
       shotCount,
       totalDuration,
@@ -557,6 +559,7 @@ export default function App() {
 
   function buildProjectFromWizard(draft: WizardDraft): Project {
     const media = draft.mediaType;
+    const sceneTier = draft.sceneTier ?? "small_plaza";
     const shotPlan: ShotPlan = media === "image" ? "single" : draft.shotPlan;
     const count = media === "image" ? 1 : Math.max(1, Math.round(draft.shotCount));
     const durations = normalizeDurations({ ...draft, shotCount: count, shotPlan });
@@ -602,7 +605,15 @@ export default function App() {
         },
         lighting: { time: "", key_dir: "", mood: "" },
         layers: [],
-        notes: `media: ${media}\ngenmode: quick`
+        notes: [
+          `media: ${media}`,
+          "genmode: quick",
+          media === "video" ? "@compiler:v2" : "",
+          media === "video" ? `@scene_tier:${sceneTier}` : "",
+          media === "video" ? "@v2_mode:strict" : ""
+        ]
+          .filter(Boolean)
+          .join("\n")
       };
     });
     if (media === "video" && shotPlan === "continuous") {
@@ -635,7 +646,7 @@ export default function App() {
       // ignore
     }
     markOnboardingDone();
-    trackProjectFlow("project_create", { media: wizardDraft.mediaType, shotPlan: wizardDraft.shotPlan }, lang);
+    trackProjectFlow("project_create", { media: wizardDraft.mediaType, shotPlan: wizardDraft.shotPlan, sceneTier: wizardDraft.sceneTier }, lang);
   }
 
   function toggleLang() {
@@ -780,7 +791,7 @@ export default function App() {
 
     for (let layerIdx = 0; layerIdx < (sceneItem.layers ?? []).length; layerIdx++) {
       const layer = sceneItem.layers[layerIdx];
-      const refs = layer.localRefs ?? [];
+      const refs = (layer.localRefs ?? []).slice(0, 1);
       for (let refIdx = 0; refIdx < refs.length; refIdx++) {
         const ref = refs[refIdx];
         const blob = await getRefBlob(ref.id);
@@ -1580,6 +1591,9 @@ export default function App() {
           projectLabel={fileLabel}
           sceneIdx={sceneIdx}
           selectedLayerId={selectedLayerId}
+          onJumpToConflict={(layerId) => {
+            if (layerId) setSelectedLayerId(layerId);
+          }}
         />
         </div>
 

@@ -31,12 +31,24 @@ robots:
     enabled: true
     role: "Boundary and invalid-input stress"
     scenario: "scenarios/chaos-breaker.spec.ts"
-    priority: "P1"
+    priority: "P0"
+    sla_sec: 360
+
+  - id: export_platform_robot
+    enabled: true
+    role: "Export panel platform switching and policy hint validation"
+    scenario: "scenarios/export-platform.spec.ts"
+    priority: "P0"
+    sla_sec: 300
+
+  - id: v2_compiler_guard
+    enabled: true
+    role: "V2 compiler marker and scene tier guard"
+    scenario: "scenarios/v2-compiler-guard.spec.ts"
+    priority: "P0"
     sla_sec: 360
 
 planned_robots:
-  - id: cross_platform_publish
-    role: "Publish prompts to target platforms"
   - id: quality_scoring
     role: "Rule + VLM scoring"
   - id: judge

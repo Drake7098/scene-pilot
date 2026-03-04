@@ -1,5 +1,8 @@
 import type { Lang } from "../i18n";
 import type { Project, Scene, Layer, LayerKF, ShotPlan, Direction } from "../model";
+import { compileScenePromptV2 } from "./compileV2";
+import type { SceneTier, V2Mode } from "./compileV2";
+import { optimizeV2ScenePrompt } from "./adaptivePatch";
 
 /**
  * ScenePilot prompts generator
@@ -90,6 +93,9 @@ export type PromptProfile =
   | "grok"
   | "nano_banana";
 const MEDIA_MARK = "media:";
+const COMPILER_MARK = "@compiler:";
+const SCENE_TIER_MARK = "@scene_tier:";
+const V2_MODE_MARK = "@v2_mode:";
 const DIRECTION_TO_MOVE: Record<Direction, string> = {
   N: "up",
   NE: "up-right",
@@ -137,6 +143,31 @@ function parseMedia(notes: string): MediaMode {
   return v === "image" ? "image" : "video";
 }
 
+function parseCompiler(notes: string): "v1" | "v2" {
+  const lines = (notes ?? "").split("\n");
+  const hit = lines.find((l) => l.trim().toLowerCase().startsWith(COMPILER_MARK));
+  if (!hit) return "v1";
+  const v = hit.trim().slice(COMPILER_MARK.length).trim().toLowerCase();
+  return v === "v2" ? "v2" : "v1";
+}
+
+function parseSceneTier(notes: string): SceneTier {
+  const lines = (notes ?? "").split("\n");
+  const hit = lines.find((l) => l.trim().toLowerCase().startsWith(SCENE_TIER_MARK));
+  if (!hit) return "small_plaza";
+  const v = hit.trim().slice(SCENE_TIER_MARK.length).trim().toLowerCase();
+  if (v === "indoor" || v === "small_plaza" || v === "open_space") return v;
+  return "small_plaza";
+}
+
+function parseV2Mode(notes: string): V2Mode {
+  const lines = (notes ?? "").split("\n");
+  const hit = lines.find((l) => l.trim().toLowerCase().startsWith(V2_MODE_MARK));
+  if (!hit) return "strict";
+  const v = hit.trim().slice(V2_MODE_MARK.length).trim().toLowerCase();
+  return v === "short" ? "short" : "strict";
+}
+
 function getShotPlan(project: Project): ShotPlan {
   const raw = (project?.project as any)?.shotPlan;
   if (raw === "single" || raw === "multicam" || raw === "continuous" || raw === "edit") return raw;
@@ -175,7 +206,7 @@ function formatLayerLine(lang: Lang, layer: Layer, mode: MediaMode): string {
   const shapeDesc = (layer.shapeDesc ?? "").trim();
   const notes = (layer.notes ?? "").trim();
   const externalPrompt = compactLocalPrompt(layer.externalPrompt ?? "");
-  const refs = compactRefs(layer.referenceLinks ?? "", 6);
+  const refs = compactRefs(layer.referenceLinks ?? "", 1);
 
   // ⚠️ UI 已经没有层级/透明度，提示词也不要输出它们
   void clamp01;
@@ -702,6 +733,59 @@ function dedupeNonEmptyLines(input: string): string {
   return out.join("\n");
 }
 
+function normalizeSpaces(s: string): string {
+  return (s ?? "").replace(/\s+/g, " ").trim();
+}
+
+function constraintBucket(line: string): string | null {
+  const low = normalizeSpaces(line).toLowerCase();
+  if (!low) return null;
+
+  if (/保持对象数量|object count|add\/remove subjects|新增\/删除主体/.test(low)) return "count-identity";
+  if (/对象身份|identity/.test(low)) return "count-identity";
+  if (/相对位置|relative layout|relative placement|重排构图|relayout composition/.test(low)) return "layout-stability";
+  if (/不自动居中|auto-center|auto centering|symmetry|对称构图/.test(low)) return "anti-director";
+  if (/先结构后风格|structure first, style second|structure first/.test(low)) return "structure-first";
+  if (/no subtitles|no overlays|no text|no numbers|不要.*文字|不显示数字/.test(low)) return "no-overlay-text";
+  if (/冲突处理|conflict policy|发生冲突/.test(low)) return "conflict-policy";
+  return null;
+}
+
+function optimizeFinalPrompt(raw: string): string {
+  const lines = (raw ?? "").split("\n");
+  const out: string[] = [];
+  const seenBucket = new Set<string>();
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      out.push("");
+      continue;
+    }
+
+    // Keep scene/object detail lines intact; dedupe only meta constraints.
+    if (/^#\s/.test(trimmed) || /^-\s+[A-Za-z0-9_]/.test(trimmed) || /^- 对象/.test(trimmed)) {
+      out.push(line);
+      continue;
+    }
+
+    const bucket = constraintBucket(trimmed);
+    if (!bucket) {
+      out.push(line);
+      continue;
+    }
+    if (seenBucket.has(bucket)) continue;
+    seenBucket.add(bucket);
+    out.push(line);
+  }
+
+  // Collapse excessive empty lines.
+  return out
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trimEnd();
+}
+
 function platformGuide(profile: PromptProfile, lang: Lang): string {
   const zh = lang === "zh";
   const header = zh
@@ -784,6 +868,7 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
 
   const out: string[] = [];
   const anyVideo = scenes.some((s) => parseMedia(s?.notes ?? "") === "video");
+  const hasV2 = scenes.some((s) => parseCompiler(s?.notes ?? "") === "v2");
 
   if (lang === "zh") {
     const lines = [
@@ -803,6 +888,20 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
     const p = platformGuide(profile, lang);
     if (p) lines.push(p);
     out.push(lines.join("\n"));
+  }
+
+  if (hasV2) {
+    scenes.forEach((s) => {
+      if (parseCompiler(s?.notes ?? "") === "v2") {
+        const tier = parseSceneTier(s?.notes ?? "");
+        const v2Mode = parseV2Mode(s?.notes ?? "");
+        const compiled = compileScenePromptV2(s, lang, tier, v2Mode);
+        out.push(optimizeV2ScenePrompt(compiled, s, lang, tier, v2Mode));
+      } else {
+        out.push(formatScenePrompt(lang, s));
+      }
+    });
+    return optimizeFinalPrompt(out.join("\n\n---\n\n"));
   }
 
   if (shotPlan === "continuous" && scenes.length > 1) {
@@ -856,7 +955,7 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
     });
 
     const prompt = out.join("\n\n---\n\n");
-    return appendUnifiedTail(prompt, lang, project);
+    return optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project));
   }
 
   if ((shotPlan === "multicam" || shotPlan === "edit") && scenes.length > 1) {
@@ -881,7 +980,7 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
       }
     });
     const prompt = out.join("\n\n---\n\n");
-    return appendUnifiedTail(prompt, lang, project);
+    return optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project));
   }
 
   scenes.forEach((s) => {
@@ -889,5 +988,5 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
   });
 
   const prompt = out.join("\n\n---\n\n");
-  return appendUnifiedTail(prompt, lang, project);
+  return optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project));
 }

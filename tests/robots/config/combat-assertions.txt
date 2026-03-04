@@ -1,0 +1,31 @@
+[required]
+- [V2 SCENEPILOT COMPILE]
+- Scene:
+- Camera Contract:
+- Layout Contract (obey strictly):
+- T0 Frame Spec:
+- T1 Frame Spec:
+- Anti-Director Rules:
+- no subtitles / no overlays / no text / no numbers
+
+[forbidden]
+- x=
+- y=
+- w=
+- h=
+- add/remove subjects
+- center the hero subject
+
+[conflict_pairs]
+- "no text" | "add text overlay"
+- "no overlays" | "ui overlay"
+- "do not re-layout composition" | "re-layout composition"
+- "no auto-centering" | "center the hero subject"
+- "full duration keeps static composition" | "complete t0->t1 transition"
+
+[synonym_whitelist]
+- "static composition" ~ "stable layout"
+- "preserve relative layout" ~ "do not re-layout composition"
+- "moves closer to camera" ~ "becomes nearer to camera"
+- "moves farther from camera" ~ "becomes farther from camera"
+- "preserve depth order" ~ "keep depth layers stable"

@@ -5,6 +5,7 @@ import type { Project } from "../model";
 import { generatePrompts } from "../utils/prompt";
 import type { PromptProfile } from "../utils/prompt";
 import { getRefBlob } from "../utils/localRefs";
+import { detectSceneConflicts, type PromptConflict } from "../utils/conflictRules";
 import { UI_FONT, UI_OPACITY, UI_SIZE } from "../uiTokens";
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
   projectLabel?: string;
   sceneIdx: number;
   selectedLayerId: string | null;
+  onJumpToConflict?: (layerId: string | null) => void;
 };
 
 function clampInt(v: number, a: number, b: number) {
@@ -524,6 +526,7 @@ function stripAttachmentLines(text: string): string {
 type FlowFile = { path: string; content: string };
 type FlowBlobFile = { path: string; refId: string };
 type ZipEntry = { path: string; data: Uint8Array };
+const OBJECT_REF_LIMIT = 1;
 
 let crcTable: Uint32Array | null = null;
 
@@ -666,9 +669,12 @@ async function writeBlobToDirectory(dirHandle: any, fullPath: string, blob: Blob
   await writable.close();
 }
 
-export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLayerId }: Props) {
+export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLayerId, onJumpToConflict }: Props) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showExportDiff, setShowExportDiff] = useState(false);
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [pendingConflictAction, setPendingConflictAction] = useState<null | "copy" | "save">(null);
+  const [pendingConflicts, setPendingConflicts] = useState<PromptConflict[]>([]);
   const [showSaveHint, setShowSaveHint] = useState(false);
   const [actionHint, setActionHint] = useState("");
   const [platformPresetId, setPlatformPresetId] = useState<PlatformPresetId>("universal");
@@ -694,8 +700,7 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
 
   // ✅ 只导出当前分镜 prompts
   const promptProject = useMemo<Project>(() => {
-    const modeLimit = 6;
-    const refLimit = Math.min(modeLimit, platformPreset.maxRefsPerObject);
+    const refLimit = OBJECT_REF_LIMIT;
     const sourceScenes = currentScene ? [currentScene] : [];
     const nextScenes = sourceScenes.map((s) => ({
       ...s,
@@ -705,7 +710,7 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
       }))
     }));
     return { ...project, scenes: nextScenes };
-  }, [project, currentScene, platformPreset.maxRefsPerObject]);
+  }, [project, currentScene]);
 
   const sceneTitle = useMemo(() => {
     if (!currentScene) return lang === "zh" ? `分镜 ${safeIdx + 1}` : `Scene ${safeIdx + 1}`;
@@ -746,7 +751,7 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
       : "";
     const objRefLines = (scene.layers ?? []).flatMap((layer, idx) => {
       const code = `OBJ_${String.fromCharCode(65 + (idx % 26))}${idx >= 26 ? `_${idx + 1}` : ""}`;
-      const localRefs = (layer.localRefs ?? []).slice(0, platformPreset.maxRefsPerObject);
+      const localRefs = (layer.localRefs ?? []).slice(0, OBJECT_REF_LIMIT);
       return localRefs.map((ref, i) => {
         const fileName = `${sceneTag}_${code}__${refShort(ref.type)}__${String(i + 1).padStart(2, "0")}.${extFromName(ref.name)}`;
         return lang === "zh"
@@ -782,8 +787,12 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
         ].join("\n");
 
     return [mergedShot, constraintTail].join("\n\n").trim();
-  }, [currentScene, promptsMain, safeIdx, platformPreset.maxRefsPerObject, lang]);
+  }, [currentScene, promptsMain, safeIdx, lang]);
   const quickCopyPrompt = useMemo(() => stripAttachmentLines(promptsMainWithRefs), [promptsMainWithRefs]);
+  const sceneConflicts = useMemo(() => {
+    if (!currentScene) return [];
+    return detectSceneConflicts(currentScene, lang);
+  }, [currentScene, lang]);
 
   async function copy(text: string) {
     try {
@@ -803,6 +812,29 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
     const t = window.setTimeout(() => setActionHint(""), 1800);
     return () => window.clearTimeout(t);
   }, [actionHint]);
+
+  async function runCopyPrompt() {
+    await copy(quickCopyPrompt);
+    setActionHint(lang === "zh" ? "已复制文字提示词（不含附件引用）" : "Copied text-only prompt (no attachment lines)");
+  }
+
+  function runOpenSaveModal() {
+    setShowExportModal(true);
+    setExportDone(false);
+    setExportResultType("none");
+    setExportFolderLabel("");
+  }
+
+  async function guardBeforeExport(action: "copy" | "save") {
+    if (!sceneConflicts.length) {
+      if (action === "copy") await runCopyPrompt();
+      else runOpenSaveModal();
+      return;
+    }
+    setPendingConflictAction(action);
+    setPendingConflicts(sceneConflicts);
+    setShowConflictModal(true);
+  }
 
   const flowBundle = useMemo(() => {
     const scenesToExport = promptProject.scenes ?? [];
@@ -826,7 +858,7 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
       (scene.layers ?? []).map((layer, idx) => {
       const sceneTag = String((scene.index ?? sceneOrder + 1)).padStart(2, "0");
       const code = `OBJ_${String.fromCharCode(65 + (idx % 26))}${idx >= 26 ? `_${idx + 1}` : ""}`;
-      const localRefs = (layer.localRefs ?? []).slice(0, platformPreset.maxRefsPerObject);
+      const localRefs = (layer.localRefs ?? []).slice(0, OBJECT_REF_LIMIT);
       const refItems = localRefs.map((ref, i) => {
         const type = ref.type;
         const ext = extFromName(ref.name);
@@ -1100,8 +1132,7 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
         <button
           style={styles.btnGhost}
           onClick={async () => {
-            await copy(quickCopyPrompt);
-            setActionHint(lang === "zh" ? "已复制文字提示词（不含附件引用）" : "Copied text-only prompt (no attachment lines)");
+            await guardBeforeExport("copy");
           }}
           type="button"
           title={lang === "zh" ? "一键复制提示词" : "Copy prompt in one click"}
@@ -1111,17 +1142,21 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
 
         <button
           style={styles.btnPrimary}
-          onClick={() => {
-            setShowExportModal(true);
-            setExportDone(false);
-            setExportResultType("none");
-            setExportFolderLabel("");
-          }}
+          onClick={() => void guardBeforeExport("save")}
           type="button"
           title={lang === "zh" ? "保存到本地目录" : "Save to local folder"}
         >
           {lang === "zh" ? "保存" : "Save"}
         </button>
+        {sceneConflicts.length > 0 ? (
+          <button style={styles.conflictBadgeBtn} type="button" onClick={() => {
+            setPendingConflictAction(null);
+            setPendingConflicts(sceneConflicts);
+            setShowConflictModal(true);
+          }}>
+            {lang === "zh" ? `冲突 ${sceneConflicts.length}` : `Conflicts ${sceneConflicts.length}`}
+          </button>
+        ) : null}
         <button
           style={styles.qBtn}
           onMouseEnter={() => setShowExportDiff(true)}
@@ -1289,6 +1324,60 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
           </div>
         </div>
       )}
+      {showConflictModal ? (
+        <div style={styles.modalMask}>
+          <div style={{ ...styles.modal, width: "min(700px, calc(100vw - 48px))" }}>
+            <div style={styles.modalTitle}>{lang === "zh" ? "检测到冲突，请先修正" : "Conflicts Detected"}</div>
+            <div style={styles.platformTips}>
+              {lang === "zh"
+                ? "以下冲突来自对象备注/对象局部提示词与结构约束的冲突。点击“定位”可直接跳到对象编辑。"
+                : "Conflicts were found between object text and structural constraints. Click Jump to locate the object quickly."}
+            </div>
+            <div style={styles.conflictList}>
+              {pendingConflicts.map((c) => (
+                <div key={c.id} style={{ ...styles.conflictItem, ...(c.severity === "high" ? styles.conflictItemHigh : {}) }}>
+                  <div style={styles.conflictTitle}>
+                    {c.title}
+                    {c.layerId ? ` · ${c.layerId}` : ""}
+                  </div>
+                  <div style={styles.conflictDetail}>{c.detail}</div>
+                  <div style={styles.conflictActions}>
+                    {c.layerId ? (
+                      <button
+                        style={styles.btnGhost}
+                        type="button"
+                        onClick={() => {
+                          onJumpToConflict?.(c.layerId);
+                          setShowConflictModal(false);
+                        }}
+                      >
+                        {lang === "zh" ? "定位" : "Jump"}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={styles.modalBtns}>
+              <button style={styles.btnGhost} type="button" onClick={() => setShowConflictModal(false)}>
+                {lang === "zh" ? "返回修改" : "Back to Edit"}
+              </button>
+              <button
+                style={styles.btnPrimary}
+                type="button"
+                onClick={async () => {
+                  const action = pendingConflictAction;
+                  setShowConflictModal(false);
+                  if (action === "copy") await runCopyPrompt();
+                  if (action === "save") runOpenSaveModal();
+                }}
+              >
+                {lang === "zh" ? "忽略并继续导出" : "Continue Anyway"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1560,6 +1649,51 @@ const styles: Record<string, React.CSSProperties> = {
   optionBtnOn: {
     border: "1px solid rgba(120,180,255,0.68)",
     background: "rgba(120,180,255,0.14)"
+  },
+  conflictBadgeBtn: {
+    padding: "6px 10px",
+    borderRadius: 999,
+    border: "1px solid rgba(255,120,120,0.58)",
+    background: "rgba(255,120,120,0.16)",
+    color: "rgba(255,226,226,0.96)",
+    fontSize: UI_FONT.hint,
+    fontWeight: 900,
+    cursor: "pointer"
+  },
+  conflictList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    maxHeight: 300,
+    overflow: "auto"
+  },
+  conflictItem: {
+    border: "1px solid rgba(255,180,120,0.35)",
+    borderRadius: 10,
+    background: "rgba(255,180,120,0.09)",
+    padding: "8px 10px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4
+  },
+  conflictItemHigh: {
+    border: "1px solid rgba(255,120,120,0.56)",
+    background: "rgba(255,120,120,0.12)"
+  },
+  conflictTitle: {
+    fontSize: UI_FONT.body,
+    fontWeight: 900,
+    opacity: 0.95
+  },
+  conflictDetail: {
+    fontSize: UI_FONT.hint,
+    lineHeight: 1.4,
+    opacity: 0.88
+  },
+  conflictActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 8
   },
 
   preWrap: {
