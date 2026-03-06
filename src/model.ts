@@ -1,6 +1,10 @@
 export type Mode = "static" | "storyboard";
 export type MediaType = "image" | "video";
 export type ShotPlan = "single" | "multicam" | "continuous" | "edit";
+export type SceneCompiler = "v1" | "v2";
+export type SceneTier = "indoor" | "small_plaza" | "open_space";
+export type SceneV2Mode = "strict" | "short";
+export type SceneStability = "off" | "standard" | "strict";
 export type Direction = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
 export type TransitionType = "cut" | "reverse_angle" | "camera_continues" | "dissolve" | "time_jump";
 export type ObjectRefInheritMode = "off" | "identity_only" | "all";
@@ -90,6 +94,13 @@ export type Scene = {
   camera: Camera;
   lighting: Lighting;
   layers: Layer[];
+  config?: {
+    mediaMode?: MediaType;
+    compiler?: SceneCompiler;
+    sceneTier?: SceneTier;
+    v2Mode?: SceneV2Mode;
+    stability?: SceneStability;
+  };
   notes: string;
 };
 
@@ -97,6 +108,75 @@ export type Project = {
   project: { mode: Mode; mediaType?: MediaType; shotPlan?: ShotPlan };
   scenes: Scene[];
 };
+
+const MEDIA_MARK = "media:";
+const COMPILER_MARK = "@compiler:";
+const SCENE_TIER_MARK = "@scene_tier:";
+const V2_MODE_MARK = "@v2_mode:";
+const STAB_MARK = "stability:";
+
+function parseMarker(notes: string, mark: string): string {
+  const lines = (notes ?? "").split("\n");
+  const hit = lines.find((line) => line.trim().toLowerCase().startsWith(mark));
+  if (!hit) return "";
+  return hit.trim().slice(mark.length).trim().toLowerCase();
+}
+
+function replaceMarker(notes: string, mark: string, value: string): string {
+  const lines = (notes ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const rest = lines.filter((line) => !line.toLowerCase().startsWith(mark));
+  return [`${mark} ${value}`, ...rest].join("\n");
+}
+
+export type ResolvedSceneConfig = {
+  mediaMode: MediaType;
+  compiler: SceneCompiler;
+  sceneTier: SceneTier;
+  v2Mode: SceneV2Mode;
+  stability: SceneStability;
+};
+
+export function resolveSceneConfig(scene: Pick<Scene, "notes" | "config">): ResolvedSceneConfig {
+  const notes = scene?.notes ?? "";
+  const conf = scene?.config ?? {};
+
+  const mediaFromMarker = parseMarker(notes, MEDIA_MARK) === "image" ? "image" : "video";
+  const compilerFromMarker = parseMarker(notes, COMPILER_MARK) === "v2" ? "v2" : "v1";
+  const tierRaw = parseMarker(notes, SCENE_TIER_MARK);
+  const sceneTierFromMarker: SceneTier = tierRaw === "indoor" || tierRaw === "open_space" ? tierRaw : "small_plaza";
+  const v2FromMarker: SceneV2Mode = parseMarker(notes, V2_MODE_MARK) === "short" ? "short" : "strict";
+  const stabRaw = parseMarker(notes, STAB_MARK);
+  const stabilityFromMarker: SceneStability = stabRaw === "off" ? "off" : stabRaw === "strict" ? "strict" : "standard";
+
+  return {
+    mediaMode: conf.mediaMode === "image" || conf.mediaMode === "video" ? conf.mediaMode : mediaFromMarker,
+    compiler: conf.compiler === "v2" ? "v2" : conf.compiler === "v1" ? "v1" : compilerFromMarker,
+    sceneTier:
+      conf.sceneTier === "indoor" || conf.sceneTier === "small_plaza" || conf.sceneTier === "open_space"
+        ? conf.sceneTier
+        : sceneTierFromMarker,
+    v2Mode: conf.v2Mode === "short" || conf.v2Mode === "strict" ? conf.v2Mode : v2FromMarker,
+    stability:
+      conf.stability === "off" || conf.stability === "standard" || conf.stability === "strict"
+        ? conf.stability
+        : stabilityFromMarker
+  };
+}
+
+export function withSceneConfig(scene: Scene, patch: Partial<ResolvedSceneConfig>): Scene {
+  const base = resolveSceneConfig(scene);
+  const nextConfig: ResolvedSceneConfig = { ...base, ...patch };
+  let nextNotes = scene.notes ?? "";
+  nextNotes = replaceMarker(nextNotes, MEDIA_MARK, nextConfig.mediaMode);
+  nextNotes = replaceMarker(nextNotes, COMPILER_MARK, nextConfig.compiler);
+  nextNotes = replaceMarker(nextNotes, SCENE_TIER_MARK, nextConfig.sceneTier);
+  nextNotes = replaceMarker(nextNotes, V2_MODE_MARK, nextConfig.v2Mode);
+  nextNotes = replaceMarker(nextNotes, STAB_MARK, nextConfig.stability);
+  return { ...scene, notes: nextNotes, config: nextConfig };
+}
 
 // ---------- helpers (internal) ----------
 function clamp(n: number, min: number, max: number): number {
@@ -112,11 +192,8 @@ function inferMediaTypeFromScenes(scenes: Scene[]): MediaType {
   let hasImage = false;
   let hasVideo = false;
   for (const s of scenes) {
-    const lines = (s?.notes ?? "")
-      .split("\n")
-      .map((x) => x.trim().toLowerCase());
-    const mediaLine = lines.find((x) => x.startsWith("media:"));
-    if (mediaLine?.includes("image")) hasImage = true;
+    const mediaMode = resolveSceneConfig(s).mediaMode;
+    if (mediaMode === "image") hasImage = true;
     else hasVideo = true;
   }
   if (hasImage && !hasVideo) return "image";
@@ -215,6 +292,7 @@ export function sanitizeProject(p: Project): Project {
     }
 
     s.notes = (s as any).notes ?? "";
+    s.config = resolveSceneConfig(s);
     s.name = (s as any).name ?? "Scene";
     s.id = (s as any).id ?? `s_${Math.random().toString(16).slice(2)}`;
     s.index = Number.isFinite((s as any).index) ? Math.max(1, Math.round((s as any).index)) : undefined;
@@ -310,7 +388,7 @@ export function defaultProject(): Project {
     scenes: [
       {
         id: "s1",
-        name: "Scene 1",
+        name: "Main Frame",
         duration_s: 6,
         camera: {
           shot: "wide",
@@ -323,11 +401,11 @@ export function defaultProject(): Project {
         lighting: { time: "sunset", key_dir: "top_right", mood: "cinematic" },
         layers: [
           {
-            id: "obj_station",
-            type: "station",
+            id: "Subject 1",
+            type: "subject",
             shape: "ring",
             shapeDesc: "ring station, modular",
-            look: "metallic, detailed panels, cinematic",
+            look: "",
             z: 30,
             color: "#b7c3ff",
             opacity: 0.95,
@@ -342,6 +420,13 @@ export function defaultProject(): Project {
             referencePolicy: "optional"
           }
         ],
+        config: {
+          mediaMode: "video",
+          compiler: "v1",
+          sceneTier: "small_plaza",
+          v2Mode: "strict",
+          stability: "standard"
+        },
         notes: ""
       }
     ]

@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, Dispatch, SetStateAction } from "react";
 import type { Lang } from "../i18n";
 import type { ShotPlan } from "../model";
+import { defaultProjectName, defaultSceneName } from "../utils/naming";
+import { UI_COLOR, UI_EFFECT, UI_PALETTE, UI_RADIUS, UI_SPACE, UI_TYPO } from "../uiTokens";
 
 export type NewProjectMedia = "image" | "video";
 export type CreateStep = "welcome_1" | "welcome_2" | "media" | "image_setup" | "video_plan" | "video_setup";
@@ -152,7 +154,7 @@ export function CreateWizard(props: Props) {
       const noText = String(no).padStart(2, "0");
       return {
         id: noText,
-        name: `${noText}｜${lang === "zh" ? "镜头" : "Shot"}${noText}`,
+        name: defaultSceneName(lang, draft.mediaType, no),
         duration: Math.max(1, durations[i] ?? 1)
       };
     });
@@ -181,6 +183,29 @@ export function CreateWizard(props: Props) {
     }
     return out;
   }, [draft, lang]);
+  const draftSummary = useMemo(() => {
+    const durations = normalizeDurations(draft);
+    const total = durations.reduce((sum, v) => sum + Math.max(1, Math.round(v || 1)), 0);
+    return {
+      mediaType: draft.mediaType,
+      shotPlan: draft.mediaType === "image" ? "single" : draft.shotPlan,
+      shotCount: draft.mediaType === "image" ? 1 : Math.max(1, Math.round(draft.shotCount)),
+      totalDuration: draft.mediaType === "image" ? 0 : total,
+      sceneTier: draft.sceneTier,
+      ratio: draft.ratio
+    };
+  }, [draft]);
+  const summaryLabel = useMemo(() => {
+    const media = lang === "zh" ? (draftSummary.mediaType === "image" ? "图片" : "视频") : draftSummary.mediaType;
+    const shotPlan = (() => {
+      if (lang !== "zh") return draftSummary.shotPlan;
+      if (draftSummary.shotPlan === "single") return "单镜头";
+      if (draftSummary.shotPlan === "multicam") return "多机位";
+      if (draftSummary.shotPlan === "continuous") return "连续镜头";
+      return "标准剪辑";
+    })();
+    return { media, shotPlan };
+  }, [lang, draftSummary]);
 
   useEffect(() => {
     if (!floatingHint) return;
@@ -205,12 +230,12 @@ export function CreateWizard(props: Props) {
 
   if (!open) return null;
   const modalWidthByStep: Record<CreateStep, number> = {
-    welcome_1: 600,
+    welcome_1: 640,
     welcome_2: 640,
-    media: 320,
-    image_setup: 320,
-    video_plan: 340,
-    video_setup: 340
+    media: 420,
+    image_setup: 420,
+    video_plan: 420,
+    video_setup: 420
   };
   const modalWidth = modalWidthByStep[step] ?? 540;
 
@@ -242,12 +267,12 @@ export function CreateWizard(props: Props) {
                 {lang === "zh" ? "EN" : "中文"}
               </button>
             </div>
-            <div style={styles.wizardWelcome}>WELCOME</div>
+            <div style={styles.wizardWelcome}>{lang === "zh" ? "新手引导" : "WELCOME"}</div>
             <div style={styles.wizardTitle}>{lang === "zh" ? "把想法结构化成可生成的画面" : "Structure Ideas into Generatable Visuals"}</div>
             <div style={styles.wizardSubtitle}>
               {lang === "zh"
-                ? "ScenePilotix 帮你用“分镜逻辑”组织图像与视频提示词。"
-                : "ScenePilotix helps organize image/video prompts with storyboard logic."}
+                ? "ScenePilotix 会先帮你搭好分镜骨架，再把主体、构图和镜头整理成可直接使用的提示词。"
+                : "ScenePilotix builds the shot skeleton first, then turns subject, layout, and camera input into ready-to-use prompts."}
             </div>
             <div style={styles.wizardBullets}>
               <div>{lang === "zh" ? "精准布局人物与物体" : "Precisely place characters and objects"}</div>
@@ -256,8 +281,8 @@ export function CreateWizard(props: Props) {
             </div>
             <div style={styles.onboardingStepRow}>
               <div style={styles.onboardingStepItem}>{lang === "zh" ? "选择图片或视频" : "Choose Image or Video"}</div>
-              <div style={styles.onboardingStepItem}>{lang === "zh" ? "添加分镜数量与每镜秒数" : "Set Shot Count and Duration per Shot"}</div>
-              <div style={styles.onboardingStepItem}>{lang === "zh" ? "逐个分镜添加摆放对象（支持参考图）" : "Add and Place Objects Shot by Shot (Supports References)"}</div>
+              <div style={styles.onboardingStepItem}>{lang === "zh" ? "确认分镜结构、节奏与默认主体" : "Confirm the shot structure, pacing, and default subject"}</div>
+              <div style={styles.onboardingStepItem}>{lang === "zh" ? "逐镜微调主体、背景和参考图" : "Refine subjects, backgrounds, and references shot by shot"}</div>
             </div>
             <div style={styles.wizardPrinciple}>
               {lang === "zh" ? (
@@ -336,7 +361,13 @@ export function CreateWizard(props: Props) {
               ) : null}
               <PrimaryActionButton
                 label={lang === "zh" ? "下一步" : "Next"}
-                onClick={() => setStep(draft.mediaType === "image" ? "image_setup" : "video_plan")}
+                onClick={() => {
+                  if (draft.mediaType === "image") setStep("image_setup");
+                  else {
+                    setPlanTouched(false);
+                    setStep("video_plan");
+                  }
+                }}
               />
             </div>
           </>
@@ -352,7 +383,7 @@ export function CreateWizard(props: Props) {
                 value={draft.projectName}
                 onChange={(e) => setDraft((s) => ({ ...s, projectName: e.target.value }))}
                 style={styles.modalInput}
-                placeholder={lang === "zh" ? "未命名项目" : "Untitled"}
+                placeholder={defaultProjectName(lang)}
               />
             </div>
             <div style={styles.modalFormRow}>
@@ -367,11 +398,23 @@ export function CreateWizard(props: Props) {
                 <option value="1:1">1:1</option>
               </select>
             </div>
+            <div style={styles.summaryBox}>
+              <div style={styles.summaryTitle}>{lang === "zh" ? "创建摘要" : "Creation Summary"}</div>
+              <div style={styles.summaryLine}>{lang === "zh" ? "媒体类型" : "Media"}: {summaryLabel.media}</div>
+              <div style={styles.summaryLine}>{lang === "zh" ? "分镜方案" : "Shot Plan"}: {summaryLabel.shotPlan}</div>
+              <div style={styles.summaryLine}>{lang === "zh" ? "分镜数量" : "Shot Count"}: {draftSummary.shotCount}</div>
+              <div style={styles.summaryLine}>{lang === "zh" ? "总时长" : "Total Duration"}: {draftSummary.totalDuration}s</div>
+              <div style={styles.summaryLine}>{lang === "zh" ? "场景级别" : "Scene Tier"}: {draftSummary.sceneTier}</div>
+              <div style={styles.summaryLine}>{lang === "zh" ? "画幅比例" : "Ratio"}: {draftSummary.ratio}</div>
+            </div>
             <div style={styles.modalBtns}>
               {canCancel ? (
                 <SecondaryActionButton label={lang === "zh" ? "取消" : "Cancel"} onClick={onCancel} />
               ) : null}
-              <SecondaryActionButton label={lang === "zh" ? "上一步" : "Back"} onClick={() => setStep("media")} />
+              <SecondaryActionButton label={lang === "zh" ? "上一步" : "Back"} onClick={() => {
+                setMediaTouched(false);
+                setStep("media");
+              }} />
               <PrimaryActionButton label={lang === "zh" ? "开始编辑" : "Start Editing"} onClick={onCreateProject} />
             </div>
           </>
@@ -417,7 +460,10 @@ export function CreateWizard(props: Props) {
               {canCancel ? (
                 <SecondaryActionButton label={lang === "zh" ? "取消" : "Cancel"} onClick={onCancel} />
               ) : null}
-              <SecondaryActionButton label={lang === "zh" ? "上一步" : "Back"} onClick={() => setStep("media")} />
+              <SecondaryActionButton label={lang === "zh" ? "上一步" : "Back"} onClick={() => {
+                setMediaTouched(false);
+                setStep("media");
+              }} />
               <PrimaryActionButton label={lang === "zh" ? "下一步" : "Next"} onClick={() => setStep("video_setup")} />
             </div>
           </>
@@ -434,7 +480,7 @@ export function CreateWizard(props: Props) {
                   value={draft.projectName}
                   onChange={(e) => setDraft((s) => ({ ...s, projectName: e.target.value }))}
                   style={styles.modalInput}
-                  placeholder={lang === "zh" ? "未命名项目" : "Untitled"}
+                  placeholder={defaultProjectName(lang)}
                 />
               </div>
               <div style={styles.step3FormRow}>
@@ -472,7 +518,7 @@ export function CreateWizard(props: Props) {
                     {showSceneTierHelp ? (
                       <span style={styles.helpBubble}>
                         {lang === "zh"
-                          ? "A: 室内(9:16)，B: 小广场(1:1)，C: 开阔外景(16:9)。选择后会同步推荐画幅比例。"
+                          ? "这是什么：场景级别会影响画幅建议和构图深度。什么时候用：你还没确定视觉尺度时。下一步：先选 A/B/C，再微调画幅。"
                           : "A: Indoor (9:16), B: Small plaza (1:1), C: Open space (16:9). Selection syncs suggested ratio."}
                       </span>
                     ) : null}
@@ -508,7 +554,7 @@ export function CreateWizard(props: Props) {
                     {showDurationHelp ? (
                       <span style={styles.helpBubble}>
                         {lang === "zh"
-                          ? "创建后可在分镜中继续修改每镜秒数，建议时长不要过长。"
+                          ? "这是什么：总时长会影响分镜节奏。什么时候用：你先定整体节奏时。下一步：先填总时长，创建后再逐镜微调。"
                           : "After creation, you can adjust shot seconds in scene list. Keep durations reasonable."}
                       </span>
                     ) : null}
@@ -574,6 +620,15 @@ export function CreateWizard(props: Props) {
                 ))}
               </div>
             </div>
+            <div style={{ ...styles.summaryBox, ...styles.step3Body }}>
+              <div style={styles.summaryTitle}>{lang === "zh" ? "创建摘要" : "Creation Summary"}</div>
+              <div style={styles.summaryLine}>{lang === "zh" ? "媒体类型" : "Media"}: {summaryLabel.media}</div>
+              <div style={styles.summaryLine}>{lang === "zh" ? "分镜方案" : "Shot Plan"}: {summaryLabel.shotPlan}</div>
+              <div style={styles.summaryLine}>{lang === "zh" ? "分镜数量" : "Shot Count"}: {draftSummary.shotCount}</div>
+              <div style={styles.summaryLine}>{lang === "zh" ? "总时长" : "Total Duration"}: {draftSummary.totalDuration}s</div>
+              <div style={styles.summaryLine}>{lang === "zh" ? "场景级别" : "Scene Tier"}: {draftSummary.sceneTier}</div>
+              <div style={styles.summaryLine}>{lang === "zh" ? "画幅比例" : "Ratio"}: {draftSummary.ratio}</div>
+            </div>
             <div style={styles.modalBtns}>
               {canCancel ? (
                 <SecondaryActionButton label={lang === "zh" ? "取消" : "Cancel"} onClick={onCancel} />
@@ -598,7 +653,7 @@ const styles: Record<string, CSSProperties> = {
   modalMask: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.55)",
+    background: UI_PALETTE.bg.overlay,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -608,11 +663,11 @@ const styles: Record<string, CSSProperties> = {
   modal: {
     width: 640,
     maxWidth: "100%",
-    borderRadius: 16,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(15,20,35,0.96)",
-    boxShadow: "0 18px 60px rgba(0,0,0,0.45)",
-    padding: 16,
+    borderRadius: UI_RADIUS.panel,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: "rgba(12,17,27,0.96)",
+    boxShadow: UI_EFFECT.floatShadow,
+    padding: UI_SPACE.md,
     position: "relative"
   },
   floatingHint: {
@@ -620,16 +675,33 @@ const styles: Record<string, CSSProperties> = {
     top: -44,
     right: 0,
     maxWidth: 420,
-    borderRadius: 10,
-    border: "1px solid rgba(120,180,255,0.45)",
-    background: "rgba(18,26,44,0.96)",
-    boxShadow: "0 12px 26px rgba(0,0,0,0.35)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: "rgba(14,22,36,0.96)",
+    boxShadow: UI_EFFECT.floatShadow,
     padding: "8px 10px",
-    fontSize: 12,
+    fontSize: UI_TYPO.size12,
     lineHeight: 1.35
   },
-  modalTitle: { fontWeight: 900, fontSize: 14, opacity: 0.95 },
-  modalText: { marginTop: 8, fontSize: 12, opacity: 0.82, lineHeight: 1.6 },
+  modalTitle: { fontWeight: 900, fontSize: UI_TYPO.size14, opacity: 0.95 },
+  modalText: { marginTop: 8, fontSize: UI_TYPO.size12, opacity: 0.82, lineHeight: 1.6, color: UI_PALETTE.text.secondary },
+  summaryBox: {
+    marginTop: 8,
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
+    padding: "8px 10px",
+    display: "grid",
+    gap: 4
+  },
+  summaryTitle: {
+    fontSize: UI_TYPO.size12,
+    fontWeight: 900
+  },
+  summaryLine: {
+    fontSize: UI_TYPO.size11,
+    color: UI_PALETTE.text.secondary
+  },
   wizardBrand: {
     fontSize: 11,
     letterSpacing: 1,
@@ -660,11 +732,11 @@ const styles: Record<string, CSSProperties> = {
   langBtn: {
     height: 28,
     padding: "0 10px",
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.16)",
-    background: "rgba(255,255,255,0.05)",
+    borderRadius: UI_RADIUS.chip,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
     color: "inherit",
-    fontSize: 11,
+    fontSize: UI_TYPO.size11,
     fontWeight: 700,
     cursor: "pointer"
   },
@@ -677,13 +749,19 @@ const styles: Record<string, CSSProperties> = {
     opacity: 0.96
   },
   wizardTitle: { fontWeight: 900, fontSize: 20, lineHeight: 1.25, opacity: 0.98 },
-  wizardSubtitle: { marginTop: 8, fontSize: 13, opacity: 0.82, lineHeight: 1.45 },
+  wizardSubtitle: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 1.55,
+    color: UI_PALETTE.text.primary,
+    opacity: 0.94
+  },
   newProjectMediaRow: { display: "grid", gridTemplateColumns: "1fr", gap: 8, marginTop: 10 },
   newProjectMediaBtn: {
     height: 34,
-    borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.05)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
@@ -694,24 +772,25 @@ const styles: Record<string, CSSProperties> = {
     textAlign: "center"
   },
   newProjectMediaBtnHover: {
-    border: "1px solid rgba(170,205,255,0.38)",
-    background: "rgba(255,255,255,0.08)"
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceMuted
   },
   newProjectMediaBtnOn: {
-    border: "1px solid rgba(120,180,255,0.72)",
-    background: "rgba(120,180,255,0.14)",
-    boxShadow: "0 0 0 1px rgba(120,180,255,0.22) inset"
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive,
+    boxShadow: UI_EFFECT.softRing
   },
   wizardBullets: {
     marginTop: 8,
-    border: "1px solid rgba(255,255,255,0.10)",
-    borderRadius: 10,
-    background: "rgba(255,255,255,0.03)",
+    border: `1px solid ${UI_COLOR.borderSoft}`,
+    borderRadius: UI_RADIUS.control,
+    background: UI_PALETTE.surface.surface1,
     padding: "10px 12px",
     fontSize: 13,
     lineHeight: 1.45,
     display: "grid",
-    gap: 6
+    gap: 6,
+    color: UI_PALETTE.text.primary
   },
   onboardingStepRow: {
     marginTop: 10,
@@ -720,23 +799,25 @@ const styles: Record<string, CSSProperties> = {
     gap: 8
   },
   onboardingStepItem: {
-    border: "1px solid rgba(255,255,255,0.10)",
-    borderRadius: 10,
-    background: "rgba(255,255,255,0.03)",
+    border: `1px solid ${UI_COLOR.borderSoft}`,
+    borderRadius: UI_RADIUS.control,
+    background: UI_PALETTE.surface.surface1,
     padding: "8px 10px",
     lineHeight: 1.4,
     fontWeight: 700,
-    fontSize: 12
+    fontSize: 12,
+    color: UI_PALETTE.text.primary
   },
   wizardPrinciple: {
     marginTop: 8,
     border: "1px solid rgba(120,180,255,0.22)",
-    borderRadius: 10,
-    background: "rgba(120,180,255,0.10)",
+    borderRadius: UI_RADIUS.control,
+    background: UI_PALETTE.surface.surfaceActive,
     padding: "8px 10px",
     fontSize: 12,
     lineHeight: 1.45,
-    opacity: 0.92
+    opacity: 0.96,
+    color: UI_PALETTE.text.primary
   },
   wizardPrincipleColumn: {
     display: "grid",
@@ -755,9 +836,9 @@ const styles: Record<string, CSSProperties> = {
   },
   wizardPlanCard: {
     textAlign: "center",
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.04)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface1,
     padding: "10px 12px",
     cursor: "pointer",
     color: "inherit",
@@ -765,19 +846,19 @@ const styles: Record<string, CSSProperties> = {
     placeItems: "center"
   },
   wizardPlanCardHover: {
-    border: "1px solid rgba(170,205,255,0.38)",
-    background: "rgba(255,255,255,0.08)"
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceMuted
   },
   wizardPlanCardOn: {
-    border: "1px solid rgba(120,180,255,0.72)",
-    background: "rgba(120,180,255,0.14)",
-    boxShadow: "0 0 0 1px rgba(120,180,255,0.22) inset"
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive,
+    boxShadow: UI_EFFECT.softRing
   },
   wizardPlanTitle: { fontSize: 13, fontWeight: 900, marginBottom: 4, textAlign: "center", width: "100%" },
   wizardPlanDesc: { fontSize: 12, opacity: 0.76, lineHeight: 1.4, textAlign: "center", width: "100%" },
   modalFormRow: {
     display: "grid",
-    gridTemplateColumns: "120px minmax(0,1fr)",
+    gridTemplateColumns: "minmax(90px,120px) minmax(0,1fr)",
     gap: 10,
     alignItems: "center",
     marginTop: 8
@@ -816,9 +897,9 @@ const styles: Record<string, CSSProperties> = {
     left: 22,
     top: -8,
     transform: "translateY(-100%)",
-    width: 240,
+    width: "min(240px, calc(92vw - 72px))",
     border: "1px solid rgba(255,255,255,0.16)",
-    borderRadius: 10,
+    borderRadius: UI_RADIUS.control,
     background: "rgba(12,16,30,0.97)",
     boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
     padding: "8px 10px",
@@ -835,9 +916,9 @@ const styles: Record<string, CSSProperties> = {
   },
   modalInput: {
     height: 34,
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(0,0,0,0.20)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_COLOR.border}`,
+    background: UI_COLOR.bgInput,
     color: "inherit",
     padding: "0 10px",
     outline: "none",
@@ -849,9 +930,9 @@ const styles: Record<string, CSSProperties> = {
     WebkitAppearance: "none",
     MozAppearance: "none",
     height: 34,
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(0,0,0,0.20)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_COLOR.border}`,
+    background: UI_COLOR.bgInput,
     color: "inherit",
     padding: "0 34px 0 10px",
     outline: "none",
@@ -866,7 +947,7 @@ const styles: Record<string, CSSProperties> = {
   step3WarnBox: {
     marginTop: 6,
     border: "1px solid rgba(255,190,120,0.4)",
-    borderRadius: 10,
+    borderRadius: UI_RADIUS.control,
     background: "rgba(90,64,18,0.18)",
     padding: "8px 10px",
     fontSize: 12,
@@ -878,7 +959,7 @@ const styles: Record<string, CSSProperties> = {
   },
   step3FormRow: {
     display: "grid",
-    gridTemplateColumns: "120px minmax(0,1fr)",
+    gridTemplateColumns: "minmax(90px,120px) minmax(0,1fr)",
     gap: 10,
     alignItems: "center",
     marginTop: 8,
@@ -916,10 +997,10 @@ const styles: Record<string, CSSProperties> = {
   },
   wizardPreviewWrap: {
     marginTop: 10,
-    border: "1px solid rgba(255,255,255,0.12)",
-    borderRadius: 10,
+    border: `1px solid ${UI_COLOR.borderSoft}`,
+    borderRadius: UI_RADIUS.control,
     padding: 10,
-    background: "rgba(255,255,255,0.03)"
+    background: UI_PALETTE.surface.surface1
   },
   wizardPreviewTitle: {
     fontSize: 12,
@@ -937,53 +1018,53 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: "flex-start",
     alignItems: "center",
     gap: 10,
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: 8,
+    border: `1px solid ${UI_COLOR.borderSoft}`,
+    borderRadius: UI_RADIUS.control,
     padding: "6px 8px",
     fontSize: 12,
-    background: "rgba(255,255,255,0.02)"
+    background: UI_PALETTE.surface.surface1
   },
   wizardPreviewName: { fontWeight: 700, opacity: 0.92 },
   wizardPreviewMeta: { opacity: 0.78, marginLeft: 8 },
-  modalBtns: { display: "flex", gap: 8, marginTop: 12, justifyContent: "flex-end" },
+  modalBtns: { display: "flex", gap: 8, marginTop: 12, justifyContent: "flex-end", flexWrap: "wrap" },
   modalBtn: {
     height: 34,
     padding: "0 14px",
-    borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(255,255,255,0.05)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
     fontWeight: 900
   },
   modalBtnHover: {
-    border: "1px solid rgba(170,205,255,0.42)",
-    background: "rgba(255,255,255,0.09)"
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceMuted
   },
   modalBtnPressed: {
-    border: "1px solid rgba(120,180,255,0.78)",
-    background: "rgba(120,180,255,0.14)",
-    boxShadow: "0 0 0 1px rgba(120,180,255,0.24) inset"
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive,
+    boxShadow: UI_EFFECT.softRing
   },
   modalBtnGhost: {
     height: 34,
     padding: "0 14px",
-    borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.05)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface1,
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
     fontWeight: 800
   },
   modalBtnGhostHover: {
-    border: "1px solid rgba(170,205,255,0.36)",
-    background: "rgba(255,255,255,0.08)"
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceMuted
   },
   modalBtnGhostPressed: {
-    border: "1px solid rgba(120,180,255,0.72)",
-    background: "rgba(120,180,255,0.12)",
-    boxShadow: "0 0 0 1px rgba(120,180,255,0.20) inset"
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive,
+    boxShadow: UI_EFFECT.softRing
   }
 };

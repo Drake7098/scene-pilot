@@ -1,5 +1,22 @@
 :root {
   color-scheme: dark;
+  --spx-bg-app: #0a0d14;
+  --spx-bg-toolbar: rgba(16, 22, 34, 0.76);
+  --spx-surface-1: rgba(255, 255, 255, 0.035);
+  --spx-surface-2: rgba(255, 255, 255, 0.06);
+  --spx-surface-active: rgba(102, 168, 255, 0.18);
+  --spx-text-1: rgba(237, 243, 252, 0.96);
+  --spx-text-2: rgba(197, 210, 231, 0.82);
+  --spx-text-3: rgba(154, 171, 198, 0.66);
+  --spx-border: rgba(170, 193, 226, 0.24);
+  --spx-border-soft: rgba(170, 193, 226, 0.16);
+  --spx-border-strong: rgba(204, 220, 245, 0.38);
+  --spx-accent: rgba(104, 171, 255, 0.86);
+  --spx-accent-soft: rgba(104, 171, 255, 0.18);
+  --spx-danger: rgba(255, 124, 124, 0.72);
+  --spx-shadow-panel: 0 18px 48px rgba(2, 6, 14, 0.42);
+  --spx-shadow-float: 0 14px 34px rgba(2, 6, 14, 0.5);
+  --spx-shadow-focus: 0 0 0 2px rgba(102, 168, 255, 0.34);
 }
 
 html,
@@ -10,20 +27,53 @@ body,
 }
 
 body {
-  background: #05070f;
-  color: rgba(255, 255, 255, 0.92);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
-    "Segoe UI Emoji";
+  background:
+    radial-gradient(920px 520px at -2% -5%, rgba(93, 130, 210, 0.14), transparent 62%),
+    radial-gradient(780px 460px at 110% 2%, rgba(72, 116, 202, 0.12), transparent 60%),
+    radial-gradient(520px 380px at 50% 120%, rgba(48, 92, 166, 0.09), transparent 70%),
+    var(--spx-bg-app);
+  color: var(--spx-text-1);
+  font-family: "SF Pro Text", "Avenir Next", "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
   box-sizing: border-box;
 }
 
+::selection {
+  background: rgba(104, 171, 255, 0.26);
+  color: var(--spx-text-1);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(170, 193, 226, 0.24);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(170, 193, 226, 0.4);
+  background-clip: content-box;
+}
+
 input,
 select,
 textarea {
   font: inherit;
+  color: var(--spx-text-1);
 }
 
 input,
@@ -36,13 +86,48 @@ select {
   padding-right: 34px !important;
 }
 
+input,
+select,
+textarea {
+  border: 1px solid var(--spx-border);
+  background: rgba(10, 14, 24, 0.82);
+  border-radius: 12px;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--spx-text-3);
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--spx-border-strong);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--spx-accent);
+  box-shadow: var(--spx-shadow-focus);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+}
+
 /* --- ScenePilot: button baseline (single source of truth) --- */
 button {
   -webkit-tap-highlight-color: transparent;
   appearance: none;
   outline: none;
 
-  transition: transform 0.06s ease, background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 80ms ease, background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
 }
 
 /* Stop Safari/iOS default dimming/filters on press */
@@ -59,9 +144,9 @@ button:disabled {
 
 @media (hover: hover) and (pointer: fine) {
   button:hover:not(:disabled) {
-    border-color: rgba(170, 205, 255, 0.34);
-    background-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 1px rgba(160, 200, 255, 0.16) inset;
+    border-color: var(--spx-border-strong);
+    background-color: var(--spx-surface-2);
+    box-shadow: 0 0 0 1px rgba(104, 171, 255, 0.14) inset;
   }
 }
 
@@ -94,7 +179,34 @@ button:focus {
 
 button:focus-visible {
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(120, 180, 255, 0.22) !important;
+  box-shadow: var(--spx-shadow-focus) !important;
+}
+
+.spx-card {
+  border: 1px solid var(--spx-border);
+  border-radius: 14px;
+  background: var(--spx-surface-1);
+  box-shadow: var(--spx-shadow-panel);
+}
+
+.spx-pill {
+  border: 1px solid var(--spx-border);
+  border-radius: 999px;
+  background: var(--spx-surface-1);
+}
+
+.spx-hint {
+  color: var(--spx-text-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* NOTE:

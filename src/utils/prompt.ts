@@ -1,8 +1,10 @@
 import type { Lang } from "../i18n";
 import type { Project, Scene, Layer, LayerKF, ShotPlan, Direction } from "../model";
+import { resolveSceneConfig } from "../model";
 import { compileScenePromptV2 } from "./compileV2";
 import type { SceneTier, V2Mode } from "./compileV2";
 import { optimizeV2ScenePrompt } from "./adaptivePatch";
+import { adaptPromptToPlatform } from "./platformAdapter";
 
 /**
  * ScenePilot prompts generator
@@ -92,10 +94,15 @@ export type PromptProfile =
   | "vertex"
   | "grok"
   | "nano_banana";
-const MEDIA_MARK = "media:";
-const COMPILER_MARK = "@compiler:";
-const SCENE_TIER_MARK = "@scene_tier:";
-const V2_MODE_MARK = "@v2_mode:";
+
+function finalizeByPlatform(prompt: string, profile: PromptProfile, lang: Lang, media: "image" | "video"): string {
+  return adaptPromptToPlatform({
+    prompt,
+    profile,
+    lang,
+    media,
+  });
+}
 const DIRECTION_TO_MOVE: Record<Direction, string> = {
   N: "up",
   NE: "up-right",
@@ -135,37 +142,24 @@ function transitionLineByType(lang: Lang, fromIdx: number, toIdx: number, type: 
   return `Transition ${a}→${b}: cut to the next shot.`;
 }
 
-function parseMedia(notes: string): MediaMode {
-  const lines = (notes ?? "").split("\n");
-  const hit = lines.find((l) => l.trim().toLowerCase().startsWith(MEDIA_MARK));
-  if (!hit) return "video"; // default: video for old scenes
-  const v = hit.trim().slice(MEDIA_MARK.length).trim().toLowerCase();
-  return v === "image" ? "image" : "video";
+function parseMedia(input: Scene | string): MediaMode {
+  const resolved = typeof input === "string" ? resolveSceneConfig({ notes: input, config: undefined }) : resolveSceneConfig(input);
+  return resolved.mediaMode;
 }
 
-function parseCompiler(notes: string): "v1" | "v2" {
-  const lines = (notes ?? "").split("\n");
-  const hit = lines.find((l) => l.trim().toLowerCase().startsWith(COMPILER_MARK));
-  if (!hit) return "v1";
-  const v = hit.trim().slice(COMPILER_MARK.length).trim().toLowerCase();
-  return v === "v2" ? "v2" : "v1";
+function parseCompiler(input: Scene | string): "v1" | "v2" {
+  const resolved = typeof input === "string" ? resolveSceneConfig({ notes: input, config: undefined }) : resolveSceneConfig(input);
+  return resolved.compiler;
 }
 
-function parseSceneTier(notes: string): SceneTier {
-  const lines = (notes ?? "").split("\n");
-  const hit = lines.find((l) => l.trim().toLowerCase().startsWith(SCENE_TIER_MARK));
-  if (!hit) return "small_plaza";
-  const v = hit.trim().slice(SCENE_TIER_MARK.length).trim().toLowerCase();
-  if (v === "indoor" || v === "small_plaza" || v === "open_space") return v;
-  return "small_plaza";
+function parseSceneTier(input: Scene | string): SceneTier {
+  const resolved = typeof input === "string" ? resolveSceneConfig({ notes: input, config: undefined }) : resolveSceneConfig(input);
+  return resolved.sceneTier;
 }
 
-function parseV2Mode(notes: string): V2Mode {
-  const lines = (notes ?? "").split("\n");
-  const hit = lines.find((l) => l.trim().toLowerCase().startsWith(V2_MODE_MARK));
-  if (!hit) return "strict";
-  const v = hit.trim().slice(V2_MODE_MARK.length).trim().toLowerCase();
-  return v === "short" ? "short" : "strict";
+function parseV2Mode(input: Scene | string): V2Mode {
+  const resolved = typeof input === "string" ? resolveSceneConfig({ notes: input, config: undefined }) : resolveSceneConfig(input);
+  return resolved.v2Mode;
 }
 
 function getShotPlan(project: Project): ShotPlan {
@@ -176,23 +170,15 @@ function getShotPlan(project: Project): ShotPlan {
 
 /* -------------------- Stability Toggle (per-scene) -------------------- */
 
-const STAB_MARK = "stability:";
 type StabilityLevel = "off" | "standard" | "strict";
 
-function parseStability(notes: string): StabilityLevel {
-  const lines = (notes ?? "").split("\n");
-  const hit = lines.find((l) => l.trim().toLowerCase().startsWith(STAB_MARK));
-  if (!hit) return "standard"; // default
-  const v = hit.trim().slice(STAB_MARK.length).trim().toLowerCase();
-  // backward compatibility: historical "on" maps to "standard"
-  if (v === "on") return "standard";
-  if (v === "strict") return "strict";
-  if (v === "off") return "off";
-  return "standard";
+function parseStability(input: Scene | string): StabilityLevel {
+  const resolved = typeof input === "string" ? resolveSceneConfig({ notes: input, config: undefined }) : resolveSceneConfig(input);
+  return resolved.stability;
 }
 
 function getStabilityForScene(scene: Scene): StabilityLevel {
-  return parseStability(scene?.notes ?? "");
+  return parseStability(scene);
 }
 
 /* -------------------- Layer / Scene formatting -------------------- */
@@ -256,7 +242,7 @@ function formatScenePrompt(lang: Lang, scene: Scene): string {
   const bg = parseBg(scene.notes ?? "");
   const duration = Number.isFinite(scene.duration_s) ? Math.round(scene.duration_s) : 0;
 
-  const mode: MediaMode = parseMedia(scene?.notes ?? "");
+  const mode: MediaMode = parseMedia(scene);
 
   const shotRaw = typeof camera.shot === "string" ? camera.shot.trim() : "";
   const shot = shotRaw || cameraPreset;
@@ -649,7 +635,7 @@ function languageReinforcementBlock(lang: Lang, project: Project): string {
   const scenes = project?.scenes ?? [];
   const blocks: string[] = [];
   for (let i = 0; i < scenes.length; i++) {
-    const mode = parseMedia(scenes[i]?.notes ?? "");
+    const mode = parseMedia(scenes[i]);
     const b = buildLRLForScene(lang, mode, scenes[i]);
     if (b.trim()) blocks.push(b.trim());
   }
@@ -676,7 +662,7 @@ function languageReinforcementBlock(lang: Lang, project: Project): string {
  */
 function appendUnifiedTail(prompt: string, lang: Lang, project: Project): string {
   const scenes = project?.scenes ?? [];
-  const anyVideo = scenes.some((s) => parseMedia(s?.notes ?? "") === "video");
+  const anyVideo = scenes.some((s) => parseMedia(s) === "video");
   const mode: MediaMode = anyVideo ? "video" : "image";
 
   const machine = mode === "video" ? machineNotesVideo(lang) : machineNotesImage(lang);
@@ -867,8 +853,8 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
   }
 
   const out: string[] = [];
-  const anyVideo = scenes.some((s) => parseMedia(s?.notes ?? "") === "video");
-  const hasV2 = scenes.some((s) => parseCompiler(s?.notes ?? "") === "v2");
+  const anyVideo = scenes.some((s) => parseMedia(s) === "video");
+  const hasV2 = scenes.some((s) => parseCompiler(s) === "v2");
 
   if (lang === "zh") {
     const lines = [
@@ -892,16 +878,16 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
 
   if (hasV2) {
     scenes.forEach((s) => {
-      if (parseCompiler(s?.notes ?? "") === "v2") {
-        const tier = parseSceneTier(s?.notes ?? "");
-        const v2Mode = parseV2Mode(s?.notes ?? "");
+      if (parseCompiler(s) === "v2") {
+        const tier = parseSceneTier(s);
+        const v2Mode = parseV2Mode(s);
         const compiled = compileScenePromptV2(s, lang, tier, v2Mode);
         out.push(optimizeV2ScenePrompt(compiled, s, lang, tier, v2Mode));
       } else {
         out.push(formatScenePrompt(lang, s));
       }
     });
-    return optimizeFinalPrompt(out.join("\n\n---\n\n"));
+    return finalizeByPlatform(optimizeFinalPrompt(out.join("\n\n---\n\n")), profile, lang, anyVideo ? "video" : "image");
   }
 
   if (shotPlan === "continuous" && scenes.length > 1) {
@@ -955,7 +941,7 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
     });
 
     const prompt = out.join("\n\n---\n\n");
-    return optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project));
+    return finalizeByPlatform(optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project)), profile, lang, "video");
   }
 
   if ((shotPlan === "multicam" || shotPlan === "edit") && scenes.length > 1) {
@@ -980,7 +966,7 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
       }
     });
     const prompt = out.join("\n\n---\n\n");
-    return optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project));
+    return finalizeByPlatform(optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project)), profile, lang, anyVideo ? "video" : "image");
   }
 
   scenes.forEach((s) => {
@@ -988,5 +974,5 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
   });
 
   const prompt = out.join("\n\n---\n\n");
-  return optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project));
+  return finalizeByPlatform(optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project)), profile, lang, anyVideo ? "video" : "image");
 }

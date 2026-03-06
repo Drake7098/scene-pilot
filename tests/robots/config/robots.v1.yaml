@@ -48,6 +48,27 @@ robots:
     priority: "P0"
     sla_sec: 360
 
+  - id: v2_semantic_guard
+    enabled: true
+    role: "Semantic motion intent guard against static lock text"
+    scenario: "scenarios/v2-semantic-guard.spec.ts"
+    priority: "P0"
+    sla_sec: 240
+
+  - id: compiler_fallback_guard
+    enabled: true
+    role: "V2 marker routing and V1 fallback compatibility guard"
+    scenario: "scenarios/compiler-fallback-guard.spec.ts"
+    priority: "P0"
+    sla_sec: 240
+
+  - id: ref_attachment_guard
+    enabled: true
+    role: "Single-reference-per-object export consistency guard"
+    scenario: "scenarios/ref-attachment-guard.spec.ts"
+    priority: "P1"
+    sla_sec: 240
+
 planned_robots:
   - id: quality_scoring
     role: "Rule + VLM scoring"

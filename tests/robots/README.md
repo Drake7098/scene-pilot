@@ -3,7 +3,7 @@
 This folder contains a minimal robot testing scaffold for Phase 5.
 
 ## Scope (v1)
-- 6 active robots: `novice_user`, `power_creator`, `regression_daily`, `chaos_breaker`, `export_platform_robot`, `v2_compiler_guard`
+- 9 active robots: `novice_user`, `power_creator`, `regression_daily`, `chaos_breaker`, `export_platform_robot`, `v2_compiler_guard`, `v2_semantic_guard`, `compiler_fallback_guard`, `ref_attachment_guard`
 - 2 planned robots: `quality_scoring`, `judge`
 - Unified artifacts: trace, screenshot, console log, metadata
 

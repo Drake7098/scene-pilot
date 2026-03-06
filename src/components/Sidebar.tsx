@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
+import { resolveSceneConfig, withSceneConfig } from "../model";
 import type { Project, Scene, Layer, ShotPlan, Direction, TransitionType } from "../model";
-import { UI_FONT, UI_OPACITY, UI_SIZE } from "../uiTokens";
+import { defaultObjectName, defaultProjectName, defaultSceneName } from "../utils/naming";
+import { UI_COLOR, UI_EFFECT, UI_FONT, UI_OPACITY, UI_PALETTE, UI_RADIUS, UI_SIZE, UI_SPACE, UI_TYPO } from "../uiTokens";
 import { Plus, Minus } from "lucide-react";
 
 type Props = {
@@ -70,44 +72,37 @@ function suggestSpawnKf(layers: Layer[]) {
   return best;
 }
 
-// ✅ NEW: pick next default scene name by scanning existing names
-function nextSceneDefaultName(lang: Lang, scenes: Scene[]) {
-  const zh = lang === "zh";
-  const prefix = zh ? "分镜 " : "Scene ";
-  const re = zh ? /^分镜\s*(\d+)\s*$/ : /^scene\s*(\d+)\s*$/i;
-
-  const used = new Set<number>();
-  for (const s of scenes) {
-    const name = (s?.name ?? "").trim();
-    const m = name.match(re);
-    if (m) used.add(Number(m[1]));
-  }
-
-  for (let i = 1; i < 9999; i++) {
-    if (!used.has(i)) return `${prefix}${i}`;
-  }
-
-  return `${prefix}${scenes.length + 1}`;
+function buildDefaultObjectLayer(lang: Lang, layers: Layer[]): Layer {
+  const nextIndex = Math.max(1, layers.length + 1);
+  const id = defaultObjectName(lang, nextIndex);
+  return {
+    id,
+    type: lang === "zh" ? "主体" : "subject",
+    shape: "rect",
+    shapeDesc: "",
+    look: "",
+    z: layers.length ? Math.max(...layers.map((l) => l.z)) + 1 : 10,
+    color: "#b7c3ff",
+    opacity: 1,
+    kf: [
+      { t: 0, x: 50, y: 50, w: 24, h: 24, rot: 0 },
+      { t: 1, x: 50, y: 50, w: 24, h: 24, rot: 0 }
+    ],
+    notes: "",
+    externalPrompt: "",
+    referenceLinks: "",
+    localRefs: [],
+    referencePolicy: "optional"
+  };
 }
 
 // -------------------- Media mode marker in scene.notes --------------------
 type MediaMode = "image" | "video";
-const MEDIA_MARK = "media:";
 type GenMode = "quick" | "pro";
 const GEN_MARK = "genmode:";
 
-function parseMedia(notes: string): MediaMode {
-  const lines = (notes ?? "").split("\n");
-  const hit = lines.find((l) => l.trim().toLowerCase().startsWith(MEDIA_MARK));
-  if (!hit) return "video"; // existing scenes without marker -> treat as video
-  const v = hit.trim().slice(MEDIA_MARK.length).trim().toLowerCase();
-  return v === "image" ? "image" : "video";
-}
-
-function setMedia(notes: string, mode: MediaMode): string {
-  const lines = (notes ?? "").split("\n").filter(Boolean);
-  const rest = lines.filter((l) => !l.trim().toLowerCase().startsWith(MEDIA_MARK));
-  return [`${MEDIA_MARK} ${mode}`, ...rest].join("\n");
+function parseMedia(scene: Scene): MediaMode {
+  return resolveSceneConfig(scene).mediaMode;
 }
 
 function parseGenMode(notes: string): GenMode {
@@ -127,24 +122,12 @@ function setGenMode(notes: string, mode: GenMode): string {
 // -------------------- Stability marker in scene.notes --------------------
 type StabilityMode = "off" | "standard" | "strict";
 type FloatingHintTone = "info" | "danger";
-const STAB_MARK = "stability:";
-
-function parseStability(notes: string): StabilityMode {
-  const lines = (notes ?? "").split("\n");
-  const hit = lines.find((l) => l.trim().toLowerCase().startsWith(STAB_MARK));
-  if (!hit) return "standard"; // default
-  const v = hit.trim().slice(STAB_MARK.length).trim().toLowerCase();
-  // backward compatibility: historical "on" maps to "standard"
-  if (v === "on") return "standard";
-  if (v === "strict") return "strict";
-  if (v === "off") return "off";
-  return "standard";
+function parseStability(scene: Scene): StabilityMode {
+  return resolveSceneConfig(scene).stability;
 }
 
-function setStability(notes: string, mode: StabilityMode): string {
-  const lines = (notes ?? "").split("\n").filter(Boolean);
-  const rest = lines.filter((l) => !l.trim().toLowerCase().startsWith(STAB_MARK));
-  return [`${STAB_MARK} ${mode}`, ...rest].join("\n");
+function applyStability(scene: Scene, mode: StabilityMode): Scene {
+  return withSceneConfig(scene, { stability: mode });
 }
 
 // -------------------- New Scene Draft UI --------------------
@@ -236,11 +219,30 @@ export function Sidebar(props: Props) {
   const [durDraft, setDurDraft] = useState<string>("");
 
   // per-scene markers (current scene)
-  const sceneNotes = scene?.notes ?? "";
-  const stabilityMode = useMemo<StabilityMode>(() => parseStability(sceneNotes), [sceneNotes]);
+  const stabilityMode = useMemo<StabilityMode>(() => parseStability(scene), [scene]);
   const projectShotPlan: ShotPlan = (project.project?.shotPlan as ShotPlan) ?? "single";
   const projectMediaType: MediaMode = (project.project?.mediaType as MediaMode) ?? "video";
   const isImageProject = projectMediaType === "image";
+  const projectRuleSummary = useMemo(() => {
+    const defaultTransition = defaultTransitionByPlan(projectShotPlan);
+    const inheritDefaults = defaultRefInheritByPlan(projectShotPlan, safeIdx === 0 || projectMediaType !== "video");
+    return {
+      shotPlan: projectShotPlan,
+      defaultTransition,
+      inheritPolicy: inheritDefaults.inheritObjectRefsFromPrevious,
+      sceneTransition: scene.transitionType ?? defaultTransition,
+      sceneEntry: scene.entryDir ?? (lang === "zh" ? "自动" : "Auto"),
+      sceneExit: scene.exitDir ?? (lang === "zh" ? "自动" : "Auto"),
+      duration: Math.max(0, Math.round(Number(scene.duration_s) || 0))
+    };
+  }, [projectShotPlan, safeIdx, projectMediaType, scene.transitionType, scene.entryDir, scene.exitDir, scene.duration_s, lang]);
+  const shotPlanText = useMemo(() => {
+    if (lang !== "zh") return projectRuleSummary.shotPlan;
+    if (projectRuleSummary.shotPlan === "single") return "单镜头";
+    if (projectRuleSummary.shotPlan === "multicam") return "多机位";
+    if (projectRuleSummary.shotPlan === "continuous") return "连续镜头";
+    return "标准剪辑";
+  }, [lang, projectRuleSummary.shotPlan]);
   // ✅ NEW: add scene mini panel
   const [newScene, setNewScene] = useState<NewSceneDraft>({
     open: false,
@@ -253,6 +255,8 @@ export function Sidebar(props: Props) {
     name: "",
     duration_s: "6"
   });
+  const [newSceneModeTouched, setNewSceneModeTouched] = useState(false);
+  const [newSceneGenModeTouched, setNewSceneGenModeTouched] = useState(false);
   const [showGenHint, setShowGenHint] = useState(false);
 
   // ✅ 替代 alert/confirm：轻量 toast + 自定义确认框
@@ -278,8 +282,8 @@ export function Sidebar(props: Props) {
     const shotPlan = projectShotPlanDefault();
     const genMode: GenMode = parseGenMode(scene?.notes ?? "");
     const duration_s = Math.max(1, Math.round(Number(scene?.duration_s) || 6));
-    const name = nextSceneDefaultName(lang, scenes);
     const idxNo = scenes.length + 1;
+    const name = defaultSceneName(lang, mode, idxNo);
     const id = nextId("s", (x) => scenes.some((s) => s.id === x));
     const copyLayers = JSON.parse(JSON.stringify(scene.layers ?? [])) as Layer[];
     const nextSceneObj: Scene = {
@@ -303,8 +307,15 @@ export function Sidebar(props: Props) {
       } as any,
       lighting: { time: "", key_dir: "", mood: "" } as any,
       layoutLocked: false,
-      layers: [],
-      notes: setGenMode(setMedia("", mode), genMode)
+      layers: [buildDefaultObjectLayer(lang, [])],
+      config: {
+        mediaMode: mode,
+        compiler: mode === "video" ? "v2" : "v1",
+        sceneTier: resolveSceneConfig(scene).sceneTier,
+        v2Mode: resolveSceneConfig(scene).v2Mode,
+        stability: resolveSceneConfig(scene).stability
+      },
+      notes: setGenMode(`media: ${mode}`, genMode)
     };
     if (mode === "video" && shotPlan === "multicam") {
       nextSceneObj.layers = copyLayers;
@@ -313,7 +324,10 @@ export function Sidebar(props: Props) {
       nextSceneObj.layers = copyLayers;
       nextSceneObj.backgroundRef = scene.backgroundRef ? JSON.parse(JSON.stringify(scene.backgroundRef)) : undefined;
     } else if (mode === "video" && shotPlan === "edit") {
-      nextSceneObj.layers = [];
+      nextSceneObj.layers = [buildDefaultObjectLayer(lang, [])];
+    }
+    if (!(nextSceneObj.layers ?? []).length) {
+      nextSceneObj.layers = [buildDefaultObjectLayer(lang, [])];
     }
 
     const next: Project = {
@@ -397,8 +411,7 @@ export function Sidebar(props: Props) {
   }
 
   function commitStabilityMode(mode: StabilityMode) {
-    const nextNotes = setStability(scene.notes ?? "", mode);
-    onUpdateScene({ ...scene, notes: nextNotes });
+    onUpdateScene(applyStability(scene, mode));
     showToast(
       mode === "strict"
         ? tt("sidebar.constraintToastStrict")
@@ -410,13 +423,15 @@ export function Sidebar(props: Props) {
 
   function cancelAddScenePanel() {
     setNewScene((s) => ({ ...s, open: false }));
+    setNewSceneModeTouched(false);
+    setNewSceneGenModeTouched(false);
     setShowGenHint(false);
   }
 
   function confirmAddScene(anchorEl: HTMLElement | null) {
-    const fallbackName = nextSceneDefaultName(lang, scenes);
-    const name = (newScene.name ?? "").trim() || fallbackName;
     const mode: MediaMode = newScene.mode;
+    const fallbackName = defaultSceneName(lang, mode, scenes.length + 1);
+    const name = (newScene.name ?? "").trim() || fallbackName;
     const genMode: GenMode = newScene.genMode;
     const shotPlan: ShotPlan = resolveShotPlanFromDraft(newScene);
 
@@ -450,8 +465,15 @@ export function Sidebar(props: Props) {
         } as any,
         lighting: { time: "", key_dir: "", mood: "" } as any,
         layoutLocked: false,
-        layers: [],
-        notes: setGenMode(setMedia("", mode), genMode)
+        layers: [buildDefaultObjectLayer(lang, [])],
+        config: {
+          mediaMode: mode,
+          compiler: mode === "video" ? "v2" : "v1",
+          sceneTier: resolveSceneConfig(scene).sceneTier,
+          v2Mode: resolveSceneConfig(scene).v2Mode,
+          stability: resolveSceneConfig(scene).stability
+        },
+        notes: setGenMode(`media: ${mode}`, genMode)
       };
     };
 
@@ -459,8 +481,7 @@ export function Sidebar(props: Props) {
     if (mode === "video" && shotCount > 1) {
       for (let i = 0; i < shotCount; i++) {
         const idxNo = scenes.length + i + 1;
-        const padded = String(idxNo).padStart(2, "0");
-        const s = makeBaseScene(`${padded}｜${name}${i === 0 ? "" : ` ${i + 1}`}`, idxNo);
+        const s = makeBaseScene(defaultSceneName(lang, mode, idxNo), idxNo);
         if (shotPlan === "multicam") {
           s.layers = JSON.parse(JSON.stringify(baseLayers));
           s.backgroundRef = scene.backgroundRef ? JSON.parse(JSON.stringify(scene.backgroundRef)) : undefined;
@@ -469,13 +490,14 @@ export function Sidebar(props: Props) {
           s.backgroundRef = scene.backgroundRef ? JSON.parse(JSON.stringify(scene.backgroundRef)) : undefined;
         }
         if (shotPlan === "edit") {
-          s.layers = i === 0 ? JSON.parse(JSON.stringify(baseLayers)) : [];
+          s.layers = i === 0 ? JSON.parse(JSON.stringify(baseLayers)) : [buildDefaultObjectLayer(lang, [])];
         }
+        if (!(s.layers ?? []).length) s.layers = [buildDefaultObjectLayer(lang, [])];
         addedScenes.push(s);
       }
       if (addedScenes.length) addedScenes[addedScenes.length - 1].exitDir = undefined;
     } else {
-      const s = makeBaseScene(name, scenes.length + 1);
+      const s = makeBaseScene(mode === "video" ? defaultSceneName(lang, "video", scenes.length + 1) : name, scenes.length + 1);
       if (shotPlan === "multicam") {
         s.layers = JSON.parse(JSON.stringify(baseLayers));
         s.backgroundRef = scene.backgroundRef ? JSON.parse(JSON.stringify(scene.backgroundRef)) : undefined;
@@ -483,6 +505,7 @@ export function Sidebar(props: Props) {
         s.layers = JSON.parse(JSON.stringify(baseLayers));
         s.backgroundRef = scene.backgroundRef ? JSON.parse(JSON.stringify(scene.backgroundRef)) : undefined;
       }
+      if (!(s.layers ?? []).length) s.layers = [buildDefaultObjectLayer(lang, [])];
       addedScenes.push(s);
     }
 
@@ -500,6 +523,8 @@ export function Sidebar(props: Props) {
     onSelectLayer(null);
 
     setNewScene((s) => ({ ...s, open: false }));
+    setNewSceneModeTouched(false);
+    setNewSceneGenModeTouched(false);
     setShowGenHint(false);
     showFloatingHint(tt("sidebar.sceneCreated"), anchorEl, "info");
   }
@@ -522,29 +547,22 @@ export function Sidebar(props: Props) {
 
   function addLayer() {
     const layers = scene.layers ?? [];
-    const id = nextId("obj", (x) => layers.some((l) => l.id === x));
     const spawn = suggestSpawnKf(layers);
-
-    // ✅ 优化：新增对象默认“未填写”，避免给模型不必要的先验（比如默认 character）
-    const newLayer: Layer = {
-      id,
-      type: "", // ✅ was "character"
-      shape: "rect",
-      shapeDesc: "",
-      look: "",
-      z: layers.length ? Math.max(...layers.map((l) => l.z)) + 1 : 10,
-      color: "#b7c3ff",
-      opacity: 1,
-      kf: [{ t: 0, x: spawn.x, y: spawn.y, w: spawn.w, h: spawn.h, rot: 0 }],
-      notes: "",
-      externalPrompt: "",
-      referenceLinks: "",
-      localRefs: [],
-      referencePolicy: "optional"
-    };
+    const newLayer = buildDefaultObjectLayer(lang, layers);
+    let objectNo = 1;
+    let nextName = defaultObjectName(lang, objectNo);
+    while (layers.some((l) => l.id === nextName)) {
+      objectNo += 1;
+      nextName = defaultObjectName(lang, objectNo);
+    }
+    newLayer.id = nextName;
+    newLayer.kf = [
+      { t: 0, x: spawn.x, y: spawn.y, w: spawn.w, h: spawn.h, rot: 0 },
+      { t: 1, x: spawn.x, y: spawn.y, w: spawn.w, h: spawn.h, rot: 0 }
+    ];
 
     onUpdateScene({ ...scene, layers: [...layers, newLayer] });
-    onSelectLayer(id);
+    onSelectLayer(newLayer.id);
 
     // 可选提示：新对象已创建（不想要就删）
     // showToast(lang === "zh" ? "已添加对象" : "Object added");
@@ -696,22 +714,26 @@ export function Sidebar(props: Props) {
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setNewScene((s) => ({ ...s, mode: "image", shotCount: "1" }))}
-                  style={{ ...styles.mediaBtn, ...(newScene.mode === "image" ? styles.mediaBtnOn : {}) }}
+                  onClick={() => {
+                    setNewSceneModeTouched(true);
+                    setNewScene((s) => ({ ...s, mode: "image", shotCount: "1" }));
+                  }}
+                  style={{ ...styles.mediaBtn, ...(newSceneModeTouched && newScene.mode === "image" ? styles.mediaBtnOn : {}) }}
                 >
                   {tt("sidebar.image")}
                 </button>
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() =>
+                  onClick={() => {
+                    setNewSceneModeTouched(true);
                     setNewScene((s) => ({
                       ...s,
                       mode: "video",
                       shotCount: String(defaultShotCountForPlan(resolveShotPlanFromDraft({ ...s, mode: "video" } as NewSceneDraft)))
-                    }))
-                  }
-                  style={{ ...styles.mediaBtn, ...(newScene.mode === "video" ? styles.mediaBtnOn : {}) }}
+                    }));
+                  }}
+                  style={{ ...styles.mediaBtn, ...(newSceneModeTouched && newScene.mode === "video" ? styles.mediaBtnOn : {}) }}
                 >
                   {tt("sidebar.video")}
                 </button>
@@ -786,16 +808,22 @@ export function Sidebar(props: Props) {
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setNewScene((s) => ({ ...s, genMode: "quick" }))}
-                  style={{ ...styles.mediaBtn, ...(newScene.genMode === "quick" ? styles.mediaBtnOn : {}) }}
+                  onClick={() => {
+                    setNewSceneGenModeTouched(true);
+                    setNewScene((s) => ({ ...s, genMode: "quick" }));
+                  }}
+                  style={{ ...styles.mediaBtn, ...(newSceneGenModeTouched && newScene.genMode === "quick" ? styles.mediaBtnOn : {}) }}
                 >
                   {tt("sidebar.quick")}
                 </button>
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setNewScene((s) => ({ ...s, genMode: "pro" }))}
-                  style={{ ...styles.mediaBtn, ...(newScene.genMode === "pro" ? styles.mediaBtnOn : {}) }}
+                  onClick={() => {
+                    setNewSceneGenModeTouched(true);
+                    setNewScene((s) => ({ ...s, genMode: "pro" }));
+                  }}
+                  style={{ ...styles.mediaBtn, ...(newSceneGenModeTouched && newScene.genMode === "pro" ? styles.mediaBtnOn : {}) }}
                 >
                   PRO
                 </button>
@@ -868,7 +896,7 @@ export function Sidebar(props: Props) {
         </div>
         <div style={styles.projectNameRow}>
           <div style={styles.projectName}>
-            {projectFileLabel?.trim() || (lang === "zh" ? "未命名" : "Untitled")}
+            {projectFileLabel?.trim() || defaultProjectName(lang)}
           </div>
           <button
             type="button"
@@ -879,6 +907,16 @@ export function Sidebar(props: Props) {
           >
             {lang === "zh" ? "创建新项目" : "New Project"}
           </button>
+        </div>
+        <div style={styles.ruleSummaryBox}>
+          <div style={styles.ruleSummaryTitle}>{lang === "zh" ? "规则摘要（只读）" : "Rule Summary (Read-only)"}</div>
+          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "分镜方案" : "Shot plan"}：{shotPlanText}</div>
+          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "默认衔接策略" : "Default transition"}：{projectRuleSummary.defaultTransition}</div>
+          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "参考继承策略" : "Refs inherit"}：{projectRuleSummary.inheritPolicy}</div>
+          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "当前分镜衔接" : "Current transition"}：{projectRuleSummary.sceneTransition}</div>
+          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "入镜方向" : "Entry"}：{projectRuleSummary.sceneEntry}</div>
+          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "出镜方向" : "Exit"}：{projectRuleSummary.sceneExit}</div>
+          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "当前时长" : "Current duration"}：{projectRuleSummary.duration}{lang === "zh" ? "秒" : "s"}</div>
         </div>
 
         <div style={styles.sectionHead}>
@@ -899,7 +937,7 @@ export function Sidebar(props: Props) {
         <div style={styles.list}>
           {scenes.map((s, i) => {
             const isOn = i === safeIdx;
-            const mode = parseMedia(s.notes ?? "");
+            const mode = parseMedia(s);
             const badgeText = mode === "image" ? tt("sidebar.image") : fmtDuration(lang, s.duration_s);
             const sceneIndex = Number.isFinite(s.index) ? Number(s.index) : i + 1;
             const sceneNo = String(sceneIndex).padStart(2, "0");
@@ -991,8 +1029,15 @@ export function Sidebar(props: Props) {
                       </div>
                     )}
                     {mode === "video" && i > 0 ? (
-                      <div style={{ ...styles.badgeBtn, opacity: 0.78 }} title={s.inheritFromPrevious ? (lang === "zh" ? "继承上一镜布局" : "Inherit previous shot layout") : (lang === "zh" ? "独立镜头布局" : "Independent shot layout")}>
-                        {s.inheritFromPrevious ? (lang === "zh" ? "继承" : "Inherit") : (lang === "zh" ? "独立" : "Independent")}
+                      <div
+                        style={{ ...styles.badgeBtn, opacity: 0.78 }}
+                        title={
+                          s.inheritFromPrevious
+                            ? (lang === "zh" ? "继承上一镜布局" : "Inherit previous shot layout")
+                            : (lang === "zh" ? "独立镜头布局" : "Independent shot layout")
+                        }
+                      >
+                        {s.inheritFromPrevious ? (lang === "zh" ? "继承" : "Inherit") : (lang === "zh" ? "独立" : "Indep.")}
                       </div>
                     ) : null}
                     {mode === "video" && i > 0 && i < scenes.length - 1 ? (
@@ -1293,11 +1338,11 @@ export function Sidebar(props: Props) {
 
 const styles: Record<string, React.CSSProperties> = {
   wrap: {
-    width: 320,
-    minWidth: 280,
-    borderRight: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(0,0,0,0.12)",
-    padding: 12,
+    width: "clamp(232px, 24vw, 320px)",
+    minWidth: 232,
+    borderRight: `1px solid ${UI_PALETTE.border.soft}`,
+    background: UI_PALETTE.bg.sidebar,
+    padding: UI_SPACE.sm,
     display: "flex",
     flexDirection: "column",
     gap: 14,
@@ -1307,25 +1352,25 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   section: {
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: 14,
-    background: "rgba(255,255,255,0.03)",
-    padding: 12
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    borderRadius: UI_RADIUS.panel,
+    background: UI_PALETTE.surface.surface1,
+    padding: UI_SPACE.sm
   },
 
-  sectionHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 },
-  sectionTitle: { fontWeight: 900, fontSize: UI_FONT.section, opacity: UI_OPACITY.title },
+  sectionHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 2 },
+  sectionTitle: { fontWeight: 850, fontSize: UI_TYPO.size14, opacity: UI_OPACITY.title, color: UI_PALETTE.text.secondary, letterSpacing: 0.1 },
   projectNameRow: {
     display: "grid",
-    gridTemplateColumns: "1fr auto",
+    gridTemplateColumns: "minmax(0,1fr) auto",
     gap: 8,
     alignItems: "center",
     marginBottom: 10
   },
   projectName: {
     borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.04)",
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
     padding: "8px 10px",
     fontSize: UI_FONT.body,
     fontWeight: 800,
@@ -1338,13 +1383,33 @@ const styles: Record<string, React.CSSProperties> = {
     height: 32,
     padding: "0 10px",
     borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.05)",
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
     color: "inherit",
     cursor: "pointer",
-    fontSize: 12,
+    fontSize: UI_TYPO.size12,
     fontWeight: 800,
-    whiteSpace: "nowrap"
+    whiteSpace: "nowrap",
+    maxWidth: "100%"
+  },
+  ruleSummaryBox: {
+    borderRadius: 10,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
+    padding: "8px 10px",
+    marginBottom: 10,
+    display: "grid",
+    gap: 4
+  },
+  ruleSummaryTitle: {
+    fontSize: UI_TYPO.size12,
+    fontWeight: 900,
+    color: UI_PALETTE.text.secondary
+  },
+  ruleSummaryLine: {
+    fontSize: UI_TYPO.size11,
+    color: UI_PALETTE.text.secondary,
+    opacity: 0.9
   },
 
   mediaRow: {
@@ -1371,8 +1436,8 @@ const styles: Record<string, React.CSSProperties> = {
   mediaBtn: {
     height: 36,
     borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.07)",
-    background: "rgba(0,0,0,0.18)",
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    background: UI_PALETTE.surface.surface1,
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
@@ -1383,17 +1448,17 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "0 10px"
   },
   mediaBtnOn: {
-    border: "1px solid rgba(120,180,255,0.78)",
-    background: "rgba(120,180,255,0.12)",
-    boxShadow: "0 0 0 2px rgba(120,180,255,0.18) inset"
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive,
+    boxShadow: UI_EFFECT.softRing
   },
 
   // ✅ New scene card
   addCard: {
-    borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(0,0,0,0.18)",
-    padding: 12,
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    background: UI_PALETTE.bg.canvas,
+    padding: UI_SPACE.sm,
     marginBottom: 10,
     display: "flex",
     flexDirection: "column",
@@ -1415,35 +1480,35 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     height: UI_SIZE.controlH,
     borderRadius: UI_SIZE.controlRadius,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(0,0,0,0.20)",
-    color: "rgba(255,255,255,0.92)",
+    border: `1px solid ${UI_COLOR.border}`,
+    background: UI_COLOR.bgInput,
+    color: UI_COLOR.text,
     outline: "none",
     padding: "0 10px",
     fontSize: UI_FONT.body,
     fontWeight: 800
   },
   addInputSmall: {
-    width: 92,
+    width: "clamp(74px, 28%, 92px)",
     height: UI_SIZE.controlH,
     borderRadius: UI_SIZE.controlRadius,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(0,0,0,0.20)",
-    color: "rgba(255,255,255,0.92)",
+    border: `1px solid ${UI_COLOR.border}`,
+    background: UI_COLOR.bgInput,
+    color: UI_COLOR.text,
     outline: "none",
     padding: "0 10px",
     fontSize: UI_FONT.body,
     fontWeight: 800,
     textAlign: "right"
   },
-  addActions: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 },
+  addActions: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2, flexWrap: "wrap" },
   genModeRow: { display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 8, flex: 1, alignItems: "center" },
   qBtn: {
     width: 28,
     height: 28,
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.04)",
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
     color: "inherit",
     fontWeight: 900,
     cursor: "pointer",
@@ -1462,8 +1527,8 @@ const styles: Record<string, React.CSSProperties> = {
   btnGhost: {
     padding: "6px 10px",
     borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.03)",
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface1,
     color: "inherit",
     cursor: "pointer",
     fontSize: UI_FONT.body,
@@ -1474,8 +1539,8 @@ const styles: Record<string, React.CSSProperties> = {
   btnPrimary: {
     padding: "6px 10px",
     borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.06)",
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive,
     color: "inherit",
     cursor: "pointer",
     fontSize: UI_FONT.body,
@@ -1497,38 +1562,40 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   list: { display: "flex", flexDirection: "column", gap: 8 },
-  itemRowWrap: { display: "flex", gap: 8, alignItems: "center" },
+  itemRowWrap: { display: "flex", gap: 8, alignItems: "center", minWidth: 0 },
 
   rowBtn: {
     flex: 1,
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.07)",
-    background: "rgba(0,0,0,0.18)",
+    minWidth: 0,
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    background: "linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.018))",
     color: "inherit",
     cursor: "pointer",
     padding: "8px 10px",
     userSelect: "none",
     outline: "none",
-    boxShadow: "none"
+    boxShadow: UI_EFFECT.insetShadow,
+    overflow: "hidden"
   },
 
   rowBtnOn: {
-    border: "1px solid rgba(120,180,255,0.78)",
-    background: "rgba(120,180,255,0.12)",
-    boxShadow: "0 0 0 2px rgba(120,180,255,0.18) inset"
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive,
+    boxShadow: `${UI_EFFECT.softRing}, 0 0 0 1px rgba(102,168,255,0.24) inset`
   },
   placeholderRow: {
     opacity: 0.55,
     cursor: "default"
   },
 
-  rowInner: { display: "flex", alignItems: "center", gap: 10, minWidth: 0 },
+  rowInner: { display: "flex", alignItems: "center", gap: 6, rowGap: 6, minWidth: 0, flexWrap: "wrap" },
 
   renameText: {
-    flex: 1,
+    flex: "1 1 100%",
     minWidth: 0,
     fontWeight: 900,
-    fontSize: 12,
+    fontSize: UI_TYPO.size13,
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -1552,19 +1619,23 @@ const styles: Record<string, React.CSSProperties> = {
 
   badgeBtn: {
     flex: "0 0 auto",
-    fontSize: UI_FONT.body,
+    fontSize: UI_FONT.tiny,
     fontWeight: 900,
     opacity: 0.85,
-    padding: "3px 8px",
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.05)",
+    padding: "3px 7px",
+    borderRadius: UI_RADIUS.chip,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
     userSelect: "none",
     outline: "none",
-    boxShadow: "none"
+    boxShadow: "none",
+    maxWidth: "min(40%, 120px)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
   },
   durInput: {
-    width: 64,
+    width: 58,
     height: 26,
     borderRadius: 999,
     border: "1px solid rgba(120,180,255,0.55)",
@@ -1583,9 +1654,9 @@ const styles: Record<string, React.CSSProperties> = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.06)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
     color: "inherit",
     cursor: "pointer",
     outline: "none",
@@ -1599,9 +1670,9 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     flex: "0 0 34px",
     lineHeight: 0,
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.04)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.danger}`,
+    background: "rgba(255,124,124,0.12)",
     color: "inherit",
     cursor: "pointer",
     opacity: 0.95,
@@ -1694,10 +1765,10 @@ const styles: Record<string, React.CSSProperties> = {
   modal: {
     width: 420,
     maxWidth: "100%",
-    borderRadius: 16,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(15,20,35,0.96)",
-    boxShadow: "0 18px 60px rgba(0,0,0,0.45)",
+    borderRadius: UI_RADIUS.panel,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: "rgba(12,17,27,0.96)",
+    boxShadow: UI_EFFECT.floatShadow,
     padding: 18,
     display: "flex",
     flexDirection: "column",

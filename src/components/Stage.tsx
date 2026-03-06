@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Scene, Layer, LayerKF } from "../model";
-import { ensureKF } from "../model";
+import { ensureKF, resolveSceneConfig } from "../model";
 import { getRefBlob } from "../utils/localRefs";
+import { UI_COLOR, UI_EFFECT, UI_PALETTE, UI_RADIUS, UI_SPACE, UI_TYPO } from "../uiTokens";
 
 type Handle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 type DragMode =
@@ -28,27 +29,6 @@ const SIZE_MAX = 200;
 // ✅ 缩放范围
 const ZOOM_MIN = 0.4;
 const ZOOM_MAX = 2.5;
-
-type MediaMode = "image" | "video";
-function parseMediaModeFromNotes(notes: string | undefined | null): MediaMode {
-  const lines = (notes ?? "")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => s.toLowerCase());
-
-  const keys = ["media:", "mode:", "type:"];
-  for (const l of lines) {
-    for (const k of keys) {
-      if (l.startsWith(k)) {
-        const v = l.slice(k.length).trim();
-        if (v.startsWith("image") || v.startsWith("img") || v.includes("图片")) return "image";
-        if (v.startsWith("video") || v.startsWith("vid") || v.includes("视频")) return "video";
-      }
-    }
-  }
-  return "video";
-}
 
 /** ✅ 仅用于渲染：只读不写，不会创建 keyframe */
 function getKFDisplay(layer: Layer, t: 0 | 1): LayerKF {
@@ -91,7 +71,7 @@ export function Stage({
   // ✅ 画布缩放：缩小看画外，放大精修
   const [zoom, setZoom] = useState<number>(1);
 
-  const mediaMode: MediaMode = useMemo(() => parseMediaModeFromNotes(scene?.notes), [scene?.notes]);
+  const mediaMode = useMemo<"image" | "video">(() => resolveSceneConfig(scene).mediaMode, [scene]);
   const isImageMode = mediaMode === "image";
 
   const layersSorted = useMemo(() => (scene.layers ?? []).slice().sort((a, b) => a.z - b.z), [scene.layers]);
@@ -402,8 +382,10 @@ export function Stage({
                   top: `${top}%`,
                   width: `${k.w}%`,
                   height: `${k.h}%`,
+                  zIndex: isSelected ? 3 : 1,
                   transform: `rotate(${k.rot || 0}deg)`,
                   opacity: clamp01(layer.opacity),
+                  filter: isSelected ? "none" : "saturate(0.86)",
                   background:
                     layer.shape === "ring"
                       ? "transparent"
@@ -413,10 +395,10 @@ export function Stage({
                       ? `3px solid ${accent}`
                       : isSelected
                         ? `2px solid ${withAlpha(accent, 0.98)}`
-                        : `1px solid ${withAlpha(accent, 0.72)}`,
-                  outline: isSelected ? `2px solid ${withAlpha(accent, 0.38)}` : "none",
+                        : `1px solid ${withAlpha(accent, 0.56)}`,
+                  outline: isSelected ? `1px solid ${withAlpha(accent, 0.42)}` : "none",
                   boxShadow: isSelected
-                    ? `0 0 0 1px ${withAlpha(accent, 0.32)} inset, 0 8px 24px ${withAlpha(accent, 0.28)}`
+                    ? `0 0 0 1px ${withAlpha(accent, 0.34)} inset, 0 12px 26px ${withAlpha(accent, 0.28)}`
                     : `0 0 0 1px ${withAlpha(accent, 0.18)} inset`
                 }}
                 onPointerDown={(e) => onPointerDownLayer(e, layer)}
@@ -441,6 +423,17 @@ export function Stage({
               </div>
             );
           })}
+
+          {!layersSorted.length ? (
+            <div style={styles.emptyGuide}>
+              <div style={styles.emptyGuideTitle}>
+                当前分镜还没有对象 / No Objects Yet
+              </div>
+              <div style={styles.emptyGuideText}>
+                点击左侧“添加对象”开始编辑 / Click Add Object to Start
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* ✅ 角落提示：缩放倍率（不挡操作） */}
@@ -502,14 +495,16 @@ function safeAspect(w: number, h: number) {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  outer: { flex: 1, padding: 12, display: "flex", minHeight: 0 },
+  outer: { flex: 1, padding: UI_SPACE.sm, display: "flex", minHeight: 0 },
   stage: {
     flex: 1,
     minHeight: 0,
     position: "relative",
-    borderRadius: 18,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(0,0,0,0.25)",
+    borderRadius: UI_RADIUS.panel,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background:
+      "radial-gradient(640px 380px at 50% 38%, rgba(104,171,255,0.16), transparent 60%), rgba(9,13,24,0.74)",
+    boxShadow: UI_EFFECT.panelShadow,
     overflow: "hidden"
   },
 
@@ -527,8 +522,8 @@ const styles: Record<string, React.CSSProperties> = {
   frame: {
     position: "absolute",
     inset: 0,
-    borderRadius: 18,
-    border: "1px solid rgba(255,255,255,0.16)",
+    borderRadius: UI_RADIUS.panel,
+    border: `1px solid ${UI_PALETTE.border.strong}`,
     boxShadow: "0 0 0 1px rgba(0,0,0,0.35) inset",
     pointerEvents: "none"
   },
@@ -552,7 +547,12 @@ const styles: Record<string, React.CSSProperties> = {
     pointerEvents: "none"
   },
 
-  obj: { position: "absolute", borderRadius: 14, overflow: "hidden" },
+  obj: {
+    position: "absolute",
+    borderRadius: 14,
+    overflow: "hidden",
+    transition: "filter 140ms ease, box-shadow 160ms ease, border-color 160ms ease, outline-color 160ms ease"
+  },
 
   label: {
     position: "absolute",
@@ -564,12 +564,12 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 6,
     maxWidth: "calc(100% - 16px)",
     padding: "3px 7px",
-    fontSize: 11,
+    fontSize: UI_TYPO.size11,
     fontWeight: 900,
-    borderRadius: 10,
+    borderRadius: UI_RADIUS.control,
     background: "rgba(3,6,12,0.62)",
-    border: "1px solid rgba(255,255,255,0.26)",
-    color: "rgba(255,255,255,0.92)",
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    color: UI_PALETTE.text.primary,
     pointerEvents: "none",
     whiteSpace: "nowrap"
   },
@@ -587,7 +587,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginLeft: "auto",
     fontSize: 10,
     fontWeight: 900,
-    borderRadius: 999,
+    borderRadius: UI_RADIUS.chip,
     padding: "1px 6px",
     border: "1px solid rgba(255,255,255,0.30)",
     background: "rgba(255,255,255,0.14)"
@@ -616,7 +616,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "rgba(255,255,255,0.88)",
     background: "rgba(0,0,0,0.44)",
     border: "1px solid rgba(255,255,255,0.18)",
-    borderRadius: 8,
+    borderRadius: UI_RADIUS.control,
     padding: "4px 6px",
     pointerEvents: "none",
     whiteSpace: "normal"
@@ -629,7 +629,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: "calc(100% - 16px)",
     maxHeight: 52,
     objectFit: "cover",
-    borderRadius: 8,
+    borderRadius: UI_RADIUS.control,
     border: "1px solid rgba(255,255,255,0.18)",
     pointerEvents: "none"
   },
@@ -638,9 +638,10 @@ const styles: Record<string, React.CSSProperties> = {
     position: "absolute",
     width: 12,
     height: 12,
-    borderRadius: 6,
-    background: "rgba(120,180,255,0.95)",
-    border: "2px solid rgba(0,0,0,0.6)"
+    borderRadius: UI_RADIUS.control,
+    background: "rgba(126,190,255,0.98)",
+    border: "2px solid rgba(8,14,30,0.82)",
+    boxShadow: "0 0 0 1px rgba(255,255,255,0.24)"
   },
 
   zoomHint: {
@@ -648,14 +649,36 @@ const styles: Record<string, React.CSSProperties> = {
     right: 10,
     bottom: 10,
     padding: "4px 8px",
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(0,0,0,0.35)",
-    fontSize: 11,
+    borderRadius: UI_RADIUS.chip,
+    border: `1px solid ${UI_COLOR.border}`,
+    background: "rgba(6,10,20,0.68)",
+    fontSize: UI_TYPO.size11,
     fontWeight: 900,
     opacity: 0.85,
     pointerEvents: "none",
     userSelect: "none"
   },
-  
+  emptyGuide: {
+    position: "absolute",
+    left: "50%",
+    top: "50%",
+    transform: "translate(-50%, -50%)",
+    minWidth: 240,
+    borderRadius: UI_RADIUS.panel,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: "rgba(10,15,26,0.92)",
+    padding: "12px 14px",
+    textAlign: "center",
+    boxShadow: UI_EFFECT.panelShadow
+  },
+  emptyGuideTitle: {
+    fontSize: UI_TYPO.size13,
+    fontWeight: 900,
+    color: UI_PALETTE.text.primary
+  },
+  emptyGuideText: {
+    marginTop: 6,
+    fontSize: UI_TYPO.size12,
+    color: UI_PALETTE.text.secondary
+  }
 };

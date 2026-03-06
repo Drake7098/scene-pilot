@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "./i18n";
 import { t } from "./i18n";
-import { defaultProject, sanitizeProject } from "./model";
+import { defaultProject, resolveSceneConfig, sanitizeProject } from "./model";
 import type { Project, Scene, ShotPlan, TransitionType } from "./model";
 import { loadLang, saveLang, loadProject, saveProject } from "./utils/storage";
 
@@ -17,6 +17,9 @@ import {
 import { generatePrompts } from "./utils/prompt";
 import type { PromptProfile } from "./utils/prompt";
 import { getRefBlob } from "./utils/localRefs";
+import { defaultObjectName, defaultProjectName, defaultSceneName, safeExportName } from "./utils/naming";
+import { getPlatformLabel, getPlatformPreset, PLATFORM_PRESETS } from "./config/platformPresets";
+import type { PlatformPresetId } from "./config/platformPresets";
 
 import {
   Languages,
@@ -39,21 +42,11 @@ import {
   installGlobalErrorHooks,
   sendFeedback
 } from "./utils/analytics";
+import { UI_COLOR, UI_EFFECT, UI_PALETTE, UI_RADIUS, UI_SPACE, UI_TYPO } from "./uiTokens";
 
 type FSDirectoryHandle = any;
 type LibraryEntry = { name: string; kind: "file" | "directory" };
-type SavePlatformId =
-  | "universal"
-  | "midjourney"
-  | "runway"
-  | "pika"
-  | "luma"
-  | "krea"
-  | "jimeng"
-  | "keling"
-  | "vidu"
-  | "hailuo"
-  | "wanx";
+type SavePlatformId = PlatformPresetId;
 type SavePlatformPickMode = "save" | "save_as" | "save_all";
 const LIB_DB_NAME = "scenepilot_library_handles";
 const LIB_DB_STORE = "handles";
@@ -107,34 +100,18 @@ async function loadPersistedLibraryRootHandle(): Promise<any | null> {
 
 type HelpModal = "tutorial" | "feedback" | "about" | null;
 const ONBOARDING_KEY = "sp_onboarding_done";
+const TUTORIAL_SKIP_KEY = "sp_tutorial_skip";
 const SAVE_PLATFORM_KEY = "sp_save_prompt_platform";
 
 function savePlatformToProfile(id: SavePlatformId): PromptProfile {
-  if (id === "midjourney" || id === "krea") return "midjourney";
-  if (id === "runway" || id === "pika" || id === "luma" || id === "vidu" || id === "hailuo") return "runway";
-  if (id === "jimeng" || id === "keling") return "jimeng";
-  if (id === "wanx") return "qwen";
-  return "universal";
+  return getPlatformPreset(id).baseProfile;
 }
 
 function savePlatformLabel(id: SavePlatformId, lang: Lang) {
-  const map: Record<SavePlatformId, { zh: string; en: string }> = {
-    universal: { zh: "通用", en: "Universal" },
-    midjourney: { zh: "Midjourney", en: "Midjourney" },
-    runway: { zh: "Runway", en: "Runway" },
-    pika: { zh: "Pika", en: "Pika" },
-    luma: { zh: "Luma", en: "Luma" },
-    krea: { zh: "Krea", en: "Krea" },
-    jimeng: { zh: "即梦", en: "Jimeng" },
-    keling: { zh: "可灵", en: "Keling" },
-    vidu: { zh: "Vidu", en: "Vidu" },
-    hailuo: { zh: "海螺 AI", en: "Hailuo AI" },
-    wanx: { zh: "通义万相", en: "Wanx" }
-  };
-  return lang === "zh" ? map[id].zh : map[id].en;
+  return getPlatformLabel(id, lang === "zh" ? "zh" : "en");
 }
 
-const SAVE_PLATFORM_OPTIONS: SavePlatformId[] = ["universal", "midjourney", "runway", "pika", "luma", "krea", "jimeng", "keling", "vidu", "hailuo", "wanx"];
+const SAVE_PLATFORM_OPTIONS: SavePlatformId[] = PLATFORM_PRESETS.map((preset) => preset.id);
 
 function defaultRefInheritByPlan(shotPlan: ShotPlan, isFirst: boolean) {
   if (isFirst || shotPlan === "single") {
@@ -144,6 +121,28 @@ function defaultRefInheritByPlan(shotPlan: ShotPlan, isFirst: boolean) {
     return { inheritBgRefFromPrevious: true, inheritObjectRefsFromPrevious: "all" as const };
   }
   return { inheritBgRefFromPrevious: false, inheritObjectRefsFromPrevious: "identity_only" as const };
+}
+
+function buildDefaultObjectLayer(lang: Lang, index: number) {
+  return {
+    id: defaultObjectName(lang, index),
+    type: lang === "zh" ? "主体" : "subject",
+    shape: "rect" as const,
+    shapeDesc: "",
+    look: "",
+    z: 10,
+    color: "#b7c3ff",
+    opacity: 1,
+    kf: [
+      { t: 0 as const, x: 50, y: 50, w: 24, h: 24, rot: 0 },
+      { t: 1 as const, x: 50, y: 50, w: 24, h: 24, rot: 0 }
+    ],
+    notes: "",
+    externalPrompt: "",
+    referenceLinks: "",
+    localRefs: [],
+    referencePolicy: "optional" as const
+  };
 }
 
 export default function App() {
@@ -184,6 +183,13 @@ export default function App() {
   // ✅ 帮助类弹窗：新手教程 / 问题反馈 / 关于
   const [helpModal, setHelpModal] = useState<HelpModal>(null);
   const [tutorialPage, setTutorialPage] = useState<0 | 1>(0);
+  const [tutorialSkipNext, setTutorialSkipNext] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(TUTORIAL_SKIP_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
   const [feedbackText, setFeedbackText] = useState("");
 
   // ✅ 反馈发送状态
@@ -215,10 +221,23 @@ export default function App() {
     typeof window !== "undefined" ? window.innerWidth : 1440
   );
   const savePlatformResolverRef = useRef<((id: SavePlatformId | null) => void) | null>(null);
+  const tutorialAutoShownRef = useRef(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const tt = useMemo(() => (key: string) => t(lang, key), [lang]);
   const useDesktopFixedLayout = viewportWidth >= 1400;
+  const showTopText = viewportWidth >= 1220;
+  const showBrandZh = viewportWidth >= 980;
+
+  function syncSavePlatform(id: SavePlatformId, lock?: boolean) {
+    setSavePlatformId(id);
+    if (typeof lock === "boolean") setSavePlatformLocked(lock);
+    try {
+      localStorage.setItem(SAVE_PLATFORM_KEY, id);
+    } catch {
+      // ignore
+    }
+  }
   const emitEvent = useCallback((
     event: "ui_action" | "project_flow" | "editor_change" | "export_flow",
     props: Record<string, any>,
@@ -252,23 +271,28 @@ export default function App() {
     return list[idx] ?? list[0];
   }, [safeProject, sceneIdx]);
   const sceneNo = useMemo(() => clampInt(sceneIdx, 0, Math.max(0, safeProject.scenes.length - 1)) + 1, [sceneIdx, safeProject.scenes.length]);
+  const currentSceneConfig = useMemo(() => resolveSceneConfig(scene), [scene]);
+  const shotPlanLabel = useCallback((plan: ShotPlan) => {
+    if (lang !== "zh") return plan;
+    if (plan === "single") return "单镜头";
+    if (plan === "multicam") return "多机位";
+    if (plan === "continuous") return "连续镜头";
+    return "标准剪辑";
+  }, [lang]);
+  const projectStatusSummary = useMemo(() => {
+    const media = safeProject.project?.mediaType === "image" ? "image" : "video";
+    const shotPlan = (safeProject.project?.shotPlan ?? "single") as ShotPlan;
+    const sceneName = `${String(sceneNo).padStart(2, "0")} ${(scene?.name ?? "").trim() || scene?.id || defaultSceneName(lang, "video", sceneNo)}`;
+    const compiler = currentSceneConfig.compiler;
+    const exportTarget = savePlatformLabel(savePlatformId, lang);
+    return { media, shotPlan, sceneName, compiler, exportTarget };
+  }, [safeProject.project?.mediaType, safeProject.project?.shotPlan, sceneNo, scene, currentSceneConfig.compiler, savePlatformId, lang]);
   const currentLibrarySnapshot = useMemo(() => JSON.stringify({ project: safeProject, fileLabel: fileLabel || "" }), [safeProject, fileLabel]);
   const [lastLibrarySavedSnapshot, setLastLibrarySavedSnapshot] = useState<string>("");
   const hasUnsavedLibraryChanges = currentLibrarySnapshot !== lastLibrarySavedSnapshot;
 
   // ---------------------- mediaMode + editT lock (minimal) ----------------------
-  const mediaMode = useMemo<"image" | "video">(() => {
-    // 尽量兼容不同字段命名（按你项目实际字段优先命中）
-    const s: any = scene as any;
-    const m =
-      s?.mediaMode ??
-      s?.mode ??
-      s?.media?.mode ??
-      s?.media?.type ??
-      s?.export?.mediaMode ??
-      "video";
-    return m === "image" ? "image" : "video";
-  }, [scene]);
+  const mediaMode = useMemo<"image" | "video">(() => resolveSceneConfig(scene).mediaMode, [scene]);
 
   // image 模式强制只用 t0
   const effectiveEditT: 0 | 1 = mediaMode === "image" ? 0 : editT;
@@ -390,6 +414,13 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (wizardOpen || helpModal || tutorialAutoShownRef.current || tutorialSkipNext) return;
+    tutorialAutoShownRef.current = true;
+    setTutorialPage(0);
+    setHelpModal("tutorial");
+  }, [wizardOpen, helpModal, tutorialSkipNext]);
 
   function updateProject(next: Project) {
     setProject(next);
@@ -563,7 +594,6 @@ export default function App() {
     const shotPlan: ShotPlan = media === "image" ? "single" : draft.shotPlan;
     const count = media === "image" ? 1 : Math.max(1, Math.round(draft.shotCount));
     const durations = normalizeDurations({ ...draft, shotCount: count, shotPlan });
-    const shotNameBase = media === "image" ? (lang === "zh" ? "主画面" : "Main Frame") : (lang === "zh" ? "镜头" : "Shot");
     const presetByIndex = (index: number): string => {
       if (shotPlan === "multicam") {
         const presets = ["wide", "over_shoulder_left", "close", "return_wide", "medium", "over_shoulder_right"];
@@ -583,7 +613,7 @@ export default function App() {
         shotPlan === "continuous" ? "camera_continues" : shotPlan === "multicam" ? "reverse_angle" : "cut";
       const inheritFromPrevious = media === "video" && !isFirst && (shotPlan === "multicam" || shotPlan === "continuous");
       const { inheritBgRefFromPrevious, inheritObjectRefsFromPrevious } = defaultRefInheritByPlan(shotPlan, isFirst || media !== "video");
-      const shotName = media === "image" ? shotNameBase : `${String(no).padStart(2, "0")}｜${shotNameBase}${String(no).padStart(2, "0")}`;
+      const shotName = defaultSceneName(lang, media, no);
       return {
         id: `s${no}`,
         index: no,
@@ -604,7 +634,14 @@ export default function App() {
           ]
         },
         lighting: { time: "", key_dir: "", mood: "" },
-        layers: [],
+        layers: [buildDefaultObjectLayer(lang, 1)],
+        config: {
+          mediaMode: media,
+          compiler: media === "video" ? "v2" : "v1",
+          sceneTier,
+          v2Mode: "strict",
+          stability: "standard"
+        },
         notes: [
           `media: ${media}`,
           "genmode: quick",
@@ -630,7 +667,7 @@ export default function App() {
 
   function createProjectFromWizard() {
     const p = sanitizeProject(buildProjectFromWizard(wizardDraft));
-    const fallbackName = lang === "zh" ? "未命名项目" : "Untitled";
+    const fallbackName = defaultProjectName(lang);
     const projectFileName = wizardDraft.projectName.trim() || fallbackName;
     setSceneIdx(0);
     setSelectedLayerId(null);
@@ -670,17 +707,14 @@ export default function App() {
   async function saveAsToDisk(): Promise<boolean> {
     const pickedPlatform = await requestSavePlatform("save_as", true);
     if (!pickedPlatform) return false;
-    setSavePlatformId(pickedPlatform);
-    setSavePlatformLocked(true);
-    try {
-      localStorage.setItem(SAVE_PLATFORM_KEY, pickedPlatform);
-    } catch {
-      // ignore
-    }
-    const defaultProjectName = safeFsName(fileLabel || (lang === "zh" ? "未命名项目" : "Untitled")) || (lang === "zh" ? "未命名项目" : "Untitled");
-    const input = window.prompt(lang === "zh" ? "另存为：输入项目目录名（同名将覆盖）" : "Save As: enter project folder name (same name will overwrite)", defaultProjectName);
+    syncSavePlatform(pickedPlatform, true);
+    const defaultProjectDirName = safeExportName(fileLabel || defaultProjectName(lang)) || defaultProjectName(lang);
+    const input = window.prompt(
+      lang === "zh" ? "另存为：输入项目目录名（同名将覆盖）" : "Save As: enter project folder name (same name will overwrite)",
+      defaultProjectDirName
+    );
     if (input == null) return false;
-    const pickedName = safeFsName(input) || defaultProjectName;
+    const pickedName = safeExportName(input) || defaultProjectDirName;
     setLibraryHint(
       lang === "zh"
         ? `另存项目：${pickedName}（平台 ${savePlatformLabel(pickedPlatform, lang)}，同名覆盖）`
@@ -696,13 +730,7 @@ export default function App() {
   async function saveToDisk(): Promise<boolean> {
     const pickedPlatform = await requestSavePlatform("save", !savePlatformLocked);
     if (!pickedPlatform) return false;
-    setSavePlatformId(pickedPlatform);
-    setSavePlatformLocked(true);
-    try {
-      localStorage.setItem(SAVE_PLATFORM_KEY, pickedPlatform);
-    } catch {
-      // ignore
-    }
+    syncSavePlatform(pickedPlatform, true);
     setLibraryHint(
       lang === "zh"
         ? `保存当前分镜到项目目录（平台 ${savePlatformLabel(pickedPlatform, lang)}）。`
@@ -741,12 +769,7 @@ export default function App() {
   }
 
   function safeFsName(input: string) {
-    return (input ?? "")
-      .trim()
-      .replace(/[\\/:*?"<>|]/g, "_")
-      .replace(/\s+/g, "_")
-      .replace(/_+/g, "_")
-      .slice(0, 64);
+    return safeExportName(input);
   }
 
   function extFromName(name: string) {
@@ -909,12 +932,12 @@ export default function App() {
   }
 
   function projectDirName(customProjectName?: string) {
-    const fallback = lang === "zh" ? "未命名项目" : "Untitled";
+    const fallback = defaultProjectName(lang);
     return safeFsName(customProjectName || fileLabel || fallback) || fallback;
   }
 
   function sceneDirName(sceneItem: Scene, idx: number, projectName: string) {
-    const sceneTitle = safeFsName(sceneItem?.name || sceneItem?.id || (lang === "zh" ? `分镜_${idx + 1}` : `scene_${idx + 1}`)) || `scene_${idx + 1}`;
+    const sceneTitle = safeFsName(sceneItem?.name || sceneItem?.id || defaultSceneName(lang, "video", idx + 1)) || `scene_${idx + 1}`;
     return `${projectName}_${sceneTitle}`;
   }
 
@@ -989,13 +1012,7 @@ export default function App() {
   async function saveAllScenesToLibrary(): Promise<boolean> {
     const pickedPlatform = await requestSavePlatform("save_all", !savePlatformLocked);
     if (!pickedPlatform) return false;
-    setSavePlatformId(pickedPlatform);
-    setSavePlatformLocked(true);
-    try {
-      localStorage.setItem(SAVE_PLATFORM_KEY, pickedPlatform);
-    } catch {
-      // ignore
-    }
+    syncSavePlatform(pickedPlatform, true);
     const root = await ensureLibraryRoot(true);
     if (!root) return false;
     setLibraryBusy(true);
@@ -1187,7 +1204,7 @@ export default function App() {
         <div style={styles.brand} title="ScenePilotix">
           <div style={styles.logoRow}>
             <div style={styles.logoEn}>ScenePilotix</div>
-            <div style={styles.logoZh}>场景领航</div>
+            {showBrandZh ? <div style={styles.logoZh}>场景领航</div> : null}
           </div>
         </div>
 
@@ -1196,7 +1213,7 @@ export default function App() {
         {/* ✅ 保留中英文切换按钮 */}
         <button style={styles.topBtn} onClick={toggleLang} type="button">
           <Languages size={16} />
-          <span>{lang === "zh" ? "EN" : "中文"}</span>
+          <span style={styles.topBtnText}>{lang === "zh" ? "EN" : "中文"}</span>
         </button>
 
         <button
@@ -1212,7 +1229,7 @@ export default function App() {
           title={lang === "zh" ? "我的分镜库" : "My Storyboard Library"}
         >
           <BookOpen size={16} />
-          <span>{lang === "zh" ? "我的分镜库" : "My Library"}</span>
+          {showTopText ? <span style={styles.topBtnText}>{lang === "zh" ? "我的分镜库" : "My Library"}</span> : null}
         </button>
 
         {/* ✅ 其它按钮：统一收入口径 -> 下拉菜单 */}
@@ -1227,7 +1244,7 @@ export default function App() {
           title={lang === "zh" ? "菜单" : "Menu"}
         >
           <Menu size={16} />
-          <span>{lang === "zh" ? "菜单" : "Menu"}</span>
+          {showTopText ? <span style={styles.topBtnText}>{lang === "zh" ? "菜单" : "Menu"}</span> : null}
         </button>
 
         {/* hidden file input for no FS access */}
@@ -1238,6 +1255,28 @@ export default function App() {
           style={{ display: "none" }}
           onChange={onUploadFile}
         />
+      </div>
+
+      <div style={styles.projectStatusBar}>
+        <div style={styles.projectStatusTitle}>{lang === "zh" ? "当前工作流状态" : "Workflow Status"}</div>
+        <div style={styles.projectStatusItem}>
+          {lang === "zh" ? "媒体类型" : "Media"}: {lang === "zh" ? (projectStatusSummary.media === "image" ? "图片" : "视频") : projectStatusSummary.media}
+        </div>
+        <div style={styles.projectStatusItem}>
+          {lang === "zh" ? "分镜方案" : "Shot Plan"}: {shotPlanLabel(projectStatusSummary.shotPlan)}
+        </div>
+        <div style={styles.projectStatusItem}>
+          {lang === "zh" ? "编译器" : "Compiler"}: {projectStatusSummary.compiler}
+        </div>
+        <div style={styles.projectStatusItem}>
+          {lang === "zh" ? "当前分镜" : "Current Scene"}: {projectStatusSummary.sceneName}
+        </div>
+        <div style={styles.projectStatusItem}>
+          {lang === "zh" ? "导出平台" : "Export Platform"}: {projectStatusSummary.exportTarget}
+        </div>
+        <div style={styles.projectStatusFootnote}>
+          {lang === "zh" ? "当前分镜导出与项目级保存是两条路径。" : "Current-shot export and project-level save are separate paths."}
+        </div>
       </div>
 
       {/* ✅ 下拉菜单：点击外部关闭 */}
@@ -1442,7 +1481,7 @@ export default function App() {
                 ? "用于生成对应平台优化的提示词文本。保存将按你选择的平台输出。"
                 : "Used to generate platform-optimized prompt text. Save outputs by the selected platform."}
             </div>
-            <div style={{ ...styles.modalFormRow, gridTemplateColumns: "120px 1fr" }}>
+            <div style={{ ...styles.modalFormRow, gridTemplateColumns: "minmax(88px,120px) minmax(0,1fr)" }}>
               <div style={styles.modalLabel}>{lang === "zh" ? "平台" : "Platform"}</div>
               <select
                 style={styles.modalSelect}
@@ -1590,6 +1629,8 @@ export default function App() {
           project={safeProject}
           projectLabel={fileLabel}
           sceneIdx={sceneIdx}
+          platformId={savePlatformId}
+          onPlatformChange={(id) => syncSavePlatform(id as SavePlatformId)}
           selectedLayerId={selectedLayerId}
           onJumpToConflict={(layerId) => {
             if (layerId) setSelectedLayerId(layerId);
@@ -1650,42 +1691,31 @@ export default function App() {
               <>
                 <div style={styles.tutorialTop}>
                   <div style={styles.modalTitle}>{lang === "zh" ? "新手教程" : "Beginner Tutorial"}</div>
-                  {tutorialPage === 0 ? (
-                    <button
-                      style={styles.tutorialPill}
-                      onClick={() => {
-                        setTutorialPage(1);
-                        trackUiAction("help", "open", "tutorial_workflow", {}, lang);
-                      }}
-                      type="button"
-                    >
-                      {lang === "zh" ? "查看流程设计" : "View Workflow"}
-                    </button>
-                  ) : (
+                  {tutorialPage === 1 ? (
                     <div style={styles.tutorialPageTag}>{lang === "zh" ? "流程设计" : "Workflow Design"}</div>
-                  )}
+                  ) : null}
                 </div>
                 <div style={styles.modalText}>
                   {tutorialPage === 0 ? (
                     lang === "zh" ? (
                       <>
-                        <div style={styles.tutBlockTitle}>核心操作（4 步）</div>
+                        <div style={styles.tutBlockTitle}>快速上手（5 步）</div>
                         <div style={styles.tutText}>
-                          1) 先创建项目：选择图片或视频。<br />
-                          2) 设置分镜数量与每镜时长（视频模式）。<br />
-                          3) 逐个分镜编辑对象：位置、大小、层级、对象参考图。<br />
-                          4) 保存或复制提示词到目标平台生成。
+                          1) 创建项目，先选图片或视频。<br />
+                          2) 确保当前分镜至少有 1 个对象。<br />
+                          3) 编辑对象的位置、大小、外观与备注。<br />
+                          4) 在导出区查看“当前提示词”。<br />
+                          5) 复制或保存后到目标平台生成。
                         </div>
 
-                        <div style={styles.tutBlockTitle}>操作顺序（必须）</div>
+                        <div style={styles.tutBlockTitle}>什么时候看这页</div>
                         <div style={styles.tutText}>
-                          媒体选择 → 分镜结构 → 分镜内对象编辑 → 提示词导出。<br />
-                          不要跳步；先定结构，再做细节。
+                          当你第一次使用，或不确定下一步做什么时，按上面 5 步走即可。
                         </div>
 
-                        <div style={styles.tutBlockTitle}>核心原则</div>
+                        <div style={styles.tutBlockTitle}>下一步建议</div>
                         <div style={styles.tutText}>
-                          图片模式固定单分镜；视频模式按分镜逐镜编辑并串联导出。
+                          先补齐对象，再看导出区的“你的输入”和“系统追加”。
                         </div>
                       </>
                     ) : (
@@ -1760,6 +1790,23 @@ export default function App() {
                 </div>
 
                 <div style={styles.modalBtns}>
+                  <label style={styles.rememberRow}>
+                    <input
+                      type="checkbox"
+                      checked={tutorialSkipNext}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setTutorialSkipNext(checked);
+                        try {
+                          if (checked) localStorage.setItem(TUTORIAL_SKIP_KEY, "1");
+                          else localStorage.removeItem(TUTORIAL_SKIP_KEY);
+                        } catch {
+                          // ignore
+                        }
+                      }}
+                    />
+                    <span>{lang === "zh" ? "下次不再显示" : "Don't show next time"}</span>
+                  </label>
                   {tutorialPage === 1 ? (
                     <button style={styles.modalBtnGhost} onClick={() => setTutorialPage(0)} type="button">
                       {lang === "zh" ? "返回核心操作" : "Back to Core Ops"}
@@ -1906,45 +1953,82 @@ const styles: Record<string, React.CSSProperties> = {
     height: "100vh",
     display: "flex",
     flexDirection: "column",
-    color: "rgba(255,255,255,0.92)",
-    background: "radial-gradient(1200px 700px at 20% 10%, rgba(120,180,255,0.18), transparent 50%), #0b1020"
+    color: UI_PALETTE.text.primary,
+    background:
+      "radial-gradient(1200px 680px at 20% 8%, rgba(93,130,210,0.16), transparent 55%), radial-gradient(860px 480px at 92% 0%, rgba(75,132,236,0.12), transparent 58%), #0a0d14",
+    overflow: "hidden"
   },
   top: {
-    height: 58,
+    height: 56,
     display: "flex",
     alignItems: "center",
-    gap: 10,
-    padding: "0 12px",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(0,0,0,0.15)",
-    backdropFilter: "blur(8px)"
+    gap: UI_SPACE.xs,
+    padding: `0 ${UI_SPACE.sm}px`,
+    borderBottom: `1px solid ${UI_PALETTE.border.soft}`,
+    background: UI_PALETTE.bg.toolbar,
+    backdropFilter: "blur(12px)"
+  },
+  projectStatusBar: {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+    padding: "6px 12px",
+    borderBottom: `1px solid ${UI_PALETTE.border.soft}`,
+    background: "rgba(8,12,20,0.9)"
+  },
+  projectStatusTitle: {
+    fontSize: UI_TYPO.size11,
+    fontWeight: 900,
+    opacity: 0.84
+  },
+  projectStatusItem: {
+    fontSize: UI_TYPO.size11,
+    color: UI_PALETTE.text.secondary,
+    padding: "3px 8px",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2
+  },
+  projectStatusFootnote: {
+    fontSize: UI_TYPO.size11,
+    color: UI_PALETTE.text.secondary,
+    opacity: 0.82
   },
 
   // ✅ brand：单行（彻底去掉 File badge 与 tagline）
-  brand: { display: "flex", alignItems: "center" },
-  logoRow: { display: "flex", alignItems: "baseline", gap: 10, lineHeight: 1 },
-  logoEn: { fontWeight: 900, fontSize: 16, letterSpacing: 0.2 },
-  logoZh: { fontWeight: 900, fontSize: 18, opacity: 0.88 },
-
+  brand: { display: "flex", alignItems: "center", paddingRight: 8 },
+  logoRow: { display: "flex", alignItems: "baseline", gap: 8, lineHeight: 1 },
+  logoEn: { fontWeight: 850, fontSize: UI_TYPO.size16, letterSpacing: 0.18, color: UI_PALETTE.text.primary },
+  logoZh: { fontWeight: 820, fontSize: UI_TYPO.size16, opacity: 0.74, color: UI_PALETTE.text.secondary },
   topBtn: {
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
-    padding: "8px 10px",
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.06)",
+    padding: "7px 10px",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
     color: "inherit",
     cursor: "pointer",
-    fontSize: 12,
+    fontSize: UI_TYPO.size12,
     outline: "none",
-    boxShadow: "none"
+    boxShadow: UI_EFFECT.insetShadow,
+    minWidth: 0,
+    whiteSpace: "nowrap",
+    flexShrink: 0
+  },
+  topBtnText: {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    maxWidth: 118
   },
 
-  main: { flex: 1, display: "flex", minHeight: 0 },
+  main: { flex: 1, display: "flex", minHeight: 0, minWidth: 0, overflow: "hidden" },
   mainDesktop: {
     display: "grid",
-    gridTemplateColumns: "320px minmax(0, 1fr) 344px"
+    gridTemplateColumns: "clamp(232px, 24vw, 320px) minmax(0, 1fr) clamp(240px, 26vw, 344px)"
   },
 
   center: {
@@ -1967,33 +2051,33 @@ const styles: Record<string, React.CSSProperties> = {
     right: 12,
     width: "clamp(296px, 34vw, 360px)",
     maxWidth: "calc(100vw - 24px)",
-    borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(15,20,35,0.96)",
-    boxShadow: "0 18px 60px rgba(0,0,0,0.45)",
-    padding: 10
+    borderRadius: UI_RADIUS.panel,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: "rgba(12,17,27,0.96)",
+    boxShadow: UI_EFFECT.floatShadow,
+    padding: UI_SPACE.xs
   },
   menuSectionTitle: {
-    fontSize: 11,
+    fontSize: UI_TYPO.size11,
     fontWeight: 900,
     opacity: 0.65,
     padding: "6px 8px"
   },
   menuNotice: {
     margin: "2px 0 10px",
-    borderRadius: 12,
-    border: "1px solid rgba(120,180,255,0.35)",
-    background: "rgba(120,180,255,0.10)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive,
     padding: "8px 10px"
   },
   menuNoticeTitle: {
-    fontSize: 11,
+    fontSize: UI_TYPO.size11,
     fontWeight: 900,
     opacity: 0.95,
     marginBottom: 4
   },
   menuNoticeText: {
-    fontSize: 12,
+    fontSize: UI_TYPO.size12,
     lineHeight: 1.5,
     opacity: 0.9,
     whiteSpace: "normal",
@@ -2008,12 +2092,12 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: 10,
     padding: "9px 10px",
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.04)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_COLOR.borderSoft}`,
+    background: UI_COLOR.surface,
     color: "inherit",
     cursor: "pointer",
-    fontSize: 12,
+    fontSize: UI_TYPO.size12,
     fontWeight: 900,
     outline: "none",
     boxShadow: "none",
@@ -2022,9 +2106,9 @@ const styles: Record<string, React.CSSProperties> = {
     transition: "background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease"
   },
   menuItemHover: {
-    border: "1px solid rgba(120,180,255,0.55)",
-    background: "rgba(120,180,255,0.16)",
-    boxShadow: "0 0 0 1px rgba(120,180,255,0.22) inset"
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive,
+    boxShadow: UI_EFFECT.softRing
   },
   menuSep: {
     height: 1,
@@ -2046,27 +2130,33 @@ const styles: Record<string, React.CSSProperties> = {
   modal: {
     width: 520,
     maxWidth: "100%",
-    borderRadius: 16,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(15,20,35,0.96)",
-    boxShadow: "0 18px 60px rgba(0,0,0,0.45)",
+    borderRadius: UI_RADIUS.panel,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: "rgba(12,17,27,0.96)",
+    boxShadow: UI_EFFECT.floatShadow,
     padding: 14
   },
   libraryModal: {
     width: 720,
     maxWidth: "100%",
     maxHeight: "min(80vh, 760px)",
-    borderRadius: 16,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(15,20,35,0.96)",
-    boxShadow: "0 18px 60px rgba(0,0,0,0.45)",
+    borderRadius: UI_RADIUS.panel,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: "rgba(12,17,27,0.96)",
+    boxShadow: UI_EFFECT.floatShadow,
     padding: 14,
     display: "flex",
     flexDirection: "column",
     gap: 10
   },
-  modalTitle: { fontWeight: 900, fontSize: 14, opacity: 0.95 },
-  modalText: { marginTop: 8, fontSize: 12, opacity: 0.82, lineHeight: 1.6 },
+  modalTitle: { fontWeight: 900, fontSize: UI_TYPO.size14, opacity: 0.96 },
+  modalText: {
+    marginTop: 8,
+    fontSize: UI_TYPO.size12,
+    lineHeight: 1.6,
+    color: UI_PALETTE.text.primary,
+    opacity: 0.96
+  },
   wizardBrand: {
     fontSize: 11,
     letterSpacing: 1,
@@ -2161,7 +2251,7 @@ const styles: Record<string, React.CSSProperties> = {
   wizardPlanDesc: { fontSize: 12, opacity: 0.76, lineHeight: 1.4 },
   modalFormRow: {
     display: "grid",
-    gridTemplateColumns: "120px 1fr",
+    gridTemplateColumns: "minmax(88px,120px) minmax(0,1fr)",
     gap: 10,
     alignItems: "center",
     marginTop: 8
@@ -2207,17 +2297,17 @@ const styles: Record<string, React.CSSProperties> = {
     marginLeft: "auto",
     fontSize: 12,
     opacity: 0.78,
-    border: "1px solid rgba(255,255,255,0.12)",
-    borderRadius: 10,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    borderRadius: UI_RADIUS.control,
     padding: "6px 8px"
   },
   libraryActions: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
   libraryHint: {
     fontSize: 12,
-    border: "1px solid rgba(120,180,255,0.35)",
-    borderRadius: 10,
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    borderRadius: UI_RADIUS.control,
     padding: "6px 8px",
-    background: "rgba(120,180,255,0.12)",
+    background: UI_PALETTE.surface.surfaceActive,
     opacity: 0.92
   },
   libraryFloatHint: {
@@ -2228,8 +2318,8 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 420,
     fontSize: 12,
     lineHeight: 1.35,
-    border: "1px solid rgba(120,180,255,0.35)",
-    borderRadius: 10,
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    borderRadius: UI_RADIUS.control,
     padding: "8px 10px",
     background: "rgba(20,28,46,0.96)",
     boxShadow: "0 10px 30px rgba(0,0,0,0.35)"
@@ -2238,9 +2328,9 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 180,
     maxHeight: "min(50vh, 420px)",
     overflow: "auto",
-    border: "1px solid rgba(255,255,255,0.10)",
-    borderRadius: 12,
-    background: "rgba(0,0,0,0.16)",
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    borderRadius: UI_RADIUS.control,
+    background: UI_PALETTE.surface.surface1,
     padding: 8,
     display: "flex",
     flexDirection: "column",
@@ -2256,10 +2346,10 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: 8,
     flexWrap: "wrap",
-    border: "1px solid rgba(255,255,255,0.10)",
-    borderRadius: 10,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    borderRadius: UI_RADIUS.control,
     padding: "8px 10px",
-    background: "rgba(255,255,255,0.03)"
+    background: UI_PALETTE.surface.surface1
   },
   libraryItemName: {
     flex: 1,
@@ -2272,12 +2362,20 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   modalBtns: { display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", marginTop: 12 },
+  rememberRow: {
+    marginRight: "auto",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 12,
+    opacity: 0.86
+  },
 
   modalBtn: {
     padding: "8px 10px",
-    borderRadius: 12,
-    border: "1px solid rgba(120,180,255,0.35)",
-    background: "rgba(120,180,255,0.12)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive,
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
@@ -2285,9 +2383,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   modalBtnGhost: {
     padding: "8px 10px",
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.06)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
@@ -2295,9 +2393,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   modalBtnDanger: {
     padding: "8px 10px",
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,80,80,0.10)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.danger}`,
+    background: "rgba(255,124,124,0.14)",
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
@@ -2313,9 +2411,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   tutorialPill: {
     padding: "5px 8px",
-    borderRadius: 999,
-    border: "1px solid rgba(120,180,255,0.4)",
-    background: "rgba(120,180,255,0.12)",
+    borderRadius: UI_RADIUS.chip,
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive,
     color: "inherit",
     cursor: "pointer",
     fontSize: 11,
@@ -2324,20 +2422,32 @@ const styles: Record<string, React.CSSProperties> = {
   tutorialPageTag: {
     fontSize: 11,
     fontWeight: 900,
-    opacity: 0.78,
+    opacity: 0.96,
+    color: UI_PALETTE.text.primary,
     padding: "5px 8px",
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.16)"
+    borderRadius: UI_RADIUS.chip,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2
   },
-  tutBlockTitle: { marginTop: 10, fontWeight: 900, opacity: 0.92 },
-  tutText: { marginTop: 6, opacity: 0.82 },
+  tutBlockTitle: {
+    marginTop: 10,
+    fontWeight: 900,
+    opacity: 0.98,
+    color: UI_PALETTE.text.primary
+  },
+  tutText: {
+    marginTop: 6,
+    opacity: 0.96,
+    color: UI_PALETTE.text.primary,
+    lineHeight: 1.65
+  },
 
   // ---- feedback ----
   feedbackTpl: {
     marginTop: 10,
     padding: 10,
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.10)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
     background: "rgba(0,0,0,0.18)"
   },
   feedbackTplLine: { fontSize: 12, opacity: 0.82, lineHeight: 1.55 },

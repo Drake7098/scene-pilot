@@ -15,6 +15,7 @@ type SubjectSpec = {
   name: string;
   look: string;
   notes: string;
+  externalPrompt: string;
   t0: LayerKF;
   t1: LayerKF;
   size0: SizeTag;
@@ -62,6 +63,14 @@ const MOTION_INTENT_RE =
 const NEG_STATIC_RE =
   /不(移动|动|走|跑|转)|静止|保持原位|固定不动|\b(no motion|stay still|static)\b/i;
 
+function compactLocalPrompt(input: string): string {
+  return (input ?? "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(" | ");
+}
+
 function n1(v: number) {
   const x = Number.isFinite(v) ? v : 0;
   return Math.round(x * 10) / 10;
@@ -108,6 +117,12 @@ function subjectName(layer: Layer, idx: number, lang: Lang): string {
   if (t) return t.slice(0, 28);
   if (lang === "zh") return `对象${idx + 1}`;
   return `Subject ${idx + 1}`;
+}
+
+function subjectLabel(s: SubjectSpec, lang: Lang): string {
+  const alias = (s.name ?? "").trim();
+  if (!alias || alias === s.id) return s.id;
+  return lang === "zh" ? `${s.id}（${alias}）` : `${s.id} (${alias})`;
 }
 
 function depthByHeight(subjects: SubjectSpec[], t: 0 | 1) {
@@ -282,6 +297,7 @@ export function compileScenePromptV2(scene: Scene, lang: Lang, tier: SceneTier, 
       name: subjectName(l, idx, lang),
       look: (l.look ?? "").trim(),
       notes: (l.notes ?? "").trim(),
+      externalPrompt: compactLocalPrompt(l.externalPrompt ?? ""),
       t0,
       t1,
       size0: sizeTagFromH((t0.h ?? 0) / 100, profile.farCut),
@@ -355,20 +371,27 @@ export function compileScenePromptV2(scene: Scene, lang: Lang, tier: SceneTier, 
   const t0Lines = ["T0 Frame Spec:"];
   const t1Lines = ["T1 Frame Spec:"];
   for (const s of subjects) {
+    const label = subjectLabel(s, lang);
     const detail = [s.look, s.notes].filter(Boolean).join(", ");
+    const localSuffix =
+      s.externalPrompt
+        ? lang === "zh"
+          ? `；对象局部提示：${s.externalPrompt}（仅作用于 ${s.id}）`
+          : `; object-local prompt: ${s.externalPrompt} (apply to ${s.id} only)`
+        : "";
     if (lang === "zh") {
       t0Lines.push(
-        `- ${s.name}：初始在${posLabel(s.hPos0, lang)}${vPosLabel(s.vPos0, lang)}，${sizeLabel(s.size0, lang)}，${depthLabel(s.depth0, lang)}${detail ? `，${detail}` : ""}。`
+        `- ${label}：初始在${posLabel(s.hPos0, lang)}${vPosLabel(s.vPos0, lang)}，${sizeLabel(s.size0, lang)}，${depthLabel(s.depth0, lang)}${detail ? `，${detail}` : ""}${localSuffix}。`
       );
     } else {
       t0Lines.push(
-        `- ${s.name}: initial at ${s.hPos0} ${s.vPos0}, ${s.size0}, ${s.depth0}${detail ? `, ${detail}` : ""}.`
+        `- ${label}: initial at ${s.hPos0} ${s.vPos0}, ${s.size0}, ${s.depth0}${detail ? `, ${detail}` : ""}${localSuffix}.`
       );
     }
     t1Lines.push(
       lang === "zh"
-        ? `- ${s.name}：${describeTransition(s, lang, profile, mode)}`
-        : `- ${s.name}: ${describeTransition(s, lang, profile, mode)}`
+        ? `- ${label}：${describeTransition(s, lang, profile, mode)}`
+        : `- ${label}: ${describeTransition(s, lang, profile, mode)}`
     );
   }
 

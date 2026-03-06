@@ -2,17 +2,25 @@ import React, { useEffect, useMemo, useState } from "react";
 import type { Lang } from "../i18n";
 import { tAny } from "../i18n";
 import type { Project } from "../model";
-import { generatePrompts } from "../utils/prompt";
+import { resolveSceneConfig } from "../model";
 import type { PromptProfile } from "../utils/prompt";
 import { getRefBlob } from "../utils/localRefs";
 import { detectSceneConflicts, type PromptConflict } from "../utils/conflictRules";
-import { UI_FONT, UI_OPACITY, UI_SIZE } from "../uiTokens";
+import { getPlatformPreset, PLATFORM_PRESETS } from "../config/platformPresets";
+import type { PlatformPresetId } from "../config/platformPresets";
+import { runPromptPipeline } from "../utils/promptPipeline";
+import { makeExportSummary } from "../utils/exportSummary";
+import { buildUserInputSummary } from "../utils/exportViewModel";
+import { defaultProjectName, safeExportName } from "../utils/naming";
+import { UI_COLOR, UI_EFFECT, UI_FONT, UI_OPACITY, UI_PALETTE, UI_RADIUS, UI_SIZE, UI_TYPO } from "../uiTokens";
 
 type Props = {
   lang: Lang;
   project: Project;
   projectLabel?: string;
   sceneIdx: number;
+  platformId?: PlatformPresetId;
+  onPlatformChange?: (id: PlatformPresetId) => void;
   selectedLayerId: string | null;
   onJumpToConflict?: (layerId: string | null) => void;
 };
@@ -23,178 +31,6 @@ function clampInt(v: number, a: number, b: number) {
 }
 
 type MediaMode = "image" | "video";
-type GenMode = "quick" | "pro";
-
-type PlatformPresetId =
-  | "universal"
-  | "midjourney"
-  | "runway"
-  | "pika"
-  | "luma"
-  | "krea"
-  | "jimeng"
-  | "keling"
-  | "vidu"
-  | "hailuo"
-  | "wanx";
-
-type PlatformPreset = {
-  id: PlatformPresetId;
-  profile: PromptProfile;
-  labelZh: string;
-  labelEn: string;
-  url: string;
-  maxRefsPerObject: number;
-  uploadMode: "upload-first" | "prompt-first";
-  promptStyle: "short" | "long";
-};
-
-const PLATFORM_PRESETS: PlatformPreset[] = [
-  {
-    id: "universal",
-    profile: "universal",
-    labelZh: "通用",
-    labelEn: "Universal",
-    url: "",
-    maxRefsPerObject: 3,
-    uploadMode: "upload-first",
-    promptStyle: "long"
-  },
-  {
-    id: "midjourney",
-    profile: "midjourney",
-    labelZh: "Midjourney",
-    labelEn: "Midjourney",
-    url: "https://www.midjourney.com/",
-    maxRefsPerObject: 3,
-    uploadMode: "upload-first",
-    promptStyle: "short"
-  },
-  {
-    id: "runway",
-    profile: "runway",
-    labelZh: "Runway",
-    labelEn: "Runway",
-    url: "https://runwayml.com/",
-    maxRefsPerObject: 3,
-    uploadMode: "upload-first",
-    promptStyle: "long"
-  },
-  {
-    id: "pika",
-    profile: "runway",
-    labelZh: "Pika",
-    labelEn: "Pika",
-    url: "https://pika.art/",
-    maxRefsPerObject: 2,
-    uploadMode: "upload-first",
-    promptStyle: "short"
-  },
-  {
-    id: "luma",
-    profile: "runway",
-    labelZh: "Luma",
-    labelEn: "Luma",
-    url: "https://lumalabs.ai/dream-machine",
-    maxRefsPerObject: 2,
-    uploadMode: "upload-first",
-    promptStyle: "short"
-  },
-  {
-    id: "krea",
-    profile: "midjourney",
-    labelZh: "Krea",
-    labelEn: "Krea",
-    url: "https://www.krea.ai/",
-    maxRefsPerObject: 2,
-    uploadMode: "upload-first",
-    promptStyle: "short"
-  },
-  {
-    id: "jimeng",
-    profile: "jimeng",
-    labelZh: "即梦",
-    labelEn: "Jimeng",
-    url: "https://jimeng.jianying.com/",
-    maxRefsPerObject: 3,
-    uploadMode: "upload-first",
-    promptStyle: "short"
-  },
-  {
-    id: "keling",
-    profile: "jimeng",
-    labelZh: "可灵",
-    labelEn: "Keling",
-    url: "https://klingai.com/",
-    maxRefsPerObject: 3,
-    uploadMode: "upload-first",
-    promptStyle: "short"
-  },
-  {
-    id: "vidu",
-    profile: "runway",
-    labelZh: "Vidu",
-    labelEn: "Vidu",
-    url: "https://www.vidu.cn/",
-    maxRefsPerObject: 3,
-    uploadMode: "upload-first",
-    promptStyle: "long"
-  },
-  {
-    id: "hailuo",
-    profile: "runway",
-    labelZh: "海螺 AI",
-    labelEn: "Hailuo AI",
-    url: "https://hailuoai.com/",
-    maxRefsPerObject: 3,
-    uploadMode: "upload-first",
-    promptStyle: "long"
-  },
-  {
-    id: "wanx",
-    profile: "qwen",
-    labelZh: "通义万相",
-    labelEn: "Wanx",
-    url: "https://tongyi.aliyun.com/wanxiang/",
-    maxRefsPerObject: 3,
-    uploadMode: "upload-first",
-    promptStyle: "long"
-  }
-];
-
-function parseMediaModeFromNotes(notes: string | undefined | null): MediaMode {
-  const lines = (notes ?? "")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => s.toLowerCase());
-
-  const keys = ["media:", "mode:", "type:"];
-  for (const l of lines) {
-    for (const k of keys) {
-      if (l.startsWith(k)) {
-        const v = l.slice(k.length).trim();
-        if (v.startsWith("image") || v.startsWith("img") || v.includes("图片")) return "image";
-        if (v.startsWith("video") || v.startsWith("vid") || v.includes("视频")) return "video";
-      }
-    }
-  }
-
-  // 默认保持你原来的逻辑：没标就按视频（因为很多人需要 t0/t1）
-  return "video";
-}
-
-function parseGenModeFromNotes(notes: string | undefined | null): GenMode {
-  const lines = (notes ?? "")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => s.toLowerCase());
-  const hit = lines.find((l) => l.startsWith("genmode:"));
-  if (!hit) return "quick";
-  const v = hit.slice("genmode:".length).trim();
-  return v === "pro" ? "pro" : "quick";
-}
 
 /**
  * 将末尾“系统追加/机器语言块”分离出来，用于 UI 灰显（复制仍保留完整）
@@ -237,210 +73,6 @@ function splitMachineNotes(allText: string): { main: string; notes: string } {
   return { main, notes };
 }
 
-/** 图片模式：移除秒数/时长（行内+整行） */
-function stripDurationForImageMode(prompts: string): string {
-  const src = (prompts ?? "").split("\n");
-
-  const isDurationWholeLine = (s: string) => {
-    const t = s.trim();
-    if (!t) return false;
-    const low = t.toLowerCase();
-    if (low.includes("duration_s")) return true;
-    if (low.startsWith("duration")) return true;
-    if (low.startsWith("length")) return true;
-    if (low.startsWith("len")) return true;
-    if (t.includes("时长")) return true;
-    if (/^\d+(\.\d+)?\s*(s|sec|secs|second|seconds)$/i.test(t)) return true;
-    if (/^\d+(\.\d+)?\s*秒$/.test(t)) return true;
-    if (/^duration\s*[:：]\s*\d+(\.\d+)?\s*(s|sec|secs|second|seconds)\b/i.test(t)) return true;
-    if (/^时长\s*[:：]\s*\d+(\.\d+)?\s*秒$/.test(t)) return true;
-    return false;
-  };
-
-  const stripInline = (line: string) => {
-    let s = line;
-
-    s = s.replace(/[(（]\s*\d+(\.\d+)?\s*(s|sec|secs|second|seconds)\s*[)）]/gi, "");
-    s = s.replace(/[(（]\s*\d+(\.\d+)?\s*秒\s*[)）]/g, "");
-    s = s.replace(/\[\s*\d+(\.\d+)?\s*(s|sec|secs|second|seconds)\s*\]/gi, "");
-    s = s.replace(/\[\s*\d+(\.\d+)?\s*秒\s*\]/g, "");
-
-    s = s.replace(/\s*(-|—|–|·|\||\/)\s*\d+(\.\d+)?\s*(s|sec|secs|second|seconds)\b/gi, "");
-    s = s.replace(/\s*(-|—|–|·|\||\/)\s*\d+(\.\d+)?\s*秒\b/g, "");
-
-    s = s.replace(/duration\s*[:：]\s*\d+(\.\d+)?\s*(s|sec|secs|second|seconds)\b/gi, "");
-    s = s.replace(/时长\s*[:：]\s*\d+(\.\d+)?\s*秒\b/g, "");
-
-    s = s.replace(/\b\d+(\.\d+)?\s*(s|sec|secs|second|seconds)\b/gi, "");
-    s = s.replace(/\b\d+(\.\d+)?\s*秒\b/g, "");
-
-    s = s
-      .replace(/\s{2,}/g, " ")
-      .replace(/\s*[,，]\s*[,，]\s*/g, ", ")
-      .replace(/\s+([,，:：;；])/g, "$1")
-      .replace(/([,，:：;；])\s+/g, "$1 ")
-      .trim();
-
-    if (/^[,，:：;；\-—–·|/]+$/.test(s)) return "";
-    return s;
-  };
-
-  const out: string[] = [];
-  for (const line of src) {
-    if (isDurationWholeLine(line)) continue;
-    const cleaned = stripInline(line);
-    if (!cleaned) continue;
-    out.push(cleaned);
-  }
-  return out.join("\n");
-}
-
-/** 图片模式：只保留 T0，移除 T1/终点/End/Path 等 */
-function stripT1ForImageMode(prompts: string): string {
-  const lines = (prompts ?? "").split("\n");
-
-  const isT1WholeLine = (s: string) => {
-    const t = s.trim();
-    if (!t) return false;
-    const low = t.toLowerCase();
-
-    if (/\bt\s*=\s*1\b/i.test(t)) return true;
-    if (/\bt1\b/i.test(t)) return true;
-    if (/\bkf1\b/i.test(t)) return true;
-    if (/\bend\b/i.test(low)) return true;
-
-    if (t.includes("终点") || t.includes("终帧") || t.includes("结束") || t.includes("结尾")) return true;
-    if (t.includes("轨迹") || t.includes("路径")) return true;
-
-    if (low.includes("start") && low.includes("end")) return true;
-
-    return false;
-  };
-
-  const stripInlineT1 = (line: string) => {
-    let s = line;
-
-    s = s.replace(/(\bt\s*=\s*0\b.*?)(\s*(->|→|to)\s*.*)$/i, "$1");
-    s = s.replace(/(\bt0\b.*?)(\s*(->|→|to)\s*.*)$/i, "$1");
-    s = s.replace(/(起点.*?)(\s*(->|→|到|至)\s*.*)$/i, "$1");
-    s = s.replace(/(\bstart\b.*?)(\s*(->|→|to)\s*.*)$/i, "$1");
-
-    s = s.replace(/[(（][^)）]*\b(t1|t\s*=\s*1|end|kf1)\b[^)）]*[)）]/gi, "");
-    s = s.replace(/[(（][^)）]*(终点|终帧|结束|结尾)[^)）]*[)）]/g, "");
-
-    s = s.replace(/\bend\s*[:：]\s*[^,，;；]+/gi, "");
-    s = s.replace(/\bt1\s*[:：]\s*[^,，;；]+/gi, "");
-    s = s.replace(/\bt\s*=\s*1\s*[:：]\s*[^,，;；]+/gi, "");
-    s = s.replace(/终点\s*[:：]\s*[^,，;；]+/g, "");
-
-    s = s
-      .replace(/\s{2,}/g, " ")
-      .replace(/\s*[,，]\s*[,，]\s*/g, ", ")
-      .replace(/\s+([,，:：;；])/g, "$1")
-      .replace(/([,，:：;；])\s+/g, "$1 ")
-      .trim();
-
-    if (!s) return "";
-    if (/^[,，:：;；\-—–·|/]+$/.test(s)) return "";
-    return s;
-  };
-
-  const out: string[] = [];
-  for (const raw of lines) {
-    if (isT1WholeLine(raw)) continue;
-    const cleaned = stripInlineT1(raw);
-    if (!cleaned) continue;
-
-    const low = cleaned.toLowerCase();
-    if (/\bt1\b/.test(low) || /\bt\s*=\s*1\b/.test(low) || cleaned.includes("终点")) continue;
-
-    out.push(cleaned);
-  }
-
-  return out.join("\n");
-}
-
-/**
- * ✅ 文案修正：
- * - 移除那句“不要引用任何颜色字段…”
- * - 第一行“图像/视频”按模式切换
- * - 将“# 分镜1/Scene 1”等标题前缀替换成当前分镜名字（保留 #）
- * - 去掉重复的“分镜标题行”（保留一个）
- */
-function fixPromptCopy(input: string, lang: Lang, mediaMode: MediaMode, sceneTitle: string): string {
-  const rawLines = (input ?? "").split("\n");
-
-  const removedColor = rawLines.filter((l) => !l.includes("注意：不要引用任何颜色字段（color 不在 UI 中）"));
-
-  const firstLineFix = removedColor.map((l, idx) => {
-    if (idx !== 0) return l;
-
-    if (lang === "zh") {
-      return l.replace(/图像\s*\/\s*视频/g, mediaMode === "image" ? "图像" : "视频");
-    }
-
-    return l
-      .replace(/image\s*\/\s*video/gi, mediaMode === "image" ? "image" : "video")
-      .replace(/image\s+or\s+video/gi, mediaMode === "image" ? "image" : "video");
-  });
-
-  const zhHeadRe = /^(\s*#\s*)?分镜\s*#?\s*\d+\s*[:：]\s*/i;
-  const enHeadRe = /^(\s*#\s*)?(scene|shot)\s*#?\s*\d+\s*[:：]\s*/i;
-
-  const replacedHeaderLines = firstLineFix.map((line) => {
-    const t = line.trim();
-    if (!t) return line;
-
-    const m = line.match(/^(\s*#\s*)/);
-    const prefix = m ? m[1] : "";
-
-    if (zhHeadRe.test(t)) {
-      const tail = line.replace(/^(\s*#\s*)?/, "").replace(zhHeadRe, "").trim();
-
-      let tail2 = tail;
-      if (tail2.startsWith(sceneTitle)) {
-        tail2 = tail2.slice(sceneTitle.length).trim();
-      }
-      tail2 = tail2.replace(/^[:：\-—–]\s*/, "").trim();
-
-      return `${prefix}${sceneTitle}${tail2 ? " " + tail2 : ""}`.trimEnd();
-    }
-
-    if (enHeadRe.test(t)) {
-      const tail = line.replace(/^(\s*#\s*)?/, "").replace(enHeadRe, "").trim();
-
-      let tail2 = tail;
-      if (tail2.toLowerCase().startsWith(sceneTitle.toLowerCase())) {
-        tail2 = tail2.slice(sceneTitle.length).trim();
-      }
-      tail2 = tail2.replace(/^[:：\-—–]\s*/, "").trim();
-
-      return `${prefix}${sceneTitle}${tail2 ? " " + tail2 : ""}`.trimEnd();
-    }
-
-    return line;
-  });
-
-  let seenHeader = false;
-  const dedupHeaders = replacedHeaderLines.filter((l) => {
-    const t = l.trim();
-    if (!t) return true;
-
-    const noHash = t.replace(/^#\s*/, "");
-    const isHeader = /^分镜\b/.test(noHash) || /^(scene|shot)\b/i.test(noHash) || noHash === sceneTitle;
-
-    if (!isHeader) return true;
-
-    if (!seenHeader) {
-      seenHeader = true;
-      return true;
-    }
-    return false;
-  });
-
-  return dedupHeaders.join("\n");
-}
-
 function limitRefLinks(raw: string, max: number): string {
   const lines = (raw ?? "")
     .split("\n")
@@ -450,12 +82,7 @@ function limitRefLinks(raw: string, max: number): string {
 }
 
 function safeName(input: string): string {
-  return (input ?? "")
-    .trim()
-    .replace(/[\\/:*?"<>|]/g, "_")
-    .replace(/\s+/g, "_")
-    .replace(/_+/g, "_")
-    .slice(0, 64);
+  return safeExportName(input);
 }
 
 function refShort(type: "identity" | "appearance" | "style") {
@@ -512,15 +139,6 @@ function insertAfterHeader(shotSection: string, injectedLines: string[]): string
     return [lines[0], "", ...injectedLines, "", ...lines.slice(1)].join("\n").trim();
   }
   return [...injectedLines, "", ...lines].join("\n").trim();
-}
-
-function stripAttachmentLines(text: string): string {
-  return (text ?? "")
-    .split("\n")
-    .filter((line) => !/附件照片|attachments/i.test(line))
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
 }
 
 type FlowFile = { path: string; content: string };
@@ -669,15 +287,17 @@ async function writeBlobToDirectory(dirHandle: any, fullPath: string, blob: Blob
   await writable.close();
 }
 
-export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLayerId, onJumpToConflict }: Props) {
+export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId = "universal", onPlatformChange, selectedLayerId, onJumpToConflict }: Props) {
   const [showExportModal, setShowExportModal] = useState(false);
-  const [showExportDiff, setShowExportDiff] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [pendingConflictAction, setPendingConflictAction] = useState<null | "copy" | "save">(null);
   const [pendingConflicts, setPendingConflicts] = useState<PromptConflict[]>([]);
   const [showSaveHint, setShowSaveHint] = useState(false);
   const [actionHint, setActionHint] = useState("");
-  const [platformPresetId, setPlatformPresetId] = useState<PlatformPresetId>("universal");
+  const [promptPaneView, setPromptPaneView] = useState<"prompt" | "input">("prompt");
+  const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
+  const [copyDone, setCopyDone] = useState(false);
+  const [platformPresetId, setPlatformPresetId] = useState<PlatformPresetId>(platformId);
   const [exporting, setExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
   const [exportFolderLabel, setExportFolderLabel] = useState("");
@@ -688,15 +308,23 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
   const safeIdx = clampInt(sceneIdx, 0, Math.max(0, scenes.length - 1));
   const currentScene = scenes[safeIdx] ?? null;
 
-  const mediaMode: MediaMode = useMemo(() => parseMediaModeFromNotes(currentScene?.notes), [currentScene?.notes]);
-  const sceneGenMode: GenMode = useMemo(() => parseGenModeFromNotes(currentScene?.notes), [currentScene?.notes]);
-  void sceneGenMode;
+  useEffect(() => {
+    setPlatformPresetId(platformId);
+  }, [platformId]);
+
+  function changePlatform(id: PlatformPresetId) {
+    setPlatformPresetId(id);
+    onPlatformChange?.(id);
+  }
+
+  const mediaMode: MediaMode = useMemo(() => (currentScene ? resolveSceneConfig(currentScene).mediaMode : "video"), [currentScene]);
+  void selectedLayerId;
 
   const platformPreset = useMemo(
-    () => PLATFORM_PRESETS.find((p) => p.id === platformPresetId) ?? PLATFORM_PRESETS[0],
+    () => getPlatformPreset(platformPresetId),
     [platformPresetId]
   );
-  const exportProfile = platformPreset.profile;
+  const exportProfile: PromptProfile = platformPreset.baseProfile;
 
   // ✅ 只导出当前分镜 prompts
   const promptProject = useMemo<Project>(() => {
@@ -717,31 +345,15 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
     return (currentScene.name ?? "").trim() || currentScene.id || (lang === "zh" ? `分镜 ${safeIdx + 1}` : `Scene ${safeIdx + 1}`);
   }, [currentScene, lang, safeIdx]);
 
-  const rawPrompts = useMemo(() => {
-    void selectedLayerId;
-    void safeIdx;
-    // ✅ 关键：按模式生成不同末尾坐标解释（机器语言块）
-    return generatePrompts(promptProject, lang, exportProfile);
-  }, [promptProject, lang, safeIdx, selectedLayerId, exportProfile]);
+  const promptPipeline = useMemo(() => runPromptPipeline({
+    project: promptProject,
+    lang,
+    profile: exportProfile,
+    platformId: platformPresetId,
+    scope: "current_scene"
+  }), [promptProject, lang, exportProfile, platformPresetId]);
 
-  const prompts = useMemo(() => {
-    // 先分离“机器语言/控制层块”，只修正文案/裁剪 main，notes 保持原样
-    const { main: main0, notes } = splitMachineNotes(rawPrompts);
-
-    let main = main0;
-
-    if (mediaMode === "image") {
-      main = stripDurationForImageMode(main);
-      main = stripT1ForImageMode(main);
-    }
-
-    main = fixPromptCopy(main, lang, mediaMode, sceneTitle);
-
-    // 重新拼回去（复制/导出保持完整）
-    return notes ? `${main.trimEnd()}\n\n${notes.trimEnd()}\n` : `${main.trimEnd()}\n`;
-  }, [rawPrompts, mediaMode, lang, sceneTitle]);
-
-  const { main: promptsMain, notes: promptsNotes } = useMemo(() => splitMachineNotes(prompts), [prompts]);
+  const { main: promptsMain, notes: promptsNotes } = useMemo(() => splitMachineNotes(promptPipeline.finalCopyPrompt), [promptPipeline.finalCopyPrompt]);
   const promptsMainWithRefs = useMemo(() => {
     const scene = currentScene;
     if (!scene) return promptsMain;
@@ -788,7 +400,18 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
 
     return [mergedShot, constraintTail].join("\n\n").trim();
   }, [currentScene, promptsMain, safeIdx, lang]);
-  const quickCopyPrompt = useMemo(() => stripAttachmentLines(promptsMainWithRefs), [promptsMainWithRefs]);
+  const quickCopyPrompt = useMemo(() => promptPipeline.finalCopyPrompt.trimEnd(), [promptPipeline.finalCopyPrompt]);
+  const exportSummary = useMemo(() => makeExportSummary({
+    preset: platformPreset,
+    promptStages: promptPipeline
+  }), [platformPreset, promptPipeline]);
+  const userInputSummary = useMemo(() => buildUserInputSummary({
+    lang,
+    scene: currentScene,
+    preset: platformPreset,
+    pipeline: promptPipeline,
+    summary: exportSummary
+  }), [lang, currentScene, platformPreset, promptPipeline, exportSummary]);
   const sceneConflicts = useMemo(() => {
     if (!currentScene) return [];
     return detectSceneConflicts(currentScene, lang);
@@ -814,8 +437,14 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
   }, [actionHint]);
 
   async function runCopyPrompt() {
+    setCopyDone(false);
+    setCopyConfirmOpen(true);
+  }
+
+  async function confirmCopyPrompt() {
     await copy(quickCopyPrompt);
-    setActionHint(lang === "zh" ? "已复制文字提示词（不含附件引用）" : "Copied text-only prompt (no attachment lines)");
+    setCopyDone(true);
+    setActionHint(lang === "zh" ? "已复制最终复制稿" : "Copied final copy prompt");
   }
 
   function runOpenSaveModal() {
@@ -878,11 +507,11 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
       };
     }));
 
-    const projectNameForFile = safeName(projectLabel || (lang === "zh" ? "未命名项目" : "Untitled"));
+    const projectNameForFile = safeName(projectLabel || defaultProjectName(lang));
     const shotNameForFile = safeName(sceneTitle || (lang === "zh" ? "分镜" : "shot"));
     const platformForFile = safeName(lang === "zh" ? platformPreset.labelZh : platformPreset.labelEn);
     const rootDir = "ScenePilotix";
-    const projectDir = projectNameForFile || (lang === "zh" ? "未命名项目" : "Untitled");
+    const projectDir = projectNameForFile || defaultProjectName(lang);
     const modeLabelZh = "稳妥高质（两步）";
     const modeLabelEn = "Stable Quality (Two-step)";
 
@@ -890,7 +519,7 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
       ? [
           "ScenePilotix 保存说明与提示词",
           "",
-          `平台：${platformPreset.labelZh}`,
+          `适用大模型：${platformPreset.labelZh}`,
           `导出方式：${modeLabelZh}`,
           "",
           "【红字提醒】以下提醒不要复制到大模型，仅供操作指引。",
@@ -906,7 +535,7 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
       : [
           "ScenePilotix Save Guide & Prompt",
           "",
-          `Platform: ${platformPreset.labelEn}`,
+          `Target Model: ${platformPreset.labelEn}`,
           `Flow: ${modeLabelEn}`,
           "",
           "[RED NOTICE] Do not copy reminders below to model input.",
@@ -924,8 +553,8 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
       lang === "zh" ? "对象参考包" : "Object Reference Pack",
       "",
       lang === "zh"
-        ? `平台：${platformPreset.labelZh}  |  模式：${modeLabelZh}`
-        : `Platform: ${platformPreset.labelEn} | Mode: ${modeLabelEn}`,
+        ? `适用大模型：${platformPreset.labelZh}  |  模式：${modeLabelZh}`
+        : `Target Model: ${platformPreset.labelEn} | Mode: ${modeLabelEn}`,
       "",
       lang === "zh" ? "## 分镜背景参考图" : "## Shot Background Refs",
       ...(
@@ -1002,10 +631,11 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
       })
     ].join("\n");
 
+    const promptBodyForExport = quickCopyPrompt || promptsMainWithRefs;
     const promptsPerShot = [
       lang === "zh" ? "第三步：分镜提示词" : "Step 3: Storyboard Prompt",
       "",
-      promptsMainWithRefs
+      promptBodyForExport
     ].join("\n");
 
     const bgBlobFiles: FlowBlobFile[] = sceneBackgrounds.map((bg) => ({
@@ -1030,11 +660,12 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
       rootDir,
       projectDir,
       objectRefText,
+      uploadChecklist,
       promptsPerShot,
       files,
       blobFiles
     };
-  }, [promptProject.scenes, platformPreset, sceneTitle, lang, promptsMainWithRefs, projectLabel]);
+  }, [promptProject.scenes, platformPreset, sceneTitle, lang, promptsMainWithRefs, projectLabel, quickCopyPrompt]);
   const manualSaveGuide = useMemo(() => {
     const fileLines = [
       ...flowBundle.files.map((f) => `- ${f.path}`),
@@ -1047,7 +678,7 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
         `2) 在根目录下新建项目目录：${flowBundle.projectDir}`,
         "3) 在项目目录下按以下文件名保存文件：",
         ...fileLines,
-        "4) 将提示词 txt 与同名参考图一起上传到目标平台。"
+        "4) 将提示词 txt 与同名参考图一起上传到目标大模型。"
       ].join("\n");
     }
     return [
@@ -1098,7 +729,7 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
         });
       }
       const zipBlob = buildZipStored(zipEntries);
-      const projectNameForFile = safeName(projectLabel || (lang === "zh" ? "未命名项目" : "Untitled"));
+      const projectNameForFile = safeName(projectLabel || defaultProjectName(lang));
       const shotNameForFile = safeName(sceneTitle || (lang === "zh" ? "分镜" : "shot"));
       const platformForFile = safeName(lang === "zh" ? platformPreset.labelZh : platformPreset.labelEn);
       const zipName = `${projectNameForFile}__${shotNameForFile}__${platformForFile}.zip`;
@@ -1135,9 +766,9 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
             await guardBeforeExport("copy");
           }}
           type="button"
-          title={lang === "zh" ? "一键复制提示词" : "Copy prompt in one click"}
+          title={lang === "zh" ? "复制最终复制稿" : "Copy final copy prompt"}
         >
-          {lang === "zh" ? "一键复制提示词" : "Copy Prompt"}
+          {lang === "zh" ? "复制提示词" : "Copy Prompt"}
         </button>
 
         <button
@@ -1157,41 +788,87 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
             {lang === "zh" ? `冲突 ${sceneConflicts.length}` : `Conflicts ${sceneConflicts.length}`}
           </button>
         ) : null}
-        <button
-          style={styles.qBtn}
-          onMouseEnter={() => setShowExportDiff(true)}
-          onMouseLeave={() => setShowExportDiff(false)}
-          onFocus={() => setShowExportDiff(true)}
-          onBlur={() => setShowExportDiff(false)}
-          type="button"
-          title={lang === "zh" ? "查看导出差异" : "Show export differences"}
-        >
-          ?
-        </button>
       </div>
       {actionHint ? <div style={styles.actionHint}>{actionHint}</div> : null}
-      {showExportDiff ? (
-        <div style={styles.helpFloat}>
-          {lang === "zh"
-            ? "一键复制只保留文字提示词（去掉附件/插图关联行），用于快速测试。保存会生成分镜文件夹（提示词 + 参考图）。平台选择用于切换平台策略，选择后立即生效；点击保存时按当前平台输出。"
-            : "Copy Prompt keeps text-only prompts (attachment/image mapping lines removed) for quick testing. Save generates a shot folder (prompt + references). Platform selection switches platform strategy immediately, and Save exports using the current platform."}
+
+      <div style={styles.contentLayout}>
+        <div style={styles.promptPane}>
+          <div style={styles.promptTitleRow}>
+            <div style={styles.promptTabs}>
+              <button
+                type="button"
+                style={{ ...styles.tab, ...(promptPaneView === "prompt" ? styles.tabOn : styles.tabOff) }}
+                onClick={() => setPromptPaneView("prompt")}
+              >
+                {lang === "zh" ? "当前提示词" : "Current Prompt"}
+              </button>
+              <button
+                type="button"
+                style={{ ...styles.tab, ...(promptPaneView === "input" ? styles.tabOn : styles.tabOff) }}
+                onClick={() => setPromptPaneView("input")}
+              >
+                {lang === "zh" ? "你的输入" : "Your Input"}
+              </button>
+            </div>
+            <div style={styles.platformLite}>{lang === "zh" ? "当前适用大模型" : "Target Model"}: {lang === "zh" ? platformPreset.labelZh : platformPreset.labelEn}</div>
+          </div>
+          <div style={styles.preWrap}>
+            {promptPaneView === "prompt" ? (
+              <>
+                <pre style={styles.pre}>{promptsMain.trimEnd()}</pre>
+                {promptsNotes ? <pre style={styles.preNotes}>{promptsNotes}</pre> : null}
+              </>
+            ) : (
+              <pre style={styles.pre}>{userInputSummary}</pre>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {copyConfirmOpen ? (
+        <div style={styles.modalMask}>
+          <div style={{ ...styles.modal, width: "min(700px, calc(100vw - 48px))" }}>
+            <div style={styles.copyModalHead}>
+              <div style={styles.modalTitle}>{lang === "zh" ? "已准备复制的提示词" : "Prompt Ready to Copy"}</div>
+              <button style={styles.iconCloseBtn} type="button" onClick={() => {
+                setCopyConfirmOpen(false);
+                setCopyDone(false);
+              }}>×</button>
+            </div>
+            <div style={styles.platformTips}>
+              {lang === "zh"
+                ? "本次复制的是当前分镜的最终提示词，不含项目内其它分镜。"
+                : "This copy includes current-scene final prompt with platform strategy and structure constraints; no attachment upload notes, no other scenes."}
+            </div>
+            <div style={styles.infoLine}>
+              {lang === "zh" ? "当前适用大模型" : "Target Model"}: {lang === "zh" ? platformPreset.labelZh : platformPreset.labelEn}
+            </div>
+            <pre style={styles.copyPreview}>{quickCopyPrompt}</pre>
+            {copyDone ? <div style={styles.copyOk}>{lang === "zh" ? "复制成功" : "Copied"}</div> : null}
+            <div style={styles.modalBtns}>
+              <button style={styles.btnPrimary} type="button" onClick={() => void confirmCopyPrompt()}>
+                {lang === "zh" ? "复制" : "Copy"}
+              </button>
+              <button style={styles.btnGhost} type="button" onClick={() => {
+                setCopyConfirmOpen(false);
+                setCopyDone(false);
+              }}>
+                {lang === "zh" ? "关闭" : "Close"}
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
-
-      <div style={styles.preWrap}>
-        <pre style={styles.pre}>{quickCopyPrompt}</pre>
-        {promptsNotes ? <pre style={styles.preNotes}>{promptsNotes}</pre> : null}
-      </div>
 
       {showExportModal && (
         <div style={styles.modalMask}>
           <div style={{ ...styles.modal, width: "min(560px, calc(100vw - 48px))" }}>
           <div style={styles.modalTitle}>{lang === "zh" ? "保存分镜文件夹" : "Save Shot Folder"}</div>
           <div style={styles.modalRow}>
-            <div style={styles.profileLabel}>{lang === "zh" ? "平台" : "Platform"}</div>
+            <div style={styles.profileLabel}>{lang === "zh" ? "适用大模型" : "Target Model"}</div>
             <select
               value={platformPresetId}
-              onChange={(e) => setPlatformPresetId(e.target.value as PlatformPresetId)}
+              onChange={(e) => changePlatform(e.target.value as PlatformPresetId)}
               style={styles.profileSelect}
             >
               {PLATFORM_PRESETS.map((p) => (
@@ -1216,17 +893,17 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
             <div style={styles.platformTips}>
               {lang === "zh"
                 ? canSaveDirectory
-                  ? "平台选择后立即生效。保存会写入根目录/项目目录，文件名包含分镜与平台标识。"
-                  : "当前浏览器不支持目录保存。可下载 ZIP，或复制“手动建目录流程”按文件名保存。建议使用 Chrome/Edge 获得连续保存体验。"
+                  ? "这是什么：保存到本地目录。什么时候用：你要批量带参考图导出时。下一步：先选适用大模型，再点保存。"
+                  : "当前浏览器不支持目录保存。可下载 ZIP，或按“手动建目录流程”保存同名文件。"
                 : canSaveDirectory
-                  ? "Platform selection applies immediately. Save writes to root/project folders with shot+platform in filenames."
+                  ? "Target model selection applies immediately. Save writes files for the current target model."
                   : "Directory save is not supported in this browser. Use ZIP or copy the manual workflow to save by exact filenames. Chrome/Edge is recommended for smoother repeated saves."}
             </div>
           ) : null}
           <div style={styles.platformPendingHint}>
             {lang === "zh"
-              ? `当前平台策略：${platformPreset.labelZh}。点击保存会直接按该平台策略写入文件。`
-              : `Current platform strategy: ${platformPreset.labelEn}. Save writes files directly with this strategy.`}
+              ? `当前适用大模型：${platformPreset.labelZh}。点击保存会按当前适用大模型输出。`
+              : `Target Model: ${platformPreset.labelEn}. Save exports for the current target model.`}
           </div>
           {!canSaveDirectory ? (
             <div style={styles.unsupportedCard}>
@@ -1384,28 +1061,28 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, selectedLay
 
 const styles: Record<string, React.CSSProperties> = {
   wrap: {
-    borderTop: "1px solid rgba(255,255,255,0.08)",
+    borderTop: `1px solid ${UI_PALETTE.border.soft}`,
     padding: 12,
     minHeight: 132,
     height: "min(30vh, 250px)",
     display: "flex",
     flexDirection: "column",
     gap: 10,
-    background: "rgba(0,0,0,0.10)",
+    background: UI_PALETTE.bg.canvas,
     position: "relative"
   },
 
-  head: { display: "flex", alignItems: "center", gap: 8 },
-  title: { fontWeight: 900, fontSize: UI_FONT.title, opacity: UI_OPACITY.title },
+  head: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  title: { fontWeight: 850, fontSize: UI_TYPO.size13, opacity: UI_OPACITY.title, color: UI_PALETTE.text.secondary },
 
   sceneHint: {
     fontSize: UI_FONT.hint,
     fontWeight: 900,
     opacity: 0.68,
     padding: "4px 8px",
-    borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.04)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
     maxWidth: 260,
     whiteSpace: "normal",
     overflowWrap: "anywhere",
@@ -1417,17 +1094,17 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     opacity: 0.66,
     padding: "4px 8px",
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.03)",
+    borderRadius: UI_RADIUS.chip,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    background: UI_PALETTE.surface.surface1,
     userSelect: "none"
   },
   scopeSelect: {
     height: UI_SIZE.controlH,
     borderRadius: UI_SIZE.controlRadius,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(0,0,0,0.20)",
-    color: "rgba(255,255,255,0.92)",
+    border: `1px solid ${UI_COLOR.border}`,
+    background: UI_COLOR.bgInput,
+    color: UI_COLOR.text,
     outline: "none",
     padding: "0 34px 0 10px",
     fontSize: UI_FONT.body,
@@ -1436,9 +1113,9 @@ const styles: Record<string, React.CSSProperties> = {
 
   tab: {
     padding: "6px 10px",
-    borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.05)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive,
     color: "inherit",
     cursor: "pointer",
     fontSize: UI_FONT.body,
@@ -1455,41 +1132,43 @@ const styles: Record<string, React.CSSProperties> = {
 
   tabOn: {
     opacity: 1,
-    borderColor: "rgba(120,180,255,0.60)",
-    background: "rgba(120,180,255,0.14)",
-    boxShadow: "0 0 0 1px rgba(120,180,255,0.10) inset"
+    borderColor: UI_COLOR.accent,
+    background: UI_COLOR.accentSoft,
+    boxShadow: UI_EFFECT.softRing
   },
 
   btnPrimary: {
     padding: "6px 10px",
     borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.06)",
+    border: `1px solid ${UI_COLOR.border}`,
+    background: UI_COLOR.surfaceStrong,
     color: "inherit",
     cursor: "pointer",
     fontSize: UI_FONT.body,
     outline: "none",
     boxShadow: "none",
+    whiteSpace: "nowrap",
     WebkitTapHighlightColor: "transparent" as any
   },
   btnGhost: {
     padding: "6px 10px",
-    borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.03)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface1,
     color: "inherit",
     cursor: "pointer",
     fontSize: UI_FONT.body,
     outline: "none",
     boxShadow: "none",
+    whiteSpace: "nowrap",
     WebkitTapHighlightColor: "transparent" as any
   },
   qBtn: {
     width: 28,
     height: 28,
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.04)",
+    borderRadius: UI_RADIUS.chip,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
     color: "inherit",
     fontWeight: 900,
     cursor: "pointer",
@@ -1501,8 +1180,8 @@ const styles: Record<string, React.CSSProperties> = {
     top: 44,
     zIndex: 60,
     padding: "7px 10px",
-    borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.16)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
     background: "rgba(12,16,30,0.95)",
     fontSize: UI_FONT.body,
     fontWeight: 900,
@@ -1515,14 +1194,119 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 59,
     maxWidth: 420,
     padding: "8px 10px",
-    borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.16)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
     background: "rgba(12,16,30,0.97)",
     fontSize: UI_FONT.body,
     lineHeight: 1.4,
     boxShadow: "0 10px 30px rgba(0,0,0,0.35)"
   },
-  profileRow: { display: "flex", alignItems: "center", gap: 8 },
+  contentLayout: {
+    flex: 1,
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8
+  },
+  promptPane: {
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8
+  },
+  promptTitleRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    flexWrap: "wrap"
+  },
+  promptTabs: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap"
+  },
+  platformLite: {
+    fontSize: UI_TYPO.size11,
+    fontWeight: 800,
+    color: UI_PALETTE.text.secondary,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    borderRadius: UI_RADIUS.chip,
+    background: UI_PALETTE.surface.surface1,
+    padding: "4px 8px"
+  },
+  explainPane: {
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    overflowY: "auto"
+  },
+  infoGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 8
+  },
+  infoCard: {
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    borderRadius: UI_RADIUS.control,
+    background: UI_PALETTE.surface.surface1,
+    padding: "8px 10px",
+    display: "grid",
+    gap: 4
+  },
+  infoTitle: {
+    fontSize: UI_TYPO.size12,
+    fontWeight: 900
+  },
+  infoLine: {
+    fontSize: UI_TYPO.size11,
+    color: UI_PALETTE.text.secondary
+  },
+  stageTabs: {
+    display: "flex",
+    gap: 6,
+    flexWrap: "wrap"
+  },
+  stageTab: {
+    padding: "4px 8px",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
+    color: "inherit",
+    cursor: "pointer",
+    fontSize: UI_TYPO.size11,
+    fontWeight: 800
+  },
+  stageTabOn: {
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive
+  },
+  stagePre: {
+    margin: 0,
+    padding: "8px 10px",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    background: "rgba(8,12,20,0.9)",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    maxHeight: 180,
+    overflow: "auto",
+    fontSize: UI_TYPO.size11,
+    lineHeight: 1.4
+  },
+  assistBlock: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8
+  },
+  assistTitle: {
+    fontSize: UI_TYPO.size11,
+    fontWeight: 900,
+    opacity: 0.88
+  },
+  profileRow: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
   profileLabel: {
     minHeight: UI_SIZE.controlH,
     display: "flex",
@@ -1537,9 +1321,9 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     height: UI_SIZE.controlH,
     borderRadius: UI_SIZE.compactRadius,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(0,0,0,0.20)",
-    color: "rgba(255,255,255,0.92)",
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_COLOR.bgInput,
+    color: UI_PALETTE.text.primary,
     outline: "none",
     padding: "0 34px 0 10px",
     fontSize: UI_FONT.body,
@@ -1549,9 +1333,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: UI_FONT.hint,
     lineHeight: 1.4,
     opacity: 0.7,
-    border: "1px solid rgba(255,255,255,0.10)",
-    borderRadius: 10,
-    background: "rgba(255,255,255,0.04)",
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    borderRadius: UI_RADIUS.control,
+    background: UI_PALETTE.surface.surface1,
     padding: "8px 10px"
   },
   platformPendingHint: {
@@ -1562,7 +1346,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   unsupportedCard: {
     border: "1px solid rgba(245,190,120,0.35)",
-    borderRadius: 10,
+    borderRadius: UI_RADIUS.control,
     background: "rgba(245,190,120,0.10)",
     padding: "8px 10px",
     display: "flex",
@@ -1597,23 +1381,59 @@ const styles: Record<string, React.CSSProperties> = {
   modal: {
     width: "min(1100px, calc(100vw - 48px))",
     maxHeight: "calc(100vh - 48px)",
-    borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(16,20,34,0.96)",
-    boxShadow: "0 16px 56px rgba(0,0,0,0.45)",
+    borderRadius: UI_RADIUS.panel,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: "rgba(12,17,27,0.96)",
+    boxShadow: UI_EFFECT.floatShadow,
     padding: 16,
     display: "flex",
     flexDirection: "column",
     gap: 10,
     overflow: "auto"
   },
-  modalTitle: { fontWeight: 900, fontSize: UI_FONT.title, opacity: UI_OPACITY.title },
-  modalRow: { display: "flex", alignItems: "center", gap: 10 },
-  modalBtns: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 },
+  modalTitle: { fontWeight: 900, fontSize: UI_TYPO.size14, opacity: UI_OPACITY.title },
+  copyModalHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8
+  },
+  iconCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: UI_RADIUS.chip,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface2,
+    color: UI_PALETTE.text.primary,
+    cursor: "pointer",
+    fontSize: UI_TYPO.size14,
+    fontWeight: 900,
+    lineHeight: 1
+  },
+  copyPreview: {
+    margin: 0,
+    padding: "10px 12px",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    background: "rgba(8,12,20,0.9)",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    maxHeight: 320,
+    overflow: "auto",
+    fontSize: UI_TYPO.size11,
+    lineHeight: 1.45
+  },
+  copyOk: {
+    fontSize: UI_TYPO.size11,
+    color: "rgba(108,221,162,0.96)",
+    fontWeight: 800
+  },
+  modalRow: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
+  modalBtns: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4, flexWrap: "wrap" },
   successCard: {
-    border: "1px solid rgba(120,180,255,0.35)",
-    borderRadius: 12,
-    background: "rgba(120,180,255,0.10)",
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    borderRadius: UI_RADIUS.control,
+    background: UI_PALETTE.surface.surfaceActive,
     padding: "10px 12px",
     display: "flex",
     flexDirection: "column",
@@ -1637,9 +1457,9 @@ const styles: Record<string, React.CSSProperties> = {
   optionWrap: { display: "flex", flexWrap: "wrap", gap: 6, flex: 1 },
   optionBtn: {
     padding: "5px 8px",
-    borderRadius: 9,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.04)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.default}`,
+    background: UI_PALETTE.surface.surface1,
     color: "inherit",
     cursor: "pointer",
     fontSize: UI_FONT.body,
@@ -1647,8 +1467,8 @@ const styles: Record<string, React.CSSProperties> = {
     outline: "none"
   },
   optionBtnOn: {
-    border: "1px solid rgba(120,180,255,0.68)",
-    background: "rgba(120,180,255,0.14)"
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    background: UI_PALETTE.surface.surfaceActive
   },
   conflictBadgeBtn: {
     padding: "6px 10px",
@@ -1658,7 +1478,8 @@ const styles: Record<string, React.CSSProperties> = {
     color: "rgba(255,226,226,0.96)",
     fontSize: UI_FONT.hint,
     fontWeight: 900,
-    cursor: "pointer"
+    cursor: "pointer",
+    whiteSpace: "nowrap"
   },
   conflictList: {
     display: "flex",
@@ -1698,25 +1519,30 @@ const styles: Record<string, React.CSSProperties> = {
 
   preWrap: {
     flex: 1,
+    minWidth: 0,
     minHeight: 60,
     display: "flex",
     flexDirection: "column",
     gap: 8,
-    overflow: "auto"
+    overflowY: "auto",
+    overflowX: "hidden",
+    paddingRight: 2,
+    scrollbarWidth: "thin"
   },
 
   pre: {
     flex: "0 0 auto",
     margin: 0,
     padding: 10,
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(0,0,0,0.25)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    background: "linear-gradient(180deg, rgba(10,15,28,0.9), rgba(8,12,22,0.86))",
     overflow: "visible",
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
-    fontSize: 12,
-    lineHeight: 1.35
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+    fontSize: UI_TYPO.size12,
+    lineHeight: 1.5
   },
 
   // ✅ 末尾机器语言/控制层：略暗显示（但复制仍包含）
@@ -1724,14 +1550,15 @@ const styles: Record<string, React.CSSProperties> = {
     flex: "0 0 auto",
     margin: 0,
     padding: 10,
-    borderRadius: 12,
-    border: "1px dashed rgba(255,255,255,0.10)",
-    background: "rgba(0,0,0,0.18)",
+    borderRadius: UI_RADIUS.control,
+    border: `1px dashed ${UI_PALETTE.border.soft}`,
+    background: "rgba(10,14,24,0.66)",
     overflow: "visible",
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
-    fontSize: 12,
-    lineHeight: 1.35,
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+    fontSize: UI_TYPO.size12,
+    lineHeight: 1.5,
     opacity: 0.55
   }
 };
