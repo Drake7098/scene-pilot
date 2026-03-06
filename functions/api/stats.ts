@@ -17,12 +17,30 @@ export const onRequestGet: PagesFunction = async (context) => {
     ).all();
 
     return new Response(JSON.stringify({ days, results }), {
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        "access-control-allow-origin": "*",
+      },
     });
   } catch {
     return new Response(JSON.stringify({ error: "stats_error" }), {
       status: 500,
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        "access-control-allow-origin": "*",
+      },
     });
   }
+};
+
+export const onRequestOptions: PagesFunction = async () => {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "GET, OPTIONS",
+      "access-control-allow-headers": "content-type",
+      "access-control-max-age": "86400",
+    },
+  });
 };

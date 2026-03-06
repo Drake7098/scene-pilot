@@ -6,6 +6,15 @@ export const onRequestPost: PagesFunction = async (context) => {
       return new Response("missing event", { status: 400 });
     }
 
+    const mode =
+      (typeof data?.mode === "string" && data.mode.trim()) ||
+      (typeof data?.props?.mode === "string" && data.props.mode.trim()) ||
+      "";
+    const session =
+      (typeof data?.session === "string" && data.session.trim()) ||
+      (typeof data?.session_id === "string" && data.session_id.trim()) ||
+      "";
+
     await context.env.DB.prepare(
       `INSERT INTO events (event, ts, mode, lang, session)
        VALUES (?, ?, ?, ?, ?)`
@@ -13,9 +22,9 @@ export const onRequestPost: PagesFunction = async (context) => {
       .bind(
         data.event,
         Date.now(),
-        data.mode || "",
+        mode,
         data.lang || "",
-        data.session || ""
+        session
       )
       .run();
 

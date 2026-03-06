@@ -6,6 +6,7 @@ const LS_DEVICE = "spx_device_id";
 const LS_QUEUE = "spx_event_queue_v1";
 const LS_OPTIN = "spx_telemetry_on"; // "1" = on, else off
 const LS_SESSION = "spx_session_id";
+const LS_API_BASE = "spx_telemetry_api_base";
 
 function randId(prefix: string) {
   // 简单够用：时间 + 随机
@@ -75,15 +76,70 @@ function saveQueue(q: any[]) {
   }
 }
 
-function apiBase(): string {
-  return import.meta.env.PROD
-    ? ""
-    : "https://scene-pilot-12y.pages.dev";
+function normalizeBase(base: string): string {
+  const s = (base || "").trim();
+  if (!s) return "";
+  return s.replace(/\/+$/, "");
 }
 
-function endpoint(path: string): string {
-  const base = apiBase();
+function readApiBaseOverride(): string {
+  try {
+    return normalizeBase(localStorage.getItem(LS_API_BASE) || "");
+  } catch {
+    return "";
+  }
+}
+
+export function setTelemetryApiBase(base: string) {
+  try {
+    const s = normalizeBase(base);
+    if (!s) localStorage.removeItem(LS_API_BASE);
+    else localStorage.setItem(LS_API_BASE, s);
+  } catch {
+    // Ignore storage write errors.
+  }
+}
+
+function apiBases(): string[] {
+  const fromOverride = readApiBaseOverride();
+  const fromEnv = normalizeBase(String((import.meta as any).env?.VITE_TELEMETRY_BASE_URL || ""));
+  const legacyDev = "https://scene-pilot-12y.pages.dev";
+  const sameOrigin = "";
+
+  // 优先级：
+  // 1) 本地 override
+  // 2) 构建环境变量
+  // 3) 同源
+  // 4) 旧开发域名兜底（避免历史环境彻底断链）
+  const seq = [fromOverride, fromEnv, sameOrigin, legacyDev];
+  const out: string[] = [];
+  for (const b of seq) {
+    if (out.includes(b)) continue;
+    out.push(b);
+  }
+  return out;
+}
+
+function endpoint(base: string, path: string): string {
   return base ? `${base}${path}` : path;
+}
+
+async function postWithFallback(path: string, payload: unknown): Promise<boolean> {
+  const bases = apiBases();
+  for (const base of bases) {
+    try {
+      const r = await fetch(endpoint(base, path), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        keepalive: true
+      });
+      if (r.ok) return true;
+    } catch {
+      // Try next base.
+    }
+  }
+  return false;
 }
 
 export function getTelemetryIds() {
@@ -137,13 +193,8 @@ export async function flush() {
   try {
     // 逐条上报：简单可靠，失败也容易处理（早期别追求批量复杂度）
     for (const it of batch) {
-      const r = await fetch(endpoint("/api/collect"), {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(it),
-        keepalive: true
-      });
-      if (!r.ok) throw new Error(`collect_failed_${r.status}`);
+      const ok = await postWithFallback("/api/collect", it);
+      if (!ok) throw new Error("collect_failed");
     }
 
     // 成功就从队列移除
@@ -167,13 +218,7 @@ export async function sendFeedback(message: string, meta: Props = {}, lang?: Lan
   };
 
   try {
-    const r = await fetch(endpoint("/api/feedback"), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-      keepalive: true
-    });
-    return r.ok;
+    return await postWithFallback("/api/feedback", payload);
   } catch {
     return false;
   }
