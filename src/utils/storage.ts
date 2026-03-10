@@ -11,9 +11,7 @@ export function loadLang(): Lang {
   try {
     const saved = localStorage.getItem(KEY_LANG);
     if (saved === "zh" || saved === "en") return saved;
-
-    const nav = (navigator.language || "").toLowerCase();
-    return nav.startsWith("zh") ? "zh" : "en";
+    return "en";
   } catch {
     return "en";
   }

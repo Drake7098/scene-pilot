@@ -1,0 +1,164 @@
+{
+  "caseId": "dual_001",
+  "title": "双人物面对面",
+  "promptMode": "plain",
+  "promptSource": "Drake-DS local LLM baseline",
+  "seed": 101,
+  "prompt": "两个人面对面站着，一个站在前面，一个站在后面，他们之间保持适当的距离，姿态自然，关系明确，面对面交流的场景。",
+  "promptId": "789c1ae9-98cc-4122-9761-bb8f63661d6a",
+  "savedFiles": [
+    "/Users/dk/Downloads/ComfyUI/output/local-ab/dual_001__plain__seed101_00001_.png"
+  ],
+  "createdAt": "2026-03-10T01:14:39.092Z",
+  "comfyUiBaseUrl": "http://127.0.0.1:8000",
+  "comfyUiCheckpoint": "v1-5-pruned-emaonly-fp16.safetensors",
+  "history": {
+    "prompt": [
+      25,
+      "789c1ae9-98cc-4122-9761-bb8f63661d6a",
+      {
+        "3": {
+          "inputs": {
+            "seed": 101,
+            "steps": 4,
+            "cfg": 3.5,
+            "sampler_name": "euler",
+            "scheduler": "normal",
+            "denoise": 1,
+            "model": [
+              "4",
+              0
+            ],
+            "positive": [
+              "6",
+              0
+            ],
+            "negative": [
+              "7",
+              0
+            ],
+            "latent_image": [
+              "5",
+              0
+            ]
+          },
+          "class_type": "KSampler"
+        },
+        "4": {
+          "inputs": {
+            "ckpt_name": "v1-5-pruned-emaonly-fp16.safetensors"
+          },
+          "class_type": "CheckpointLoaderSimple"
+        },
+        "5": {
+          "inputs": {
+            "width": 512,
+            "height": 512,
+            "batch_size": 1
+          },
+          "class_type": "EmptyLatentImage"
+        },
+        "6": {
+          "inputs": {
+            "text": "两个人面对面站着，一个站在前面，一个站在后面，他们之间保持适当的距离，姿态自然，关系明确，面对面交流的场景。",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "7": {
+          "inputs": {
+            "text": "blurry, low quality, malformed hands, text artifacts, extra limbs",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "8": {
+          "inputs": {
+            "samples": [
+              "3",
+              0
+            ],
+            "vae": [
+              "4",
+              2
+            ]
+          },
+          "class_type": "VAEDecode"
+        },
+        "9": {
+          "inputs": {
+            "filename_prefix": "local-ab/dual_001__plain__seed101",
+            "images": [
+              "8",
+              0
+            ]
+          },
+          "class_type": "SaveImage"
+        }
+      },
+      {
+        "create_time": 1773105261078
+      },
+      [
+        "9"
+      ]
+    ],
+    "outputs": {
+      "9": {
+        "images": [
+          {
+            "filename": "dual_001__plain__seed101_00001_.png",
+            "subfolder": "local-ab",
+            "type": "output"
+          }
+        ]
+      }
+    },
+    "status": {
+      "status_str": "success",
+      "completed": true,
+      "messages": [
+        [
+          "execution_start",
+          {
+            "prompt_id": "789c1ae9-98cc-4122-9761-bb8f63661d6a",
+            "timestamp": 1773105261078
+          }
+        ],
+        [
+          "execution_cached",
+          {
+            "nodes": [
+              "4",
+              "5",
+              "7"
+            ],
+            "prompt_id": "789c1ae9-98cc-4122-9761-bb8f63661d6a",
+            "timestamp": 1773105261079
+          }
+        ],
+        [
+          "execution_success",
+          {
+            "prompt_id": "789c1ae9-98cc-4122-9761-bb8f63661d6a",
+            "timestamp": 1773105277517
+          }
+        ]
+      ]
+    },
+    "meta": {
+      "9": {
+        "node_id": "9",
+        "display_node": "9",
+        "parent_node": null,
+        "real_node_id": "9"
+      }
+    }
+  }
+}

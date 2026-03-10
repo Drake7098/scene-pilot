@@ -1,0 +1,679 @@
+[
+  {
+    "id": "01-static-single-object",
+    "title": "基础单对象静态图",
+    "description": "一个主体处于简单背景中，检查结构化输出是否更清楚且不过度膨胀。",
+    "lang": "zh",
+    "platformId": "jimeng",
+    "scope": "current_scene",
+    "userInput": [
+      "一个穿红色连帽衫的年轻女性坐在公园长椅上",
+      "背景是安静的草地和树影",
+      "画面静止，不要运动"
+    ],
+    "expectations": {
+      "infoTerms": ["年轻女性", "红色连帽衫", "公园长椅", "草地", "树影"],
+      "trajectoryTerms": [],
+      "relationTerms": [],
+      "conflictExpected": false,
+      "refsExpected": false,
+      "multiObjectExpected": false
+    },
+    "project": {
+      "project": { "mode": "storyboard", "mediaType": "image", "shotPlan": "single" },
+      "scenes": [
+        {
+          "id": "S01",
+          "name": "主画面",
+          "duration_s": 1,
+          "cameraPreset": "",
+          "shotNote": "静止人像构图，主体稳定坐在长椅中央偏左。",
+          "camera": {
+            "shot": "medium",
+            "movement": "static",
+            "keyframes": [
+              { "t": 0, "x": 0, "y": 0, "zoom": 1, "rot": 0 },
+              { "t": 1, "x": 0, "y": 0, "zoom": 1, "rot": 0 }
+            ]
+          },
+          "lighting": { "time": "afternoon", "key_dir": "top_left", "mood": "soft" },
+          "layers": [
+            {
+              "id": "主体1",
+              "type": "年轻女性",
+              "shape": "rect",
+              "shapeDesc": "坐姿，双手自然放在腿上",
+              "look": "红色连帽衫，深色牛仔裤",
+              "z": 10,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 43, "y": 60, "w": 24, "h": 34, "rot": 0 },
+                { "t": 1, "x": 43, "y": 60, "w": 24, "h": 34, "rot": 0 }
+              ],
+              "notes": "静止，不要额外动作。",
+              "externalPrompt": "自然坐姿，表情平静。",
+              "referenceLinks": "",
+              "localRefs": [],
+              "referencePolicy": "optional"
+            }
+          ],
+          "config": { "mediaMode": "image", "compiler": "v2", "sceneTier": "small_plaza", "v2Mode": "strict", "stability": "standard" },
+          "notes": "media: image\n@compiler: v2\n@scene_tier: small_plaza\n@v2_mode: strict\nstability: standard\nbg: 安静的草地、树影和公园长椅"
+        }
+      ]
+    }
+  },
+  {
+    "id": "02-single-object-motion",
+    "title": "单对象移动",
+    "description": "主体从左向右移动且镜头跟随，检查运动表达是否更明确。",
+    "lang": "zh",
+    "platformId": "pika",
+    "scope": "current_scene",
+    "userInput": [
+      "一个穿浅灰夹克的年轻男孩从左向右快步移动",
+      "镜头轻微跟随他平移",
+      "背景是空旷街道，不要切镜"
+    ],
+    "expectations": {
+      "infoTerms": ["年轻男孩", "浅灰夹克", "空旷街道"],
+      "trajectoryTerms": ["从左向右", "镜头跟随", "不要切镜"],
+      "relationTerms": [],
+      "conflictExpected": false,
+      "refsExpected": false,
+      "multiObjectExpected": false
+    },
+    "project": {
+      "project": { "mode": "storyboard", "mediaType": "video", "shotPlan": "single" },
+      "scenes": [
+        {
+          "id": "S01",
+          "name": "分镜 1",
+          "duration_s": 6,
+          "cameraPreset": "tracking",
+          "shotNote": "镜头跟随主体从左到右移动，保持连贯。",
+          "entryDir": "W",
+          "exitDir": "E",
+          "camera": {
+            "shot": "medium",
+            "movement": "follow",
+            "keyframes": [
+              { "t": 0, "x": 0, "y": 0, "zoom": 1, "rot": 0 },
+              { "t": 1, "x": 12, "y": 0, "zoom": 1.05, "rot": 0 }
+            ]
+          },
+          "lighting": { "time": "day", "key_dir": "top_right", "mood": "clean" },
+          "layers": [
+            {
+              "id": "主体1",
+              "type": "年轻男孩",
+              "shape": "rect",
+              "shapeDesc": "轻微前倾，步伐明确",
+              "look": "浅灰夹克，黑色运动裤",
+              "z": 10,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 18, "y": 58, "w": 18, "h": 32, "rot": 0 },
+                { "t": 1, "x": 74, "y": 58, "w": 18, "h": 32, "rot": 0 }
+              ],
+              "notes": "从左向右快步移动，保持身份连续。",
+              "externalPrompt": "镜头跟随主体平移，不要切镜。",
+              "referenceLinks": "",
+              "localRefs": [],
+              "referencePolicy": "optional"
+            }
+          ],
+          "config": { "mediaMode": "video", "compiler": "v2", "sceneTier": "open_space", "v2Mode": "strict", "stability": "standard" },
+          "notes": "media: video\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\nstability: standard\nbg: 空旷街道，远处建筑干净简洁"
+        }
+      ]
+    }
+  },
+  {
+    "id": "03-two-person-relation",
+    "title": "双人物关系",
+    "description": "两个人面对面站位，一前一后，检查对象数量和相对关系是否清楚。",
+    "lang": "zh",
+    "platformId": "universal",
+    "scope": "current_scene",
+    "userInput": [
+      "两个人面对面站着",
+      "一个更靠前，一个更靠后",
+      "画面需要清楚体现两人的层次关系"
+    ],
+    "expectations": {
+      "infoTerms": ["两个人", "面对面"],
+      "trajectoryTerms": [],
+      "relationTerms": ["靠前", "靠后", "层次关系"],
+      "conflictExpected": false,
+      "refsExpected": false,
+      "multiObjectExpected": true
+    },
+    "project": {
+      "project": { "mode": "storyboard", "mediaType": "image", "shotPlan": "single" },
+      "scenes": [
+        {
+          "id": "S01",
+          "name": "主画面",
+          "duration_s": 1,
+          "cameraPreset": "",
+          "shotNote": "双人物对峙，一前一后保持明显景深层次。",
+          "camera": {
+            "shot": "medium",
+            "movement": "static",
+            "keyframes": [
+              { "t": 0, "x": 0, "y": 0, "zoom": 1, "rot": 0 },
+              { "t": 1, "x": 0, "y": 0, "zoom": 1, "rot": 0 }
+            ]
+          },
+          "lighting": { "time": "indoor", "key_dir": "left", "mood": "tense" },
+          "layers": [
+            {
+              "id": "主体1",
+              "type": "人物A",
+              "shape": "rect",
+              "shapeDesc": "站在前景偏左，身体略微向右转",
+              "look": "深色西装，短发",
+              "z": 10,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 34, "y": 58, "w": 26, "h": 38, "rot": 0 },
+                { "t": 1, "x": 34, "y": 58, "w": 26, "h": 38, "rot": 0 }
+              ],
+              "notes": "更靠前，与后景人物面对面。",
+              "externalPrompt": "前景人物压住视线。",
+              "referenceLinks": "",
+              "localRefs": [],
+              "referencePolicy": "optional"
+            },
+            {
+              "id": "主体2",
+              "type": "人物B",
+              "shape": "rect",
+              "shapeDesc": "站在后景偏右，面对前景人物",
+              "look": "浅色衬衫，长发",
+              "z": 20,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 64, "y": 50, "w": 18, "h": 30, "rot": 0 },
+                { "t": 1, "x": 64, "y": 50, "w": 18, "h": 30, "rot": 0 }
+              ],
+              "notes": "更靠后，保持人物关系清楚。",
+              "externalPrompt": "后景人物不要与前景重叠。",
+              "referenceLinks": "",
+              "localRefs": [],
+              "referencePolicy": "optional"
+            }
+          ],
+          "config": { "mediaMode": "image", "compiler": "v2", "sceneTier": "indoor", "v2Mode": "strict", "stability": "standard" },
+          "notes": "media: image\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: standard\nbg: 室内走廊，背景干净，景深明显"
+        }
+      ]
+    }
+  },
+  {
+    "id": "04-multi-object-composition",
+    "title": "多对象构图",
+    "description": "前中后景多对象构图，检查空间结构是否清楚。",
+    "lang": "zh",
+    "platformId": "wanx",
+    "scope": "current_scene",
+    "userInput": [
+      "前景是一个人物",
+      "中景是一张桌子",
+      "后景有窗户和灯光",
+      "希望空间层次清楚"
+    ],
+    "expectations": {
+      "infoTerms": ["人物", "桌子", "窗户", "灯光"],
+      "trajectoryTerms": [],
+      "relationTerms": ["前景", "中景", "后景", "空间层次"],
+      "conflictExpected": false,
+      "refsExpected": false,
+      "multiObjectExpected": true
+    },
+    "project": {
+      "project": { "mode": "storyboard", "mediaType": "image", "shotPlan": "single" },
+      "scenes": [
+        {
+          "id": "S01",
+          "name": "主画面",
+          "duration_s": 1,
+          "cameraPreset": "",
+          "shotNote": "用前中后景清楚划分空间层次。",
+          "camera": {
+            "shot": "wide",
+            "movement": "static",
+            "keyframes": [
+              { "t": 0, "x": 0, "y": 0, "zoom": 1, "rot": 0 },
+              { "t": 1, "x": 0, "y": 0, "zoom": 1, "rot": 0 }
+            ]
+          },
+          "lighting": { "time": "evening", "key_dir": "back", "mood": "warm" },
+          "layers": [
+            {
+              "id": "主体1",
+              "type": "前景人物",
+              "shape": "rect",
+              "shapeDesc": "站在画面左前方",
+              "look": "深色外套",
+              "z": 10,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 28, "y": 62, "w": 24, "h": 38, "rot": 0 },
+                { "t": 1, "x": 28, "y": 62, "w": 24, "h": 38, "rot": 0 }
+              ],
+              "notes": "前景主体，压住空间起点。",
+              "externalPrompt": "前景人物不要遮住桌面主体关系。",
+              "referenceLinks": "",
+              "localRefs": [],
+              "referencePolicy": "optional"
+            },
+            {
+              "id": "主体2",
+              "type": "中景桌子",
+              "shape": "rect",
+              "shapeDesc": "木桌位于画面中心偏右",
+              "look": "原木桌面",
+              "z": 20,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 58, "y": 60, "w": 34, "h": 20, "rot": 0 },
+                { "t": 1, "x": 58, "y": 60, "w": 34, "h": 20, "rot": 0 }
+              ],
+              "notes": "中景桌子承担空间中层。",
+              "externalPrompt": "桌子不要漂浮，保持与人物错层。",
+              "referenceLinks": "",
+              "localRefs": [],
+              "referencePolicy": "optional"
+            },
+            {
+              "id": "主体3",
+              "type": "后景窗户与灯光",
+              "shape": "rect",
+              "shapeDesc": "窗户位于后方，暖灯从右侧洒入",
+              "look": "大窗户，暖色灯光",
+              "z": 30,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 70, "y": 34, "w": 28, "h": 28, "rot": 0 },
+                { "t": 1, "x": 70, "y": 34, "w": 28, "h": 28, "rot": 0 }
+              ],
+              "notes": "后景要清楚可见但不喧宾夺主。",
+              "externalPrompt": "窗户和灯光明确处于后景。",
+              "referenceLinks": "",
+              "localRefs": [],
+              "referencePolicy": "optional"
+            }
+          ],
+          "config": { "mediaMode": "image", "compiler": "v2", "sceneTier": "open_space", "v2Mode": "strict", "stability": "standard" },
+          "notes": "media: image\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\nstability: standard\nbg: 室内空间，前中后景层次明显，后景有窗户和暖灯"
+        }
+      ]
+    }
+  },
+  {
+    "id": "05-enter-room",
+    "title": "进入房间",
+    "description": "人物从门外进入房间，检查进入动作和空间方向是否清楚。",
+    "lang": "zh",
+    "platformId": "jimeng",
+    "scope": "current_scene",
+    "userInput": [
+      "一个人从门外进入房间",
+      "镜头轻推跟随进入",
+      "要能看出从外到内的空间变化"
+    ],
+    "expectations": {
+      "infoTerms": ["门外", "进入房间", "空间变化"],
+      "trajectoryTerms": ["跟随进入", "从外到内"],
+      "relationTerms": [],
+      "conflictExpected": false,
+      "refsExpected": false,
+      "multiObjectExpected": false
+    },
+    "project": {
+      "project": { "mode": "storyboard", "mediaType": "video", "shotPlan": "single" },
+      "scenes": [
+        {
+          "id": "S01",
+          "name": "分镜 1",
+          "duration_s": 6,
+          "cameraPreset": "follow",
+          "shotNote": "镜头从门外轻推进入室内，保持人物连续。",
+          "entryDir": "W",
+          "exitDir": "E",
+          "camera": {
+            "shot": "medium",
+            "movement": "push_in",
+            "keyframes": [
+              { "t": 0, "x": -6, "y": 0, "zoom": 1, "rot": 0 },
+              { "t": 1, "x": 4, "y": 0, "zoom": 1.08, "rot": 0 }
+            ]
+          },
+          "lighting": { "time": "day", "key_dir": "front", "mood": "natural" },
+          "layers": [
+            {
+              "id": "主体1",
+              "type": "成年人",
+              "shape": "rect",
+              "shapeDesc": "推门后进入房间，动作连贯",
+              "look": "深蓝外套，背单肩包",
+              "z": 10,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 24, "y": 56, "w": 18, "h": 32, "rot": 0 },
+                { "t": 1, "x": 56, "y": 56, "w": 20, "h": 34, "rot": 0 }
+              ],
+              "notes": "从门外进入房间，保持连续进入语义。",
+              "externalPrompt": "镜头跟随主体从门外到室内。",
+              "referenceLinks": "",
+              "localRefs": [],
+              "referencePolicy": "optional"
+            }
+          ],
+          "config": { "mediaMode": "video", "compiler": "v2", "sceneTier": "indoor", "v2Mode": "strict", "stability": "standard" },
+          "notes": "media: video\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: standard\nbg: 门外到室内的过渡空间，门框清楚可见"
+        }
+      ]
+    }
+  },
+  {
+    "id": "06-continuous-next-room",
+    "title": "连续进入下一个房间",
+    "description": "人物先进入第一个房间，再穿过过道进入第二个房间，重点检查 continuous continuity sequence。",
+    "lang": "zh",
+    "platformId": "vidu",
+    "scope": "continuous_sequence",
+    "userInput": [
+      "一个人进入第一个房间",
+      "再穿过过道进入第二个房间",
+      "整个过程不要跳切，保持连续镜头"
+    ],
+    "expectations": {
+      "infoTerms": ["第一个房间", "过道", "第二个房间"],
+      "trajectoryTerms": ["连续镜头", "不要跳切", "穿过过道", "进入第二个房间"],
+      "relationTerms": [],
+      "conflictExpected": false,
+      "refsExpected": false,
+      "multiObjectExpected": false
+    },
+    "project": {
+      "project": { "mode": "storyboard", "mediaType": "video", "shotPlan": "continuous" },
+      "scenes": [
+        {
+          "id": "S01",
+          "name": "分镜 1",
+          "index": 1,
+          "transitionType": "camera_continues",
+          "duration_s": 5,
+          "cameraPreset": "follow",
+          "shotNote": "主角从门外进入第一个房间，镜头紧跟并保持 no-cut。",
+          "entryDir": "W",
+          "exitDir": "E",
+          "camera": {
+            "shot": "medium",
+            "movement": "follow",
+            "keyframes": [
+              { "t": 0, "x": -4, "y": 0, "zoom": 1, "rot": 0 },
+              { "t": 1, "x": 8, "y": 0, "zoom": 1.06, "rot": 0 }
+            ]
+          },
+          "lighting": { "time": "day", "key_dir": "front", "mood": "observational" },
+          "layers": [
+            {
+              "id": "主体1",
+              "type": "主角",
+              "shape": "rect",
+              "shapeDesc": "推门进入第一个房间",
+              "look": "深色风衣",
+              "z": 10,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 20, "y": 56, "w": 18, "h": 32, "rot": 0 },
+                { "t": 1, "x": 54, "y": 56, "w": 20, "h": 34, "rot": 0 }
+              ],
+              "notes": "进入第一个房间，保持身份连续。",
+              "externalPrompt": "镜头跟着主角穿门进入，不要切镜。",
+              "referenceLinks": "",
+              "localRefs": [],
+              "referencePolicy": "optional"
+            }
+          ],
+          "config": { "mediaMode": "video", "compiler": "v2", "sceneTier": "indoor", "v2Mode": "strict", "stability": "strict" },
+          "notes": "media: video\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: strict\nbg: 第一个房间入口，门框和室内地面可见"
+        },
+        {
+          "id": "S02",
+          "name": "分镜 2",
+          "index": 2,
+          "transitionType": "camera_continues",
+          "duration_s": 5,
+          "cameraPreset": "follow",
+          "shotNote": "主角穿过过道继续进入第二个房间，镜头随身体转向推进。",
+          "entryDir": "W",
+          "exitDir": "E",
+          "camera": {
+            "shot": "medium",
+            "movement": "follow_turn",
+            "keyframes": [
+              { "t": 0, "x": 8, "y": 0, "zoom": 1.06, "rot": 0 },
+              { "t": 1, "x": 18, "y": 0, "zoom": 1.1, "rot": 0 }
+            ]
+          },
+          "lighting": { "time": "day", "key_dir": "front", "mood": "continuous" },
+          "layers": [
+            {
+              "id": "主体1",
+              "type": "主角",
+              "shape": "rect",
+              "shapeDesc": "穿过过道后进入第二个房间",
+              "look": "深色风衣",
+              "z": 10,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 54, "y": 56, "w": 20, "h": 34, "rot": 0 },
+                { "t": 1, "x": 76, "y": 54, "w": 18, "h": 32, "rot": 0 }
+              ],
+              "notes": "穿过过道后继续进入第二个房间，不跳切不瞬移。",
+              "externalPrompt": "保持单镜头 no-cut，镜头随主体转向第二个房间。",
+              "referenceLinks": "",
+              "localRefs": [],
+              "referencePolicy": "optional"
+            }
+          ],
+          "config": { "mediaMode": "video", "compiler": "v2", "sceneTier": "indoor", "v2Mode": "strict", "stability": "strict" },
+          "notes": "media: video\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: strict\nbg: 过道连接第二个房间，门口和转角关系清楚"
+        }
+      ]
+    }
+  },
+  {
+    "id": "07-static-motion-conflict",
+    "title": "静态结构 + 强运动冲突",
+    "description": "结构层静止但文本要求强运动，检查 ScenePilotix 是否能做冲突收口。",
+    "lang": "zh",
+    "platformId": "hailuo",
+    "scope": "current_scene",
+    "userInput": [
+      "人物站在原地",
+      "但又要求他冲向下一个房间",
+      "希望镜头不要乱掉"
+    ],
+    "expectations": {
+      "infoTerms": ["人物", "下一个房间"],
+      "trajectoryTerms": ["冲向下一个房间"],
+      "relationTerms": [],
+      "conflictExpected": true,
+      "refsExpected": false,
+      "multiObjectExpected": false
+    },
+    "project": {
+      "project": { "mode": "storyboard", "mediaType": "video", "shotPlan": "single" },
+      "scenes": [
+        {
+          "id": "S01",
+          "name": "分镜 1",
+          "duration_s": 5,
+          "cameraPreset": "static",
+          "shotNote": "构图固定，人物保持在原位。",
+          "entryDir": "W",
+          "exitDir": "E",
+          "camera": {
+            "shot": "medium",
+            "movement": "static",
+            "keyframes": [
+              { "t": 0, "x": 0, "y": 0, "zoom": 1, "rot": 0 },
+              { "t": 1, "x": 0, "y": 0, "zoom": 1, "rot": 0 }
+            ]
+          },
+          "lighting": { "time": "night", "key_dir": "side", "mood": "tense" },
+          "layers": [
+            {
+              "id": "主体1",
+              "type": "人物",
+              "shape": "rect",
+              "shapeDesc": "正面站姿",
+              "look": "深灰外套",
+              "z": 10,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 52, "y": 56, "w": 18, "h": 32, "rot": 0 },
+                { "t": 1, "x": 52, "y": 56, "w": 18, "h": 32, "rot": 0 }
+              ],
+              "notes": "他想冲向下一个房间，但结构上保持静止。",
+              "externalPrompt": "走向下一个房间，情绪急迫。",
+              "referenceLinks": "",
+              "localRefs": [],
+              "referencePolicy": "optional"
+            }
+          ],
+          "config": { "mediaMode": "video", "compiler": "v2", "sceneTier": "indoor", "v2Mode": "strict", "stability": "strict" },
+          "notes": "media: video\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: strict\nbg: 狭窄室内走廊，画面构图稳定"
+        }
+      ]
+    }
+  },
+  {
+    "id": "08-multi-refs",
+    "title": "多参考图场景",
+    "description": "包含背景参考图、对象参考图和多对象局部提示词，检查 refs 组织表达。",
+    "lang": "zh",
+    "platformId": "keling",
+    "scope": "current_scene",
+    "userInput": [
+      "背景参考图是工业工作室",
+      "主角参考图是穿米色风衣的侦探",
+      "辅助对象参考图是一只机械臂和一块蓝图屏幕",
+      "希望各对象关系和 refs 用途都清楚"
+    ],
+    "expectations": {
+      "infoTerms": ["工业工作室", "米色风衣", "侦探", "机械臂", "蓝图屏幕"],
+      "trajectoryTerms": [],
+      "relationTerms": ["各对象关系"],
+      "conflictExpected": false,
+      "refsExpected": true,
+      "multiObjectExpected": true
+    },
+    "project": {
+      "project": { "mode": "storyboard", "mediaType": "image", "shotPlan": "single" },
+      "scenes": [
+        {
+          "id": "S01",
+          "name": "主画面",
+          "duration_s": 1,
+          "cameraPreset": "",
+          "shotNote": "主角站在工业工作室中，机械臂和蓝图屏幕作为辅助对象分布在后方。",
+          "backgroundRef": { "id": "bg-1", "name": "bg_industrial_studio.png", "mime": "image/png", "size": 1024, "updatedAt": 1 },
+          "camera": {
+            "shot": "wide",
+            "movement": "static",
+            "keyframes": [
+              { "t": 0, "x": 0, "y": 0, "zoom": 1, "rot": 0 },
+              { "t": 1, "x": 0, "y": 0, "zoom": 1, "rot": 0 }
+            ]
+          },
+          "lighting": { "time": "indoor", "key_dir": "top_left", "mood": "focused" },
+          "layers": [
+            {
+              "id": "主体1",
+              "type": "侦探",
+              "shape": "rect",
+              "shapeDesc": "站在前景中心略偏左",
+              "look": "米色风衣，冷静神情",
+              "z": 10,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 42, "y": 58, "w": 24, "h": 38, "rot": 0 },
+                { "t": 1, "x": 42, "y": 58, "w": 24, "h": 38, "rot": 0 }
+              ],
+              "notes": "主角为前景主体。",
+              "externalPrompt": "参考侦探人物图，但保持整体构图服从场景。",
+              "referenceLinks": "detective_ref.png",
+              "localRefs": [
+                { "id": "char-1", "type": "identity", "name": "detective_ref.png", "mime": "image/png", "size": 2048, "updatedAt": 1 }
+              ],
+              "referencePolicy": "required"
+            },
+            {
+              "id": "主体2",
+              "type": "机械臂",
+              "shape": "rect",
+              "shapeDesc": "位于后景右侧",
+              "look": "金属质感，冷灰色",
+              "z": 20,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 70, "y": 52, "w": 18, "h": 24, "rot": 0 },
+                { "t": 1, "x": 70, "y": 52, "w": 18, "h": 24, "rot": 0 }
+              ],
+              "notes": "后景辅助对象，不要压过主角。",
+              "externalPrompt": "机械臂参考图只作用于材质和轮廓。",
+              "referenceLinks": "robot_arm_ref.png",
+              "localRefs": [
+                { "id": "arm-1", "type": "appearance", "name": "robot_arm_ref.png", "mime": "image/png", "size": 2048, "updatedAt": 1 }
+              ],
+              "referencePolicy": "optional"
+            },
+            {
+              "id": "主体3",
+              "type": "蓝图屏幕",
+              "shape": "rect",
+              "shapeDesc": "位于后景左侧",
+              "look": "蓝色发光屏幕",
+              "z": 30,
+              "color": "#b7c3ff",
+              "opacity": 1,
+              "kf": [
+                { "t": 0, "x": 24, "y": 34, "w": 20, "h": 18, "rot": 0 },
+                { "t": 1, "x": 24, "y": 34, "w": 20, "h": 18, "rot": 0 }
+              ],
+              "notes": "显示蓝图信息，属于后景辅助信息。",
+              "externalPrompt": "蓝图屏幕参考图只作用于UI样式，不改变对象数量。",
+              "referenceLinks": "blueprint_screen_ref.png",
+              "localRefs": [
+                { "id": "screen-1", "type": "style", "name": "blueprint_screen_ref.png", "mime": "image/png", "size": 2048, "updatedAt": 1 }
+              ],
+              "referencePolicy": "optional"
+            }
+          ],
+          "config": { "mediaMode": "image", "compiler": "v2", "sceneTier": "indoor", "v2Mode": "strict", "stability": "standard" },
+          "notes": "media: image\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: standard\nbg: 工业工作室，金属设备和工作台清楚可见"
+        }
+      ]
+    }
+  }
+]

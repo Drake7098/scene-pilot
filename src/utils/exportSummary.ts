@@ -10,6 +10,7 @@ export type ExportSummary = {
   target: string;
   baseProfile: string;
   strategyType: "native" | "mapped";
+  exportScope: "current_scene" | "continuous_sequence";
   mediaMode: "image" | "video";
   compiler: "v1" | "v2";
   imageCleanupApplied: boolean;
@@ -30,6 +31,7 @@ export function makeExportSummary(input: ExportSummaryInput): ExportSummary {
     target: preset.id,
     baseProfile: preset.baseProfile,
     strategyType: preset.nativeStrategy ? "native" : "mapped",
+    exportScope: promptStages.metadata.exportScope,
     mediaMode: promptStages.metadata.mediaMode,
     compiler: promptStages.metadata.compiler,
     imageCleanupApplied,

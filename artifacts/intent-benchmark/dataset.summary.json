@@ -1,0 +1,11 @@
+{
+  "total": 10000,
+  "bySplit": {
+    "basic": 3000,
+    "extended": 2500,
+    "noise": 1500,
+    "professional": 1200,
+    "adversarial": 1000,
+    "longtail": 800
+  }
+}

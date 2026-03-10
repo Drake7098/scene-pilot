@@ -1,0 +1,163 @@
+{
+  "caseId": "single_001",
+  "title": "单主体室内人物",
+  "promptMode": "plain",
+  "promptSource": "Drake-DS local LLM baseline",
+  "seed": 202,
+  "prompt": "一位年轻女性穿着黑色风衣，站在窗边，背景有冷色调的灯光。画面采用中景构图，聚焦在她的半身。",
+  "promptId": "2616e7a6-3136-40cd-92e0-51028a05abf1",
+  "savedFiles": [],
+  "createdAt": "2026-03-08T16:20:49.741Z",
+  "comfyUiBaseUrl": "http://127.0.0.1:8000",
+  "comfyUiCheckpoint": "v1-5-pruned-emaonly-fp16.safetensors",
+  "history": {
+    "prompt": [
+      1,
+      "2616e7a6-3136-40cd-92e0-51028a05abf1",
+      {
+        "3": {
+          "inputs": {
+            "seed": 202,
+            "steps": 24,
+            "cfg": 6.5,
+            "sampler_name": "euler",
+            "scheduler": "normal",
+            "denoise": 1,
+            "model": [
+              "4",
+              0
+            ],
+            "positive": [
+              "6",
+              0
+            ],
+            "negative": [
+              "7",
+              0
+            ],
+            "latent_image": [
+              "5",
+              0
+            ]
+          },
+          "class_type": "KSampler"
+        },
+        "4": {
+          "inputs": {
+            "ckpt_name": "v1-5-pruned-emaonly-fp16.safetensors"
+          },
+          "class_type": "CheckpointLoaderSimple"
+        },
+        "5": {
+          "inputs": {
+            "width": 1024,
+            "height": 1024,
+            "batch_size": 1
+          },
+          "class_type": "EmptyLatentImage"
+        },
+        "6": {
+          "inputs": {
+            "text": "一位年轻女性穿着黑色风衣，站在窗边，背景有冷色调的灯光。画面采用中景构图，聚焦在她的半身。",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "7": {
+          "inputs": {
+            "text": "blurry, low quality, malformed hands, text artifacts, extra limbs",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "8": {
+          "inputs": {
+            "samples": [
+              "3",
+              0
+            ],
+            "vae": [
+              "4",
+              2
+            ]
+          },
+          "class_type": "VAEDecode"
+        },
+        "9": {
+          "inputs": {
+            "filename_prefix": "local-ab/single_001__plain__seed202",
+            "images": [
+              "8",
+              0
+            ]
+          },
+          "class_type": "SaveImage"
+        }
+      },
+      {
+        "create_time": 1772986346893
+      },
+      [
+        "9"
+      ]
+    ],
+    "outputs": {
+      "9": {
+        "images": [
+          {
+            "filename": "single_001__plain__seed202_00004_.png",
+            "subfolder": "local-ab",
+            "type": "output"
+          }
+        ]
+      }
+    },
+    "status": {
+      "status_str": "success",
+      "completed": true,
+      "messages": [
+        [
+          "execution_start",
+          {
+            "prompt_id": "2616e7a6-3136-40cd-92e0-51028a05abf1",
+            "timestamp": 1772986346893
+          }
+        ],
+        [
+          "execution_cached",
+          {
+            "nodes": [
+              "4",
+              "5",
+              "6",
+              "7"
+            ],
+            "prompt_id": "2616e7a6-3136-40cd-92e0-51028a05abf1",
+            "timestamp": 1772986346894
+          }
+        ],
+        [
+          "execution_success",
+          {
+            "prompt_id": "2616e7a6-3136-40cd-92e0-51028a05abf1",
+            "timestamp": 1772986849435
+          }
+        ]
+      ]
+    },
+    "meta": {
+      "9": {
+        "node_id": "9",
+        "display_node": "9",
+        "parent_node": null,
+        "real_node_id": "9"
+      }
+    }
+  }
+}

@@ -9,9 +9,9 @@ import {
   runStep,
 } from "../support/runtime";
 
-const SCENE_1 = /01\s*[｜|]\s*(镜头|Shot)01/i;
-const SCENE_2 = /02\s*[｜|]\s*(镜头|Shot)02/i;
-const SCENE_3 = /03\s*[｜|]\s*(镜头|Shot)03/i;
+const SCENE_1 = /(?:01\s*[｜|]\s*(镜头|Shot)01|Scene\s*1|分镜\s*1)/i;
+const SCENE_2 = /(?:02\s*[｜|]\s*(镜头|Shot)02|Scene\s*2|分镜\s*2)/i;
+const SCENE_3 = /(?:03\s*[｜|]\s*(镜头|Shot)03|Scene\s*3|分镜\s*3)/i;
 
 test("power_creator_high_frequency_edits", async ({ page }) => {
   requireLiveMode();

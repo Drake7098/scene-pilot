@@ -1,9 +1,12 @@
-version: "2026-03-04"
+version: "2026-03-10"
 phase: "5"
 run_policy:
   timezone: "Asia/Shanghai"
   retry_on_failure: 1
   global_timeout_sec: 1800
+  skip_policy:
+    allow_skipped: false
+    bypass_env: "ROBOT_ALLOW_SKIPS=1"
 
 robots:
   - id: novice_user
@@ -68,6 +71,27 @@ robots:
     scenario: "scenarios/ref-attachment-guard.spec.ts"
     priority: "P1"
     sla_sec: 240
+
+  - id: modal_interaction_guard
+    enabled: true
+    role: "Save/Save As model select interaction and export modal close+centering guard"
+    scenario: "scenarios/modal-interaction-guard.spec.ts"
+    priority: "P0"
+    sla_sec: 300
+
+  - id: help_center_guard
+    enabled: true
+    role: "Top Help opens Help Center with close controls and viewport-centering guard"
+    scenario: "scenarios/help-center-guard.spec.ts"
+    priority: "P0"
+    sla_sec: 300
+
+  - id: quick_workspace_layout_guard
+    enabled: true
+    role: "Quick Workspace layout guard for overlap, dropdown clipping, and whitespace balance in zh/en"
+    scenario: "scenarios/quick-workspace-layout-guard.spec.ts"
+    priority: "P0"
+    sla_sec: 360
 
 planned_robots:
   - id: quality_scoring

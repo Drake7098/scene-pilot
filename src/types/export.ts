@@ -9,6 +9,8 @@ export type PromptPipelineStage =
   | "adapt_platform"
   | "final_cleanup";
 
+export type PromptExportScope = "current_scene" | "continuous_sequence";
+
 export type PromptPipelineMetadata = {
   platformId: PlatformPresetId;
   baseProfile: PlatformProfile;
@@ -23,4 +25,5 @@ export type PromptPipelineMetadata = {
   trimReason: string;
   appliedPatches: string[];
   stages: PromptPipelineStage[];
+  exportScope: PromptExportScope;
 };

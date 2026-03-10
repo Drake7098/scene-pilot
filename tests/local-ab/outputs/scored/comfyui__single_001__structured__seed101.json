@@ -1,0 +1,15 @@
+{
+  "caseId": "single_001",
+  "title": "单主体室内人物",
+  "tool": "comfyui",
+  "promptMode": "structured",
+  "modelName": "sd_turbo.safetensors",
+  "seed": 101,
+  "imagePath": "/Users/dk/Documents/ComfyUI/output/local-ab/single_001__structured__seed101_00002_.png",
+  "completionScore": 0,
+  "compositionScore": 0,
+  "semanticMatchScore": 0,
+  "usabilityScore": 0,
+  "isUsable": false,
+  "notes": "Fill scores manually."
+}

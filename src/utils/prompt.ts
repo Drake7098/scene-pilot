@@ -5,6 +5,10 @@ import { compileScenePromptV2 } from "./compileV2";
 import type { SceneTier, V2Mode } from "./compileV2";
 import { optimizeV2ScenePrompt } from "./adaptivePatch";
 import { adaptPromptToPlatform } from "./platformAdapter";
+import { buildProMotionPromptLine, parseProMotionSelection } from "../content/proCameraPresets";
+import { buildImageProPromptLine } from "../content/proCreativeModes";
+import { proPromptQualityGate } from "../content/proPlusDirectorModules";
+import { resolveEffectiveMotion } from "./proMotionResolver";
 
 /**
  * ScenePilot prompts generator
@@ -124,6 +128,67 @@ const DIRECTION_TO_MOVE_ZH: Record<Direction, string> = {
   NW: "左上"
 };
 
+const MOTION_WORDS_RE = /跑|行走|慢走|快走|挪|移动|奔跑|进入|穿过|经过|走进|推门|上楼|下楼|转入|跨过|rush|run|walk|move|moving|enter|go into|pass through|cross|step into|turn into|open the door|through the door|corridor|hallway|hall/i;
+const ROOM_WORDS_RE = /门|走廊|过道|房间|客厅|卧室|厨房|办公室|电梯|楼梯|door|doorway|corridor|hallway|room|lobby|kitchen|bedroom|office|stairs|elevator/i;
+
+function summarizeKfPath(lang: Lang, layer: Layer): string {
+  const k0 = getKF(layer, 0);
+  const k1 = getKF(layer, 1);
+  const dx = n1(k1.x) - n1(k0.x);
+  const dy = n1(k1.y) - n1(k0.y);
+  if (Math.abs(dx) < 4 && Math.abs(dy) < 4) {
+    return lang === "zh" ? "结构上基本保持原位" : "structurally stays near the same mark";
+  }
+  const horizontal = Math.abs(dx) >= 4 ? (dx > 0 ? (lang === "zh" ? "向右" : "moves right") : (lang === "zh" ? "向左" : "moves left")) : "";
+  const vertical = Math.abs(dy) >= 4 ? (dy > 0 ? (lang === "zh" ? "向下" : "moves down") : (lang === "zh" ? "向上" : "moves up")) : "";
+  const parts = [horizontal, vertical].filter(Boolean);
+  if (!parts.length) return lang === "zh" ? "结构上保持平稳位移" : "keeps a smooth structural move";
+  return lang === "zh" ? `结构路径：${parts.join("并")}` : `Structural path: ${parts.join(" and ")}`;
+}
+
+function extractContinuousIntent(lang: Lang, layer: Layer): string {
+  const textBag = [layer.notes ?? "", layer.externalPrompt ?? "", layer.look ?? ""].join(" ").trim();
+  if (!textBag) return "";
+  const lines = textBag
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const picked = lines.find((line) => MOTION_WORDS_RE.test(line) || ROOM_WORDS_RE.test(line)) ?? lines[0] ?? "";
+  if (!picked) return "";
+  return lang === "zh" ? `对象连续意图：${picked}` : `Object continuity intent: ${picked}`;
+}
+
+function buildContinuousBridge(lang: Lang, current: Scene, next: Scene, idx: number): string {
+  const fromEn = current.exitDir && DIRECTION_TO_MOVE[current.exitDir] ? DIRECTION_TO_MOVE[current.exitDir] : "forward";
+  const toEn = next.entryDir && DIRECTION_TO_MOVE[next.entryDir as Direction] ? DIRECTION_TO_MOVE[next.entryDir as Direction] : fromEn;
+  const fromZh = current.exitDir && DIRECTION_TO_MOVE_ZH[current.exitDir] ? DIRECTION_TO_MOVE_ZH[current.exitDir] : "前方";
+  const toZh = next.entryDir && DIRECTION_TO_MOVE_ZH[next.entryDir as Direction] ? DIRECTION_TO_MOVE_ZH[next.entryDir as Direction] : fromZh;
+  const currentNote = (current.shotNote ?? "").trim();
+  const nextNote = (next.shotNote ?? "").trim();
+  const currentRoomHint = ROOM_WORDS_RE.test(currentNote) ? currentNote : "";
+  const nextRoomHint = ROOM_WORDS_RE.test(nextNote) ? nextNote : "";
+
+  if (lang === "zh") {
+    return [
+      `衔接 ${String(idx + 1).padStart(2, "0")}→${String(idx + 2).padStart(2, "0")}：保持单镜头 no-cut 连续推进，不跳切、不瞬移、不断身份。`,
+      `空间路径：先朝${fromZh}穿过当前空间的门/过道，再顺势转向${toZh}进入下一空间。`,
+      currentRoomHint ? `当前空间提示：${currentRoomHint}` : "",
+      nextRoomHint ? `下一空间提示：${nextRoomHint}` : ""
+    ].filter(Boolean).join("\n");
+  }
+
+  return [
+    `Transition ${String(idx + 1).padStart(2, "0")}→${String(idx + 2).padStart(2, "0")}: keep a single no-cut take with identity continuity, no jump cut, no teleport.`,
+    `Spatial path: move ${fromEn}, pass through the door/corridor of the current space, then turn ${toEn} into the next room naturally.`,
+    currentRoomHint ? `Current-space cue: ${currentRoomHint}` : "",
+    nextRoomHint ? `Next-space cue: ${nextRoomHint}` : ""
+  ].filter(Boolean).join("\n");
+}
+
+function hasMotionIntent(text: string): boolean {
+  return MOTION_WORDS_RE.test(text ?? "");
+}
+
 function transitionLineByType(lang: Lang, fromIdx: number, toIdx: number, type: string | undefined): string {
   const t = type ?? "cut";
   const a = String(fromIdx + 1).padStart(2, "0");
@@ -238,6 +303,7 @@ function formatScenePrompt(lang: Lang, scene: Scene): string {
   const lighting = (scene.lighting ?? {}) as any;
   const cameraPreset = ((scene as any).cameraPreset ?? "").toString().trim();
   const shotNote = ((scene as any).shotNote ?? "").toString().trim();
+  const proMotionLine = buildProMotionPromptLine(parseProMotionSelection(scene.notes ?? ""), lang);
 
   const bg = parseBg(scene.notes ?? "");
   const duration = Number.isFinite(scene.duration_s) ? Math.round(scene.duration_s) : 0;
@@ -246,7 +312,9 @@ function formatScenePrompt(lang: Lang, scene: Scene): string {
 
   const shotRaw = typeof camera.shot === "string" ? camera.shot.trim() : "";
   const shot = shotRaw || cameraPreset;
-  const movement = typeof camera.movement === "string" ? camera.movement.trim() : "";
+  const effectiveMotion = resolveEffectiveMotion(scene);
+  const movement = effectiveMotion.source === "camera_movement" ? effectiveMotion.movementValue : "";
+  const imageProLine = mode === "image" ? buildImageProPromptLine(scene.notes ?? "", lang) : "";
 
   const time = typeof lighting.time === "string" ? lighting.time.trim() : "";
   const keyDir = typeof lighting.key_dir === "string" ? lighting.key_dir.trim() : "";
@@ -275,7 +343,7 @@ function formatScenePrompt(lang: Lang, scene: Scene): string {
         : "";
 
     const noteLine = shotNote ? `分镜说明：${shotNote}` : "";
-    const sceneMeta = [bg ? `背景：${bg}` : "", cameraLine, lightingLine, noteLine].filter(Boolean).join("\n");
+    const sceneMeta = [bg ? `背景：${bg}` : "", cameraLine, lightingLine, noteLine, proMotionLine, imageProLine].filter(Boolean).join("\n");
 
     return [header, sceneMeta, layerLines].filter(Boolean).join("\n\n");
   }
@@ -298,7 +366,7 @@ function formatScenePrompt(lang: Lang, scene: Scene): string {
       : "";
 
   const noteLine = shotNote ? `Shot note: ${shotNote}` : "";
-  const sceneMeta = [bg ? `Background: ${bg}` : "", cameraLine, lightingLine, noteLine].filter(Boolean).join("\n");
+  const sceneMeta = [bg ? `Background: ${bg}` : "", cameraLine, lightingLine, noteLine, proMotionLine, imageProLine].filter(Boolean).join("\n");
 
   return [header, sceneMeta, layerLines].filter(Boolean).join("\n\n");
 }
@@ -560,6 +628,7 @@ function buildLRLForScene(lang: Lang, mode: MediaMode, scene: Scene): string {
     const look = (layer.look ?? "").trim();
     const notes = (layer.notes ?? "").trim();
     const externalPrompt = compactLocalPrompt(layer.externalPrompt ?? "");
+    const motionIntentText = [notes, externalPrompt].filter(Boolean).join(" ");
 
     const xB = bucketX(use.a.x);
     const yB = bucketY(use.a.y);
@@ -587,11 +656,18 @@ function buildLRLForScene(lang: Lang, mode: MediaMode, scene: Scene): string {
       if (mode === "video") {
         if (noMotion) {
           lines.push("- 运动：t0 与 t1 一致，保持静止（别加抖动/位移/缩放/旋转）。");
+          if (hasMotionIntent(motionIntentText)) {
+            lines.push("- 冲突收口：结构优先。若备注里有行走/进入下一空间等动作词，仅保留为情绪或姿态意图，不转成真实位移。");
+          }
         } else {
           const xB1 = bucketX(use.b.x);
           const yB1 = bucketY(use.b.y);
           lines.push(`- 终点：${xB1.zh} + ${yB1.zh}；平滑到位（无跳帧/无抖动）。`);
           lines.push(`- 终点尺寸：${sizeLabel(use.b.w, use.b.h, lang)}（别为了构图拉齐）。`);
+          const pathSummary = summarizeKfPath(lang, layer);
+          if (pathSummary) lines.push(`- ${pathSummary}`);
+          const intent = extractContinuousIntent(lang, layer);
+          if (intent) lines.push(`- ${intent}`);
         }
       }
 
@@ -612,11 +688,18 @@ function buildLRLForScene(lang: Lang, mode: MediaMode, scene: Scene): string {
       if (mode === "video") {
         if (noMotion) {
           lines.push("- Motion: t0==t1, keep static (no jitter/shift/scale/rotate).");
+          if (hasMotionIntent(motionIntentText)) {
+            lines.push("- Conflict resolution: structure wins. If notes mention walking/entering another room, keep that only as pose intent, not real displacement.");
+          }
         } else {
           const xB1 = bucketX(use.b.x);
           const yB1 = bucketY(use.b.y);
           lines.push(`- End: ${xB1.en} + ${yB1.en}; smooth motion (no jumps/jitter).`);
           lines.push(`- End size: ${sizeLabel(use.b.w, use.b.h, lang)} (no size equalization).`);
+          const pathSummary = summarizeKfPath(lang, layer);
+          if (pathSummary) lines.push(`- ${pathSummary}`);
+          const intent = extractContinuousIntent(lang, layer);
+          if (intent) lines.push(`- ${intent}`);
         }
       }
 
@@ -887,7 +970,9 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
         out.push(formatScenePrompt(lang, s));
       }
     });
-    return finalizeByPlatform(optimizeFinalPrompt(out.join("\n\n---\n\n")), profile, lang, anyVideo ? "video" : "image");
+    return proPromptQualityGate(
+      finalizeByPlatform(optimizeFinalPrompt(out.join("\n\n---\n\n")), profile, lang, anyVideo ? "video" : "image")
+    );
   }
 
   if (shotPlan === "continuous" && scenes.length > 1) {
@@ -897,7 +982,8 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
         [
           `连续镜头模式（总时长约 ${totalSec} 秒）：第一视角，单镜头连续运动，无跳切。`,
           "强制约束：no text / no subtitles / no overlays / do not show numbers。",
-          "保持对象身份连续、数量稳定；避免突然位移、瞬移、硬切。"
+          "保持对象身份连续、数量稳定；避免突然位移、瞬移、硬切。",
+          "连续轨迹要求：明确从当前空间进入、穿过门或走廊、再自然进入下一空间；动作衔接以对象路径连续为准。"
         ].join("\n")
       );
     } else {
@@ -905,7 +991,8 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
         [
           `Continuous mode (~${totalSec}s): first-person perspective, single long take, seamless motion, no cuts.`,
           "Hard constraints: no text / no subtitles / no overlays / do not show numbers.",
-          "Keep identity and object count consistent; avoid sudden jumps/teleports/hard cuts."
+          "Keep identity and object count consistent; avoid sudden jumps/teleports/hard cuts.",
+          "Continuity rule: make the subject path explicit from current space, through door/corridor, and naturally into the next space."
         ].join("\n")
       );
     }
@@ -913,7 +1000,18 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
     scenes.forEach((s, i) => {
       const shotTitle = (s.name ?? "").trim() || (lang === "zh" ? `分镜 ${i + 1}` : `Shot ${i + 1}`);
       const layerSummary = (s.layers ?? [])
-        .map((l) => [l.id, l.type, l.look, l.notes].filter(Boolean).join(" | "))
+        .map((l) => {
+          const parts = [
+            l.id,
+            l.type,
+            l.look,
+            l.notes,
+            compactLocalPrompt(l.externalPrompt ?? ""),
+            summarizeKfPath(lang, l),
+            extractContinuousIntent(lang, l)
+          ].filter(Boolean);
+          return parts.join(" | ");
+        })
         .filter(Boolean)
         .join(lang === "zh" ? "；" : "; ");
       const shotLine =
@@ -921,27 +1019,21 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
           ? `镜头 ${String(i + 1).padStart(2, "0")}：${shotTitle}（${Math.max(1, Math.round(Number(s.duration_s) || 0))}秒）`
           : `Shot ${String(i + 1).padStart(2, "0")}: ${shotTitle} (${Math.max(1, Math.round(Number(s.duration_s) || 0))}s)`;
       const noteLine = (s as any).shotNote ? (lang === "zh" ? `说明：${(s as any).shotNote}` : `Note: ${(s as any).shotNote}`) : "";
-      out.push([shotLine, noteLine, layerSummary].filter(Boolean).join("\n"));
+      const doorLine =
+        lang === "zh"
+          ? [s.entryDir ? `入场方向：${DIRECTION_TO_MOVE_ZH[s.entryDir as Direction] ?? "自动"}` : "", s.exitDir ? `离场方向：${DIRECTION_TO_MOVE_ZH[s.exitDir as Direction] ?? "自动"}` : ""].filter(Boolean).join("；")
+          : [s.entryDir ? `Entry: ${DIRECTION_TO_MOVE[s.entryDir as Direction] ?? "auto"}` : "", s.exitDir ? `Exit: ${DIRECTION_TO_MOVE[s.exitDir as Direction] ?? "auto"}` : ""].filter(Boolean).join(" | ");
+      out.push([shotLine, noteLine, doorLine, layerSummary].filter(Boolean).join("\n"));
 
       if (i < scenes.length - 1) {
-        const fromEn = s.exitDir && DIRECTION_TO_MOVE[s.exitDir] ? DIRECTION_TO_MOVE[s.exitDir] : "forward";
-        const toEn = scenes[i + 1].entryDir && DIRECTION_TO_MOVE[scenes[i + 1].entryDir as Direction]
-          ? DIRECTION_TO_MOVE[scenes[i + 1].entryDir as Direction]
-          : fromEn;
-        const fromZh = s.exitDir && DIRECTION_TO_MOVE_ZH[s.exitDir] ? DIRECTION_TO_MOVE_ZH[s.exitDir] : "前方";
-        const toZh = scenes[i + 1].entryDir && DIRECTION_TO_MOVE_ZH[scenes[i + 1].entryDir as Direction]
-          ? DIRECTION_TO_MOVE_ZH[scenes[i + 1].entryDir as Direction]
-          : fromZh;
-        out.push(
-          lang === "zh"
-            ? `衔接 ${String(i + 1).padStart(2, "0")}→${String(i + 2).padStart(2, "0")}：镜头连续推进，先向${fromZh}移动，再自然转向${toZh}进入下一分镜，保持 no-cut 连贯感。`
-            : `Transition ${String(i + 1).padStart(2, "0")}→${String(i + 2).padStart(2, "0")}: camera continues with seamless no-cut motion, moving ${fromEn} then naturally into ${toEn} for the next shot.`
-        );
+        out.push(buildContinuousBridge(lang, s, scenes[i + 1], i));
       }
     });
 
     const prompt = out.join("\n\n---\n\n");
-    return finalizeByPlatform(optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project)), profile, lang, "video");
+    return proPromptQualityGate(
+      finalizeByPlatform(optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project)), profile, lang, "video")
+    );
   }
 
   if ((shotPlan === "multicam" || shotPlan === "edit") && scenes.length > 1) {
@@ -966,7 +1058,9 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
       }
     });
     const prompt = out.join("\n\n---\n\n");
-    return finalizeByPlatform(optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project)), profile, lang, anyVideo ? "video" : "image");
+    return proPromptQualityGate(
+      finalizeByPlatform(optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project)), profile, lang, anyVideo ? "video" : "image")
+    );
   }
 
   scenes.forEach((s) => {
@@ -974,5 +1068,7 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
   });
 
   const prompt = out.join("\n\n---\n\n");
-  return finalizeByPlatform(optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project)), profile, lang, anyVideo ? "video" : "image");
+  return proPromptQualityGate(
+    finalizeByPlatform(optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project)), profile, lang, anyVideo ? "video" : "image")
+  );
 }

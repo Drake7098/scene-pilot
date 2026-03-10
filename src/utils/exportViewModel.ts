@@ -1,8 +1,10 @@
 import type { Lang } from "../i18n";
-import type { Scene } from "../model";
+import type { Project, Scene } from "../model";
+import { resolveSceneConfig } from "../model";
 import type { PlatformPreset } from "../config/platformPresets";
 import type { PromptPipelineOutput } from "./promptPipeline";
 import type { ExportSummary } from "./exportSummary";
+import type { PromptExportScope } from "../types/export";
 
 type Input = {
   lang: Lang;
@@ -45,6 +47,29 @@ export type ExportInfoRow = {
   label: string;
   value: string;
 };
+
+export type ExportMode = "quick" | "package";
+
+export function recommendExportMode(project: Project, sceneIdx: number): ExportMode {
+  const scenes = project.scenes ?? [];
+  const current = scenes[sceneIdx];
+  const shotPlan = project.project?.shotPlan;
+  const totalRefs = scenes.reduce((sum, scene) => sum + (scene.layers ?? []).reduce((acc, layer) => acc + (layer.localRefs?.length ?? 0), 0), 0);
+  const currentObjects = current?.layers?.length ?? 0;
+  const isContinuous = shotPlan === "continuous" && scenes.length > 1;
+  const hasManyObjects = currentObjects >= 3;
+  const hasManyRefs = totalRefs >= 3;
+  return isContinuous || hasManyObjects || hasManyRefs ? "package" : "quick";
+}
+
+export function availableExportScopes(project: Project, sceneIdx: number): PromptExportScope[] {
+  const scenes = project.scenes ?? [];
+  const current = scenes[sceneIdx];
+  const shotPlan = project.project?.shotPlan;
+  if (!current) return ["current_scene"];
+  const isContinuousVideo = shotPlan === "continuous" && resolveSceneConfig(current).mediaMode === "video" && scenes.length - sceneIdx > 1;
+  return isContinuousVideo ? ["current_scene", "continuous_sequence"] : ["current_scene"];
+}
 
 export function buildExportConfigRows(input: { lang: Lang; preset: PlatformPreset; scope: "current_scene" | "project" }): ExportInfoRow[] {
   const { lang, preset, scope } = input;

@@ -1,0 +1,14 @@
+{
+  "case_id": "img_001",
+  "prompt_mode": "plain",
+  "tool": "drawthings",
+  "model_name": "FLUX.1-schnell",
+  "seed": 101,
+  "image_path": "/abs/path/to/image.png",
+  "completion_score": 0,
+  "composition_score": 0,
+  "semantic_match_score": 0,
+  "usability_score": 0,
+  "is_usable": false,
+  "notes": ""
+}

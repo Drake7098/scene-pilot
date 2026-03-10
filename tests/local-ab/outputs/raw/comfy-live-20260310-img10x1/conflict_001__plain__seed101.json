@@ -1,0 +1,164 @@
+{
+  "caseId": "conflict_001",
+  "title": "静态结构 + 强运动冲突",
+  "promptMode": "plain",
+  "promptSource": "Drake-DS local LLM baseline",
+  "seed": 101,
+  "prompt": "一个男人站在原地，张开双臂，身体前倾，仿佛下一秒就要冲向下一个房间。他的姿态充满动感，虽然双脚看似静止，但他的肌肉和表情都显示出即将冲出的姿态。背景中，一扇半开的门和地板的线条引导着视线，暗示着下一个房间的方向。整体画面稳定，光线自然，突出人物的动态张力。",
+  "promptId": "1e4a5557-7ad2-448f-9a1e-d9ae83116a31",
+  "savedFiles": [
+    "/Users/dk/Downloads/ComfyUI/output/local-ab/conflict_001__plain__seed101_00001_.png"
+  ],
+  "createdAt": "2026-03-10T01:18:15.481Z",
+  "comfyUiBaseUrl": "http://127.0.0.1:8000",
+  "comfyUiCheckpoint": "v1-5-pruned-emaonly-fp16.safetensors",
+  "history": {
+    "prompt": [
+      37,
+      "1e4a5557-7ad2-448f-9a1e-d9ae83116a31",
+      {
+        "3": {
+          "inputs": {
+            "seed": 101,
+            "steps": 4,
+            "cfg": 3.5,
+            "sampler_name": "euler",
+            "scheduler": "normal",
+            "denoise": 1,
+            "model": [
+              "4",
+              0
+            ],
+            "positive": [
+              "6",
+              0
+            ],
+            "negative": [
+              "7",
+              0
+            ],
+            "latent_image": [
+              "5",
+              0
+            ]
+          },
+          "class_type": "KSampler"
+        },
+        "4": {
+          "inputs": {
+            "ckpt_name": "v1-5-pruned-emaonly-fp16.safetensors"
+          },
+          "class_type": "CheckpointLoaderSimple"
+        },
+        "5": {
+          "inputs": {
+            "width": 512,
+            "height": 512,
+            "batch_size": 1
+          },
+          "class_type": "EmptyLatentImage"
+        },
+        "6": {
+          "inputs": {
+            "text": "一个男人站在原地，张开双臂，身体前倾，仿佛下一秒就要冲向下一个房间。他的姿态充满动感，虽然双脚看似静止，但他的肌肉和表情都显示出即将冲出的姿态。背景中，一扇半开的门和地板的线条引导着视线，暗示着下一个房间的方向。整体画面稳定，光线自然，突出人物的动态张力。",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "7": {
+          "inputs": {
+            "text": "blurry, low quality, malformed hands, text artifacts, extra limbs",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "8": {
+          "inputs": {
+            "samples": [
+              "3",
+              0
+            ],
+            "vae": [
+              "4",
+              2
+            ]
+          },
+          "class_type": "VAEDecode"
+        },
+        "9": {
+          "inputs": {
+            "filename_prefix": "local-ab/conflict_001__plain__seed101",
+            "images": [
+              "8",
+              0
+            ]
+          },
+          "class_type": "SaveImage"
+        }
+      },
+      {
+        "create_time": 1773105477462
+      },
+      [
+        "9"
+      ]
+    ],
+    "outputs": {
+      "9": {
+        "images": [
+          {
+            "filename": "conflict_001__plain__seed101_00001_.png",
+            "subfolder": "local-ab",
+            "type": "output"
+          }
+        ]
+      }
+    },
+    "status": {
+      "status_str": "success",
+      "completed": true,
+      "messages": [
+        [
+          "execution_start",
+          {
+            "prompt_id": "1e4a5557-7ad2-448f-9a1e-d9ae83116a31",
+            "timestamp": 1773105477462
+          }
+        ],
+        [
+          "execution_cached",
+          {
+            "nodes": [
+              "4",
+              "5",
+              "7"
+            ],
+            "prompt_id": "1e4a5557-7ad2-448f-9a1e-d9ae83116a31",
+            "timestamp": 1773105477463
+          }
+        ],
+        [
+          "execution_success",
+          {
+            "prompt_id": "1e4a5557-7ad2-448f-9a1e-d9ae83116a31",
+            "timestamp": 1773105493695
+          }
+        ]
+      ]
+    },
+    "meta": {
+      "9": {
+        "node_id": "9",
+        "display_node": "9",
+        "parent_node": null,
+        "real_node_id": "9"
+      }
+    }
+  }
+}

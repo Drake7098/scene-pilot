@@ -1,0 +1,38 @@
+{
+  "totals": {
+    "scoredImages": 4,
+    "drawThingsRuns": 0,
+    "comfyUiRuns": 4
+  },
+  "promptModes": {
+    "plain": {
+      "usableRate": 0,
+      "averageUsability": 0
+    },
+    "structured": {
+      "usableRate": 0,
+      "averageUsability": 0
+    }
+  },
+  "tools": {
+    "drawthings": {
+      "usableRate": 0,
+      "averageUsability": 0
+    },
+    "comfyui": {
+      "usableRate": 0,
+      "averageUsability": 0
+    }
+  },
+  "categories": {
+    "single": {
+      "plainUsableRate": 0,
+      "structuredUsableRate": 0,
+      "lift": 0
+    }
+  },
+  "topLiftCases": [],
+  "unstableCases": [
+    "single_001"
+  ]
+}

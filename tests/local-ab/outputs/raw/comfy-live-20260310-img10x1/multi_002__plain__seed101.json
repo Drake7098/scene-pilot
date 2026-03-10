@@ -1,0 +1,164 @@
+{
+  "caseId": "multi_002",
+  "title": "工业工作台构图",
+  "promptMode": "plain",
+  "promptSource": "Drake-DS local LLM baseline",
+  "seed": 101,
+  "prompt": "一个侦探站在工业工作室的工作台前，台面上放着各种工具和文件，背景有显示器和工具架，整体氛围工业感十足，现代且充满科技感。",
+  "promptId": "ae27f570-b5e4-473f-a13a-cc48c04831a7",
+  "savedFiles": [
+    "/Users/dk/Downloads/ComfyUI/output/local-ab/multi_002__plain__seed101_00001_.png"
+  ],
+  "createdAt": "2026-03-10T01:16:21.237Z",
+  "comfyUiBaseUrl": "http://127.0.0.1:8000",
+  "comfyUiCheckpoint": "v1-5-pruned-emaonly-fp16.safetensors",
+  "history": {
+    "prompt": [
+      31,
+      "ae27f570-b5e4-473f-a13a-cc48c04831a7",
+      {
+        "3": {
+          "inputs": {
+            "seed": 101,
+            "steps": 4,
+            "cfg": 3.5,
+            "sampler_name": "euler",
+            "scheduler": "normal",
+            "denoise": 1,
+            "model": [
+              "4",
+              0
+            ],
+            "positive": [
+              "6",
+              0
+            ],
+            "negative": [
+              "7",
+              0
+            ],
+            "latent_image": [
+              "5",
+              0
+            ]
+          },
+          "class_type": "KSampler"
+        },
+        "4": {
+          "inputs": {
+            "ckpt_name": "v1-5-pruned-emaonly-fp16.safetensors"
+          },
+          "class_type": "CheckpointLoaderSimple"
+        },
+        "5": {
+          "inputs": {
+            "width": 512,
+            "height": 512,
+            "batch_size": 1
+          },
+          "class_type": "EmptyLatentImage"
+        },
+        "6": {
+          "inputs": {
+            "text": "一个侦探站在工业工作室的工作台前，台面上放着各种工具和文件，背景有显示器和工具架，整体氛围工业感十足，现代且充满科技感。",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "7": {
+          "inputs": {
+            "text": "blurry, low quality, malformed hands, text artifacts, extra limbs",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "8": {
+          "inputs": {
+            "samples": [
+              "3",
+              0
+            ],
+            "vae": [
+              "4",
+              2
+            ]
+          },
+          "class_type": "VAEDecode"
+        },
+        "9": {
+          "inputs": {
+            "filename_prefix": "local-ab/multi_002__plain__seed101",
+            "images": [
+              "8",
+              0
+            ]
+          },
+          "class_type": "SaveImage"
+        }
+      },
+      {
+        "create_time": 1773105363224
+      },
+      [
+        "9"
+      ]
+    ],
+    "outputs": {
+      "9": {
+        "images": [
+          {
+            "filename": "multi_002__plain__seed101_00001_.png",
+            "subfolder": "local-ab",
+            "type": "output"
+          }
+        ]
+      }
+    },
+    "status": {
+      "status_str": "success",
+      "completed": true,
+      "messages": [
+        [
+          "execution_start",
+          {
+            "prompt_id": "ae27f570-b5e4-473f-a13a-cc48c04831a7",
+            "timestamp": 1773105363224
+          }
+        ],
+        [
+          "execution_cached",
+          {
+            "nodes": [
+              "4",
+              "5",
+              "7"
+            ],
+            "prompt_id": "ae27f570-b5e4-473f-a13a-cc48c04831a7",
+            "timestamp": 1773105363225
+          }
+        ],
+        [
+          "execution_success",
+          {
+            "prompt_id": "ae27f570-b5e4-473f-a13a-cc48c04831a7",
+            "timestamp": 1773105379694
+          }
+        ]
+      ]
+    },
+    "meta": {
+      "9": {
+        "node_id": "9",
+        "display_node": "9",
+        "parent_node": null,
+        "real_node_id": "9"
+      }
+    }
+  }
+}

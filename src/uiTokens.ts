@@ -3,6 +3,7 @@ export const UI_TYPO = {
   size12: 12,
   size13: 13,
   size14: 14,
+  size15: 15,
   size16: 16
 } as const;
 
@@ -67,6 +68,8 @@ export const UI_PALETTE = {
   shadow: {
     panel: "0 18px 48px rgba(2,6,14,0.42)",
     float: "0 14px 34px rgba(2,6,14,0.5)",
+    hover: "0 12px 28px rgba(4,10,22,0.26)",
+    press: "0 6px 14px rgba(4,10,22,0.22)",
     inset: "0 1px 0 rgba(255,255,255,0.06) inset",
     focus: "0 0 0 2px rgba(102,168,255,0.34)"
   }
@@ -92,9 +95,153 @@ export const UI_COLOR = {
 export const UI_EFFECT = {
   panelShadow: UI_PALETTE.shadow.panel,
   floatShadow: UI_PALETTE.shadow.float,
+  hoverShadow: UI_PALETTE.shadow.hover,
+  pressShadow: UI_PALETTE.shadow.press,
   insetShadow: UI_PALETTE.shadow.inset,
   focusRing: UI_PALETTE.shadow.focus,
   softRing: "0 0 0 1px rgba(102,168,255,0.18) inset"
+} as const;
+
+export const UI_CONTROL = {
+  bg: {
+    default: "rgba(255,255,255,0.045)",
+    hover: "rgba(255,255,255,0.075)",
+    active: "rgba(255,255,255,0.032)",
+    disabled: "rgba(255,255,255,0.022)",
+    accent: "rgba(104,171,255,0.18)",
+    accentHover: "rgba(104,171,255,0.24)",
+    accentActive: "rgba(104,171,255,0.16)",
+    danger: "rgba(255,124,124,0.14)"
+  },
+  border: {
+    default: UI_PALETTE.border.default,
+    hover: UI_PALETTE.border.strong,
+    active: UI_PALETTE.border.active,
+    disabled: "rgba(170,193,226,0.12)",
+    danger: UI_PALETTE.border.danger
+  },
+  shadow: {
+    soft: `${UI_PALETTE.shadow.inset}, 0 8px 18px rgba(3,8,18,0.14)`,
+    hover: `${UI_PALETTE.shadow.inset}, ${UI_PALETTE.shadow.hover}`,
+    float: `${UI_PALETTE.shadow.inset}, ${UI_PALETTE.shadow.float}`,
+    active: `${UI_PALETTE.shadow.inset}, ${UI_PALETTE.shadow.press}`
+  },
+  ring: {
+    focus: UI_PALETTE.shadow.focus
+  },
+  transition: {
+    fast: "120ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+    normal: "180ms cubic-bezier(0.2, 0.8, 0.2, 1)"
+  }
+} as const;
+
+export const UI_PANEL = {
+  frostBorder: "rgba(180,204,236,0.16)",
+  leftGlass:
+    "linear-gradient(180deg, rgba(18,26,40,0.9) 0%, rgba(16,24,37,0.94) 42%, rgba(13,21,33,0.98) 100%)",
+  rightGlass:
+    "linear-gradient(180deg, rgba(17,25,36,0.88) 0%, rgba(16,23,34,0.92) 46%, rgba(13,20,30,0.96) 100%)",
+  leftGlow:
+    "radial-gradient(560px 420px at 18% 88%, rgba(82,138,228,0.18), transparent 58%), radial-gradient(420px 260px at 84% 18%, rgba(64,182,194,0.11), transparent 56%)",
+  rightGlow:
+    "radial-gradient(520px 360px at 82% 18%, rgba(74,196,192,0.12), transparent 58%), radial-gradient(420px 260px at 24% 84%, rgba(104,171,255,0.12), transparent 56%)",
+  surfaceNoise:
+    "linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px)"
+} as const;
+
+export const UI_INFO = {
+  surface: {
+    default: "linear-gradient(180deg, rgba(20,28,40,0.72) 0%, rgba(14,20,31,0.82) 100%)",
+    subtle: "rgba(18,25,36,0.68)",
+    elevated: "linear-gradient(180deg, rgba(22,31,46,0.78) 0%, rgba(15,22,34,0.86) 100%)"
+  },
+  border: {
+    default: "rgba(176,198,228,0.14)",
+    subtle: "rgba(176,198,228,0.1)"
+  },
+  text: {
+    title: UI_PALETTE.text.primary,
+    body: UI_PALETTE.text.secondary
+  },
+  accent: {
+    soft: "rgba(104,171,255,0.12)"
+  }
+} as const;
+
+export const UI_STATUS = {
+  surface: {
+    success: "rgba(76,186,128,0.12)",
+    warn: "rgba(245,190,120,0.12)",
+    info: "rgba(104,171,255,0.12)"
+  },
+  border: {
+    success: "rgba(76,186,128,0.28)",
+    warn: "rgba(245,190,120,0.28)",
+    info: "rgba(104,171,255,0.28)"
+  }
+} as const;
+
+export const UI_ACTION = {
+  surface: {
+    default: "linear-gradient(180deg, rgba(27,37,54,0.88) 0%, rgba(20,29,44,0.92) 100%)",
+    hover: "linear-gradient(180deg, rgba(33,45,66,0.92) 0%, rgba(24,35,52,0.96) 100%)",
+    active: "linear-gradient(180deg, rgba(23,32,47,0.94) 0%, rgba(18,26,39,0.98) 100%)"
+  },
+  border: {
+    default: "rgba(120,170,240,0.44)",
+    hover: "rgba(146,188,246,0.64)",
+    active: "rgba(104,171,255,0.82)"
+  },
+  shadow: {
+    hover: "0 12px 24px rgba(10,20,38,0.26), inset 0 1px 0 rgba(255,255,255,0.08)"
+  }
+} as const;
+
+export const UI_COMMAND = {
+  surface: {
+    quiet: "rgba(255,255,255,0.028)",
+    default: "rgba(255,255,255,0.046)",
+    hover: "rgba(255,255,255,0.08)",
+    active: "rgba(255,255,255,0.036)",
+    accent: "linear-gradient(180deg, rgba(33,46,70,0.9) 0%, rgba(23,34,54,0.96) 100%)",
+    accentHover: "linear-gradient(180deg, rgba(40,56,84,0.94) 0%, rgba(28,40,62,0.98) 100%)",
+    accentActive: "linear-gradient(180deg, rgba(24,35,54,0.96) 0%, rgba(18,28,44,1) 100%)"
+  },
+  border: {
+    default: "rgba(180,200,230,0.18)",
+    hover: "rgba(204,220,245,0.3)",
+    active: "rgba(104,171,255,0.68)",
+    accent: "rgba(126,176,246,0.42)",
+    accentHover: "rgba(146,188,246,0.62)",
+    accentActive: "rgba(104,171,255,0.82)"
+  },
+  shadow: {
+    soft: "0 1px 0 rgba(255,255,255,0.05) inset",
+    hover: "0 1px 0 rgba(255,255,255,0.06) inset, 0 10px 24px rgba(4,10,22,0.18)",
+    active: "0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 14px rgba(4,10,22,0.16)"
+  }
+} as const;
+
+export const UI_MENU = {
+  width: 232,
+  panel: {
+    radius: 16,
+    padding: 6,
+    border: "rgba(188,208,236,0.18)",
+    surface: "linear-gradient(180deg, rgba(27,31,40,0.98) 0%, rgba(18,22,30,0.98) 100%)",
+    shadow: "0 24px 56px rgba(0,0,0,0.46)"
+  },
+  item: {
+    radius: 12,
+    minHeight: 40,
+    padX: 10,
+    gap: 10,
+    fontSize: UI_TYPO.size13,
+    iconSize: 15,
+    hover: "rgba(115,176,255,0.18)",
+    active: "rgba(115,176,255,0.26)",
+    textSecondary: "rgba(197,210,231,0.68)"
+  }
 } as const;
 
 export const UI_SIZE = {

@@ -47,12 +47,16 @@ if (results?.suites) {
       const outcome = test.outcome || "unknown";
       const statuses = (test.results || []).map((r) => r.status);
       const isSkipped = statuses.length > 0 && statuses.every((s) => s === "skipped");
+      const hasTimedOut = statuses.includes("timedOut");
+      const hasFailedStatus = statuses.some((s) => s === "failed" || s === "timedOut" || s === "interrupted");
+      const hasPassedStatus = statuses.includes("passed");
+      const isFlaky = outcome === "flaky" || (hasFailedStatus && hasPassedStatus);
 
       if (isSkipped) {
         summary.totals.skipped += 1;
-      } else if (outcome === "unexpected") {
+      } else if (hasFailedStatus && !isFlaky) {
         summary.totals.failed += 1;
-      } else if (outcome === "flaky") {
+      } else if (isFlaky) {
         summary.totals.flaky += 1;
       } else {
         summary.totals.passed += 1;
@@ -60,11 +64,15 @@ if (results?.suites) {
 
       for (const r of test.results || []) {
         summary.totals.durationMs += r.duration || 0;
-        if (r.status === "timedOut") summary.totals.timedOut += 1;
+        if (r.status === "timedOut") {
+          summary.totals.timedOut += 1;
+        }
       }
 
-      if (outcome === "unexpected") {
-        const firstResult = (test.results || [])[0] || {};
+      if (hasFailedStatus) {
+        const firstResult = (test.results || []).find((r) => r.status === "failed" || r.status === "timedOut" || r.status === "interrupted")
+          || (test.results || [])[0]
+          || {};
         failures.push({
           title: fullTitlePath.join(" > "),
           file: spec.file || null,

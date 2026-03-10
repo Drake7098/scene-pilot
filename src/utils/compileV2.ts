@@ -1,6 +1,8 @@
 import type { Lang } from "../i18n";
 import type { Layer, LayerKF, Scene } from "../model";
 import { COMBAT_PATCH_LIST } from "../config/combatPatchList";
+import { buildProMotionPromptLine, parseProMotionSelection } from "../content/proCameraPresets";
+import { buildImageProPromptLine } from "../content/proCreativeModes";
 
 export type SceneTier = "indoor" | "small_plaza" | "open_space";
 export type V2Mode = "short" | "strict";
@@ -343,6 +345,9 @@ export function compileScenePromptV2(scene: Scene, lang: Lang, tier: SceneTier, 
             : `- Current t0=t1; keep composition static for the full ${duration}s with no auto motion/zoom.`,
           "- Keep all main subjects recognizable."
         ];
+  const proMotionLine = buildProMotionPromptLine(parseProMotionSelection(scene.notes ?? ""), lang);
+  const mediaMode = /(^|\n)\s*media\s*:\s*image\b/i.test(scene.notes ?? "") ? "image" : "video";
+  const imageProLine = mediaMode === "image" ? buildImageProPromptLine(scene.notes ?? "", lang) : "";
 
   const layoutExtra =
     profile.bgDensity === "high"
@@ -401,6 +406,8 @@ export function compileScenePromptV2(scene: Scene, lang: Lang, tier: SceneTier, 
     "[V2 SCENEPILOT COMPILE]",
     sceneHeader,
     cameraContract.join("\n"),
+    proMotionLine,
+    imageProLine,
     layoutContract.join("\n"),
     t0Lines.join("\n"),
     t1Lines.join("\n"),

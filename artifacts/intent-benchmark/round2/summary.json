@@ -1,0 +1,260 @@
+{
+  "parserMode": "round2",
+  "datasetPath": "/Users/dk/scene-pilot/artifacts/intent-benchmark/dataset.jsonl",
+  "totalCases": 10000,
+  "overallScore": 89.16830000000002,
+  "weightedAccuracy": 0.8916830000000001,
+  "fieldMetrics": [
+    {
+      "field": "mediaType",
+      "weight": 0.18,
+      "accuracy": 0.9242,
+      "correct": 9242,
+      "total": 10000
+    },
+    {
+      "field": "goal",
+      "weight": 0.16,
+      "accuracy": 0.8795,
+      "correct": 8795,
+      "total": 10000
+    },
+    {
+      "field": "subjectCount",
+      "weight": 0.15,
+      "accuracy": 0.8239,
+      "correct": 8239,
+      "total": 10000
+    },
+    {
+      "field": "framing",
+      "weight": 0.14,
+      "accuracy": 1,
+      "correct": 10000,
+      "total": 10000
+    },
+    {
+      "field": "backgroundDensity",
+      "weight": 0.12,
+      "accuracy": 0.8156,
+      "correct": 8156,
+      "total": 10000
+    },
+    {
+      "field": "ratio",
+      "weight": 0.08,
+      "accuracy": 1,
+      "correct": 10000,
+      "total": 10000
+    },
+    {
+      "field": "location",
+      "weight": 0.06,
+      "accuracy": 0.8501,
+      "correct": 8501,
+      "total": 10000
+    },
+    {
+      "field": "style.genre",
+      "weight": 0.05,
+      "accuracy": 1,
+      "correct": 10000,
+      "total": 10000
+    },
+    {
+      "field": "style.lighting",
+      "weight": 0.04,
+      "accuracy": 0.6863,
+      "correct": 6863,
+      "total": 10000
+    },
+    {
+      "field": "scene.timeOfDay",
+      "weight": 0.02,
+      "accuracy": 0.7346,
+      "correct": 7346,
+      "total": 10000
+    }
+  ],
+  "topFailures": [
+    {
+      "key": "style.lighting",
+      "count": 1210
+    },
+    {
+      "key": "scene.timeOfDay",
+      "count": 707
+    },
+    {
+      "key": "subjectCount",
+      "count": 628
+    },
+    {
+      "key": "backgroundDensity",
+      "count": 626
+    },
+    {
+      "key": "backgroundDensity|style.lighting",
+      "count": 462
+    },
+    {
+      "key": "location",
+      "count": 440
+    },
+    {
+      "key": "location|style.lighting",
+      "count": 277
+    },
+    {
+      "key": "goal|scene.timeOfDay",
+      "count": 266
+    },
+    {
+      "key": "scene.timeOfDay|style.lighting",
+      "count": 240
+    },
+    {
+      "key": "scene.timeOfDay|subjectCount",
+      "count": 199
+    },
+    {
+      "key": "backgroundDensity|scene.timeOfDay",
+      "count": 190
+    },
+    {
+      "key": "goal",
+      "count": 185
+    },
+    {
+      "key": "style.lighting|subjectCount",
+      "count": 176
+    },
+    {
+      "key": "location|scene.timeOfDay",
+      "count": 156
+    },
+    {
+      "key": "mediaType",
+      "count": 153
+    },
+    {
+      "key": "location|subjectCount",
+      "count": 133
+    },
+    {
+      "key": "backgroundDensity|location|style.lighting",
+      "count": 120
+    },
+    {
+      "key": "goal|subjectCount",
+      "count": 120
+    },
+    {
+      "key": "mediaType|scene.timeOfDay",
+      "count": 114
+    },
+    {
+      "key": "goal|scene.timeOfDay|style.lighting",
+      "count": 109
+    }
+  ],
+  "confusion": {
+    "mediaType": {
+      "image -> image": 8890,
+      "video -> video": 352,
+      "video -> image": 758
+    },
+    "goal": {
+      "scene -> scene": 1788,
+      "poster -> poster": 1705,
+      "portrait -> portrait": 1767,
+      "ad -> ad": 1830,
+      "storyframe -> storyframe": 1705,
+      "storyframe -> ad": 107,
+      "portrait -> ad": 100,
+      "scene -> ad": 112,
+      "poster -> ad": 110,
+      "portrait -> scene": 19,
+      "portrait -> unknown": 126,
+      "ad -> scene": 32,
+      "ad -> unknown": 115,
+      "storyframe -> unknown": 140,
+      "scene -> unknown": 146,
+      "poster -> unknown": 145,
+      "storyframe -> scene": 19,
+      "poster -> scene": 34
+    },
+    "subjectCount": {
+      "2 -> 4": 1761,
+      "2 -> 2": 2128,
+      "1 -> 1": 3345,
+      "3 -> 3": 1363,
+      "4 -> 4": 1403
+    },
+    "framing": {
+      "left -> left": 2510,
+      "balanced -> balanced": 2489,
+      "right -> right": 2459,
+      "center -> center": 2542
+    },
+    "backgroundDensity": {
+      "normal -> normal": 3290,
+      "clean -> clean": 3355,
+      "rich -> normal": 1844,
+      "rich -> rich": 1511
+    },
+    "ratio": {
+      "9:16 -> 9:16": 3351,
+      "16:9 -> 16:9": 3356,
+      "1:1 -> 1:1": 3293
+    },
+    "location": {
+      "street -> street": 1970,
+      "street -> indoor": 476,
+      "outdoor nature -> outdoor nature": 1960,
+      "indoor -> indoor": 2533,
+      "generic scene -> indoor": 522,
+      "outdoor nature -> indoor": 501,
+      "generic scene -> generic scene": 2038
+    },
+    "style.genre": {
+      "anime -> anime": 2458,
+      "cyberpunk -> cyberpunk": 2527,
+      "realistic -> realistic": 2508,
+      "cinematic -> cinematic": 2507
+    },
+    "style.lighting": {
+      "neon -> neon": 1984,
+      "backlight -> backlight": 1993,
+      "soft -> soft": 905,
+      "low-key -> ": 1620,
+      "daylight -> daylight": 1981,
+      "soft -> ": 896,
+      "soft -> daylight": 222,
+      "low-key -> daylight": 399
+    },
+    "scene.timeOfDay": {
+      "night -> night": 2068,
+      "indoor -> indoor": 1672,
+      "day -> day": 2144,
+      "unknown -> unknown": 1462,
+      "unknown -> day": 512,
+      "unknown -> indoor": 554,
+      "indoor -> day": 488,
+      "night -> unknown": 290,
+      "night -> day": 90,
+      "day -> unknown": 258,
+      "day -> indoor": 92,
+      "night -> indoor": 91,
+      "indoor -> unknown": 279
+    }
+  },
+  "splitScores": {
+    "basic": 0.9192500000000132,
+    "extended": 0.9163560000000079,
+    "noise": 0.9174600000000038,
+    "professional": 0.8483250000000051,
+    "adversarial": 0.8748400000000061,
+    "longtail": 0.7489624999999989
+  }
+}

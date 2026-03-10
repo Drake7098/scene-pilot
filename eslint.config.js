@@ -23,4 +23,10 @@ export default defineConfig([
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },
+  {
+    files: ['tests/**/*.ts'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])
