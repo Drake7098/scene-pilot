@@ -1,20 +1,43 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
 import { resolveSceneConfig, withSceneConfig } from "../model";
 import type { Project, Scene, Layer, ShotPlan, Direction, TransitionType } from "../model";
-import { defaultObjectName, defaultProjectName, defaultSceneName } from "../utils/naming";
-import { UI_COLOR, UI_EFFECT, UI_FONT, UI_OPACITY, UI_PALETTE, UI_RADIUS, UI_SIZE, UI_SPACE, UI_TYPO } from "../uiTokens";
-import { Plus, Minus } from "lucide-react";
+import { defaultObjectName, defaultSceneName } from "../utils/naming";
+import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_FONT, UI_INFO, UI_OPACITY, UI_PALETTE, UI_RADIUS, UI_SIZE, UI_SPACE, UI_STATUS, UI_TYPO } from "../uiTokens";
+import { Plus, Minus, ChevronRight } from "lucide-react";
+import {
+  PRO_PLUS_MOTION_CATEGORIES,
+  getProCameraPreset,
+  parseProMotionSelection,
+  proMotionDesc,
+  proMotionLabel
+} from "../content/proCameraPresets";
+import {
+  IMAGE_PRO_CATEGORIES,
+  applyImageClassicMode,
+  applyVideoClassicMode,
+  disabledImageEffectIds,
+  disabledVideoProPlusIds,
+  getImageClassicModes,
+  parseImageClassicModeId,
+  getImageProEffect,
+  getImageProEffectsByCategory,
+  parseVideoClassicModeId,
+  getVideoClassicModes,
+  getVisibleVideoProPlusPresets,
+  parseImageProEffects,
+  syncImageClassicMode,
+  syncVideoClassicMode
+} from "../content/proCreativeModes";
 
 type Props = {
   lang: Lang;
   project: Project;
-  projectFileLabel?: string;
   sceneIdx: number;
   setSceneIdx: (i: number) => void;
   onUpdateProject: (p: Project) => void;
-  onRequestNewProject: () => void;
 
   scene: Scene;
   selectedLayerId: string | null;
@@ -42,11 +65,10 @@ function fmtDuration(lang: Lang, s: number) {
 }
 
 function formatSceneRowName(sceneNo: string, name: string | undefined, fallbackId: string) {
+  void sceneNo;
   const n = (name ?? "").trim();
-  if (!n) return `${sceneNo} ${fallbackId}`;
-  // 避免重复编号：如 "01 01｜镜头01"
-  if (/^\d{1,3}\s*[｜|]/.test(n)) return n;
-  return `${sceneNo} ${n}`;
+  if (!n) return fallbackId;
+  return n;
 }
 
 function kf0(layer: Layer) {
@@ -130,6 +152,8 @@ function applyStability(scene: Scene, mode: StabilityMode): Scene {
   return withSceneConfig(scene, { stability: mode });
 }
 
+const IMAGE_PRO_PLUS_CATEGORY_IDS = new Set(["psychology", "surreal_material", "body_perception"]);
+
 // -------------------- New Scene Draft UI --------------------
 type NewSceneDraft = {
   open: boolean;
@@ -194,11 +218,9 @@ export function Sidebar(props: Props) {
   const {
     lang,
     project,
-    projectFileLabel,
     sceneIdx,
     setSceneIdx,
     onUpdateProject,
-    onRequestNewProject,
     scene,
     selectedLayerId,
     onSelectLayer,
@@ -223,26 +245,33 @@ export function Sidebar(props: Props) {
   const projectShotPlan: ShotPlan = (project.project?.shotPlan as ShotPlan) ?? "single";
   const projectMediaType: MediaMode = (project.project?.mediaType as MediaMode) ?? "video";
   const isImageProject = projectMediaType === "image";
-  const projectRuleSummary = useMemo(() => {
-    const defaultTransition = defaultTransitionByPlan(projectShotPlan);
-    const inheritDefaults = defaultRefInheritByPlan(projectShotPlan, safeIdx === 0 || projectMediaType !== "video");
-    return {
-      shotPlan: projectShotPlan,
-      defaultTransition,
-      inheritPolicy: inheritDefaults.inheritObjectRefsFromPrevious,
-      sceneTransition: scene.transitionType ?? defaultTransition,
-      sceneEntry: scene.entryDir ?? (lang === "zh" ? "自动" : "Auto"),
-      sceneExit: scene.exitDir ?? (lang === "zh" ? "自动" : "Auto"),
-      duration: Math.max(0, Math.round(Number(scene.duration_s) || 0))
-    };
-  }, [projectShotPlan, safeIdx, projectMediaType, scene.transitionType, scene.entryDir, scene.exitDir, scene.duration_s, lang]);
-  const shotPlanText = useMemo(() => {
-    if (lang !== "zh") return projectRuleSummary.shotPlan;
-    if (projectRuleSummary.shotPlan === "single") return "单镜头";
-    if (projectRuleSummary.shotPlan === "multicam") return "多机位";
-    if (projectRuleSummary.shotPlan === "continuous") return "连续镜头";
-    return "标准剪辑";
-  }, [lang, projectRuleSummary.shotPlan]);
+  const isVideoProject = projectMediaType === "video";
+  const proMotionSelection = useMemo(() => parseProMotionSelection(scene.notes ?? ""), [scene.notes]);
+  const imageProSelection = useMemo(() => parseImageProEffects(scene.notes ?? ""), [scene.notes]);
+  const videoClassicModes = useMemo(() => getVideoClassicModes(), []);
+  const imageClassicModes = useMemo(() => getImageClassicModes(), []);
+  const disabledProPlusIds = useMemo(
+    () => disabledVideoProPlusIds((scene.camera?.shot ?? "").toString(), (scene.camera?.movement ?? "").toString(), proMotionSelection.proPlusIds),
+    [proMotionSelection.proPlusIds, scene.camera?.movement, scene.camera?.shot]
+  );
+  const disabledImageIds = useMemo(() => disabledImageEffectIds(imageProSelection), [imageProSelection]);
+  const selectedVideoClassicModeId = useMemo(() => parseVideoClassicModeId(scene.notes ?? "") ?? "", [scene.notes]);
+  const selectedImageClassicModeId = useMemo(() => parseImageClassicModeId(scene.notes ?? "") ?? "", [scene.notes]);
+  const [videoProMenuOpen, setVideoProMenuOpen] = useState(false);
+  const [imageProMenuOpen, setImageProMenuOpen] = useState(false);
+  const [videoProCategoryHover, setVideoProCategoryHover] = useState<string | null>(null);
+  const [imageProCategoryHover, setImageProCategoryHover] = useState<string | null>(null);
+  const [videoProOptionHover, setVideoProOptionHover] = useState<string | null>(null);
+  const [imageProOptionHover, setImageProOptionHover] = useState<string | null>(null);
+  const videoProMenuRef = useRef<HTMLDivElement | null>(null);
+  const imageProMenuRef = useRef<HTMLDivElement | null>(null);
+  const videoProTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const imageProTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const videoProPopupRef = useRef<HTMLDivElement | null>(null);
+  const imageProPopupRef = useRef<HTMLDivElement | null>(null);
+  const [videoProCategoryTop, setVideoProCategoryTop] = useState(0);
+  const [imageProCategoryTop, setImageProCategoryTop] = useState(0);
+
   // ✅ NEW: add scene mini panel
   const [newScene, setNewScene] = useState<NewSceneDraft>({
     open: false,
@@ -267,6 +296,56 @@ export function Sidebar(props: Props) {
   const deleteHintAnchorRef = useRef<HTMLElement | null>(null);
 
   const [confirmDelIdx, setConfirmDelIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    setVideoProMenuOpen(false);
+    setImageProMenuOpen(false);
+    setVideoProCategoryHover(null);
+    setImageProCategoryHover(null);
+    setVideoProOptionHover(null);
+    setImageProOptionHover(null);
+  }, [scene.id]);
+
+  useEffect(() => {
+    const onDocMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (
+        videoProMenuRef.current &&
+        !videoProMenuRef.current.contains(target) &&
+        !videoProPopupRef.current?.contains(target)
+      ) {
+        setVideoProMenuOpen(false);
+        setVideoProCategoryHover(null);
+        setVideoProOptionHover(null);
+      }
+      if (
+        imageProMenuRef.current &&
+        !imageProMenuRef.current.contains(target) &&
+        !imageProPopupRef.current?.contains(target)
+      ) {
+        setImageProMenuOpen(false);
+        setImageProCategoryHover(null);
+        setImageProOptionHover(null);
+      }
+    };
+    const onDocKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setVideoProMenuOpen(false);
+        setImageProMenuOpen(false);
+        setVideoProCategoryHover(null);
+        setImageProCategoryHover(null);
+        setVideoProOptionHover(null);
+        setImageProOptionHover(null);
+      }
+    };
+    window.addEventListener("mousedown", onDocMouseDown);
+    window.addEventListener("keydown", onDocKeyDown);
+    return () => {
+      window.removeEventListener("mousedown", onDocMouseDown);
+      window.removeEventListener("keydown", onDocKeyDown);
+    };
+  }, []);
 
   function projectMediaDefault(): MediaMode {
     return project.project?.mediaType === "image" ? "image" : "video";
@@ -352,10 +431,12 @@ export function Sidebar(props: Props) {
       return;
     }
     const rect = anchorEl.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const safeLeft = Math.max(18, Math.min(window.innerWidth - 18, centerX));
     setFloatingHint({
       text,
       top: rect.bottom + 8,
-      left: rect.left + rect.width / 2,
+      left: safeLeft,
       tone
     });
     if (floatingHintTimerRef.current != null) window.clearTimeout(floatingHintTimerRef.current);
@@ -583,9 +664,12 @@ export function Sidebar(props: Props) {
       { v: "close", label: tt("opt.close") },
       { v: "extreme_close", label: tt("opt.extreme_close") },
       { v: "over_shoulder", label: tt("opt.over_shoulder") },
+      { v: "pov", label: lang === "zh" ? "主观视角 (POV)" : "POV" },
+      { v: "insert_closeup", label: lang === "zh" ? "插入特写" : "Insert close-up" },
+      { v: "establishing", label: lang === "zh" ? "建立镜头" : "Establishing shot" },
       { v: "dutch_angle", label: tt("opt.dutch_angle") }
     ],
-    [tt]
+    [lang, tt]
   );
   const moveOptions = useMemo(
     () => [
@@ -640,8 +724,312 @@ export function Sidebar(props: Props) {
     [tt]
   );
 
+  const currentShot = (scene.camera?.shot ?? "").toString();
+  const currentMovement = (scene.camera?.movement ?? "").toString();
+  const hasVideoManualClassic = !selectedVideoClassicModeId && Boolean(currentShot || currentMovement || proMotionSelection.proPlusIds.length);
+  const hasImageManualClassic = !selectedImageClassicModeId && Boolean(currentShot || imageProSelection.length);
+  const videoClassicSelectValue = selectedVideoClassicModeId || (hasVideoManualClassic ? "__manual__" : "");
+  const imageClassicSelectValue = selectedImageClassicModeId || (hasImageManualClassic ? "__manual__" : "");
+
+  function updateCameraField(field: "shot" | "movement", value: string) {
+    const nextShot = field === "shot" ? value : currentShot;
+    const nextMovement = field === "movement" ? value : currentMovement;
+    const nextNotes = isVideoProject
+      ? syncVideoClassicMode(scene.notes ?? "", nextShot, nextMovement, proMotionSelection.proPlusIds)
+      : syncImageClassicMode(scene.notes ?? "", nextShot, imageProSelection);
+    onUpdateScene({
+      ...scene,
+      camera: { ...scene.camera, [field]: value } as any,
+      notes: nextNotes
+    });
+  }
+
+  function pickVideoClassicMode(recipeId: string) {
+    if (!recipeId) {
+      const nextNotes = syncVideoClassicMode(scene.notes ?? "", currentShot, currentMovement, proMotionSelection.proPlusIds);
+      onUpdateScene({ ...scene, notes: nextNotes });
+      return;
+    }
+    const nextNotes = applyVideoClassicMode(scene.notes ?? "", currentShot, currentMovement, recipeId);
+    const recipe = videoClassicModes.find((item) => item.id === recipeId);
+    onUpdateScene({
+      ...scene,
+      camera: { ...scene.camera, shot: recipe?.shot ?? currentShot, movement: recipe?.movement ?? currentMovement } as any,
+      notes: nextNotes
+    });
+  }
+
+  function pickImageClassicMode(recipeId: string) {
+    if (!recipeId) {
+      const nextNotes = syncImageClassicMode(scene.notes ?? "", currentShot, imageProSelection);
+      onUpdateScene({ ...scene, notes: nextNotes });
+      return;
+    }
+    const nextNotes = applyImageClassicMode(scene.notes ?? "", currentShot, recipeId);
+    const recipe = imageClassicModes.find((item) => item.id === recipeId);
+    onUpdateScene({
+      ...scene,
+      camera: { ...scene.camera, shot: recipe?.shot ?? currentShot } as any,
+      notes: nextNotes
+    });
+  }
+
+  function selectVideoProPlusForCategory(categoryId: string, value: string) {
+    const withoutCurrent = proMotionSelection.proPlusIds.filter((id) => getProCameraPreset(id)?.category !== categoryId);
+    if (!value) {
+      const nextNotes = syncVideoClassicMode(scene.notes ?? "", currentShot, currentMovement, withoutCurrent);
+      onUpdateScene({ ...scene, notes: nextNotes });
+      return;
+    }
+    if (disabledProPlusIds.has(value)) return;
+    const nextIds = [...withoutCurrent, value];
+    const nextNotes = syncVideoClassicMode(scene.notes ?? "", currentShot, currentMovement, nextIds);
+    onUpdateScene({ ...scene, notes: nextNotes });
+  }
+
+  function pickVideoProPlus(value: string) {
+    if (!value) return;
+    const item = getProCameraPreset(value);
+    if (!item?.category) return;
+    selectVideoProPlusForCategory(item.category, value);
+    setVideoProMenuOpen(false);
+    setVideoProCategoryHover(null);
+  }
+
+  function selectImageProEffectForCategory(categoryId: string, value: string) {
+    const withoutCurrent = imageProSelection.filter((id) => getImageProEffect(id)?.category !== categoryId);
+    if (!value) {
+      const nextNotes = syncImageClassicMode(scene.notes ?? "", currentShot, withoutCurrent);
+      onUpdateScene({ ...scene, notes: nextNotes });
+      return;
+    }
+    if (disabledImageIds.has(value)) return;
+    const nextIds = [...withoutCurrent, value];
+    const nextNotes = syncImageClassicMode(scene.notes ?? "", currentShot, nextIds);
+    onUpdateScene({ ...scene, notes: nextNotes });
+  }
+
+  function pickImageProEffect(value: string) {
+    if (!value) return;
+    const item = getImageProEffect(value);
+    if (!item?.category) return;
+    selectImageProEffectForCategory(item.category, value);
+    setImageProMenuOpen(false);
+    setImageProCategoryHover(null);
+  }
+
+  function currentVideoProMenuLabel() {
+    if (!proMotionSelection.proPlusIds.length) return lang === "zh" ? "未选择" : "None";
+    return proMotionLabel(proMotionSelection.proPlusIds[proMotionSelection.proPlusIds.length - 1], lang);
+  }
+
+  function currentImageProMenuLabel() {
+    if (!imageProSelection.length) return lang === "zh" ? "未选择" : "None";
+    const item = getImageProEffect(imageProSelection[imageProSelection.length - 1]);
+    return item ? (lang === "zh" ? item.labelZh : item.labelEn) : (lang === "zh" ? "未选择" : "None");
+  }
+
+  function menuRect(trigger: HTMLButtonElement | null) {
+    if (!trigger) return null;
+    const rect = trigger.getBoundingClientRect();
+    const width = Math.max(rect.width, 216);
+    const maxLeft = Math.max(8, window.innerWidth - width * 2 - 12);
+    const maxMenuHeight = 320;
+    const desiredTop = rect.bottom + 4;
+    const maxTop = Math.max(8, window.innerHeight - maxMenuHeight - 8);
+    return {
+      top: Math.max(8, Math.min(desiredTop, maxTop)),
+      left: Math.min(rect.left, maxLeft),
+      width
+    };
+  }
+
+  const videoMenuRect = videoProMenuOpen ? menuRect(videoProTriggerRef.current) : null;
+  const imageMenuRect = imageProMenuOpen ? menuRect(imageProTriggerRef.current) : null;
+
+  function renderVideoCascadeMenu() {
+    if (!videoProMenuOpen || !videoMenuRect || typeof document === "undefined") return null;
+    return createPortal(
+      <div
+        ref={videoProPopupRef}
+        style={{ ...styles.proCascadeRoot, top: videoMenuRect.top, left: videoMenuRect.left }}
+        data-testid="pro-plus-menu"
+        onMouseLeave={() => {
+          setVideoProCategoryHover(null);
+          setVideoProOptionHover(null);
+        }}
+      >
+        <div
+          style={{
+            ...styles.proMotionSelectMenu,
+            width: videoMenuRect.width,
+            ...(videoProCategoryHover
+              ? { borderTopRightRadius: 0, borderBottomRightRadius: 0 }
+              : null)
+          }}
+        >
+          {PRO_PLUS_MOTION_CATEGORIES.map((category) => {
+            const items = getVisibleVideoProPlusPresets(category.id);
+            const allDisabled = items.length > 0 && items.every((item) => disabledProPlusIds.has(item.id) && !proMotionSelection.proPlusIds.includes(item.id));
+            return (
+              <button
+                key={category.id}
+                type="button"
+                disabled={allDisabled}
+                style={{
+                  ...styles.proMenuRow,
+                  ...(videoProCategoryHover === category.id ? styles.proMenuRowActive : null),
+                  ...(allDisabled ? styles.proMenuRowDisabled : null)
+                }}
+                onMouseEnter={(e) => {
+                  if (allDisabled) return;
+                  setVideoProCategoryHover(category.id);
+                  setVideoProCategoryTop((e.currentTarget as HTMLButtonElement).getBoundingClientRect().top - videoMenuRect.top);
+                }}
+                data-testid={`pro-plus-category-${category.id}`}
+              >
+                <span style={styles.proMotionSelectItemTitle}>{lang === "zh" ? category.labelZh : category.labelEn}</span>
+                <ChevronRight size={14} />
+              </button>
+            );
+          })}
+        </div>
+        {videoProCategoryHover ? (
+          <div
+            style={{
+              ...styles.proCascadeSubmenu,
+              top: videoProCategoryTop,
+              left: videoMenuRect.width,
+              width: videoMenuRect.width,
+              borderLeft: "none",
+              borderTopLeftRadius: 0,
+              borderBottomLeftRadius: 0
+            }}
+            data-testid="pro-plus-submenu"
+          >
+            {getVisibleVideoProPlusPresets(videoProCategoryHover as any).map((item) => {
+              const selected = proMotionSelection.proPlusIds.includes(item.id);
+              const disabled = disabledProPlusIds.has(item.id) && !selected;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  style={{
+                    ...styles.proMenuRow,
+                    ...(videoProOptionHover === item.id ? styles.proMenuRowActive : null),
+                    ...(selected ? styles.proMenuRowActive : null),
+                    ...(disabled ? styles.proMenuRowDisabled : null)
+                  }}
+                  disabled={disabled}
+                  onMouseEnter={() => setVideoProOptionHover(item.id)}
+                  onMouseLeave={() => setVideoProOptionHover((current) => (current === item.id ? null : current))}
+                  onClick={() => pickVideoProPlus(item.id)}
+                  data-testid={`pro-plus-option-${item.id}`}
+                >
+                  <span style={styles.proMotionSelectItemTitle}>{lang === "zh" ? item.labelZh : item.labelEn}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>,
+      document.body
+    );
+  }
+
+  function renderImageCascadeMenu() {
+    if (!imageProMenuOpen || !imageMenuRect || typeof document === "undefined") return null;
+    return createPortal(
+      <div
+        ref={imageProPopupRef}
+        style={{ ...styles.proCascadeRoot, top: imageMenuRect.top, left: imageMenuRect.left }}
+        data-testid="pro-image-menu"
+        onMouseLeave={() => {
+          setImageProCategoryHover(null);
+          setImageProOptionHover(null);
+        }}
+      >
+        <div
+          style={{
+            ...styles.proMotionSelectMenu,
+            width: imageMenuRect.width,
+            ...(imageProCategoryHover
+              ? { borderTopRightRadius: 0, borderBottomRightRadius: 0 }
+              : null)
+          }}
+        >
+          {IMAGE_PRO_CATEGORIES.map((category) => {
+            const items = getImageProEffectsByCategory(category.id);
+            const allDisabled = items.length > 0 && items.every((item) => disabledImageIds.has(item.id) && !imageProSelection.includes(item.id));
+            return (
+              <button
+                key={category.id}
+                type="button"
+                disabled={allDisabled}
+                style={{
+                  ...styles.proMenuRow,
+                  ...(imageProCategoryHover === category.id ? styles.proMenuRowActive : null),
+                  ...(allDisabled ? styles.proMenuRowDisabled : null)
+                }}
+                onMouseEnter={(e) => {
+                  if (allDisabled) return;
+                  setImageProCategoryHover(category.id);
+                  setImageProCategoryTop((e.currentTarget as HTMLButtonElement).getBoundingClientRect().top - imageMenuRect.top);
+                }}
+                data-testid={`pro-image-category-${category.id}`}
+              >
+                <span style={styles.proMotionSelectItemTitle}>{lang === "zh" ? category.labelZh : category.labelEn}</span>
+                <ChevronRight size={14} />
+              </button>
+            );
+          })}
+        </div>
+        {imageProCategoryHover ? (
+          <div
+            style={{
+              ...styles.proCascadeSubmenu,
+              top: imageProCategoryTop,
+              left: imageMenuRect.width,
+              width: imageMenuRect.width,
+              borderLeft: "none",
+              borderTopLeftRadius: 0,
+              borderBottomLeftRadius: 0
+            }}
+            data-testid="pro-image-submenu"
+          >
+            {getImageProEffectsByCategory(imageProCategoryHover as any).map((item) => {
+              const selected = imageProSelection.includes(item.id);
+              const disabled = disabledImageIds.has(item.id) && !selected;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  style={{
+                    ...styles.proMenuRow,
+                    ...(imageProOptionHover === item.id ? styles.proMenuRowActive : null),
+                    ...(selected ? styles.proMenuRowActive : null),
+                    ...(disabled ? styles.proMenuRowDisabled : null)
+                  }}
+                  disabled={disabled}
+                  onMouseEnter={() => setImageProOptionHover(item.id)}
+                  onMouseLeave={() => setImageProOptionHover((current) => (current === item.id ? null : current))}
+                  onClick={() => pickImageProEffect(item.id)}
+                  data-testid={`pro-image-option-${item.id}`}
+                >
+                  <span style={styles.proMotionSelectItemTitle}>{lang === "zh" ? item.labelZh : item.labelEn}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>,
+      document.body
+    );
+  }
+
   return (
-    <div style={styles.wrap}>
+    <>
+    <div className="spx-glass-left" style={styles.wrap}>
       {/* ✅ toast */}
       {toastText ? <div style={styles.toast}>{toastText}</div> : null}
       {floatingHint ? (
@@ -656,7 +1044,6 @@ export function Sidebar(props: Props) {
           {floatingHint.text}
         </div>
       ) : null}
-
       {/* ✅ confirm modal (for delete scene) */}
       {confirmDelIdx != null ? (
         <div
@@ -891,34 +1278,6 @@ export function Sidebar(props: Props) {
 
       {/* Scenes */}
       <div style={styles.section}>
-        <div style={styles.sectionHead}>
-          <div style={styles.sectionTitle}>{lang === "zh" ? "项目" : "Project"}</div>
-        </div>
-        <div style={styles.projectNameRow}>
-          <div style={styles.projectName}>
-            {projectFileLabel?.trim() || defaultProjectName(lang)}
-          </div>
-          <button
-            type="button"
-            style={styles.newProjectBtn}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={onRequestNewProject}
-            title={lang === "zh" ? "创建新项目" : "Create New Project"}
-          >
-            {lang === "zh" ? "创建新项目" : "New Project"}
-          </button>
-        </div>
-        <div style={styles.ruleSummaryBox}>
-          <div style={styles.ruleSummaryTitle}>{lang === "zh" ? "规则摘要（只读）" : "Rule Summary (Read-only)"}</div>
-          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "分镜方案" : "Shot plan"}：{shotPlanText}</div>
-          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "默认衔接策略" : "Default transition"}：{projectRuleSummary.defaultTransition}</div>
-          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "参考继承策略" : "Refs inherit"}：{projectRuleSummary.inheritPolicy}</div>
-          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "当前分镜衔接" : "Current transition"}：{projectRuleSummary.sceneTransition}</div>
-          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "入镜方向" : "Entry"}：{projectRuleSummary.sceneEntry}</div>
-          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "出镜方向" : "Exit"}：{projectRuleSummary.sceneExit}</div>
-          <div style={styles.ruleSummaryLine}>{lang === "zh" ? "当前时长" : "Current duration"}：{projectRuleSummary.duration}{lang === "zh" ? "秒" : "s"}</div>
-        </div>
-
         <div style={styles.sectionHead}>
           <div style={styles.sectionTitle}>{tt("sidebar.scenes")}</div>
           <div style={{ flex: 1 }} />
@@ -1157,19 +1516,17 @@ export function Sidebar(props: Props) {
       {/* Stability */}
       <div style={styles.section}>
         <div style={styles.sectionHead}>
-          <div style={styles.sectionTitle}>{tt("sidebar.constraintTitle")}</div>
+          <div style={styles.sectionTitle} title={tt("sidebar.constraintHint")}>{tt("sidebar.constraintTitle")}</div>
         </div>
 
         <div style={styles.formRow}>
-          <div style={styles.formLabel}>{tt("sidebar.constraintField")}</div>
+          <div style={styles.formLabel} title={tt("sidebar.constraintHint")}>{tt("sidebar.constraintField")}</div>
           <select value={stabilityMode} onChange={(e) => commitStabilityMode(e.target.value as StabilityMode)} style={styles.select}>
             <option value="off">{tt("sidebar.constraintOff")}</option>
             <option value="standard">{tt("sidebar.constraintStandard")}</option>
             <option value="strict">{tt("sidebar.constraintStrict")}</option>
           </select>
         </div>
-
-        <div style={styles.mediaHint}>{tt("sidebar.constraintHint")}</div>
       </div>
 
       {/* Camera + Lighting */}
@@ -1253,35 +1610,109 @@ export function Sidebar(props: Props) {
           </>
         ) : null}
 
-        <div style={styles.formRow}>
-          <div style={styles.formLabel}>{tt("camera.shot")}</div>
-          <select
-            style={styles.select}
-            value={(scene.camera?.shot ?? "").toString()}
-            onChange={(e) => onUpdateScene({ ...scene, camera: { ...scene.camera, shot: e.target.value } as any })}
-          >
-            {shotOptions.map((o) => (
-              <option key={o.v} value={o.v}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+        <div style={styles.proDirectorBlock} data-testid="pro-director-block">
+          <div style={styles.proDirectorTitle}>{lang === "zh" ? "经典模式" : "Classic Mode"}</div>
+          <div style={styles.formRow}>
+            <div style={styles.formLabel}>{lang === "zh" ? "一键选择" : "Preset"}</div>
+            <select
+              style={styles.select}
+              value={isVideoProject ? videoClassicSelectValue : imageClassicSelectValue}
+              onChange={(e) => {
+                if (e.target.value === "__manual__") return;
+                return isVideoProject ? pickVideoClassicMode(e.target.value) : pickImageClassicMode(e.target.value);
+              }}
+              data-testid="pro-shot-recipe-select"
+            >
+              <option value="">{lang === "zh" ? "未选择" : "None"}</option>
+              {(isVideoProject ? hasVideoManualClassic : hasImageManualClassic) ? (
+                <option value="__manual__" disabled>{lang === "zh" ? "手动设置" : "Manual Setup"}</option>
+              ) : null}
+              {(isVideoProject ? videoClassicModes : imageClassicModes).map((recipe) => (
+                <option key={recipe.id} value={recipe.id}>
+                  {lang === "zh" ? recipe.nameZh : recipe.nameEn}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={styles.formRow}>
+            <div style={styles.formLabel}>{tt("camera.shot")}</div>
+            <select
+              style={styles.select}
+              value={(scene.camera?.shot ?? "").toString()}
+              onChange={(e) => updateCameraField("shot", e.target.value)}
+              data-testid="classic-shot-select"
+            >
+              {shotOptions.map((o) => (
+                <option key={o.v} value={o.v}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {isVideoProject ? (
+            <div style={styles.formRow}>
+              <div style={styles.formLabel}>{tt("camera.movement")}</div>
+              <select
+                style={styles.select}
+                value={(scene.camera?.movement ?? "").toString()}
+                onChange={(e) => updateCameraField("movement", e.target.value)}
+                data-testid="classic-movement-select"
+              >
+                {moveOptions.map((o) => (
+                  <option key={o.v} value={o.v}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
         </div>
 
-        <div style={styles.formRow}>
-          <div style={styles.formLabel}>{tt("camera.movement")}</div>
-          <select
-            style={styles.select}
-            value={(scene.camera?.movement ?? "").toString()}
-            onChange={(e) => onUpdateScene({ ...scene, camera: { ...scene.camera, movement: e.target.value } as any })}
-          >
-            {moveOptions.map((o) => (
-              <option key={o.v} value={o.v}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {isVideoProject ? (
+          <div style={styles.proMotionBlock} data-testid="pro-motion-block">
+            <div style={styles.proMotionPanel} data-testid="pro-motion-plus-panel">
+              <div style={styles.formRow}>
+                <div style={styles.formLabel}>{lang === "zh" ? "镜头语言" : "Shot Language"}</div>
+                <div ref={videoProMenuRef} style={styles.proMotionSelectShell}>
+                  <button
+                    ref={videoProTriggerRef}
+                    type="button"
+                    style={{ ...styles.select, ...styles.selectWide, ...styles.proMotionSelectBtn }}
+                    onClick={() => {
+                      setVideoProMenuOpen((prev) => !prev);
+                      setVideoProCategoryHover(null);
+                    }}
+                    data-testid="pro-plus-trigger"
+                  >
+                    <span style={styles.proMotionSelectValue}>{currentVideoProMenuLabel()}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div style={styles.proMotionBlock} data-testid="pro-image-block">
+            <div style={styles.proMotionPanel}>
+              <div style={styles.formRow}>
+                <div style={styles.formLabel}>{lang === "zh" ? "画面语言" : "Visual Language"}</div>
+                <div ref={imageProMenuRef} style={styles.proMotionSelectShell}>
+                  <button
+                    ref={imageProTriggerRef}
+                    type="button"
+                    style={{ ...styles.select, ...styles.selectWide, ...styles.proMotionSelectBtn }}
+                    onClick={() => {
+                      setImageProMenuOpen((prev) => !prev);
+                      setImageProCategoryHover(null);
+                    }}
+                    data-testid="pro-image-trigger"
+                  >
+                    <span style={styles.proMotionSelectValue}>{currentImageProMenuLabel()}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div style={{ height: 8 }} />
 
@@ -1333,6 +1764,9 @@ export function Sidebar(props: Props) {
         </div>
       </div>
     </div>
+    {renderVideoCascadeMenu()}
+    {renderImageCascadeMenu()}
+    </>
   );
 }
 
@@ -1340,26 +1774,29 @@ const styles: Record<string, React.CSSProperties> = {
   wrap: {
     width: "clamp(232px, 24vw, 320px)",
     minWidth: 232,
-    borderRight: `1px solid ${UI_PALETTE.border.soft}`,
-    background: UI_PALETTE.bg.sidebar,
+    borderRight: "1px solid rgba(255,255,255,0.12)",
+    background: "linear-gradient(180deg, rgba(12,12,12,0.9) 0%, rgba(4,4,4,0.92) 100%)",
+    backdropFilter: "blur(14px)",
     padding: UI_SPACE.sm,
     display: "flex",
     flexDirection: "column",
     gap: 14,
     minHeight: 0,
     overflow: "auto",
-    position: "relative"
+    position: "relative",
+    boxShadow: "inset -1px 0 0 rgba(255,255,255,0.05)"
   },
 
   section: {
-    border: `1px solid ${UI_PALETTE.border.soft}`,
+    border: "1px solid rgba(255,255,255,0.14)",
     borderRadius: UI_RADIUS.panel,
-    background: UI_PALETTE.surface.surface1,
-    padding: UI_SPACE.sm
+    background: "linear-gradient(180deg, rgba(12,12,12,0.82) 0%, rgba(4,4,4,0.86) 100%)",
+    padding: UI_SPACE.sm,
+    boxShadow: "0 10px 24px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.06)"
   },
 
   sectionHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 2 },
-  sectionTitle: { fontWeight: 850, fontSize: UI_TYPO.size14, opacity: UI_OPACITY.title, color: UI_PALETTE.text.secondary, letterSpacing: 0.1 },
+  sectionTitle: { fontWeight: 850, fontSize: UI_TYPO.size14, opacity: UI_OPACITY.title, color: "rgba(255,255,255,0.94)", letterSpacing: 0.1 },
   projectNameRow: {
     display: "grid",
     gridTemplateColumns: "minmax(0,1fr) auto",
@@ -1383,32 +1820,38 @@ const styles: Record<string, React.CSSProperties> = {
     height: 32,
     padding: "0 10px",
     borderRadius: 10,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     cursor: "pointer",
     fontSize: UI_TYPO.size12,
     fontWeight: 800,
     whiteSpace: "nowrap",
-    maxWidth: "100%"
+    maxWidth: "100%",
+    boxShadow: UI_CONTROL.shadow.soft,
+    ["--spx-btn-bg-hover" as any]: UI_CONTROL.bg.hover,
+    ["--spx-btn-bg-active" as any]: UI_CONTROL.bg.active,
+    ["--spx-btn-border-hover" as any]: UI_CONTROL.border.hover,
+    ["--spx-btn-border-active" as any]: UI_CONTROL.border.active
   },
   ruleSummaryBox: {
     borderRadius: 10,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    border: `1px solid ${UI_INFO.border.default}`,
+    background: UI_INFO.surface.default,
     padding: "8px 10px",
     marginBottom: 10,
     display: "grid",
-    gap: 4
+    gap: 4,
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)"
   },
   ruleSummaryTitle: {
     fontSize: UI_TYPO.size12,
     fontWeight: 900,
-    color: UI_PALETTE.text.secondary
+    color: UI_INFO.text.title
   },
   ruleSummaryLine: {
     fontSize: UI_TYPO.size11,
-    color: UI_PALETTE.text.secondary,
+    color: UI_INFO.text.body,
     opacity: 0.9
   },
 
@@ -1436,28 +1879,32 @@ const styles: Record<string, React.CSSProperties> = {
   mediaBtn: {
     height: 36,
     borderRadius: 12,
-    border: `1px solid ${UI_PALETTE.border.soft}`,
-    background: UI_PALETTE.surface.surface1,
+    border: "1px solid rgba(255,255,255,0.16)",
+    background: "rgba(255,255,255,0.05)",
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
     fontWeight: 900,
     userSelect: "none",
     outline: "none",
-    boxShadow: "none",
-    padding: "0 10px"
+    padding: "0 10px",
+    boxShadow: "0 1px 0 rgba(255,255,255,0.05) inset"
   },
   mediaBtnOn: {
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: UI_PALETTE.surface.surfaceActive,
-    boxShadow: UI_EFFECT.softRing
+    border: "1px solid rgba(255,255,255,0.34)",
+    background: "rgba(255,255,255,0.14)",
+    boxShadow: "0 8px 18px rgba(0,0,0,0.22)",
+    ["--spx-btn-bg-hover" as any]: "rgba(255,255,255,0.16)",
+    ["--spx-btn-bg-active" as any]: "rgba(255,255,255,0.1)",
+    ["--spx-btn-border-hover" as any]: "rgba(255,255,255,0.42)",
+    ["--spx-btn-border-active" as any]: "rgba(255,255,255,0.34)"
   },
 
   // ✅ New scene card
   addCard: {
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.soft}`,
-    background: UI_PALETTE.bg.canvas,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(0,0,0,0.42)",
     padding: UI_SPACE.sm,
     marginBottom: 10,
     display: "flex",
@@ -1507,19 +1954,20 @@ const styles: Record<string, React.CSSProperties> = {
     width: 28,
     height: 28,
     borderRadius: 999,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     fontWeight: 900,
     cursor: "pointer",
-    outline: "none"
+    outline: "none",
+    boxShadow: UI_CONTROL.shadow.soft
   },
   genHintFloat: {
     fontSize: 11,
     lineHeight: 1.35,
-    border: "1px solid rgba(255,255,255,0.10)",
+    border: `1px solid ${UI_INFO.border.subtle}`,
     borderRadius: 10,
-    background: "rgba(0,0,0,0.18)",
+    background: UI_INFO.surface.subtle,
     padding: "8px 10px",
     opacity: 0.78,
     marginTop: 0
@@ -1527,38 +1975,43 @@ const styles: Record<string, React.CSSProperties> = {
   btnGhost: {
     padding: "6px 10px",
     borderRadius: 10,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface1,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     cursor: "pointer",
     fontSize: UI_FONT.body,
     fontWeight: 900,
     outline: "none",
-    boxShadow: "none"
+    boxShadow: UI_CONTROL.shadow.soft
   },
   btnPrimary: {
     padding: "6px 10px",
     borderRadius: 10,
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: UI_PALETTE.surface.surfaceActive,
+    border: `1px solid ${UI_ACTION.border.default}`,
+    background: UI_ACTION.surface.default,
     color: "inherit",
     cursor: "pointer",
     fontSize: UI_FONT.body,
     fontWeight: 900,
     outline: "none",
-    boxShadow: "none"
+    boxShadow: UI_CONTROL.shadow.soft,
+    ["--spx-btn-bg-hover" as any]: UI_ACTION.surface.hover,
+    ["--spx-btn-bg-active" as any]: UI_ACTION.surface.active,
+    ["--spx-btn-border-hover" as any]: UI_ACTION.border.hover,
+    ["--spx-btn-border-active" as any]: UI_ACTION.border.active,
+    ["--spx-btn-shadow-hover" as any]: UI_ACTION.shadow.hover
   },
   btnDanger: {
     padding: "6px 10px",
     borderRadius: 10,
     border: "1px solid rgba(255,80,80,0.35)",
-    background: "rgba(255,80,80,0.12)",
+    background: UI_CONTROL.bg.danger,
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
     fontWeight: 900,
     outline: "none",
-    boxShadow: "none"
+    boxShadow: UI_CONTROL.shadow.soft
   },
 
   list: { display: "flex", flexDirection: "column", gap: 8 },
@@ -1568,21 +2021,25 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     minWidth: 0,
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.soft}`,
-    background: "linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.018))",
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
     color: "inherit",
     cursor: "pointer",
     padding: "8px 10px",
     userSelect: "none",
     outline: "none",
-    boxShadow: UI_EFFECT.insetShadow,
+    boxShadow: "0 1px 0 rgba(255,255,255,0.05) inset",
     overflow: "hidden"
   },
 
   rowBtnOn: {
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: UI_PALETTE.surface.surfaceActive,
-    boxShadow: `${UI_EFFECT.softRing}, 0 0 0 1px rgba(102,168,255,0.24) inset`
+    border: "1px solid rgba(255,255,255,0.34)",
+    background: "rgba(255,255,255,0.12)",
+    boxShadow: "0 10px 24px rgba(0,0,0,0.22)",
+    ["--spx-btn-bg-hover" as any]: "rgba(255,255,255,0.16)",
+    ["--spx-btn-bg-active" as any]: "rgba(255,255,255,0.1)",
+    ["--spx-btn-border-hover" as any]: "rgba(255,255,255,0.42)",
+    ["--spx-btn-border-active" as any]: "rgba(255,255,255,0.34)"
   },
   placeholderRow: {
     opacity: 0.55,
@@ -1624,15 +2081,15 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.85,
     padding: "3px 7px",
     borderRadius: UI_RADIUS.chip,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    border: "1px solid rgba(255,255,255,0.16)",
+    background: "rgba(255,255,255,0.06)",
     userSelect: "none",
     outline: "none",
-    boxShadow: "none",
     maxWidth: "min(40%, 120px)",
     overflow: "hidden",
     textOverflow: "ellipsis",
-    whiteSpace: "nowrap"
+    whiteSpace: "nowrap",
+    boxShadow: "0 1px 0 rgba(255,255,255,0.05) inset"
   },
   durInput: {
     width: 58,
@@ -1655,12 +2112,12 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     cursor: "pointer",
     outline: "none",
-    boxShadow: "none"
+    boxShadow: UI_CONTROL.shadow.soft
   },
   iconBtnDanger: {
     width: 34,
@@ -1672,12 +2129,12 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 0,
     borderRadius: UI_RADIUS.control,
     border: `1px solid ${UI_PALETTE.border.danger}`,
-    background: "rgba(255,124,124,0.12)",
+    background: UI_CONTROL.bg.danger,
     color: "inherit",
     cursor: "pointer",
     opacity: 0.95,
     outline: "none",
-    boxShadow: "none"
+    boxShadow: UI_CONTROL.shadow.soft
   },
 
   formRow: { display: "flex", alignItems: "center", gap: 10, marginBottom: 10 },
@@ -1689,7 +2146,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: UI_FONT.body,
     opacity: UI_OPACITY.label,
     fontWeight: 900,
-    lineHeight: 1.3
+    lineHeight: 1.28,
+    letterSpacing: 0.08,
+    color: "rgba(255,255,255,0.86)"
   },
   select: {
     appearance: "none",
@@ -1699,18 +2158,300 @@ const styles: Record<string, React.CSSProperties> = {
     minWidth: 0,
     height: UI_SIZE.controlH,
     borderRadius: UI_SIZE.controlRadius,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(0,0,0,0.20)",
-    color: "rgba(255,255,255,0.92)",
+    border: `1px solid ${UI_COLOR.border}`,
+    background: UI_COLOR.bgInput,
+    color: UI_COLOR.text,
     outline: "none",
-    padding: "0 34px 0 10px",
+    padding: "0 30px 0 10px",
     fontSize: UI_FONT.body,
     fontWeight: 700,
+    lineHeight: 1.24,
+    boxShadow: UI_CONTROL.shadow.soft,
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
     backgroundImage:
-      "linear-gradient(45deg, transparent 50%, rgba(220,232,255,0.78) 50%), linear-gradient(135deg, rgba(220,232,255,0.78) 50%, transparent 50%), linear-gradient(to right, transparent, transparent)",
-    backgroundPosition: "calc(100% - 18px) calc(50% - 1px), calc(100% - 12px) calc(50% - 1px), 100% 0",
+      "linear-gradient(45deg, transparent 50%, rgba(255,255,255,0.72) 50%), linear-gradient(135deg, rgba(255,255,255,0.72) 50%, transparent 50%), linear-gradient(to right, transparent, transparent)",
+    backgroundPosition: "calc(100% - 16px) calc(50% - 1px), calc(100% - 10px) calc(50% - 1px), 100% 0",
     backgroundSize: "6px 6px, 6px 6px, 2.2em 2.2em",
     backgroundRepeat: "no-repeat"
+  },
+  selectWide: {
+    width: "100%",
+    minWidth: 0,
+    maxWidth: "100%"
+  },
+  proMotionSelectShell: {
+    position: "relative",
+    flex: 1,
+    minWidth: 0
+  },
+  proMotionSelectBtn: {
+    width: "100%",
+    textAlign: "left"
+  },
+  proMotionSelectValue: {
+    display: "block",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    lineHeight: 1.24
+  },
+  proMotionSelectMenu: {
+    width: 188,
+    maxHeight: 320,
+    overflowY: "auto",
+    borderRadius: UI_SIZE.controlRadius,
+    border: `1px solid ${UI_COLOR.border}`,
+    background: "#0b0f16",
+    boxShadow: "0 18px 36px rgba(0,0,0,0.56)",
+    padding: 0,
+    zIndex: 30,
+    display: "grid",
+    gap: 0
+  },
+  proCascadeRoot: {
+    position: "fixed",
+    display: "flex",
+    alignItems: "flex-start",
+    zIndex: 12050
+  },
+  proCascadeSubmenu: {
+    width: 188,
+    maxHeight: 320,
+    overflowY: "auto",
+    borderRadius: UI_SIZE.controlRadius,
+    border: `1px solid ${UI_COLOR.border}`,
+    background: "#0b0f16",
+    boxShadow: "0 18px 36px rgba(0,0,0,0.56)",
+    padding: 0,
+    display: "grid",
+    gap: 0,
+    position: "absolute",
+    zIndex: 12051
+  },
+  proMotionSelectItem: {
+    border: "none",
+    borderRadius: 0,
+    background: "transparent",
+    color: "#ffffff",
+    textAlign: "left",
+    minHeight: UI_SIZE.controlH,
+    height: UI_SIZE.controlH,
+    padding: "0 10px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center"
+  },
+  proMotionSelectItemTitle: {
+    fontSize: UI_FONT.body,
+    fontWeight: 700,
+    lineHeight: 1.3
+  },
+  proMotionSelectItemDesc: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.72)",
+    lineHeight: 1.38
+  },
+  proMenuRow: {
+    border: "none",
+    borderRadius: 0,
+    background: "transparent",
+    color: "#ffffff",
+    textAlign: "left",
+    minHeight: UI_SIZE.controlH,
+    height: UI_SIZE.controlH,
+    padding: "0 10px",
+    cursor: "pointer",
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    fontSize: UI_FONT.body,
+    fontWeight: 700,
+    lineHeight: 1.24,
+    whiteSpace: "nowrap"
+  },
+  proMenuRowActive: {
+    background: "#1f67be",
+    color: "#ffffff"
+  },
+  proMenuRowDisabled: {
+    color: "rgba(255,255,255,0.28)",
+    cursor: "not-allowed"
+  },
+  proMotionBlock: {
+    display: "grid",
+    gap: 6,
+    marginBottom: 8,
+    padding: "8px 10px",
+    borderRadius: 12,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(0,0,0,0.28)"
+  },
+  proTitleRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8
+  },
+  infoDotBtn: {
+    width: 20,
+    height: 20,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.2)",
+    background: "rgba(255,255,255,0.08)",
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 11,
+    fontWeight: 900,
+    cursor: "help",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    lineHeight: 1
+  },
+  labelTooltipTrigger: {
+    border: "none",
+    background: "transparent",
+    color: "inherit",
+    font: "inherit",
+    padding: 0,
+    margin: 0,
+    cursor: "help",
+    textAlign: "left"
+  },
+  proMotionSubtitle: {
+    fontSize: 11,
+    lineHeight: 1.45,
+    color: "rgba(255,255,255,0.62)"
+  },
+  proMotionToggleRow: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap"
+  },
+  proMotionToggleBtn: {
+    minHeight: 34,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.06)",
+    color: "#ffffff",
+    padding: "0 14px",
+    fontSize: 12,
+    fontWeight: 850,
+    cursor: "pointer"
+  },
+  proPlusToggleBtn: {
+    letterSpacing: "0.04em"
+  },
+  proMotionToggleBtnOn: {
+    background: "rgba(255,255,255,0.16)",
+    border: "1px solid rgba(255,255,255,0.28)"
+  },
+  proMotionSummary: {
+    fontSize: 11,
+    lineHeight: 1.45,
+    color: "rgba(255,255,255,0.78)"
+  },
+  proMotionPanel: {
+    display: "grid",
+    gap: 10
+  },
+  proPlusGroup: {
+    display: "grid",
+    gap: 8
+  },
+  proPlusInlineDesc: {
+    fontSize: 11,
+    lineHeight: 1.45,
+    color: "rgba(255,255,255,0.58)",
+    paddingLeft: UI_SIZE.labelWSidebar
+  },
+  proPlusGroupTitle: {
+    fontSize: 12,
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.9)"
+  },
+  proPlusOptionGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 8
+  },
+  proPlusOptionBtn: {
+    borderRadius: 12,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.04)",
+    color: "#ffffff",
+    padding: "10px 10px 11px",
+    textAlign: "left",
+    cursor: "pointer",
+    display: "grid",
+    gap: 6,
+    minHeight: 86
+  },
+  proPlusOptionBtnOn: {
+    background: "rgba(255,255,255,0.14)",
+    border: "1px solid rgba(255,255,255,0.28)"
+  },
+  proPlusOptionBtnDisabled: {
+    background: "rgba(0,0,0,0.5)",
+    border: "1px solid rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.28)",
+    cursor: "not-allowed"
+  },
+  proPlusOptionTitle: {
+    fontSize: 12,
+    fontWeight: 900
+  },
+  proPlusOptionDesc: {
+    fontSize: 11,
+    lineHeight: 1.45,
+    color: "inherit"
+  },
+  proMotionHint: {
+    fontSize: 11,
+    lineHeight: 1.45,
+    color: "rgba(255,255,255,0.58)"
+  },
+  proDirectorBlock: {
+    display: "grid",
+    gap: 8,
+    marginBottom: 10,
+    padding: "10px 12px",
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(0,0,0,0.24)"
+  },
+  proDirectorTitle: {
+    fontSize: 13,
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.96)"
+  },
+  proDirectorHint: {
+    fontSize: 11,
+    lineHeight: 1.45,
+    color: "rgba(255,255,255,0.62)"
+  },
+  proDirectorActions: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap"
+  },
+  proTooltip: {
+    position: "fixed",
+    zIndex: 130,
+    transform: "translate(-50%, -100%)",
+    maxWidth: 280,
+    padding: "8px 10px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.22)",
+    background: "rgba(12,12,12,0.92)",
+    color: "rgba(255,255,255,0.94)",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.38)",
+    fontSize: 11,
+    lineHeight: 1.45,
+    pointerEvents: "none"
   },
 
   // ✅ toast（左下角）
@@ -1721,33 +2462,43 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 8,
     padding: "8px 10px",
     borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(15,20,35,0.92)",
+    border: `1px solid ${UI_STATUS.border.info}`,
+    background: UI_STATUS.surface.info,
     boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
     fontSize: 12,
     fontWeight: 900,
+    lineHeight: 1.3,
     opacity: 0.92
   },
   floatingHint: {
     position: "fixed",
     zIndex: 120,
     transform: "translateX(-50%)",
+    width: "max-content",
+    minWidth: 108,
+    maxWidth: "min(320px, calc(100vw - 24px))",
     padding: "7px 10px",
     borderRadius: 10,
     border: "1px solid rgba(255,255,255,0.14)",
     boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
     fontSize: 12,
     fontWeight: 900,
+    lineHeight: 1.35,
+    textAlign: "center",
+    whiteSpace: "normal",
+    overflowWrap: "break-word",
+    wordBreak: "keep-all",
     pointerEvents: "none",
     backdropFilter: "blur(4px)"
   },
   floatingHintInfo: {
-    background: "rgba(15,20,35,0.94)",
+    background: UI_STATUS.surface.info,
+    border: `1px solid ${UI_STATUS.border.info}`,
     color: "rgba(255,255,255,0.95)"
   },
   floatingHintDanger: {
-    background: "rgba(55,20,20,0.95)",
-    border: "1px solid rgba(255,120,120,0.45)",
+    background: UI_STATUS.surface.warn,
+    border: `1px solid ${UI_STATUS.border.warn}`,
     color: "rgba(255,235,235,0.96)"
   },
 

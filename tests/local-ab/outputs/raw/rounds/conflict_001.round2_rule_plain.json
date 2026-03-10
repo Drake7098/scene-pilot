@@ -1,0 +1,13 @@
+{
+  "caseId": "conflict_001",
+  "title": "静态结构 + 强运动冲突",
+  "roundId": "round2_rule_plain",
+  "plainPrompt": "人物站在原地，但文本要求他冲向下一个房间，镜头不要乱掉。 画面构图清晰，主体关系明确，空间层次稳定，避免新增无关主体。 保持镜头语义一致，细节自然，不要过度风格化。",
+  "structuredPrompt": "你将根据以下分镜结构生成视频画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 分镜1（5秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 当前 t0=t1，整段 5 秒保持静止构图，不自动添加位移/缩放。\n- 主要主体保持可识别。\n- 当前 t0=t1，整段 5 秒保持静止构图。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n\nT0 Frame Spec:\n- 主体1（人物）：初始在中间中部，中近景，前景，深灰外套, 他想冲向下一个房间，但结构上保持静止。；对象局部提示：走向下一个房间，情绪急迫。（仅作用于 主体1）。\n\nT1 Frame Spec:\n- 主体1（人物）：结束保持原位，距离与尺度稳定。\n\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]",
+  "eval": {
+    "plainScore": 2.7,
+    "structuredScore": 5,
+    "winner": "structured",
+    "reason": "Heuristic prompt-structure evaluation"
+  }
+}

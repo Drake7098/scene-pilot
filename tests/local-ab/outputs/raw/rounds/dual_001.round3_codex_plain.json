@@ -1,0 +1,13 @@
+{
+  "caseId": "dual_001",
+  "title": "双人物面对面",
+  "roundId": "round3_codex_plain",
+  "plainPrompt": "两个人面对面站着，一个靠前，一个靠后，关系要清楚。 背景：室内走廊，景深明显。 对象安排：1) 人物A，深色西装，x34 y58 w26 h38；2) 人物B，浅色衬衫，x64 y50 w18 h30。 先保证主体数量与相对位置正确，再补材质和光照风格。",
+  "structuredPrompt": "你将根据以下分镜结构生成图像画面。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 主画面。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 主要主体保持可识别。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n- 低背景密度：远景阈值 h<0.12。\nT0 Frame Spec:\n- 主体1（人物A）：初始在左中中部，中近景，前景，深色西装, 前景主体。；对象局部提示：面对后方人物。（仅作用于 主体1）。\n- 主体2（人物B）：初始在右中中部，中近景，前景，浅色衬衫, 后景人物，关系清楚。；对象局部提示：不要和前景主体重叠。（仅作用于 主体2）。\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 强化前中后分离，禁止压平空间深度。\n- 保持层级和顺序稳定，不整齐排队。",
+  "eval": {
+    "plainScore": 2.9,
+    "structuredScore": 5,
+    "winner": "structured",
+    "reason": "Heuristic prompt-structure evaluation"
+  }
+}

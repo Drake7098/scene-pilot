@@ -63,6 +63,32 @@ function normalizeSpaces(s: string): string {
   return (s ?? "").replace(/\s+/g, " ").trim();
 }
 
+function isSystemTailMarker(line: string): boolean {
+  const t = (line ?? "").trim();
+  if (!t) return false;
+  const low = t.toLowerCase();
+  if (low.includes("system structural control layer")) return true;
+  if (line.includes("系统结构控制层") || line.includes("系统追加结构控制层")) return true;
+  if (/system.*structural.*control.*layer/i.test(t)) return true;
+  if (/系统.*结构.*控制层/.test(t)) return true;
+  return false;
+}
+
+function isSystemTailSignal(line: string): boolean {
+  const t = (line ?? "").trim();
+  if (!t) return false;
+  const low = t.toLowerCase();
+  if (/^【系统稳定层/.test(t)) return true;
+  if (/^\[stability layer/i.test(t)) return true;
+  if (/^【语言强化层】/.test(t)) return true;
+  if (/^\[lrl\]/i.test(t)) return true;
+  if (/^【坐标/.test(t)) return true;
+  if (/^\[coords/i.test(t)) return true;
+  if (t.includes("坐标数字仅作内部控制")) return true;
+  if (low.includes("control metadata")) return true;
+  return false;
+}
+
 function dedupeLines(input: string): string {
   const lines = input.split("\n");
   const out: string[] = [];
@@ -100,6 +126,8 @@ function dropConflictLines(lines: string[]): string[] {
 function priorityScore(line: string): number {
   const t = normalizeSpaces(line).toLowerCase();
   if (!t) return 0;
+  if (isSystemTailMarker(line)) return 97;
+  if (isSystemTailSignal(line)) return 91;
   if (/^\[v2 scenepilot compile\]|^scene:|^#\s/.test(t)) return 100;
   if (/layout contract|t0 frame spec|t1 frame spec|anti-director rules|camera contract/.test(t)) return 95;
   if (/hard constraints|priority:|no text|no overlays|no numbers|object count|identity/.test(t)) return 90;
@@ -139,8 +167,7 @@ function compressTailBlock(input: string): string {
   let machineMarkerSeen = false;
   const out: string[] = [];
   for (const line of lines) {
-    const low = line.toLowerCase();
-    if (low.includes("system structural control layer") || line.includes("系统结构控制层") || line.includes("系统追加结构控制层")) {
+    if (isSystemTailMarker(line)) {
       machineMarkerSeen = true;
       out.push(line);
       continue;

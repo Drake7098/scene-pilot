@@ -1,0 +1,13 @@
+{
+  "caseId": "dual_002",
+  "title": "双人物桌边交谈",
+  "roundId": "round2_rule_plain",
+  "plainPrompt": "一男一女坐在桌子两侧交谈，女人更靠镜头，男人稍远。 画面构图清晰，主体关系明确，空间层次稳定，避免新增无关主体。 保持镜头语义一致，细节自然，不要过度风格化。",
+  "structuredPrompt": "你将根据以下分镜结构生成图像画面。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 主画面。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 主要主体保持可识别。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n- 低背景密度：远景阈值 h<0.12。\nT0 Frame Spec:\n- 主体1（女人）：初始在左中偏下，中近景，前景，米色外套, 靠近镜头。；对象局部提示：桌边交谈。（仅作用于 主体1）。\n- 主体2（男人）：初始在右中中部，中近景，前景，深蓝衬衫, 稍远，保持对话关系。；对象局部提示：不要与前景人物重叠。（仅作用于 主体2）。\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 强化前中后分离，禁止压平空间深度。\n- 保持层级和顺序稳定，不整齐排队。",
+  "eval": {
+    "plainScore": 2.7,
+    "structuredScore": 5,
+    "winner": "structured",
+    "reason": "Heuristic prompt-structure evaluation"
+  }
+}

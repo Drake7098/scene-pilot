@@ -54,6 +54,15 @@ child.on("exit", (code) => {
   });
 
   summary.on("exit", () => {
-    process.exit(code ?? 1);
+    const gate = spawn(process.execPath, ["tests/robots/scripts/assert-gates.mjs"], {
+      stdio: "inherit",
+      env: process.env,
+    });
+
+    gate.on("exit", (gateCode) => {
+      const testCode = code ?? 1;
+      const finalCode = testCode !== 0 ? testCode : gateCode ?? 1;
+      process.exit(finalCode);
+    });
   });
 });

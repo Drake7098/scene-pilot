@@ -1,0 +1,5 @@
+{
+  "error": "Error: ComfyUI failed for single_001__plain__seed101: ComfyUI execution error",
+  "stack": "Error: ComfyUI failed for single_001__plain__seed101: ComfyUI execution error\n    at main (file:///Users/dk/scene-pilot/tests/local-ab/dist/tests/local-ab/comfyui/run-batch.js:142:27)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)",
+  "createdAt": "2026-03-08T12:53:59.310Z"
+}

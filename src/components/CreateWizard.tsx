@@ -3,7 +3,7 @@ import type { CSSProperties, Dispatch, SetStateAction } from "react";
 import type { Lang } from "../i18n";
 import type { ShotPlan } from "../model";
 import { defaultProjectName, defaultSceneName } from "../utils/naming";
-import { UI_COLOR, UI_EFFECT, UI_PALETTE, UI_RADIUS, UI_SPACE, UI_TYPO } from "../uiTokens";
+import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_INFO, UI_PALETTE, UI_RADIUS, UI_SPACE, UI_STATUS, UI_TYPO } from "../uiTokens";
 
 export type NewProjectMedia = "image" | "video";
 export type CreateStep = "welcome_1" | "welcome_2" | "media" | "image_setup" | "video_plan" | "video_setup";
@@ -257,6 +257,11 @@ export function CreateWizard(props: Props) {
           e.stopPropagation();
         }}
       >
+        <div style={styles.modalBackdrop} aria-hidden="true">
+          <div style={styles.modalGlowPrimary} />
+          <div style={styles.modalGlowAccent} />
+          <div style={styles.modalNoise} />
+        </div>
         {floatingHint ? <div style={styles.floatingHint}>{floatingHint}</div> : null}
 
         {step === "welcome_1" ? (
@@ -268,44 +273,27 @@ export function CreateWizard(props: Props) {
               </button>
             </div>
             <div style={styles.wizardWelcome}>{lang === "zh" ? "新手引导" : "WELCOME"}</div>
-            <div style={styles.wizardTitle}>{lang === "zh" ? "把想法结构化成可生成的画面" : "Structure Ideas into Generatable Visuals"}</div>
+            <div style={styles.wizardTitle}>{lang === "zh" ? "3 步开始使用" : "Get Started in 3 Steps"}</div>
             <div style={styles.wizardSubtitle}>
               {lang === "zh"
-                ? "ScenePilotix 会先帮你搭好分镜骨架，再把主体、构图和镜头整理成可直接使用的提示词。"
-                : "ScenePilotix builds the shot skeleton first, then turns subject, layout, and camera input into ready-to-use prompts."}
-            </div>
-            <div style={styles.wizardBullets}>
-              <div>{lang === "zh" ? "精准布局人物与物体" : "Precisely place characters and objects"}</div>
-              <div>{lang === "zh" ? "用分镜管理镜头与机位" : "Manage shots and camera angles with storyboard"}</div>
-              <div>{lang === "zh" ? "自动生成清晰的衔接语言" : "Auto-generate clear transition language"}</div>
+                ? "轻量引导仅此一次，可跳过，不影响主流程。"
+                : "One-time lightweight onboarding. You can skip it anytime."}
             </div>
             <div style={styles.onboardingStepRow}>
-              <div style={styles.onboardingStepItem}>{lang === "zh" ? "选择图片或视频" : "Choose Image or Video"}</div>
-              <div style={styles.onboardingStepItem}>{lang === "zh" ? "确认分镜结构、节奏与默认主体" : "Confirm the shot structure, pacing, and default subject"}</div>
-              <div style={styles.onboardingStepItem}>{lang === "zh" ? "逐镜微调主体、背景和参考图" : "Refine subjects, backgrounds, and references shot by shot"}</div>
-            </div>
-            <div style={styles.wizardPrinciple}>
-              {lang === "zh" ? (
-                <div style={styles.wizardPrincipleColumn}>
-                  <div>- 图片 = 永远只有一个分镜</div>
-                  <div>- 视频 = 每个分镜代表一个镜头</div>
-                  <div>- 系统自动生成衔接语言</div>
-                  <div style={styles.wizardPrincipleSub}>同场景换角度 → 切换镜头 / 反打镜头</div>
-                  <div style={styles.wizardPrincipleSub}>连续镜头 → 镜头连续推进 / 转向</div>
-                  <div style={styles.wizardPrincipleSub}>换场景 → 切到新场景</div>
-                </div>
-              ) : (
-                <div style={styles.wizardPrincipleColumn}>
-                  <div>- Image = always one shot</div>
-                  <div>- Video = each shot represents one camera shot</div>
-                  <div>- System auto-generates transitions</div>
-                  <div style={styles.wizardPrincipleSub}>Same scene angle change → cut / reverse angle</div>
-                  <div style={styles.wizardPrincipleSub}>Continuous → camera continues / turns</div>
-                  <div style={styles.wizardPrincipleSub}>Scene switch → cut to new location</div>
-                </div>
-              )}
+              <div style={styles.onboardingStepItem}>{lang === "zh" ? "1) 先创建项目并选择图片或视频" : "1) Create project and choose Image or Video"}</div>
+              <div style={styles.onboardingStepItem}>{lang === "zh" ? "2) 再编辑分镜结构与对象" : "2) Edit shot structure and objects"}</div>
+              <div style={styles.onboardingStepItem}>{lang === "zh" ? "3) 最后复制或导出提示词" : "3) Copy or export prompts"}</div>
             </div>
             <div style={styles.modalBtns}>
+              {canCancel ? (
+                <SecondaryActionButton
+                  label={lang === "zh" ? "跳过" : "Skip"}
+                  onClick={() => {
+                    onMarkOnboardingDone();
+                    onCancel();
+                  }}
+                />
+              ) : null}
               <PrimaryActionButton
                 label={lang === "zh" ? "开始创建" : "Start Creating"}
                 onClick={() => {
@@ -653,7 +641,8 @@ const styles: Record<string, CSSProperties> = {
   modalMask: {
     position: "fixed",
     inset: 0,
-    background: UI_PALETTE.bg.overlay,
+    background:
+      "radial-gradient(circle at 18% 16%, rgba(108,150,255,0.22), transparent 28%), radial-gradient(circle at 84% 10%, rgba(84,197,197,0.18), transparent 24%), rgba(6,9,16,0.82)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -664,35 +653,82 @@ const styles: Record<string, CSSProperties> = {
     width: 640,
     maxWidth: "100%",
     borderRadius: UI_RADIUS.panel,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: "rgba(12,17,27,0.96)",
+    border: "1px solid rgba(174,204,255,0.16)",
+    background:
+      "linear-gradient(180deg, rgba(14,20,32,0.96) 0%, rgba(10,15,25,0.98) 100%)",
     boxShadow: UI_EFFECT.floatShadow,
     padding: UI_SPACE.md,
-    position: "relative"
+    position: "relative",
+    overflow: "hidden",
+    backdropFilter: "blur(18px)",
+    isolation: "isolate"
+  },
+  modalBackdrop: {
+    position: "absolute",
+    inset: 0,
+    pointerEvents: "none",
+    zIndex: 0
+  },
+  modalGlowPrimary: {
+    position: "absolute",
+    width: 360,
+    height: 360,
+    top: -170,
+    left: -110,
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(118,156,255,0.24) 0%, rgba(118,156,255,0.08) 42%, rgba(118,156,255,0) 72%)",
+    filter: "blur(12px)"
+  },
+  modalGlowAccent: {
+    position: "absolute",
+    width: 300,
+    height: 300,
+    right: -84,
+    bottom: -120,
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(77,191,180,0.18) 0%, rgba(77,191,180,0.08) 44%, rgba(77,191,180,0) 74%)",
+    filter: "blur(18px)"
+  },
+  modalNoise: {
+    position: "absolute",
+    inset: 0,
+    opacity: 0.08,
+    backgroundImage:
+      "linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+    backgroundSize: "28px 28px"
   },
   floatingHint: {
     position: "absolute",
     top: -44,
     right: 0,
-    maxWidth: 420,
+    width: "max-content",
+    minWidth: 120,
+    maxWidth: "min(420px, calc(100vw - 40px))",
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: "rgba(14,22,36,0.96)",
+    border: `1px solid ${UI_STATUS.border.info}`,
+    background: UI_STATUS.surface.info,
     boxShadow: UI_EFFECT.floatShadow,
     padding: "8px 10px",
     fontSize: UI_TYPO.size12,
-    lineHeight: 1.35
+    lineHeight: 1.35,
+    textAlign: "left",
+    whiteSpace: "normal",
+    overflowWrap: "break-word",
+    wordBreak: "keep-all",
+    zIndex: 2
   },
-  modalTitle: { fontWeight: 900, fontSize: UI_TYPO.size14, opacity: 0.95 },
+  modalTitle: { fontWeight: 900, fontSize: UI_TYPO.size14, opacity: 0.95, position: "relative", zIndex: 1 },
   modalText: { marginTop: 8, fontSize: UI_TYPO.size12, opacity: 0.82, lineHeight: 1.6, color: UI_PALETTE.text.secondary },
   summaryBox: {
     marginTop: 8,
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    border: `1px solid ${UI_INFO.border.default}`,
+    background: UI_INFO.surface.default,
     padding: "8px 10px",
     display: "grid",
-    gap: 4
+    gap: 4,
+    position: "relative",
+    zIndex: 1
   },
   summaryTitle: {
     fontSize: UI_TYPO.size12,
@@ -708,19 +744,25 @@ const styles: Record<string, CSSProperties> = {
     textTransform: "uppercase",
     opacity: 0.66,
     marginBottom: 8,
-    fontWeight: 800
+    fontWeight: 800,
+    position: "relative",
+    zIndex: 1
   },
   wizardTopRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 4
+    marginBottom: 4,
+    position: "relative",
+    zIndex: 1
   },
   stepTopRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8
+    marginBottom: 8,
+    position: "relative",
+    zIndex: 1
   },
   stepTopBrand: {
     fontSize: 11,
@@ -733,12 +775,13 @@ const styles: Record<string, CSSProperties> = {
     height: 28,
     padding: "0 10px",
     borderRadius: UI_RADIUS.chip,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     fontSize: UI_TYPO.size11,
     fontWeight: 700,
-    cursor: "pointer"
+    cursor: "pointer",
+    boxShadow: UI_CONTROL.shadow.soft
   },
   wizardWelcome: {
     fontSize: 44,
@@ -746,22 +789,27 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     letterSpacing: 1.2,
     marginBottom: 10,
-    opacity: 0.96
+    opacity: 0.96,
+    position: "relative",
+    zIndex: 1,
+    textShadow: "0 10px 32px rgba(0,0,0,0.32)"
   },
-  wizardTitle: { fontWeight: 900, fontSize: 20, lineHeight: 1.25, opacity: 0.98 },
+  wizardTitle: { fontWeight: 900, fontSize: 20, lineHeight: 1.25, opacity: 0.98, position: "relative", zIndex: 1 },
   wizardSubtitle: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 1.55,
     color: UI_PALETTE.text.primary,
-    opacity: 0.94
+    opacity: 0.94,
+    position: "relative",
+    zIndex: 1
   },
   newProjectMediaRow: { display: "grid", gridTemplateColumns: "1fr", gap: 8, marginTop: 10 },
   newProjectMediaBtn: {
     height: 34,
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
@@ -769,28 +817,37 @@ const styles: Record<string, CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    textAlign: "center"
+    textAlign: "center",
+    boxShadow: UI_CONTROL.shadow.soft
   },
   newProjectMediaBtnHover: {
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: UI_PALETTE.surface.surfaceMuted
+    border: `1px solid ${UI_CONTROL.border.hover}`,
+    background: UI_CONTROL.bg.hover,
+    boxShadow: UI_CONTROL.shadow.hover,
+    transform: "translateY(-1px)"
   },
   newProjectMediaBtnOn: {
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: UI_PALETTE.surface.surfaceActive,
-    boxShadow: UI_EFFECT.softRing
+    border: `1px solid ${UI_CONTROL.border.active}`,
+    background: UI_CONTROL.bg.accent,
+    boxShadow: UI_CONTROL.shadow.hover,
+    ["--spx-btn-bg-hover" as any]: UI_CONTROL.bg.accentHover,
+    ["--spx-btn-bg-active" as any]: UI_CONTROL.bg.accentActive,
+    ["--spx-btn-border-hover" as any]: UI_CONTROL.border.active,
+    ["--spx-btn-border-active" as any]: UI_CONTROL.border.active
   },
   wizardBullets: {
     marginTop: 8,
-    border: `1px solid ${UI_COLOR.borderSoft}`,
+    border: `1px solid ${UI_INFO.border.default}`,
     borderRadius: UI_RADIUS.control,
-    background: UI_PALETTE.surface.surface1,
+    background: UI_INFO.surface.default,
     padding: "10px 12px",
     fontSize: 13,
     lineHeight: 1.45,
     display: "grid",
     gap: 6,
-    color: UI_PALETTE.text.primary
+    color: UI_PALETTE.text.primary,
+    position: "relative",
+    zIndex: 1
   },
   onboardingStepRow: {
     marginTop: 10,
@@ -799,25 +856,29 @@ const styles: Record<string, CSSProperties> = {
     gap: 8
   },
   onboardingStepItem: {
-    border: `1px solid ${UI_COLOR.borderSoft}`,
+    border: `1px solid ${UI_INFO.border.default}`,
     borderRadius: UI_RADIUS.control,
-    background: UI_PALETTE.surface.surface1,
+    background: UI_INFO.surface.subtle,
     padding: "8px 10px",
     lineHeight: 1.4,
     fontWeight: 700,
     fontSize: 12,
-    color: UI_PALETTE.text.primary
+    color: UI_PALETTE.text.primary,
+    position: "relative",
+    zIndex: 1
   },
   wizardPrinciple: {
     marginTop: 8,
-    border: "1px solid rgba(120,180,255,0.22)",
+    border: `1px solid ${UI_STATUS.border.info}`,
     borderRadius: UI_RADIUS.control,
-    background: UI_PALETTE.surface.surfaceActive,
+    background: UI_STATUS.surface.info,
     padding: "8px 10px",
     fontSize: 12,
     lineHeight: 1.45,
     opacity: 0.96,
-    color: UI_PALETTE.text.primary
+    color: UI_PALETTE.text.primary,
+    position: "relative",
+    zIndex: 1
   },
   wizardPrincipleColumn: {
     display: "grid",
@@ -837,22 +898,29 @@ const styles: Record<string, CSSProperties> = {
   wizardPlanCard: {
     textAlign: "center",
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface1,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     padding: "10px 12px",
     cursor: "pointer",
     color: "inherit",
     display: "grid",
-    placeItems: "center"
+    placeItems: "center",
+    boxShadow: UI_CONTROL.shadow.soft
   },
   wizardPlanCardHover: {
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: UI_PALETTE.surface.surfaceMuted
+    border: `1px solid ${UI_CONTROL.border.hover}`,
+    background: UI_CONTROL.bg.hover,
+    boxShadow: UI_CONTROL.shadow.hover,
+    transform: "translateY(-1px)"
   },
   wizardPlanCardOn: {
     border: `1px solid ${UI_PALETTE.border.active}`,
     background: UI_PALETTE.surface.surfaceActive,
-    boxShadow: UI_EFFECT.softRing
+    boxShadow: UI_CONTROL.shadow.hover,
+    ["--spx-btn-bg-hover" as any]: UI_CONTROL.bg.accentHover,
+    ["--spx-btn-bg-active" as any]: UI_CONTROL.bg.accentActive,
+    ["--spx-btn-border-hover" as any]: UI_CONTROL.border.active,
+    ["--spx-btn-border-active" as any]: UI_CONTROL.border.active
   },
   wizardPlanTitle: { fontSize: 13, fontWeight: 900, marginBottom: 4, textAlign: "center", width: "100%" },
   wizardPlanDesc: { fontSize: 12, opacity: 0.76, lineHeight: 1.4, textAlign: "center", width: "100%" },
@@ -876,8 +944,8 @@ const styles: Record<string, CSSProperties> = {
     width: 16,
     height: 16,
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.20)",
-    background: "rgba(255,255,255,0.06)",
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "rgba(230,238,255,0.90)",
     fontSize: 11,
     fontWeight: 900,
@@ -885,7 +953,8 @@ const styles: Record<string, CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     lineHeight: 1,
-    cursor: "help"
+    cursor: "help",
+    boxShadow: UI_CONTROL.shadow.soft
   },
   helpWrap: {
     position: "relative",
@@ -898,9 +967,9 @@ const styles: Record<string, CSSProperties> = {
     top: -8,
     transform: "translateY(-100%)",
     width: "min(240px, calc(92vw - 72px))",
-    border: "1px solid rgba(255,255,255,0.16)",
+    border: `1px solid ${UI_INFO.border.default}`,
     borderRadius: UI_RADIUS.control,
-    background: "rgba(12,16,30,0.97)",
+    background: UI_INFO.surface.elevated,
     boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
     padding: "8px 10px",
     fontSize: 11,
@@ -946,9 +1015,9 @@ const styles: Record<string, CSSProperties> = {
   },
   step3WarnBox: {
     marginTop: 6,
-    border: "1px solid rgba(255,190,120,0.4)",
+    border: `1px solid ${UI_STATUS.border.warn}`,
     borderRadius: UI_RADIUS.control,
-    background: "rgba(90,64,18,0.18)",
+    background: UI_STATUS.surface.warn,
     padding: "8px 10px",
     fontSize: 12,
     lineHeight: 1.4
@@ -997,10 +1066,10 @@ const styles: Record<string, CSSProperties> = {
   },
   wizardPreviewWrap: {
     marginTop: 10,
-    border: `1px solid ${UI_COLOR.borderSoft}`,
+    border: `1px solid ${UI_INFO.border.default}`,
     borderRadius: UI_RADIUS.control,
     padding: 10,
-    background: UI_PALETTE.surface.surface1
+    background: UI_INFO.surface.default
   },
   wizardPreviewTitle: {
     fontSize: 12,
@@ -1018,53 +1087,69 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: "flex-start",
     alignItems: "center",
     gap: 10,
-    border: `1px solid ${UI_COLOR.borderSoft}`,
+    border: `1px solid ${UI_INFO.border.subtle}`,
     borderRadius: UI_RADIUS.control,
     padding: "6px 8px",
     fontSize: 12,
-    background: UI_PALETTE.surface.surface1
+    background: UI_INFO.surface.subtle
   },
   wizardPreviewName: { fontWeight: 700, opacity: 0.92 },
   wizardPreviewMeta: { opacity: 0.78, marginLeft: 8 },
-  modalBtns: { display: "flex", gap: 8, marginTop: 12, justifyContent: "flex-end", flexWrap: "wrap" },
+  modalBtns: {
+    display: "flex",
+    gap: 8,
+    marginTop: 12,
+    justifyContent: "flex-end",
+    flexWrap: "wrap",
+    position: "relative",
+    zIndex: 1
+  },
   modalBtn: {
     height: 34,
     padding: "0 14px",
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    border: `1px solid ${UI_ACTION.border.default}`,
+    background: UI_ACTION.surface.default,
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
-    fontWeight: 900
+    fontWeight: 900,
+    boxShadow: UI_CONTROL.shadow.soft
   },
   modalBtnHover: {
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: UI_PALETTE.surface.surfaceMuted
+    border: `1px solid ${UI_ACTION.border.hover}`,
+    background: UI_ACTION.surface.hover,
+    boxShadow: UI_ACTION.shadow.hover,
+    transform: "translateY(-1px)"
   },
   modalBtnPressed: {
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: UI_PALETTE.surface.surfaceActive,
-    boxShadow: UI_EFFECT.softRing
+    border: `1px solid ${UI_ACTION.border.active}`,
+    background: UI_ACTION.surface.active,
+    boxShadow: UI_CONTROL.shadow.active,
+    transform: "translateY(0)"
   },
   modalBtnGhost: {
     height: 34,
     padding: "0 14px",
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface1,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
-    fontWeight: 800
+    fontWeight: 800,
+    boxShadow: UI_CONTROL.shadow.soft
   },
   modalBtnGhostHover: {
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: UI_PALETTE.surface.surfaceMuted
+    border: `1px solid ${UI_CONTROL.border.hover}`,
+    background: UI_CONTROL.bg.hover,
+    boxShadow: UI_CONTROL.shadow.hover,
+    transform: "translateY(-1px)"
   },
   modalBtnGhostPressed: {
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: UI_PALETTE.surface.surfaceActive,
-    boxShadow: UI_EFFECT.softRing
+    border: `1px solid ${UI_CONTROL.border.active}`,
+    background: UI_CONTROL.bg.active,
+    boxShadow: UI_CONTROL.shadow.active,
+    transform: "translateY(0)"
   }
 };

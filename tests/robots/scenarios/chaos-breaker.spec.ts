@@ -45,7 +45,7 @@ test("chaos_breaker_invalid_and_extreme_inputs", async ({ page }) => {
     await startEditingBtn.evaluate((el) => (el as HTMLButtonElement).click());
     await expect(page.locator(".spx-wizard-modal")).toBeHidden({ timeout: 10_000 });
     await expect(page.getByText(/分镜列表|Scenes/i).first()).toBeVisible();
-    await expect(page.getByText(/项目|Project/i).first()).toBeVisible();
+    await expect(page.getByTestId("project-menu-trigger")).toContainText(projectName.slice(0, 12));
     await assertVideoProjectUsesV2(page, { minScenes: 2, expectedMode: "strict" });
   });
 

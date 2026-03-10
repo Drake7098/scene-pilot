@@ -1,18 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Lang } from "../i18n";
-import { tAny } from "../i18n";
 import type { Project } from "../model";
-import { resolveSceneConfig } from "../model";
 import type { PromptProfile } from "../utils/prompt";
 import { getRefBlob } from "../utils/localRefs";
 import { detectSceneConflicts, type PromptConflict } from "../utils/conflictRules";
 import { getPlatformPreset, PLATFORM_PRESETS } from "../config/platformPresets";
 import type { PlatformPresetId } from "../config/platformPresets";
 import { runPromptPipeline } from "../utils/promptPipeline";
-import { makeExportSummary } from "../utils/exportSummary";
-import { buildUserInputSummary } from "../utils/exportViewModel";
+import { splitMachineNotes } from "../utils/promptTail";
+import { availableExportScopes, recommendExportMode } from "../utils/exportViewModel";
 import { defaultProjectName, safeExportName } from "../utils/naming";
-import { UI_COLOR, UI_EFFECT, UI_FONT, UI_OPACITY, UI_PALETTE, UI_RADIUS, UI_SIZE, UI_TYPO } from "../uiTokens";
+import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_FONT, UI_INFO, UI_OPACITY, UI_PALETTE, UI_PANEL, UI_RADIUS, UI_SIZE, UI_STATUS, UI_TYPO } from "../uiTokens";
+import type { PromptExportScope } from "../types/export";
 
 type Props = {
   lang: Lang;
@@ -20,6 +20,7 @@ type Props = {
   projectLabel?: string;
   sceneIdx: number;
   platformId?: PlatformPresetId;
+  openExportNonce?: number;
   onPlatformChange?: (id: PlatformPresetId) => void;
   selectedLayerId: string | null;
   onJumpToConflict?: (layerId: string | null) => void;
@@ -28,49 +29,6 @@ type Props = {
 function clampInt(v: number, a: number, b: number) {
   const x = Number.isFinite(v) ? v : a;
   return Math.max(a, Math.min(b, x));
-}
-
-type MediaMode = "image" | "video";
-
-/**
- * 将末尾“系统追加/机器语言块”分离出来，用于 UI 灰显（复制仍保留完整）
- * 关键：不要把这段“机器语言/控制层”展示给用户当正文，但复制导出时仍附带。
- *
- * 兼容多种 marker（你改过文案，会变）：
- * - 中文旧： （以下为机器语言，可忽略...）
- * - 英文旧： (Machine Notes — you can ignore...)
- * - 英文可能： (Machine Notes ...)
- * - 中文可能： （系统结构控制层）/（系统追加结构控制层）
- * - 英文可能： (System Structural Control Layer)
- */
-function splitMachineNotes(allText: string): { main: string; notes: string } {
-  const text = allText ?? "";
-  const lines = text.split("\n");
-
-  const isMarker = (line: string) => {
-    const t = (line ?? "").trim();
-    if (!t) return false;
-    const low = t.toLowerCase();
-
-    // 中文 marker
-    if (t.includes("以下为机器语言")) return true;
-    if (t.startsWith("（以下为机器语言")) return true;
-    if (t.includes("系统结构控制层")) return true;
-    if (t.includes("系统追加结构控制层")) return true;
-
-    // 英文 marker
-    if (low.includes("machine notes")) return true;
-    if (low.includes("system structural control layer")) return true;
-
-    return false;
-  };
-
-  const idx = lines.findIndex((l) => isMarker(l));
-  if (idx < 0) return { main: text.trimEnd(), notes: "" };
-
-  const main = lines.slice(0, idx).join("\n").trimEnd();
-  const notes = lines.slice(idx).join("\n").trimEnd();
-  return { main, notes };
 }
 
 function limitRefLinks(raw: string, max: number): string {
@@ -96,55 +54,11 @@ function extFromName(name: string) {
   return m ? m[1].toLowerCase() : "jpg";
 }
 
-function extractShotSection(main: string): string {
-  const lines = (main ?? "").split("\n");
-  const idx = lines.findIndex((l) => l.trim().startsWith("# "));
-  if (idx >= 0) return lines.slice(idx).join("\n").trim();
-  return (main ?? "").trim();
-}
-
-function collapseStaticKeyframes(text: string, lang: Lang): string {
-  const lines = (text ?? "").split("\n");
-  const out: string[] = [];
-  let i = 0;
-  while (i < lines.length) {
-    const cur = lines[i] ?? "";
-    const next = lines[i + 1] ?? "";
-    const mZhStart = cur.match(/^起点t0[:：]\s*(.+)$/);
-    const mZhEnd = next.match(/^终点t1[:：]\s*(.+)$/);
-    const mEnStart = cur.match(/^Start t0[:：]\s*(.+)$/i);
-    const mEnEnd = next.match(/^End t1[:：]\s*(.+)$/i);
-
-    if (mZhStart && mZhEnd && mZhStart[1].trim() === mZhEnd[1].trim()) {
-      out.push(`位置：${mZhStart[1].trim()}`);
-      i += 2;
-      continue;
-    }
-    if (mEnStart && mEnEnd && mEnStart[1].trim() === mEnEnd[1].trim()) {
-      out.push(`${lang === "zh" ? "位置" : "Position"}: ${mEnStart[1].trim()}`);
-      i += 2;
-      continue;
-    }
-
-    out.push(cur);
-    i += 1;
-  }
-  return out.join("\n").trim();
-}
-
-function insertAfterHeader(shotSection: string, injectedLines: string[]): string {
-  if (!injectedLines.length) return shotSection.trim();
-  const lines = (shotSection ?? "").split("\n");
-  if (lines.length && lines[0].trim().startsWith("# ")) {
-    return [lines[0], "", ...injectedLines, "", ...lines.slice(1)].join("\n").trim();
-  }
-  return [...injectedLines, "", ...lines].join("\n").trim();
-}
-
 type FlowFile = { path: string; content: string };
 type FlowBlobFile = { path: string; refId: string };
 type ZipEntry = { path: string; data: Uint8Array };
 const OBJECT_REF_LIMIT = 1;
+type ExportMode = "quick" | "package";
 
 let crcTable: Uint32Array | null = null;
 
@@ -287,37 +201,66 @@ async function writeBlobToDirectory(dirHandle: any, fullPath: string, blob: Blob
   await writable.close();
 }
 
-export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId = "universal", onPlatformChange, selectedLayerId, onJumpToConflict }: Props) {
+export function ExportPanel({
+  lang,
+  project,
+  projectLabel,
+  sceneIdx,
+  platformId = "universal",
+  openExportNonce = 0,
+  onPlatformChange,
+  selectedLayerId,
+  onJumpToConflict
+}: Props) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [pendingConflictAction, setPendingConflictAction] = useState<null | "copy" | "save">(null);
   const [pendingConflicts, setPendingConflicts] = useState<PromptConflict[]>([]);
-  const [showSaveHint, setShowSaveHint] = useState(false);
   const [actionHint, setActionHint] = useState("");
-  const [promptPaneView, setPromptPaneView] = useState<"prompt" | "input">("prompt");
   const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
   const [copyDone, setCopyDone] = useState(false);
   const [platformPresetId, setPlatformPresetId] = useState<PlatformPresetId>(platformId);
+  const [exportScope, setExportScope] = useState<PromptExportScope>("current_scene");
+  const [exportMode, setExportMode] = useState<ExportMode>("quick");
   const [exporting, setExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
   const [exportFolderLabel, setExportFolderLabel] = useState("");
-  const [exportResultType, setExportResultType] = useState<"none" | "dir" | "zip">("none");
+  const [exportResultType, setExportResultType] = useState<"none" | "dir" | "zip" | "quick">("none");
   const canSaveDirectory = typeof window !== "undefined" && "showDirectoryPicker" in window;
 
-  const scenes = project.scenes ?? [];
+  const scenes = useMemo(() => project.scenes ?? [], [project.scenes]);
   const safeIdx = clampInt(sceneIdx, 0, Math.max(0, scenes.length - 1));
   const currentScene = scenes[safeIdx] ?? null;
+  const scopeOptions = useMemo(() => availableExportScopes(project, safeIdx), [project, safeIdx]);
+  const recommendedExportMode = useMemo(() => recommendExportMode(project, safeIdx), [project, safeIdx]);
 
   useEffect(() => {
     setPlatformPresetId(platformId);
   }, [platformId]);
+
+  useEffect(() => {
+    if (!scopeOptions.includes(exportScope)) {
+      setExportScope(scopeOptions[0] ?? "current_scene");
+    }
+  }, [scopeOptions, exportScope]);
+
+  useEffect(() => {
+    setExportMode(recommendedExportMode);
+  }, [recommendedExportMode, safeIdx]);
+
+  useEffect(() => {
+    if (!openExportNonce) return;
+    setShowExportModal(true);
+    setExportDone(false);
+    setExportResultType("none");
+    setExportFolderLabel("");
+  }, [openExportNonce]);
 
   function changePlatform(id: PlatformPresetId) {
     setPlatformPresetId(id);
     onPlatformChange?.(id);
   }
 
-  const mediaMode: MediaMode = useMemo(() => (currentScene ? resolveSceneConfig(currentScene).mediaMode : "video"), [currentScene]);
   void selectedLayerId;
 
   const platformPreset = useMemo(
@@ -326,10 +269,9 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
   );
   const exportProfile: PromptProfile = platformPreset.baseProfile;
 
-  // ✅ 只导出当前分镜 prompts
   const promptProject = useMemo<Project>(() => {
     const refLimit = OBJECT_REF_LIMIT;
-    const sourceScenes = currentScene ? [currentScene] : [];
+    const sourceScenes = exportScope === "continuous_sequence" ? scenes.slice(safeIdx) : currentScene ? [currentScene] : [];
     const nextScenes = sourceScenes.map((s) => ({
       ...s,
       layers: (s.layers ?? []).map((l) => ({
@@ -338,80 +280,28 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
       }))
     }));
     return { ...project, scenes: nextScenes };
-  }, [project, currentScene]);
+  }, [project, currentScene, exportScope, scenes, safeIdx]);
 
   const sceneTitle = useMemo(() => {
     if (!currentScene) return lang === "zh" ? `分镜 ${safeIdx + 1}` : `Scene ${safeIdx + 1}`;
+    if (exportScope === "continuous_sequence") {
+      return lang === "zh"
+        ? `${(currentScene.name ?? "").trim() || currentScene.id || `分镜 ${safeIdx + 1}`} 起连续序列`
+        : `${(currentScene.name ?? "").trim() || currentScene.id || `Scene ${safeIdx + 1}`} sequence`;
+    }
     return (currentScene.name ?? "").trim() || currentScene.id || (lang === "zh" ? `分镜 ${safeIdx + 1}` : `Scene ${safeIdx + 1}`);
-  }, [currentScene, lang, safeIdx]);
+  }, [currentScene, lang, safeIdx, exportScope]);
 
   const promptPipeline = useMemo(() => runPromptPipeline({
     project: promptProject,
     lang,
     profile: exportProfile,
     platformId: platformPresetId,
-    scope: "current_scene"
-  }), [promptProject, lang, exportProfile, platformPresetId]);
+    scope: exportScope
+  }), [promptProject, lang, exportProfile, platformPresetId, exportScope]);
 
   const { main: promptsMain, notes: promptsNotes } = useMemo(() => splitMachineNotes(promptPipeline.finalCopyPrompt), [promptPipeline.finalCopyPrompt]);
-  const promptsMainWithRefs = useMemo(() => {
-    const scene = currentScene;
-    if (!scene) return promptsMain;
-    const sceneTag = String(scene.index ?? safeIdx + 1).padStart(2, "0");
-    const bgFileName = scene.backgroundRef?.id
-      ? `${sceneTag}__BG__${safeName(scene.backgroundRef.name || `background.${extFromName(scene.backgroundRef.name || "")}`)}`
-      : "";
-    const objRefLines = (scene.layers ?? []).flatMap((layer, idx) => {
-      const code = `OBJ_${String.fromCharCode(65 + (idx % 26))}${idx >= 26 ? `_${idx + 1}` : ""}`;
-      const localRefs = (layer.localRefs ?? []).slice(0, OBJECT_REF_LIMIT);
-      return localRefs.map((ref, i) => {
-        const fileName = `${sceneTag}_${code}__${refShort(ref.type)}__${String(i + 1).padStart(2, "0")}.${extFromName(ref.name)}`;
-        return lang === "zh"
-          ? `- 对象 ${layer.id} 参考图见附件照片，名字：${fileName}`
-          : `- Object ${layer.id} reference image is in attachments, name: ${fileName}`;
-      });
-    });
-    const refLines = [
-      ...(bgFileName
-        ? [
-            lang === "zh"
-              ? `- 本分镜参考图见附件照片，名字：${bgFileName}`
-              : `- Shot background reference image is in attachments, name: ${bgFileName}`
-          ]
-        : []),
-      ...objRefLines
-    ];
-
-    const shotSection = extractShotSection(promptsMain);
-    const mergedShot = insertAfterHeader(collapseStaticKeyframes(shotSection, lang), refLines);
-    const constraintTail = lang === "zh"
-      ? [
-          "生成约束：",
-          "- 保持对象数量、对象身份与相对位置，不得新增/删除主体。",
-          "- 先结构后风格；不重排构图。",
-          "- no subtitles / no overlays / no text / no numbers."
-        ].join("\n")
-      : [
-          "Generation constraints:",
-          "- Keep object count, identity, and relative layout. Do not add/remove subjects.",
-          "- Structure first, style second; do not re-layout composition.",
-          "- no subtitles / no overlays / no text / no numbers."
-        ].join("\n");
-
-    return [mergedShot, constraintTail].join("\n\n").trim();
-  }, [currentScene, promptsMain, safeIdx, lang]);
   const quickCopyPrompt = useMemo(() => promptPipeline.finalCopyPrompt.trimEnd(), [promptPipeline.finalCopyPrompt]);
-  const exportSummary = useMemo(() => makeExportSummary({
-    preset: platformPreset,
-    promptStages: promptPipeline
-  }), [platformPreset, promptPipeline]);
-  const userInputSummary = useMemo(() => buildUserInputSummary({
-    lang,
-    scene: currentScene,
-    preset: platformPreset,
-    pipeline: promptPipeline,
-    summary: exportSummary
-  }), [lang, currentScene, platformPreset, promptPipeline, exportSummary]);
   const sceneConflicts = useMemo(() => {
     if (!currentScene) return [];
     return detectSceneConflicts(currentScene, lang);
@@ -430,6 +320,33 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
     }
   }
 
+  function renderOverlay(node: React.ReactNode) {
+    if (typeof document === "undefined") return node;
+    return createPortal(node, document.body);
+  }
+
+  useEffect(() => {
+    const hasAnyModal = showExportModal || showConflictModal || copyConfirmOpen;
+    if (!hasAnyModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (showConflictModal) {
+        setShowConflictModal(false);
+        return;
+      }
+      if (showExportModal) {
+        setShowExportModal(false);
+        return;
+      }
+      if (copyConfirmOpen) {
+        setCopyConfirmOpen(false);
+        setCopyDone(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showExportModal, showConflictModal, copyConfirmOpen]);
+
   useEffect(() => {
     if (!actionHint) return;
     const t = window.setTimeout(() => setActionHint(""), 1800);
@@ -444,7 +361,7 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
   async function confirmCopyPrompt() {
     await copy(quickCopyPrompt);
     setCopyDone(true);
-    setActionHint(lang === "zh" ? "已复制最终复制稿" : "Copied final copy prompt");
+    setActionHint(lang === "zh" ? "已复制当前提示词" : "Current prompt copied");
   }
 
   function runOpenSaveModal() {
@@ -515,33 +432,33 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
     const modeLabelZh = "稳妥高质（两步）";
     const modeLabelEn = "Stable Quality (Two-step)";
 
-    const usageGuide = lang === "zh"
+    const readmeText = lang === "zh"
       ? [
-          "ScenePilotix 保存说明与提示词",
+          "ScenePilotix 交付包说明",
           "",
           `适用大模型：${platformPreset.labelZh}`,
+          `导出范围：${exportScope === "continuous_sequence" ? "连续序列" : "当前分镜"}`,
           `导出方式：${modeLabelZh}`,
           "",
-          "【红字提醒】以下提醒不要复制到大模型，仅供操作指引。",
-          "【红字提醒】先上传目录中的参考图，再复制分隔线下方提示词进行生成。",
-          "________________________________________",
-          "以下为可复制提示词：",
+          "1) 先打开 prompt.txt，直接复制提示词。",
+          "2) 再按 refs-manifest.txt 上传参考图。",
+          "3) 若浏览器不支持目录保存，可下载 ZIP 后按相同文件结构使用。",
           "",
-          "说明：",
+          "补充说明：",
           "- 不调用 API，不上传云端。",
           "- 对象若没图，不会导出空图片文件。",
           "- 分镜背景参考图为可选项，不填也可导出。"
         ].join("\n")
       : [
-          "ScenePilotix Save Guide & Prompt",
+          "ScenePilotix Package Guide",
           "",
           `Target Model: ${platformPreset.labelEn}`,
+          `Export Scope: ${exportScope === "continuous_sequence" ? "Continuity Sequence" : "Current Scene"}`,
           `Flow: ${modeLabelEn}`,
           "",
-          "[RED NOTICE] Do not copy reminders below to model input.",
-          "[RED NOTICE] Upload references first, then copy prompt below the divider.",
-          "________________________________________",
-          "Copyable prompt starts below:",
+          "1) Open prompt.txt first and copy the prompt directly.",
+          "2) Upload references by refs-manifest.txt.",
+          "3) If directory save is unavailable, use the ZIP package with the same structure.",
           "",
           "Notes:",
           "- No API call, no cloud upload.",
@@ -549,8 +466,8 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
           "- Shot background references are optional."
         ].join("\n");
 
-    const objectRefText = [
-      lang === "zh" ? "对象参考包" : "Object Reference Pack",
+    const refsManifestText = [
+      lang === "zh" ? "参考图清单" : "Reference Manifest",
       "",
       lang === "zh"
         ? `适用大模型：${platformPreset.labelZh}  |  模式：${modeLabelZh}`
@@ -595,48 +512,7 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
       })
     ].join("\n");
 
-    const uploadChecklist = [
-      lang === "zh" ? "素材上传清单（按顺序）" : "Asset Upload Checklist (ordered)",
-      "",
-      lang === "zh" ? "A. 分镜背景参考图（可选）" : "A. Shot background refs (optional)",
-      ...(
-        sceneBackgrounds.length
-          ? sceneBackgrounds.map((bg, index) =>
-              lang === "zh"
-                ? `${index + 1}. [ ] 上传 ${bg.fileName}（分镜 ${bg.sceneTag}）`
-                : `${index + 1}. [ ] Upload ${bg.fileName} (shot ${bg.sceneTag})`
-            )
-          : [lang === "zh" ? "- 无背景参考图，跳过。" : "- No background refs, skip."]
-      ),
-      "",
-      lang === "zh" ? "B. 对象参考图" : "B. Object refs",
-      "",
-      ...objects.flatMap((obj) => {
-        const lines = [lang === "zh" ? `[${obj.sceneTag}] ${obj.code} / ${obj.layerId}` : `[${obj.sceneTag}] ${obj.code} / ${obj.layerId}`];
-        if (!obj.refItems.length) {
-          lines.push(lang === "zh" ? "- 无本地参考图，跳过上传。" : "- No local refs, skip upload.");
-          return [...lines, ""];
-        }
-        obj.refItems.forEach((ref, index) => {
-          const typeZh = ref.type === "identity" ? "身份" : ref.type === "appearance" ? "外观" : "风格";
-          const typeEn = ref.type;
-          lines.push(
-            lang === "zh"
-              ? `${index + 1}. [ ] 上传 ${ref.fileName}（${typeZh}）`
-              : `${index + 1}. [ ] Upload ${ref.fileName} (${typeEn})`
-          );
-          lines.push(lang === "zh" ? `    来源：${ref.source}` : `    Source: ${ref.source}`);
-        });
-        return [...lines, ""];
-      })
-    ].join("\n");
-
-    const promptBodyForExport = quickCopyPrompt || promptsMainWithRefs;
-    const promptsPerShot = [
-      lang === "zh" ? "第三步：分镜提示词" : "Step 3: Storyboard Prompt",
-      "",
-      promptBodyForExport
-    ].join("\n");
+    const promptText = `${quickCopyPrompt}\n`;
 
     const bgBlobFiles: FlowBlobFile[] = sceneBackgrounds.map((bg) => ({
       path: `${projectDir}/${bg.fileName}`,
@@ -652,20 +528,24 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
     );
     const blobFiles: FlowBlobFile[] = [...bgBlobFiles, ...objectBlobFiles];
 
-    const allPromptText = [usageGuide, "", objectRefText, "", uploadChecklist, "", promptsPerShot].join("\n");
-    const promptFileName = `${projectNameForFile}__${shotNameForFile}__${platformForFile}.txt`;
-    const files: FlowFile[] = [{ path: `${projectDir}/${promptFileName}`, content: allPromptText }];
+    const files: FlowFile[] = [
+      { path: `${projectDir}/prompt.txt`, content: promptText },
+      { path: `${projectDir}/README.txt`, content: readmeText },
+      { path: `${projectDir}/refs-manifest.txt`, content: refsManifestText }
+    ];
+    const quickPromptFileName = `${projectNameForFile}__${shotNameForFile}__${platformForFile}__prompt.txt`;
 
     return {
       rootDir,
       projectDir,
-      objectRefText,
-      uploadChecklist,
-      promptsPerShot,
+      promptText,
+      readmeText,
+      refsManifestText,
+      quickPromptFileName,
       files,
       blobFiles
     };
-  }, [promptProject.scenes, platformPreset, sceneTitle, lang, promptsMainWithRefs, projectLabel, quickCopyPrompt]);
+  }, [promptProject.scenes, platformPreset, sceneTitle, lang, projectLabel, quickCopyPrompt, exportScope]);
   const manualSaveGuide = useMemo(() => {
     const fileLines = [
       ...flowBundle.files.map((f) => `- ${f.path}`),
@@ -687,7 +567,7 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
       `2) Create project folder under root: ${flowBundle.projectDir}`,
       "3) Save files in the project folder using these exact names:",
       ...fileLines,
-      "4) Upload prompt txt and same-name references to your target platform."
+      "4) Upload prompt txt and same-name references to your target model."
     ].join("\n");
   }, [flowBundle, lang]);
 
@@ -745,39 +625,34 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
     }
   }
 
+  async function downloadQuickPromptFile(): Promise<{ ok: boolean; fileLabel: string }> {
+    try {
+      const blob = new Blob([flowBundle.promptText], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = flowBundle.quickPromptFileName;
+      a.click();
+      URL.revokeObjectURL(url);
+      return { ok: true, fileLabel: flowBundle.quickPromptFileName };
+    } catch {
+      return { ok: false, fileLabel: lang === "zh" ? "prompt.txt 下载失败" : "prompt.txt download failed" };
+    }
+  }
+
   return (
     <div style={styles.wrap}>
       <div style={styles.head}>
-        <div style={styles.title}>{tAny(lang, "export.title")}</div>
-
-        <div style={styles.sceneHint} title={currentScene?.id ?? ""}>
-          {sceneTitle}
-        </div>
-
-        <div style={styles.modeHint}>
-          {lang === "zh" ? (mediaMode === "image" ? "图片" : "视频") : mediaMode === "image" ? "Image" : "Video"}
-        </div>
-
-        <div style={{ flex: 1 }} />
-
         <button
-          style={styles.btnGhost}
+          style={styles.btnPrimary}
+          data-testid="export-quick-copy"
           onClick={async () => {
             await guardBeforeExport("copy");
           }}
           type="button"
-          title={lang === "zh" ? "复制最终复制稿" : "Copy final copy prompt"}
+          title={lang === "zh" ? "复制当前可直接使用的提示词" : "Copy the ready-to-use prompt"}
         >
-          {lang === "zh" ? "复制提示词" : "Copy Prompt"}
-        </button>
-
-        <button
-          style={styles.btnPrimary}
-          onClick={() => void guardBeforeExport("save")}
-          type="button"
-          title={lang === "zh" ? "保存到本地目录" : "Save to local folder"}
-        >
-          {lang === "zh" ? "保存" : "Save"}
+          {lang === "zh" ? "快速复制" : "Quick Copy"}
         </button>
         {sceneConflicts.length > 0 ? (
           <button style={styles.conflictBadgeBtn} type="button" onClick={() => {
@@ -791,43 +666,19 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
       </div>
       {actionHint ? <div style={styles.actionHint}>{actionHint}</div> : null}
 
-      <div style={styles.contentLayout}>
-        <div style={styles.promptPane}>
-          <div style={styles.promptTitleRow}>
-            <div style={styles.promptTabs}>
-              <button
-                type="button"
-                style={{ ...styles.tab, ...(promptPaneView === "prompt" ? styles.tabOn : styles.tabOff) }}
-                onClick={() => setPromptPaneView("prompt")}
-              >
-                {lang === "zh" ? "当前提示词" : "Current Prompt"}
-              </button>
-              <button
-                type="button"
-                style={{ ...styles.tab, ...(promptPaneView === "input" ? styles.tabOn : styles.tabOff) }}
-                onClick={() => setPromptPaneView("input")}
-              >
-                {lang === "zh" ? "你的输入" : "Your Input"}
-              </button>
-            </div>
-            <div style={styles.platformLite}>{lang === "zh" ? "当前适用大模型" : "Target Model"}: {lang === "zh" ? platformPreset.labelZh : platformPreset.labelEn}</div>
-          </div>
-          <div style={styles.preWrap}>
-            {promptPaneView === "prompt" ? (
-              <>
-                <pre style={styles.pre}>{promptsMain.trimEnd()}</pre>
-                {promptsNotes ? <pre style={styles.preNotes}>{promptsNotes}</pre> : null}
-              </>
-            ) : (
-              <pre style={styles.pre}>{userInputSummary}</pre>
-            )}
-          </div>
+      <div style={styles.promptPane}>
+        <div style={styles.preWrap}>
+          <pre style={styles.pre}>{promptsMain.trimEnd()}</pre>
+          {promptsNotes ? <pre style={styles.preNotes}>{promptsNotes}</pre> : null}
         </div>
       </div>
 
-      {copyConfirmOpen ? (
-        <div style={styles.modalMask}>
-          <div style={{ ...styles.modal, width: "min(700px, calc(100vw - 48px))" }}>
+      {copyConfirmOpen ? renderOverlay(
+        <div style={styles.modalMask} onMouseDown={() => {
+          setCopyConfirmOpen(false);
+          setCopyDone(false);
+        }}>
+          <div style={{ ...styles.modal, width: "min(700px, calc(100vw - 48px))" }} onMouseDown={(e) => e.stopPropagation()}>
             <div style={styles.copyModalHead}>
               <div style={styles.modalTitle}>{lang === "zh" ? "已准备复制的提示词" : "Prompt Ready to Copy"}</div>
               <button style={styles.iconCloseBtn} type="button" onClick={() => {
@@ -837,11 +688,12 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
             </div>
             <div style={styles.platformTips}>
               {lang === "zh"
-                ? "本次复制的是当前分镜的最终提示词，不含项目内其它分镜。"
-                : "This copy includes current-scene final prompt with platform strategy and structure constraints; no attachment upload notes, no other scenes."}
-            </div>
-            <div style={styles.infoLine}>
-              {lang === "zh" ? "当前适用大模型" : "Target Model"}: {lang === "zh" ? platformPreset.labelZh : platformPreset.labelEn}
+                ? exportScope === "continuous_sequence"
+                  ? "本次复制的是当前连续序列的最终提示词，包含当前分镜及后续连续衔接。"
+                  : "本次复制的是当前分镜的最终提示词，不含项目内其它分镜。"
+                : exportScope === "continuous_sequence"
+                  ? "This copy includes the current continuity sequence prompt, starting from this shot and preserving following transitions."
+                  : "This copy includes current-scene final prompt only; no other scenes are included."}
             </div>
             <pre style={styles.copyPreview}>{quickCopyPrompt}</pre>
             {copyDone ? <div style={styles.copyOk}>{lang === "zh" ? "复制成功" : "Copied"}</div> : null}
@@ -860,13 +712,50 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
         </div>
       ) : null}
 
-      {showExportModal && (
-        <div style={styles.modalMask}>
-          <div style={{ ...styles.modal, width: "min(560px, calc(100vw - 48px))" }}>
-          <div style={styles.modalTitle}>{lang === "zh" ? "保存分镜文件夹" : "Save Shot Folder"}</div>
+      {showExportModal ? renderOverlay(
+        <div style={styles.modalMask} onMouseDown={() => setShowExportModal(false)}>
+          <div style={{ ...styles.modal, width: "min(560px, calc(100vw - 48px))" }} data-testid="export-modal" onMouseDown={(e) => e.stopPropagation()}>
+          <div style={styles.copyModalHead}>
+            <div style={styles.modalTitle}>{lang === "zh" ? "导出" : "Export"}</div>
+            <button
+              style={styles.iconCloseBtn}
+              type="button"
+              data-testid="export-close-top"
+              onClick={() => setShowExportModal(false)}
+              aria-label={lang === "zh" ? "关闭导出弹窗" : "Close export modal"}
+              title={lang === "zh" ? "关闭" : "Close"}
+            >
+              ×
+            </button>
+          </div>
+          <div style={styles.modalRow}>
+            <div style={styles.profileLabel}>{lang === "zh" ? "导出模式" : "Export Mode"}</div>
+            <div style={styles.optionWrap}>
+              <button data-testid="export-mode-quick" type="button" style={{ ...styles.optionBtn, ...(exportMode === "quick" ? styles.optionBtnOn : {}) }} onClick={() => setExportMode("quick")}>
+                {lang === "zh" ? "快速导出" : "Quick Export"}
+              </button>
+              <button data-testid="export-mode-package" type="button" style={{ ...styles.optionBtn, ...(exportMode === "package" ? styles.optionBtnOn : {}) }} onClick={() => setExportMode("package")}>
+                {lang === "zh" ? "交付包导出" : "Package Export"}
+              </button>
+            </div>
+          </div>
+          {scopeOptions.length > 1 ? (
+            <div style={styles.modalRow}>
+              <div style={styles.profileLabel}>{lang === "zh" ? "导出范围" : "Export Scope"}</div>
+              <div style={styles.optionWrap}>
+                <button data-testid="export-scope-current" type="button" style={{ ...styles.optionBtn, ...(exportScope === "current_scene" ? styles.optionBtnOn : {}) }} onClick={() => setExportScope("current_scene")}>
+                  {lang === "zh" ? "当前分镜" : "Current Scene"}
+                </button>
+                <button data-testid="export-scope-sequence" type="button" style={{ ...styles.optionBtn, ...(exportScope === "continuous_sequence" ? styles.optionBtnOn : {}) }} onClick={() => setExportScope("continuous_sequence")}>
+                  {lang === "zh" ? "连续序列" : "Continuity Sequence"}
+                </button>
+              </div>
+            </div>
+          ) : null}
           <div style={styles.modalRow}>
             <div style={styles.profileLabel}>{lang === "zh" ? "适用大模型" : "Target Model"}</div>
             <select
+              data-testid="export-platform-select"
               value={platformPresetId}
               onChange={(e) => changePlatform(e.target.value as PlatformPresetId)}
               style={styles.profileSelect}
@@ -877,35 +766,8 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
                 </option>
               ))}
             </select>
-            <button
-              style={styles.qBtn}
-              type="button"
-              onMouseEnter={() => setShowSaveHint(true)}
-              onMouseLeave={() => setShowSaveHint(false)}
-              onFocus={() => setShowSaveHint(true)}
-              onBlur={() => setShowSaveHint(false)}
-              title={lang === "zh" ? "保存策略说明" : "Save strategy details"}
-            >
-              ?
-            </button>
           </div>
-          {showSaveHint ? (
-            <div style={styles.platformTips}>
-              {lang === "zh"
-                ? canSaveDirectory
-                  ? "这是什么：保存到本地目录。什么时候用：你要批量带参考图导出时。下一步：先选适用大模型，再点保存。"
-                  : "当前浏览器不支持目录保存。可下载 ZIP，或按“手动建目录流程”保存同名文件。"
-                : canSaveDirectory
-                  ? "Target model selection applies immediately. Save writes files for the current target model."
-                  : "Directory save is not supported in this browser. Use ZIP or copy the manual workflow to save by exact filenames. Chrome/Edge is recommended for smoother repeated saves."}
-            </div>
-          ) : null}
-          <div style={styles.platformPendingHint}>
-            {lang === "zh"
-              ? `当前适用大模型：${platformPreset.labelZh}。点击保存会按当前适用大模型输出。`
-              : `Target Model: ${platformPreset.labelEn}. Save exports for the current target model.`}
-          </div>
-          {!canSaveDirectory ? (
+          {exportMode === "package" && !canSaveDirectory ? (
             <div style={styles.unsupportedCard}>
               <div style={styles.unsupportedText}>
                 {lang === "zh"
@@ -929,36 +791,60 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
           {exportDone ? (
             <div style={styles.platformTips}>
               {lang === "zh"
-                ? "保存成功。请按下方保存路径前往对应目录，再复制提示词并上传参考图。"
-                : "Saved. Use the path below to locate the folder, then copy prompt and upload references."}
+                ? exportMode === "quick"
+                  ? "快速导出完成。先打开 prompt.txt，再直接复制到目标大模型。"
+                  : "交付包导出完成。先看 prompt.txt，再按 refs-manifest.txt 上传参考图。"
+                : exportMode === "quick"
+                  ? "Quick export finished. Open prompt.txt first, then copy it into the target model."
+                  : "Package export finished. Open prompt.txt first, then upload references by refs-manifest.txt."}
             </div>
           ) : null}
           {exportDone ? (
             <div style={styles.successCard}>
               <div style={styles.successTitle}>
-                {exportResultType === "zip" ? (lang === "zh" ? "ZIP 已下载" : "ZIP downloaded") : (lang === "zh" ? "保存完成" : "Saved")}
+                {exportResultType === "zip"
+                  ? (lang === "zh" ? "ZIP 已下载" : "ZIP downloaded")
+                  : exportResultType === "quick"
+                    ? (lang === "zh" ? "prompt.txt 已下载" : "prompt.txt downloaded")
+                    : (lang === "zh" ? "保存完成" : "Saved")}
               </div>
               <div style={styles.successPath}>{exportFolderLabel}</div>
               <div style={styles.successSteps}>
-                {exportResultType === "zip"
+                {exportResultType === "quick"
                   ? (lang === "zh"
-                      ? "1) 解压 ZIP\n2) 按文件名上传分镜背景图和对象图\n3) 打开 txt 复制提示词生成"
-                      : "1) Unzip package\n2) Upload shot/object refs by filename\n3) Open txt, copy prompt, and generate")
+                      ? "1) 打开 prompt.txt\n2) 直接复制提示词\n3) 到目标大模型生成"
+                      : "1) Open prompt.txt\n2) Copy the prompt\n3) Generate in the target model")
+                  : exportResultType === "zip"
+                  ? (lang === "zh"
+                      ? "1) 解压 ZIP\n2) 先打开 prompt.txt\n3) 再按 refs-manifest.txt 上传参考图"
+                      : "1) Unzip package\n2) Open prompt.txt first\n3) Upload refs by refs-manifest.txt")
                   : (lang === "zh"
-                      ? "1) 先前往上方保存路径\n2) 打开该目录中的提示词 txt 并复制\n3) 按文件名上传分镜背景图和对象图后生成"
-                      : "1) Go to the saved path above\n2) Open prompt txt and copy\n3) Upload shot/object refs by filename, then generate")}
+                      ? "1) 先前往上方保存路径\n2) 打开 prompt.txt\n3) 再按 refs-manifest.txt 上传参考图"
+                      : "1) Go to the saved path above\n2) Open prompt.txt\n3) Upload refs by refs-manifest.txt")}
               </div>
             </div>
           ) : null}
           <div style={styles.modalBtns}>
-            <button style={styles.btnGhost} onClick={() => setShowExportModal(false)} type="button">
+            <button data-testid="export-close" style={styles.btnGhost} onClick={() => setShowExportModal(false)} type="button">
               {lang === "zh" ? "关闭" : "Close"}
             </button>
             <button
+              data-testid="export-submit"
               style={styles.btnPrimary}
               onClick={async () => {
                 setExporting(true);
-                if (canSaveDirectory) {
+                if (exportMode === "quick") {
+                  const res = await downloadQuickPromptFile();
+                  setExporting(false);
+                  if (res.ok) {
+                    setExportDone(true);
+                    setExportResultType("quick");
+                    setExportFolderLabel(res.fileLabel);
+                    setActionHint(lang === "zh" ? "prompt.txt 下载成功" : "prompt.txt downloaded");
+                  } else {
+                    setActionHint(res.fileLabel || (lang === "zh" ? "导出失败" : "Export failed"));
+                  }
+                } else if (canSaveDirectory) {
                   const res = await exportFlowPackage();
                   setExporting(false);
                   if (res.ok) {
@@ -987,24 +873,37 @@ export function ExportPanel({ lang, project, projectLabel, sceneIdx, platformId 
             >
               {exporting
                 ? lang === "zh"
-                  ? "保存中..."
-                  : "Saving..."
+                  ? exportMode === "quick" ? "导出中..." : "保存中..."
+                  : exportMode === "quick" ? "Exporting..." : "Saving..."
                 : exportDone
                   ? lang === "zh"
-                    ? "已保存"
-                    : "Saved"
-                  : canSaveDirectory
-                    ? (lang === "zh" ? "保存" : "Save")
-                    : (lang === "zh" ? "下载 ZIP" : "Download ZIP")}
+                    ? exportMode === "quick" ? "已导出" : "已保存"
+                    : exportMode === "quick" ? "Exported" : "Saved"
+                  : exportMode === "quick"
+                    ? (lang === "zh" ? "下载 prompt.txt" : "Download prompt.txt")
+                    : canSaveDirectory
+                      ? (lang === "zh" ? "导出交付包" : "Export Package")
+                      : (lang === "zh" ? "下载 ZIP" : "Download ZIP")}
             </button>
           </div>
           </div>
         </div>
-      )}
-      {showConflictModal ? (
-        <div style={styles.modalMask}>
-          <div style={{ ...styles.modal, width: "min(700px, calc(100vw - 48px))" }}>
-            <div style={styles.modalTitle}>{lang === "zh" ? "检测到冲突，请先修正" : "Conflicts Detected"}</div>
+      ) : null}
+      {showConflictModal ? renderOverlay(
+        <div style={styles.modalMask} onMouseDown={() => setShowConflictModal(false)}>
+          <div style={{ ...styles.modal, width: "min(700px, calc(100vw - 48px))" }} onMouseDown={(e) => e.stopPropagation()}>
+            <div style={styles.copyModalHead}>
+              <div style={styles.modalTitle}>{lang === "zh" ? "检测到冲突，请先修正" : "Conflicts Detected"}</div>
+              <button
+                style={styles.iconCloseBtn}
+                type="button"
+                onClick={() => setShowConflictModal(false)}
+                aria-label={lang === "zh" ? "关闭冲突弹窗" : "Close conflict modal"}
+                title={lang === "zh" ? "关闭" : "Close"}
+              >
+                ×
+              </button>
+            </div>
             <div style={styles.platformTips}>
               {lang === "zh"
                 ? "以下冲突来自对象备注/对象局部提示词与结构约束的冲突。点击“定位”可直接跳到对象编辑。"
@@ -1068,11 +967,12 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: 10,
-    background: UI_PALETTE.bg.canvas,
-    position: "relative"
+    background: `${UI_PANEL.rightGlow}, linear-gradient(180deg, rgba(10,15,24,0.9) 0%, rgba(8,12,20,0.96) 100%)`,
+    position: "relative",
+    backdropFilter: "blur(16px)"
   },
 
-  head: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  head: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" },
   title: { fontWeight: 850, fontSize: UI_TYPO.size13, opacity: UI_OPACITY.title, color: UI_PALETTE.text.secondary },
 
   sceneHint: {
@@ -1080,9 +980,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     opacity: 0.68,
     padding: "4px 8px",
-    borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    borderRadius: 10,
+    border: `1px solid ${UI_INFO.border.default}`,
+    background: UI_INFO.surface.subtle,
     maxWidth: 260,
     whiteSpace: "normal",
     overflowWrap: "anywhere",
@@ -1095,8 +995,8 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.66,
     padding: "4px 8px",
     borderRadius: UI_RADIUS.chip,
-    border: `1px solid ${UI_PALETTE.border.soft}`,
-    background: UI_PALETTE.surface.surface1,
+    border: `1px solid ${UI_INFO.border.default}`,
+    background: UI_INFO.surface.subtle,
     userSelect: "none"
   },
   scopeSelect: {
@@ -1114,52 +1014,61 @@ const styles: Record<string, React.CSSProperties> = {
   tab: {
     padding: "6px 10px",
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: UI_PALETTE.surface.surfaceActive,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     cursor: "pointer",
     fontSize: UI_FONT.body,
     outline: "none",
-    boxShadow: "none",
+    boxShadow: UI_CONTROL.shadow.soft,
     WebkitTapHighlightColor: "transparent" as any
   },
 
   tabOff: {
     opacity: 0.72,
-    borderColor: "rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.03)"
+    borderColor: UI_CONTROL.border.default,
+    background: UI_CONTROL.bg.default
   },
 
   tabOn: {
     opacity: 1,
-    borderColor: UI_COLOR.accent,
-    background: UI_COLOR.accentSoft,
-    boxShadow: UI_EFFECT.softRing
+    borderColor: UI_CONTROL.border.active,
+    background: UI_CONTROL.bg.accent,
+    boxShadow: UI_CONTROL.shadow.hover,
+    ["--spx-btn-bg-hover" as any]: UI_CONTROL.bg.accentHover,
+    ["--spx-btn-bg-active" as any]: UI_CONTROL.bg.accentActive,
+    ["--spx-btn-border-hover" as any]: UI_CONTROL.border.active,
+    ["--spx-btn-border-active" as any]: UI_CONTROL.border.active
   },
 
   btnPrimary: {
     padding: "6px 10px",
     borderRadius: 10,
-    border: `1px solid ${UI_COLOR.border}`,
-    background: UI_COLOR.surfaceStrong,
+    border: `1px solid ${UI_ACTION.border.default}`,
+    background: UI_ACTION.surface.default,
     color: "inherit",
     cursor: "pointer",
     fontSize: UI_FONT.body,
     outline: "none",
-    boxShadow: "none",
+    boxShadow: UI_CONTROL.shadow.soft,
     whiteSpace: "nowrap",
-    WebkitTapHighlightColor: "transparent" as any
+    WebkitTapHighlightColor: "transparent" as any,
+    ["--spx-btn-bg-hover" as any]: UI_ACTION.surface.hover,
+    ["--spx-btn-bg-active" as any]: UI_ACTION.surface.active,
+    ["--spx-btn-border-hover" as any]: UI_ACTION.border.hover,
+    ["--spx-btn-border-active" as any]: UI_ACTION.border.active,
+    ["--spx-btn-shadow-hover" as any]: UI_ACTION.shadow.hover
   },
   btnGhost: {
     padding: "6px 10px",
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface1,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     cursor: "pointer",
     fontSize: UI_FONT.body,
     outline: "none",
-    boxShadow: "none",
+    boxShadow: UI_CONTROL.shadow.soft,
     whiteSpace: "nowrap",
     WebkitTapHighlightColor: "transparent" as any
   },
@@ -1167,12 +1076,13 @@ const styles: Record<string, React.CSSProperties> = {
     width: 28,
     height: 28,
     borderRadius: UI_RADIUS.chip,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     fontWeight: 900,
     cursor: "pointer",
-    outline: "none"
+    outline: "none",
+    boxShadow: UI_CONTROL.shadow.soft
   },
   actionHint: {
     position: "absolute",
@@ -1181,8 +1091,8 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 60,
     padding: "7px 10px",
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: "rgba(12,16,30,0.95)",
+    border: `1px solid ${UI_STATUS.border.info}`,
+    background: UI_STATUS.surface.info,
     fontSize: UI_FONT.body,
     fontWeight: 900,
     boxShadow: "0 10px 30px rgba(0,0,0,0.35)"
@@ -1195,8 +1105,8 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 420,
     padding: "8px 10px",
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: "rgba(12,16,30,0.97)",
+    border: `1px solid ${UI_INFO.border.default}`,
+    background: UI_INFO.surface.elevated,
     fontSize: UI_FONT.body,
     lineHeight: 1.4,
     boxShadow: "0 10px 30px rgba(0,0,0,0.35)"
@@ -1209,16 +1119,28 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8
   },
   promptPane: {
+    flex: 1,
     minHeight: 0,
     display: "flex",
     flexDirection: "column",
-    gap: 8
+    gap: 8,
+    border: `1px solid ${UI_PANEL.frostBorder}`,
+    borderRadius: UI_RADIUS.panel,
+    background: "linear-gradient(180deg, rgba(18,25,36,0.72) 0%, rgba(12,18,29,0.84) 100%)",
+    boxShadow: "0 10px 24px rgba(4,10,22,0.16), inset 0 1px 0 rgba(255,255,255,0.04)",
+    padding: 10
   },
   promptTitleRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
+    flexWrap: "wrap"
+  },
+  metaLiteRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
     flexWrap: "wrap"
   },
   promptTabs: {
@@ -1230,10 +1152,10 @@ const styles: Record<string, React.CSSProperties> = {
   platformLite: {
     fontSize: UI_TYPO.size11,
     fontWeight: 800,
-    color: UI_PALETTE.text.secondary,
-    border: `1px solid ${UI_PALETTE.border.soft}`,
+    color: UI_INFO.text.body,
+    border: `1px solid ${UI_INFO.border.default}`,
     borderRadius: UI_RADIUS.chip,
-    background: UI_PALETTE.surface.surface1,
+    background: UI_INFO.surface.subtle,
     padding: "4px 8px"
   },
   explainPane: {
@@ -1249,9 +1171,9 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8
   },
   infoCard: {
-    border: `1px solid ${UI_PALETTE.border.soft}`,
+    border: `1px solid ${UI_INFO.border.default}`,
     borderRadius: UI_RADIUS.control,
-    background: UI_PALETTE.surface.surface1,
+    background: UI_INFO.surface.default,
     padding: "8px 10px",
     display: "grid",
     gap: 4
@@ -1332,22 +1254,22 @@ const styles: Record<string, React.CSSProperties> = {
   platformTips: {
     fontSize: UI_FONT.hint,
     lineHeight: 1.4,
-    opacity: 0.7,
-    border: `1px solid ${UI_PALETTE.border.soft}`,
+    opacity: 0.88,
+    border: `1px solid ${UI_INFO.border.default}`,
     borderRadius: UI_RADIUS.control,
-    background: UI_PALETTE.surface.surface1,
+    background: UI_INFO.surface.default,
     padding: "8px 10px"
   },
   platformPendingHint: {
     fontSize: UI_FONT.hint,
     lineHeight: 1.35,
-    opacity: 0.62,
-    color: "rgba(220,225,235,0.78)"
+    opacity: 0.86,
+    color: UI_INFO.text.body
   },
   unsupportedCard: {
-    border: "1px solid rgba(245,190,120,0.35)",
+    border: `1px solid ${UI_STATUS.border.warn}`,
     borderRadius: UI_RADIUS.control,
-    background: "rgba(245,190,120,0.10)",
+    background: UI_STATUS.surface.warn,
     padding: "8px 10px",
     display: "flex",
     flexDirection: "column",
@@ -1372,24 +1294,28 @@ const styles: Record<string, React.CSSProperties> = {
     position: "fixed",
     inset: 0,
     background: "rgba(0,0,0,0.55)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    zIndex: 9999
+    display: "grid",
+    placeItems: "center",
+    padding: "16px 16px max(16px, env(safe-area-inset-bottom))",
+    zIndex: 9999,
+    overflowY: "auto"
   },
   modal: {
     width: "min(1100px, calc(100vw - 48px))",
-    maxHeight: "calc(100vh - 48px)",
+    maxHeight: "min(calc(100vh - 32px), 92vh)",
+    position: "relative",
+    margin: "0 auto",
     borderRadius: UI_RADIUS.panel,
     border: `1px solid ${UI_PALETTE.border.default}`,
-    background: "rgba(12,17,27,0.96)",
+    background: `${UI_PANEL.rightGlow}, rgba(12,17,27,0.96)`,
     boxShadow: UI_EFFECT.floatShadow,
     padding: 16,
     display: "flex",
     flexDirection: "column",
     gap: 10,
-    overflow: "auto"
+    overflowX: "hidden",
+    overflowY: "auto",
+    backdropFilter: "blur(18px)"
   },
   modalTitle: { fontWeight: 900, fontSize: UI_TYPO.size14, opacity: UI_OPACITY.title },
   copyModalHead: {
@@ -1402,13 +1328,14 @@ const styles: Record<string, React.CSSProperties> = {
     width: 28,
     height: 28,
     borderRadius: UI_RADIUS.chip,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: UI_PALETTE.text.primary,
     cursor: "pointer",
     fontSize: UI_TYPO.size14,
     fontWeight: 900,
-    lineHeight: 1
+    lineHeight: 1,
+    boxShadow: UI_CONTROL.shadow.soft
   },
   copyPreview: {
     margin: 0,
@@ -1431,9 +1358,9 @@ const styles: Record<string, React.CSSProperties> = {
   modalRow: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
   modalBtns: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4, flexWrap: "wrap" },
   successCard: {
-    border: `1px solid ${UI_PALETTE.border.active}`,
+    border: `1px solid ${UI_STATUS.border.success}`,
     borderRadius: UI_RADIUS.control,
-    background: UI_PALETTE.surface.surfaceActive,
+    background: UI_STATUS.surface.success,
     padding: "10px 12px",
     display: "flex",
     flexDirection: "column",
@@ -1444,8 +1371,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     borderRadius: 8,
     padding: "6px 8px",
-    background: "rgba(0,0,0,0.18)",
-    border: "1px solid rgba(255,255,255,0.10)",
+    background: UI_INFO.surface.subtle,
+    border: `1px solid ${UI_INFO.border.subtle}`,
     wordBreak: "break-word"
   },
   successSteps: {
@@ -1454,21 +1381,32 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.86,
     whiteSpace: "pre-line"
   },
+  successActions: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap"
+  },
   optionWrap: { display: "flex", flexWrap: "wrap", gap: 6, flex: 1 },
   optionBtn: {
     padding: "5px 8px",
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface1,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     cursor: "pointer",
     fontSize: UI_FONT.body,
     fontWeight: 800,
-    outline: "none"
+    outline: "none",
+    boxShadow: UI_CONTROL.shadow.soft
   },
   optionBtnOn: {
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: UI_PALETTE.surface.surfaceActive
+    border: `1px solid ${UI_CONTROL.border.active}`,
+    background: UI_CONTROL.bg.accent,
+    boxShadow: UI_CONTROL.shadow.hover,
+    ["--spx-btn-bg-hover" as any]: UI_CONTROL.bg.accentHover,
+    ["--spx-btn-bg-active" as any]: UI_CONTROL.bg.accentActive,
+    ["--spx-btn-border-hover" as any]: UI_CONTROL.border.active,
+    ["--spx-btn-border-active" as any]: UI_CONTROL.border.active
   },
   conflictBadgeBtn: {
     padding: "6px 10px",
@@ -1545,20 +1483,20 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.5
   },
 
-  // ✅ 末尾机器语言/控制层：略暗显示（但复制仍包含）
+  // 机器语言/控制层：保持和主提示词一致可读性，避免灰区难读
   preNotes: {
     flex: "0 0 auto",
     margin: 0,
     padding: 10,
     borderRadius: UI_RADIUS.control,
-    border: `1px dashed ${UI_PALETTE.border.soft}`,
-    background: "rgba(10,14,24,0.66)",
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    background: "linear-gradient(180deg, rgba(10,15,28,0.9), rgba(8,12,22,0.86))",
+    color: UI_PALETTE.text.primary,
     overflow: "visible",
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
     fontSize: UI_TYPO.size12,
-    lineHeight: 1.5,
-    opacity: 0.55
+    lineHeight: 1.5
   }
 };

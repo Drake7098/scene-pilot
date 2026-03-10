@@ -5,7 +5,7 @@ import type { Scene, Layer, LayerKF, LocalRefMeta, LocalRefType, SceneRefMeta } 
 import { ensureKF } from "../model";
 import { deleteRefBlob, getRefBlob, putRefBlob } from "../utils/localRefs";
 import { detectSceneConflicts } from "../utils/conflictRules";
-import { UI_COLOR, UI_EFFECT, UI_FONT, UI_OPACITY, UI_PALETTE, UI_RADIUS, UI_SIZE, UI_TYPO } from "../uiTokens";
+import { UI_COLOR, UI_CONTROL, UI_EFFECT, UI_FONT, UI_INFO, UI_OPACITY, UI_PALETTE, UI_PANEL, UI_RADIUS, UI_SIZE, UI_STATUS, UI_TYPO } from "../uiTokens";
 
 type Props = {
   lang: Lang;
@@ -834,7 +834,7 @@ const typePresets = useMemo(
   const externalHasConflict = layerPromptConflicts.some((c) => c.field === "externalPrompt");
 
   return (
-    <div style={styles.wrap}>
+    <div className="spx-glass-right" style={styles.wrap}>
       {/* Scene Background */}
       <div style={styles.card}>
         <div style={styles.cardTitle}>{lang === "zh" ? "分镜背景" : "Scene Background"}</div>
@@ -1635,20 +1635,23 @@ const styles: Record<string, React.CSSProperties> = {
     width: "clamp(240px, 26vw, 344px)",
     minWidth: 240,
     borderLeft: `1px solid ${UI_PALETTE.border.soft}`,
-    background: UI_PALETTE.bg.inspector,
+    background: `${UI_PANEL.rightGlow}, ${UI_PANEL.rightGlass}`,
     padding: 12,
     display: "flex",
     flexDirection: "column",
     gap: 12,
     minHeight: 0,
-    overflow: "auto"
+    overflow: "auto",
+    position: "relative",
+    boxShadow: "inset 1px 0 0 rgba(255,255,255,0.03)"
   },
 
   card: {
-    border: `1px solid ${UI_PALETTE.border.soft}`,
+    border: `1px solid ${UI_PANEL.frostBorder}`,
     borderRadius: UI_RADIUS.panel,
-    background: UI_PALETTE.surface.surface1,
-    padding: 12
+    background: "linear-gradient(180deg, rgba(20,28,38,0.72) 0%, rgba(15,22,32,0.82) 100%)",
+    padding: 12,
+    boxShadow: "0 10px 24px rgba(4,10,22,0.14), inset 0 1px 0 rgba(255,255,255,0.04)"
   },
 
   cardTitle: { fontWeight: 850, fontSize: UI_TYPO.size13, opacity: UI_OPACITY.title, marginBottom: 10, color: UI_PALETTE.text.secondary },
@@ -1727,15 +1730,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: UI_FONT.body,
     fontWeight: 900,
     cursor: "pointer",
-    userSelect: "none"
+    userSelect: "none",
+    boxShadow: UI_CONTROL.shadow.soft
   },
 
   warnHint: {
     marginTop: -2,
     marginBottom: 8,
     fontSize: 11,
-    opacity: 0.72,
-    lineHeight: 1.35
+    opacity: 0.88,
+    lineHeight: 1.35,
+    borderLeft: `2px solid ${UI_STATUS.border.warn}`,
+    paddingLeft: 8,
+    color: UI_INFO.text.body
   },
   warnHead: {
     display: "flex",
@@ -1762,13 +1769,14 @@ const styles: Record<string, React.CSSProperties> = {
     maxHeight: "calc(100vh - 48px)",
     borderRadius: UI_RADIUS.panel,
     border: `1px solid ${UI_PALETTE.border.default}`,
-    background: "rgba(12,17,27,0.96)",
+    background: `${UI_PANEL.rightGlow}, rgba(12,17,27,0.96)`,
     boxShadow: UI_EFFECT.floatShadow,
     padding: 16,
     display: "flex",
     flexDirection: "column",
     gap: 10,
-    overflow: "auto"
+    overflow: "auto",
+    backdropFilter: "blur(18px)"
   },
   modalTitle: { fontWeight: 900, fontSize: 14, opacity: 0.95 },
   modalText: { fontSize: UI_TYPO.size12, lineHeight: 1.45, opacity: 0.84, color: UI_PALETTE.text.secondary },
@@ -1776,11 +1784,12 @@ const styles: Record<string, React.CSSProperties> = {
   modalBtnGhost: {
     padding: "7px 10px",
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     cursor: "pointer",
-    fontWeight: 800
+    fontWeight: 800,
+    boxShadow: UI_CONTROL.shadow.soft
   },
   conflictList: {
     display: "flex",
@@ -1839,10 +1848,10 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 8,
     fontSize: 11,
     lineHeight: 1.35,
-    opacity: 0.72,
-    border: `1px solid ${UI_PALETTE.border.default}`,
+    opacity: 0.88,
+    border: `1px solid ${UI_STATUS.border.info}`,
     borderRadius: UI_RADIUS.control,
-    background: UI_PALETTE.surface.surface2,
+    background: UI_STATUS.surface.info,
     padding: "6px 8px"
   },
   localTemplateWrap: {
@@ -1865,11 +1874,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   localRefCard: {
     position: "relative",
-    border: `1px solid ${UI_PALETTE.border.soft}`,
+    border: `1px solid ${UI_PANEL.frostBorder}`,
     borderRadius: UI_RADIUS.control,
-    background: UI_PALETTE.bg.canvas,
+    background: "linear-gradient(180deg, rgba(17,24,34,0.7) 0%, rgba(12,18,28,0.8) 100%)",
     padding: 8,
-    marginBottom: 8
+    marginBottom: 8,
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)"
   },
   localRefHead: {
     display: "flex",
@@ -1908,12 +1918,13 @@ const styles: Record<string, React.CSSProperties> = {
     width: 24,
     height: 24,
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.04)",
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     fontWeight: 900,
     cursor: "pointer",
-    outline: "none"
+    outline: "none",
+    boxShadow: UI_CONTROL.shadow.soft
   },
   helpFloat: {
     position: "absolute",
@@ -1923,8 +1934,8 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 280,
     padding: "8px 10px",
     borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.16)",
-    background: "rgba(12,16,30,0.97)",
+    border: `1px solid ${UI_INFO.border.default}`,
+    background: UI_INFO.surface.elevated,
     fontSize: 11,
     lineHeight: 1.4,
     boxShadow: "0 10px 30px rgba(0,0,0,0.35)"
@@ -1984,10 +1995,11 @@ const styles: Record<string, React.CSSProperties> = {
   grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
 
   subCard: {
-    border: `1px solid ${UI_PALETTE.border.soft}`,
+    border: `1px solid ${UI_PANEL.frostBorder}`,
     borderRadius: UI_RADIUS.control,
-    background: UI_PALETTE.bg.canvas,
-    padding: 10
+    background: "linear-gradient(180deg, rgba(17,24,34,0.7) 0%, rgba(12,18,28,0.8) 100%)",
+    padding: 10,
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)"
   },
   subCardDisabled: {
     opacity: 0.55
@@ -2027,20 +2039,20 @@ const styles: Record<string, React.CSSProperties> = {
     height: UI_SIZE.compactH,
     padding: "0 10px",
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.07)",
-    background: "rgba(0,0,0,0.18)",
+    border: `1px solid ${UI_CONTROL.border.default}`,
+    background: UI_CONTROL.bg.default,
     color: "inherit",
     cursor: "pointer",
     fontSize: 12,
     fontWeight: 900,
     userSelect: "none",
     outline: "none",
-    boxShadow: "none"
+    boxShadow: UI_CONTROL.shadow.soft
   },
   pillBtnOn: {
-    border: "1px solid rgba(120,180,255,0.78)",
-    background: "rgba(120,180,255,0.12)",
-    boxShadow: "0 0 0 2px rgba(120,180,255,0.18) inset"
+    border: `1px solid ${UI_CONTROL.border.active}`,
+    background: UI_CONTROL.bg.accent,
+    boxShadow: UI_CONTROL.shadow.hover
   },
   pillBtnDisabled: {
     opacity: 0.55,

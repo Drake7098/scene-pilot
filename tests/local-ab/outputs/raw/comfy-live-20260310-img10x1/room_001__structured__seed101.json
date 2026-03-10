@@ -1,0 +1,164 @@
+{
+  "caseId": "room_001",
+  "title": "进入房间关键帧",
+  "promptMode": "structured",
+  "promptSource": "ScenePilotix product export pipeline (runPromptPipeline)",
+  "seed": 101,
+  "prompt": "你将根据以下分镜结构生成图像画面。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 主画面。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 主要主体保持可识别。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\nT0 Frame Spec:\n- 主体1（成年人）：初始在中间中部，中近景，前景，深蓝外套, 门外到室内的空间变化清楚。；对象局部提示：门框应清楚可见。（仅作用于 主体1）。\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 保持层级和顺序稳定，不整齐排队。",
+  "promptId": "39c670ae-d2e6-453f-99ee-aa14fd814349",
+  "savedFiles": [
+    "/Users/dk/Downloads/ComfyUI/output/local-ab/room_001__structured__seed101_00001_.png"
+  ],
+  "createdAt": "2026-03-10T01:17:17.358Z",
+  "comfyUiBaseUrl": "http://127.0.0.1:8000",
+  "comfyUiCheckpoint": "v1-5-pruned-emaonly-fp16.safetensors",
+  "history": {
+    "prompt": [
+      34,
+      "39c670ae-d2e6-453f-99ee-aa14fd814349",
+      {
+        "3": {
+          "inputs": {
+            "seed": 101,
+            "steps": 4,
+            "cfg": 3.5,
+            "sampler_name": "euler",
+            "scheduler": "normal",
+            "denoise": 1,
+            "model": [
+              "4",
+              0
+            ],
+            "positive": [
+              "6",
+              0
+            ],
+            "negative": [
+              "7",
+              0
+            ],
+            "latent_image": [
+              "5",
+              0
+            ]
+          },
+          "class_type": "KSampler"
+        },
+        "4": {
+          "inputs": {
+            "ckpt_name": "v1-5-pruned-emaonly-fp16.safetensors"
+          },
+          "class_type": "CheckpointLoaderSimple"
+        },
+        "5": {
+          "inputs": {
+            "width": 512,
+            "height": 512,
+            "batch_size": 1
+          },
+          "class_type": "EmptyLatentImage"
+        },
+        "6": {
+          "inputs": {
+            "text": "你将根据以下分镜结构生成图像画面。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 主画面。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 主要主体保持可识别。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\nT0 Frame Spec:\n- 主体1（成年人）：初始在中间中部，中近景，前景，深蓝外套, 门外到室内的空间变化清楚。；对象局部提示：门框应清楚可见。（仅作用于 主体1）。\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 保持层级和顺序稳定，不整齐排队。",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "7": {
+          "inputs": {
+            "text": "blurry, low quality, malformed hands, text artifacts, extra limbs",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "8": {
+          "inputs": {
+            "samples": [
+              "3",
+              0
+            ],
+            "vae": [
+              "4",
+              2
+            ]
+          },
+          "class_type": "VAEDecode"
+        },
+        "9": {
+          "inputs": {
+            "filename_prefix": "local-ab/room_001__structured__seed101",
+            "images": [
+              "8",
+              0
+            ]
+          },
+          "class_type": "SaveImage"
+        }
+      },
+      {
+        "create_time": 1773105417332
+      },
+      [
+        "9"
+      ]
+    ],
+    "outputs": {
+      "9": {
+        "images": [
+          {
+            "filename": "room_001__structured__seed101_00001_.png",
+            "subfolder": "local-ab",
+            "type": "output"
+          }
+        ]
+      }
+    },
+    "status": {
+      "status_str": "success",
+      "completed": true,
+      "messages": [
+        [
+          "execution_start",
+          {
+            "prompt_id": "39c670ae-d2e6-453f-99ee-aa14fd814349",
+            "timestamp": 1773105417333
+          }
+        ],
+        [
+          "execution_cached",
+          {
+            "nodes": [
+              "4",
+              "5",
+              "7"
+            ],
+            "prompt_id": "39c670ae-d2e6-453f-99ee-aa14fd814349",
+            "timestamp": 1773105417334
+          }
+        ],
+        [
+          "execution_success",
+          {
+            "prompt_id": "39c670ae-d2e6-453f-99ee-aa14fd814349",
+            "timestamp": 1773105435594
+          }
+        ]
+      ]
+    },
+    "meta": {
+      "9": {
+        "node_id": "9",
+        "display_node": "9",
+        "parent_node": null,
+        "real_node_id": "9"
+      }
+    }
+  }
+}

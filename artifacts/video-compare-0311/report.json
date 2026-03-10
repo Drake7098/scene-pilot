@@ -1,0 +1,48 @@
+[
+  {
+    "name": "自然版",
+    "path": "/Users/dk/Downloads/grok-video-b482cd92-33bf-407a-acdf-268e8dc3d173.mp4",
+    "fps": 24.0,
+    "duration_sec": 6.04,
+    "resolution": "464x688",
+    "approx_frames": 145,
+    "sharpness_avg": 787.72,
+    "sharpness_min": 327.93,
+    "saturation_avg": 19.27,
+    "continuity_diff_avg": 35.15,
+    "jitter_std": 6.95,
+    "samples": [
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/自然版-sample-01-f0.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/自然版-sample-02-f21.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/自然版-sample-03-f43.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/自然版-sample-04-f64.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/自然版-sample-05-f86.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/自然版-sample-06-f108.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/自然版-sample-07-f129.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/自然版-sample-08-f144.jpg"
+    ]
+  },
+  {
+    "name": "平台版",
+    "path": "/Users/dk/Downloads/grok-video-fc363cdd-cd32-4684-a896-8cf1d02b2d0f.mp4",
+    "fps": 24.0,
+    "duration_sec": 6.04,
+    "resolution": "464x688",
+    "approx_frames": 145,
+    "sharpness_avg": 409.78,
+    "sharpness_min": 110.39,
+    "saturation_avg": 26.09,
+    "continuity_diff_avg": 24.71,
+    "jitter_std": 5.31,
+    "samples": [
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/平台版-sample-01-f0.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/平台版-sample-02-f21.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/平台版-sample-03-f43.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/平台版-sample-04-f64.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/平台版-sample-05-f86.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/平台版-sample-06-f108.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/平台版-sample-07-f129.jpg",
+      "/Users/dk/scene-pilot/artifacts/video-compare-0311/平台版-sample-08-f144.jpg"
+    ]
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "caseId": "single_001",
+  "title": "单主体室内人物",
+  "roundId": "round1_local_llm_plain",
+  "plainPrompt": "一位年轻女性穿着黑色风衣，站在窗边，背景有冷色调的灯光。画面采用中景构图，聚焦在她的半身。",
+  "structuredPrompt": "你将根据以下分镜结构生成图像画面。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 主画面。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 主要主体保持可识别。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\nT0 Frame Spec:\n- 主体1（年轻女性）：初始在中间中部，中近景，前景，黑色风衣, 保持静止构图。；对象局部提示：靠近窗边，冷色灯光。（仅作用于 主体1）。\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 保持层级和顺序稳定，不整齐排队。",
+  "eval": {
+    "plainScore": 2.6,
+    "structuredScore": 5,
+    "winner": "structured",
+    "reason": "Heuristic prompt-structure evaluation"
+  }
+}

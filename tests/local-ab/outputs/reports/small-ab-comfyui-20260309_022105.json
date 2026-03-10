@@ -1,0 +1,69 @@
+{
+  "summary": {
+    "plain": {
+      "count": 2,
+      "successCount": 2,
+      "successRate": 1.0,
+      "avgExecSec": 540.029,
+      "avgImageKB": 2023.1
+    },
+    "structured": {
+      "count": 2,
+      "successCount": 2,
+      "successRate": 1.0,
+      "avgExecSec": 534.256,
+      "avgImageKB": 2003.3
+    },
+    "delta": {
+      "successRate_structured_minus_plain": 0.0,
+      "avgExecSec_structured_minus_plain": -5.773,
+      "avgImageKB_structured_minus_plain": -19.8
+    }
+  },
+  "rows": [
+    {
+      "file": "single_001__plain__seed101.json",
+      "caseId": "single_001",
+      "mode": "plain",
+      "seed": 101,
+      "status": "success",
+      "execSec": 577.516,
+      "imagePath": "/Users/dk/Documents/ComfyUI/output/local-ab/single_001__plain__seed101_00004_.png",
+      "imageBytes": 2195326,
+      "createdAt": "2026-03-08T16:12:26.885Z"
+    },
+    {
+      "file": "single_001__plain__seed202.json",
+      "caseId": "single_001",
+      "mode": "plain",
+      "seed": 202,
+      "status": "success",
+      "execSec": 502.542,
+      "imagePath": "/Users/dk/Documents/ComfyUI/output/local-ab/single_001__plain__seed202_00004_.png",
+      "imageBytes": 1947964,
+      "createdAt": "2026-03-08T16:20:49.741Z"
+    },
+    {
+      "file": "single_001__structured__seed101.json",
+      "caseId": "single_001",
+      "mode": "structured",
+      "seed": 101,
+      "status": "success",
+      "execSec": 503.208,
+      "imagePath": "/Users/dk/Documents/ComfyUI/output/local-ab/single_001__structured__seed101_00003_.png",
+      "imageBytes": 2200885,
+      "createdAt": "2026-03-08T16:29:14.324Z"
+    },
+    {
+      "file": "single_001__structured__seed202.json",
+      "caseId": "single_001",
+      "mode": "structured",
+      "seed": 202,
+      "status": "success",
+      "execSec": 565.304,
+      "imagePath": "/Users/dk/Documents/ComfyUI/output/local-ab/single_001__structured__seed202_00002_.png",
+      "imageBytes": 1901902,
+      "createdAt": "2026-03-08T16:38:41.108Z"
+    }
+  ]
+}

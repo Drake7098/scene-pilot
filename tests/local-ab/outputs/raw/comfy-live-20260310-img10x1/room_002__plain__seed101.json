@@ -1,0 +1,164 @@
+{
+  "caseId": "room_002",
+  "title": "连续进入下一个房间关键帧",
+  "promptMode": "plain",
+  "promptSource": "Drake-DS local LLM baseline",
+  "seed": 101,
+  "prompt": "一个人站在第一个房间门口，正迈步穿过过道，一只脚留在第一个房间，另一只脚伸向第二个房间的门口，画面捕捉到他动作的瞬间，展示两个房间的连接和空间的过渡。",
+  "promptId": "b5c8a779-21c9-4ed3-a5ca-992c2d4d347f",
+  "savedFiles": [
+    "/Users/dk/Downloads/ComfyUI/output/local-ab/room_002__plain__seed101_00001_.png"
+  ],
+  "createdAt": "2026-03-10T01:17:37.399Z",
+  "comfyUiBaseUrl": "http://127.0.0.1:8000",
+  "comfyUiCheckpoint": "v1-5-pruned-emaonly-fp16.safetensors",
+  "history": {
+    "prompt": [
+      35,
+      "b5c8a779-21c9-4ed3-a5ca-992c2d4d347f",
+      {
+        "3": {
+          "inputs": {
+            "seed": 101,
+            "steps": 4,
+            "cfg": 3.5,
+            "sampler_name": "euler",
+            "scheduler": "normal",
+            "denoise": 1,
+            "model": [
+              "4",
+              0
+            ],
+            "positive": [
+              "6",
+              0
+            ],
+            "negative": [
+              "7",
+              0
+            ],
+            "latent_image": [
+              "5",
+              0
+            ]
+          },
+          "class_type": "KSampler"
+        },
+        "4": {
+          "inputs": {
+            "ckpt_name": "v1-5-pruned-emaonly-fp16.safetensors"
+          },
+          "class_type": "CheckpointLoaderSimple"
+        },
+        "5": {
+          "inputs": {
+            "width": 512,
+            "height": 512,
+            "batch_size": 1
+          },
+          "class_type": "EmptyLatentImage"
+        },
+        "6": {
+          "inputs": {
+            "text": "一个人站在第一个房间门口，正迈步穿过过道，一只脚留在第一个房间，另一只脚伸向第二个房间的门口，画面捕捉到他动作的瞬间，展示两个房间的连接和空间的过渡。",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "7": {
+          "inputs": {
+            "text": "blurry, low quality, malformed hands, text artifacts, extra limbs",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "8": {
+          "inputs": {
+            "samples": [
+              "3",
+              0
+            ],
+            "vae": [
+              "4",
+              2
+            ]
+          },
+          "class_type": "VAEDecode"
+        },
+        "9": {
+          "inputs": {
+            "filename_prefix": "local-ab/room_002__plain__seed101",
+            "images": [
+              "8",
+              0
+            ]
+          },
+          "class_type": "SaveImage"
+        }
+      },
+      {
+        "create_time": 1773105437360
+      },
+      [
+        "9"
+      ]
+    ],
+    "outputs": {
+      "9": {
+        "images": [
+          {
+            "filename": "room_002__plain__seed101_00001_.png",
+            "subfolder": "local-ab",
+            "type": "output"
+          }
+        ]
+      }
+    },
+    "status": {
+      "status_str": "success",
+      "completed": true,
+      "messages": [
+        [
+          "execution_start",
+          {
+            "prompt_id": "b5c8a779-21c9-4ed3-a5ca-992c2d4d347f",
+            "timestamp": 1773105437361
+          }
+        ],
+        [
+          "execution_cached",
+          {
+            "nodes": [
+              "4",
+              "5",
+              "7"
+            ],
+            "prompt_id": "b5c8a779-21c9-4ed3-a5ca-992c2d4d347f",
+            "timestamp": 1773105437361
+          }
+        ],
+        [
+          "execution_success",
+          {
+            "prompt_id": "b5c8a779-21c9-4ed3-a5ca-992c2d4d347f",
+            "timestamp": 1773105456673
+          }
+        ]
+      ]
+    },
+    "meta": {
+      "9": {
+        "node_id": "9",
+        "display_node": "9",
+        "parent_node": null,
+        "real_node_id": "9"
+      }
+    }
+  }
+}

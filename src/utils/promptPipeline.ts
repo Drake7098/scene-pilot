@@ -6,14 +6,15 @@ import { getPlatformPreset } from "../config/platformPresets";
 import type { PromptProfile } from "./prompt";
 import { generatePrompts } from "./prompt";
 import { adaptPromptToPlatformDetailed } from "./platformAdapter";
-import type { PromptPipelineMetadata, PromptPipelineStage } from "../types/export";
+import { splitMachineNotes } from "./promptTail";
+import type { PromptExportScope, PromptPipelineMetadata, PromptPipelineStage } from "../types/export";
 
 export type PromptPipelineInput = {
   project: Project;
   lang: Lang;
   platformId: PlatformPresetId;
   profile?: PromptProfile;
-  scope?: "current_scene";
+  scope?: PromptExportScope;
 };
 
 export type PromptPipelineOutput = {
@@ -50,30 +51,6 @@ function collapseStaticKeyframes(text: string, lang: Lang): string {
     i += 1;
   }
   return out.join("\n").trim();
-}
-
-function splitMachineNotes(allText: string): { main: string; notes: string } {
-  const text = allText ?? "";
-  const lines = text.split("\n");
-
-  const isMarker = (line: string) => {
-    const t = (line ?? "").trim();
-    if (!t) return false;
-    const low = t.toLowerCase();
-    if (t.includes("以下为机器语言")) return true;
-    if (t.startsWith("（以下为机器语言")) return true;
-    if (t.includes("系统结构控制层")) return true;
-    if (t.includes("系统追加结构控制层")) return true;
-    if (low.includes("machine notes")) return true;
-    if (low.includes("system structural control layer")) return true;
-    return false;
-  };
-
-  const idx = lines.findIndex((l) => isMarker(l));
-  if (idx < 0) return { main: text.trimEnd(), notes: "" };
-  const main = lines.slice(0, idx).join("\n").trimEnd();
-  const notes = lines.slice(idx).join("\n").trimEnd();
-  return { main, notes };
 }
 
 function stripDurationForImageMode(prompts: string): string {
@@ -247,13 +224,19 @@ export function runPromptPipeline(input: PromptPipelineInput): PromptPipelineOut
       mappedFromProfile: preset.nativeStrategy ? null : preset.baseProfile,
       mediaMode,
       compiler,
+      workspace: "quick",
+      engineId: mediaMode === "image" ? "IM v5" : "VI V5",
       strippedDurationForImage: cleaned.strippedDurationForImage,
       strippedT1ForImage: cleaned.strippedT1ForImage,
+      strippedVideoScaffoldForImage: false,
+      compactedForEngine: false,
       tailApplied: /system structural control layer/i.test(corePrompt) || corePrompt.includes("系统结构控制层") || corePrompt.includes("系统追加结构控制层"),
       trimmedByBudget: adapted.meta.trimmedByBudget,
       trimReason: adapted.meta.trimReason,
       appliedPatches: adapted.meta.appliedPatches,
-      stages
+      stages,
+      enginePasses: [],
+      exportScope: input.scope ?? "current_scene"
     }
   };
 }

@@ -16,7 +16,19 @@
   --spx-danger: rgba(255, 124, 124, 0.72);
   --spx-shadow-panel: 0 18px 48px rgba(2, 6, 14, 0.42);
   --spx-shadow-float: 0 14px 34px rgba(2, 6, 14, 0.5);
+  --spx-shadow-hover: 0 12px 28px rgba(4, 10, 22, 0.26);
+  --spx-shadow-press: 0 6px 14px rgba(4, 10, 22, 0.22);
   --spx-shadow-focus: 0 0 0 2px rgba(102, 168, 255, 0.34);
+  --spx-control-bg-default: rgba(255, 255, 255, 0.045);
+  --spx-control-bg-hover: rgba(255, 255, 255, 0.075);
+  --spx-control-bg-active: rgba(255, 255, 255, 0.032);
+  --spx-control-border-hover: rgba(204, 220, 245, 0.38);
+  --spx-control-border-active: rgba(104, 171, 255, 0.86);
+  --spx-control-shadow-soft: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 8px 18px rgba(3, 8, 18, 0.14);
+  --spx-control-shadow-hover: 0 1px 0 rgba(255, 255, 255, 0.06) inset, var(--spx-shadow-hover);
+  --spx-control-shadow-active: 0 1px 0 rgba(255, 255, 255, 0.06) inset, var(--spx-shadow-press);
+  --spx-transition-fast: 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --spx-transition-normal: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 html,
@@ -37,6 +49,17 @@ body {
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes spxFadeUpIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 * {
@@ -83,7 +106,7 @@ textarea {
 
 select {
   line-height: 1.25;
-  padding-right: 34px !important;
+  padding-right: 22px;
 }
 
 input,
@@ -126,52 +149,47 @@ button {
   -webkit-tap-highlight-color: transparent;
   appearance: none;
   outline: none;
-
-  transition: transform 80ms ease, background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  box-shadow: var(--spx-btn-shadow, var(--spx-control-shadow-soft));
+  transition:
+    transform var(--spx-transition-fast),
+    background-color var(--spx-transition-normal),
+    border-color var(--spx-transition-normal),
+    box-shadow var(--spx-transition-normal),
+    opacity var(--spx-transition-fast);
 }
 
-/* Stop Safari/iOS default dimming/filters on press */
 button:active {
   filter: none !important;
   opacity: 1 !important;
-  transform: translateY(1px);
+  transform: translateY(0);
+  border-color: var(--spx-btn-border-active, var(--spx-control-border-active));
+  background-color: var(--spx-btn-bg-active, var(--spx-control-bg-active));
+  box-shadow: var(--spx-btn-shadow-active, var(--spx-control-shadow-active));
 }
 
 button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
   button:hover:not(:disabled) {
-    border-color: var(--spx-border-strong);
-    background-color: var(--spx-surface-2);
-    box-shadow: 0 0 0 1px rgba(104, 171, 255, 0.14) inset;
+    transform: translateY(-1px);
+    border-color: var(--spx-btn-border-hover, var(--spx-control-border-hover));
+    background-color: var(--spx-btn-bg-hover, var(--spx-control-bg-hover));
+    box-shadow: var(--spx-btn-shadow-hover, var(--spx-control-shadow-hover));
   }
 }
 
-/* Wizard-specific state isolation: prevent brightness/flicker bugs */
 .spx-wizard-modal button,
 .spx-wizard-modal button:hover:not(:disabled),
-.spx-wizard-modal button:focus,
-.spx-wizard-modal button:focus-visible,
 .spx-wizard-modal button:active {
   filter: none !important;
   opacity: 1 !important;
-  transform: none !important;
 }
 
-.spx-wizard-modal button:hover:not(:disabled),
-.spx-wizard-modal button:focus,
-.spx-wizard-modal button:focus-visible,
-.spx-wizard-modal button:active {
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-/* ✅ IMPORTANT:
-   - Always kill focus glow for mouse/touch (prevents "other button brighter").
-   - Keep a subtle ring ONLY for keyboard focus (accessibility). */
 button:focus {
   outline: none !important;
   box-shadow: none !important;
@@ -195,8 +213,74 @@ button:focus-visible {
   background: var(--spx-surface-1);
 }
 
+.spx-glass-left,
+.spx-glass-right {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(18px);
+}
+
+.spx-glass-left::before,
+.spx-glass-right::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.spx-glass-left::after,
+.spx-glass-right::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.spx-glass-left::before {
+  background:
+    radial-gradient(560px 420px at 18% 88%, rgba(82, 138, 228, 0.18), transparent 58%),
+    radial-gradient(420px 260px at 84% 18%, rgba(64, 182, 194, 0.11), transparent 56%);
+}
+
+.spx-glass-right::before {
+  background:
+    radial-gradient(520px 360px at 82% 18%, rgba(74, 196, 192, 0.12), transparent 58%),
+    radial-gradient(420px 260px at 24% 84%, rgba(104, 171, 255, 0.12), transparent 56%);
+}
+
 .spx-hint {
   color: var(--spx-text-2);
+}
+
+.spx-scroll-mid {
+  overflow-y: scroll !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.42) rgba(255, 255, 255, 0.08);
+}
+
+.spx-scroll-mid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.spx-scroll-mid::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+.spx-scroll-mid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.42);
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.spx-scroll-mid::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.62);
 }
 
 @media (prefers-reduced-motion: reduce) {

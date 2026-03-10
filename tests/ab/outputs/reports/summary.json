@@ -1,0 +1,39 @@
+{
+  "totals": {
+    "rawRuns": 0,
+    "scoredRuns": 0,
+    "totalCostUsdEstimate": 0,
+    "imageRuns": 0,
+    "videoRuns": 0
+  },
+  "promptModes": {
+    "plain": {
+      "runs": 0,
+      "scoredRuns": 0,
+      "usableRate": 0,
+      "averageUsabilityScore": 0
+    },
+    "structured": {
+      "runs": 0,
+      "scoredRuns": 0,
+      "usableRate": 0,
+      "averageUsabilityScore": 0
+    }
+  },
+  "taskTypes": {
+    "image": {
+      "plainUsableRate": 0,
+      "structuredUsableRate": 0,
+      "lift": 0
+    },
+    "video": {
+      "plainUsableRate": 0,
+      "structuredUsableRate": 0,
+      "lift": 0
+    }
+  },
+  "providers": {},
+  "topImprovementCases": [],
+  "noLiftCases": [],
+  "failedRuns": []
+}

@@ -1,0 +1,164 @@
+{
+  "caseId": "multi_001",
+  "title": "前中后景构图",
+  "promptMode": "plain",
+  "promptSource": "Drake-DS local LLM baseline",
+  "seed": 101,
+  "prompt": "一个温馨的场景，前景是一位人物，中景是一张桌子，后景是窗户和一盏温暖的灯光，整体层次分明，空间感强，氛围温暖舒适。",
+  "promptId": "e6fa60fc-1bd8-4a0b-8c9d-0169311fbdac",
+  "savedFiles": [
+    "/Users/dk/Downloads/ComfyUI/output/local-ab/multi_001__plain__seed101_00001_.png"
+  ],
+  "createdAt": "2026-03-10T01:15:45.202Z",
+  "comfyUiBaseUrl": "http://127.0.0.1:8000",
+  "comfyUiCheckpoint": "v1-5-pruned-emaonly-fp16.safetensors",
+  "history": {
+    "prompt": [
+      29,
+      "e6fa60fc-1bd8-4a0b-8c9d-0169311fbdac",
+      {
+        "3": {
+          "inputs": {
+            "seed": 101,
+            "steps": 4,
+            "cfg": 3.5,
+            "sampler_name": "euler",
+            "scheduler": "normal",
+            "denoise": 1,
+            "model": [
+              "4",
+              0
+            ],
+            "positive": [
+              "6",
+              0
+            ],
+            "negative": [
+              "7",
+              0
+            ],
+            "latent_image": [
+              "5",
+              0
+            ]
+          },
+          "class_type": "KSampler"
+        },
+        "4": {
+          "inputs": {
+            "ckpt_name": "v1-5-pruned-emaonly-fp16.safetensors"
+          },
+          "class_type": "CheckpointLoaderSimple"
+        },
+        "5": {
+          "inputs": {
+            "width": 512,
+            "height": 512,
+            "batch_size": 1
+          },
+          "class_type": "EmptyLatentImage"
+        },
+        "6": {
+          "inputs": {
+            "text": "一个温馨的场景，前景是一位人物，中景是一张桌子，后景是窗户和一盏温暖的灯光，整体层次分明，空间感强，氛围温暖舒适。",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "7": {
+          "inputs": {
+            "text": "blurry, low quality, malformed hands, text artifacts, extra limbs",
+            "clip": [
+              "4",
+              1
+            ]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "8": {
+          "inputs": {
+            "samples": [
+              "3",
+              0
+            ],
+            "vae": [
+              "4",
+              2
+            ]
+          },
+          "class_type": "VAEDecode"
+        },
+        "9": {
+          "inputs": {
+            "filename_prefix": "local-ab/multi_001__plain__seed101",
+            "images": [
+              "8",
+              0
+            ]
+          },
+          "class_type": "SaveImage"
+        }
+      },
+      {
+        "create_time": 1773105329187
+      },
+      [
+        "9"
+      ]
+    ],
+    "outputs": {
+      "9": {
+        "images": [
+          {
+            "filename": "multi_001__plain__seed101_00001_.png",
+            "subfolder": "local-ab",
+            "type": "output"
+          }
+        ]
+      }
+    },
+    "status": {
+      "status_str": "success",
+      "completed": true,
+      "messages": [
+        [
+          "execution_start",
+          {
+            "prompt_id": "e6fa60fc-1bd8-4a0b-8c9d-0169311fbdac",
+            "timestamp": 1773105329187
+          }
+        ],
+        [
+          "execution_cached",
+          {
+            "nodes": [
+              "4",
+              "5",
+              "7"
+            ],
+            "prompt_id": "e6fa60fc-1bd8-4a0b-8c9d-0169311fbdac",
+            "timestamp": 1773105329188
+          }
+        ],
+        [
+          "execution_success",
+          {
+            "prompt_id": "e6fa60fc-1bd8-4a0b-8c9d-0169311fbdac",
+            "timestamp": 1773105344995
+          }
+        ]
+      ]
+    },
+    "meta": {
+      "9": {
+        "node_id": "9",
+        "display_node": "9",
+        "parent_node": null,
+        "real_node_id": "9"
+      }
+    }
+  }
+}
