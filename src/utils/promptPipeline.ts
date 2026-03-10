@@ -224,13 +224,18 @@ export function runPromptPipeline(input: PromptPipelineInput): PromptPipelineOut
       mappedFromProfile: preset.nativeStrategy ? null : preset.baseProfile,
       mediaMode,
       compiler,
+      workspace: "quick",
+      engineId: mediaMode === "image" ? "IM v5" : "VI V5",
       strippedDurationForImage: cleaned.strippedDurationForImage,
       strippedT1ForImage: cleaned.strippedT1ForImage,
+      strippedVideoScaffoldForImage: false,
+      compactedForEngine: false,
       tailApplied: /system structural control layer/i.test(corePrompt) || corePrompt.includes("系统结构控制层") || corePrompt.includes("系统追加结构控制层"),
       trimmedByBudget: adapted.meta.trimmedByBudget,
       trimReason: adapted.meta.trimReason,
       appliedPatches: adapted.meta.appliedPatches,
       stages,
+      enginePasses: [],
       exportScope: input.scope ?? "current_scene"
     }
   };

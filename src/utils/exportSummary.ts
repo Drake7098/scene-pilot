@@ -13,8 +13,13 @@ export type ExportSummary = {
   exportScope: "current_scene" | "continuous_sequence";
   mediaMode: "image" | "video";
   compiler: "v1" | "v2";
+  workspace: "quick" | "pro";
+  engineId: string;
   imageCleanupApplied: boolean;
+  imageVideoScaffoldRemoved: boolean;
+  engineCompactionApplied: boolean;
   promptStagesApplied: string[];
+  enginePasses: string[];
   stagePromptsReady: boolean;
   tailApplied: boolean;
   budgetTrimmed: boolean;
@@ -25,7 +30,10 @@ export type ExportSummary = {
 
 export function makeExportSummary(input: ExportSummaryInput): ExportSummary {
   const { preset, promptStages } = input;
-  const imageCleanupApplied = promptStages.metadata.strippedDurationForImage || promptStages.metadata.strippedT1ForImage;
+  const imageCleanupApplied =
+    promptStages.metadata.strippedDurationForImage ||
+    promptStages.metadata.strippedT1ForImage ||
+    promptStages.metadata.strippedVideoScaffoldForImage;
   const stagePromptsReady = Boolean(promptStages.corePrompt && promptStages.adaptedPrompt && promptStages.finalCopyPrompt);
   return {
     target: preset.id,
@@ -34,8 +42,13 @@ export function makeExportSummary(input: ExportSummaryInput): ExportSummary {
     exportScope: promptStages.metadata.exportScope,
     mediaMode: promptStages.metadata.mediaMode,
     compiler: promptStages.metadata.compiler,
+    workspace: promptStages.metadata.workspace,
+    engineId: promptStages.metadata.engineId,
     imageCleanupApplied,
+    imageVideoScaffoldRemoved: promptStages.metadata.strippedVideoScaffoldForImage,
+    engineCompactionApplied: promptStages.metadata.compactedForEngine,
     promptStagesApplied: promptStages.metadata.stages,
+    enginePasses: promptStages.metadata.enginePasses,
     stagePromptsReady,
     tailApplied: promptStages.metadata.tailApplied,
     budgetTrimmed: promptStages.metadata.trimmedByBudget,
