@@ -2,6 +2,7 @@ import type { PlatformProfile } from "./platformCapabilities";
 
 export type PlatformPresetId =
   | "universal"
+  | "fal"
   | "midjourney"
   | "runway"
   | "pika"
@@ -40,6 +41,19 @@ export const PLATFORM_PRESETS: PlatformPreset[] = [
     maxRefsPerObject: 3,
     patchId: "",
     strategyNote: "Native universal strategy."
+  },
+  {
+    id: "fal",
+    labelZh: "fal",
+    labelEn: "fal",
+    url: "https://fal.ai/",
+    baseProfile: "fal",
+    nativeStrategy: true,
+    uploadMode: "upload-first",
+    promptStyle: "long",
+    maxRefsPerObject: 3,
+    patchId: "",
+    strategyNote: "Native object-first engine family."
   },
   {
     id: "midjourney",

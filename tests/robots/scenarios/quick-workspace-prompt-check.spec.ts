@@ -38,7 +38,7 @@ const samples: SampleCase[] = [
       { testId: "quick-second-image-composition-position", value: "left" },
       { testId: "quick-second-image-background-complexity", value: "rich" }
     ],
-    expectedKeywords: ["酒吧", "主角", "Layout Contract"]
+    expectedKeywords: ["酒吧", "主角", "背景"]
   },
   {
     id: "image_forest_environment",
@@ -53,7 +53,7 @@ const samples: SampleCase[] = [
       { testId: "quick-second-image-composition-position", value: "depth" },
       { testId: "quick-second-image-background-complexity", value: "strong_environment" }
     ],
-    expectedKeywords: ["森林", "旅行者", "Layout Contract"]
+    expectedKeywords: ["森林", "旅行者", "环境"]
   },
   {
     id: "image_product_watch",
@@ -68,7 +68,7 @@ const samples: SampleCase[] = [
       { testId: "quick-second-image-composition-position", value: "center" },
       { testId: "quick-second-image-background-complexity", value: "clean" }
     ],
-    expectedKeywords: ["手表", "金属", "Layout Contract"]
+    expectedKeywords: ["手表", "金属", "产品"]
   },
   {
     id: "image_room_portrait",
@@ -83,7 +83,7 @@ const samples: SampleCase[] = [
       { testId: "quick-second-image-composition-position", value: "left" },
       { testId: "quick-second-image-background-complexity", value: "clean" }
     ],
-    expectedKeywords: ["风衣", "窗边", "Layout Contract"]
+    expectedKeywords: ["风衣", "窗边", "背景"]
   },
   {
     id: "image_detective_depth",
@@ -98,7 +98,7 @@ const samples: SampleCase[] = [
       { testId: "quick-second-image-composition-position", value: "depth" },
       { testId: "quick-second-image-background-complexity", value: "rich" }
     ],
-    expectedKeywords: ["侦探", "机械臂", "Layout Contract"]
+    expectedKeywords: ["侦探", "机械臂", "蓝图"]
   },
   {
     id: "video_single_shot_entry",
@@ -113,7 +113,7 @@ const samples: SampleCase[] = [
       { testId: "quick-second-video-main-scene", value: "indoor" },
       { testId: "quick-second-video-continuity-focus", value: "lighting" }
     ],
-    expectedKeywords: ["风雪", "屋内", "T1 Frame Spec"]
+    expectedKeywords: ["风雪", "屋内", "暖光"]
   },
   {
     id: "video_continuous_corridor",
@@ -129,7 +129,7 @@ const samples: SampleCase[] = [
       { testId: "quick-second-video-continuity-focus", value: "identity" },
       { testId: "quick-second-video-shot-grammar", value: "cut" }
     ],
-    expectedKeywords: ["走廊", "人物", "Transition"]
+    expectedKeywords: ["走廊", "人物", "镜头"]
   },
   {
     id: "video_multiscene_rescue",
@@ -145,7 +145,7 @@ const samples: SampleCase[] = [
       { testId: "quick-second-video-continuity-focus", value: "lighting" },
       { testId: "quick-second-video-shot-grammar", value: "establishing" }
     ],
-    expectedKeywords: ["雪地", "避难所", "Transition"]
+    expectedKeywords: ["雪地", "避难所", "人物"]
   },
   {
     id: "video_multicam_dialogue",
@@ -161,7 +161,7 @@ const samples: SampleCase[] = [
       { testId: "quick-second-video-continuity-focus", value: "identity" },
       { testId: "quick-second-video-shot-grammar", value: "reverse_angle" }
     ],
-    expectedKeywords: ["桌子", "交谈", "Transition"]
+    expectedKeywords: ["桌子", "交谈", "女人"]
   },
   {
     id: "video_mood_time_jump",
@@ -177,7 +177,7 @@ const samples: SampleCase[] = [
       { testId: "quick-second-video-continuity-focus", value: "style" },
       { testId: "quick-second-video-shot-grammar", value: "establishing" }
     ],
-    expectedKeywords: ["海边", "黄昏", "Transition"]
+    expectedKeywords: ["海边", "黄昏", "女孩"]
   }
 ];
 
@@ -193,14 +193,23 @@ async function openQuickWorkspace(page: import("@playwright/test").Page) {
 function evaluatePrompt(sample: SampleCase, prompt: string): SampleResult {
   const issues: string[] = [];
   const matchedKeywords = sample.expectedKeywords.filter((keyword) => prompt.includes(keyword));
+  const hasVideoExecutionLanguage = /camera|shot plan|shot grammar|motion|transition|continuity|镜头|分镜计划|运镜|镜头语法|衔接|连续性/i.test(prompt);
+  const hasImageStructureLanguage = /构图|composition|场景|scene|主体|subject|背景|background|风格|style|静帧|still frame/i.test(prompt);
 
   if (!prompt.trim()) issues.push("prompt 为空");
   if (prompt.length < 180) issues.push("prompt 过短，结构约束可能不足");
   if (/undefined|null|NaN|Not Sure|不确定/i.test(prompt)) issues.push("prompt 出现脏值或不确定占位");
-  if (sample.mediaType === "image" && !/Layout Contract/i.test(prompt)) issues.push("图片 prompt 缺少 Layout Contract");
-  if (sample.mediaType === "video" && !/T1 Frame Spec/i.test(prompt)) issues.push("视频 prompt 缺少 T1 Frame Spec");
-  if (sample.mediaType === "video" && sample.firstLayer2 !== "single_shot" && !/Transition|衔接/i.test(prompt)) {
-    issues.push("多镜头视频 prompt 缺少衔接信息");
+  if (sample.mediaType === "image") {
+    if (!hasImageStructureLanguage) issues.push("图片 prompt 缺少基本结构表达");
+    if (/T1 Frame Spec|Apply t0→t1|Transition\s+\d+|scene transition|shot grammar|camera motion/i.test(prompt)) {
+      issues.push("图片 prompt 混入视频时序/镜头语言");
+    }
+  }
+  if (sample.mediaType === "video") {
+    if (!hasVideoExecutionLanguage) issues.push("视频 prompt 缺少镜头/动作/连续性语义");
+    if (sample.firstLayer2 !== "single_shot" && !/transition|衔接|scene switch|time jump|continuous/i.test(prompt)) {
+      issues.push("多镜头视频 prompt 缺少衔接信息");
+    }
   }
   if (matchedKeywords.length < 2) issues.push("关键信息进入 prompt 不足");
 
@@ -262,6 +271,11 @@ test("quick_workspace_prompt_effectiveness_on_10_samples", async ({ page }) => {
     ].join("\n")
   );
 
-  const hardFailures = results.filter((item) => item.issues.some((issue) => issue.includes("prompt 为空") || issue.includes("脏值") || issue.includes("缺少 T1 Frame Spec")));
+  const hardFailures = results.filter((item) => item.issues.some((issue) =>
+    issue.includes("prompt 为空")
+    || issue.includes("脏值")
+    || issue.includes("图片 prompt 混入视频时序/镜头语言")
+    || issue.includes("视频 prompt 缺少镜头/动作/连续性语义")
+  ));
   expect(hardFailures).toHaveLength(0);
 });

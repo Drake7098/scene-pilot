@@ -3,6 +3,7 @@ import {
   assertProjectVisible,
   captureArtifacts,
   createVideoProject,
+  ensureMockProAccount,
   openProjectMenu,
   openWizard,
   requireLiveMode,
@@ -16,6 +17,11 @@ test("modal_interaction_guard_save_model_and_export_overlay", async ({ page }) =
 
   await runStep(page, "open_and_create_project", async () => {
     await page.goto("/");
+    await ensureMockProAccount(page, { creditsBalance: 240 });
+    await page.evaluate(() => {
+      localStorage.setItem("sp_workspace_mode", "pro");
+    });
+    await page.reload();
     await expect(page).toHaveTitle(/Scene|Pilot|Vite/i);
     await openWizard(page);
     await createVideoProject(page, projectName, 2, 12, "small_plaza");

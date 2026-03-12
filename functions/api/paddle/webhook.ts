@@ -1,5 +1,6 @@
 import { activatePro, ensureBillingTables, ensureUserWallet, grantCredits, seedDefaultProducts } from "../_shared/billing-db";
-import { corsOptions, json } from "../_shared/http";
+import { corsOptions, json, rejectDisallowedOrigin } from "../_shared/http";
+import { verifyPaddleWebhookSignature } from "../_shared/paddle-signature";
 
 type PaddleWebhookBody = {
   event_id?: string;
@@ -157,17 +158,26 @@ async function processSubscriptionLifecycle(context: EventContext<any, any, any>
 
 export const onRequestPost: PagesFunction = async (context) => {
   try {
-    if (!context.env?.DB) return json({ error: "db_not_configured" }, 500);
+    const originErr = rejectDisallowedOrigin(context.request, context.env);
+    if (originErr) return originErr;
+    if (!context.env?.DB) return json({ error: "db_not_configured" }, 500, context.request, context.env);
     await ensureBillingTables(context.env.DB);
     await seedDefaultProducts(context.env.DB);
-    const body = await context.request.json() as PaddleWebhookBody;
-    if (!body?.event_type) return json({ error: "missing_event_type" }, 400);
+    const webhookSecret = String(context.env?.PADDLE_WEBHOOK_SECRET || "").trim();
+    if (!webhookSecret) return json({ error: "webhook_secret_not_configured" }, 500, context.request, context.env);
+
+    const rawBody = await context.request.text();
+    const signatureValid = await verifyPaddleWebhookSignature(context.request, rawBody, webhookSecret);
+    if (!signatureValid) return json({ error: "invalid_webhook_signature" }, 401, context.request, context.env);
+
+    const body = JSON.parse(rawBody || "{}") as PaddleWebhookBody;
+    if (!body?.event_type) return json({ error: "missing_event_type" }, 400, context.request, context.env);
 
     const eventId = String(body.event_id || body.data?.id || `${body.event_type}:${Date.now()}`);
     const existing = await context.env.DB.prepare(`
       SELECT id, status FROM payment_events WHERE provider_event_id = ? LIMIT 1
     `).bind(eventId).first<{ id: string; status: string }>();
-    if (existing?.id) return json({ ok: true, dedup: true, eventId, status: existing.status });
+    if (existing?.id) return json({ ok: true, dedup: true, eventId, status: existing.status }, 200, context.request, context.env);
 
     const storeId = makeId("evt");
     await context.env.DB.prepare(`
@@ -187,10 +197,10 @@ export const onRequestPost: PagesFunction = async (context) => {
     await context.env.DB.prepare(`
       UPDATE payment_events SET status = 'processed', processed_at = ?, error_message = NULL WHERE id = ?
     `).bind(nowIso(), storeId).run();
-    return json({ ok: true, eventId, result });
+    return json({ ok: true, eventId, result }, 200, context.request, context.env);
   } catch (error) {
-    return json({ error: "webhook_error", message: error instanceof Error ? error.message : String(error) }, 500);
+    return json({ error: "webhook_error", message: error instanceof Error ? error.message : String(error) }, 500, context.request, context.env);
   }
 };
 
-export const onRequestOptions: PagesFunction = async () => corsOptions("POST, OPTIONS");
+export const onRequestOptions: PagesFunction = async (context) => corsOptions("POST, OPTIONS", context.request, context.env);

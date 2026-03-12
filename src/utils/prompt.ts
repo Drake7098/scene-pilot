@@ -9,6 +9,7 @@ import { buildProMotionPromptLine, parseProMotionSelection } from "../content/pr
 import { buildImageProPromptLine } from "../content/proCreativeModes";
 import { proPromptQualityGate } from "../content/proPlusDirectorModules";
 import { resolveEffectiveMotion } from "./proMotionResolver";
+import { resolveSceneStrategy } from "./sceneStrategyResolver";
 
 /**
  * ScenePilot prompts generator
@@ -18,10 +19,8 @@ import { resolveEffectiveMotion } from "./proMotionResolver";
  * - System Structural Control Layer (machine notes / coordinate guide)  ✅ ALWAYS ON (no toggle)
  * - Language Reinforcement Layer (LRL)                                 ✅ ALWAYS ON (no toggle)
  * - Exposure Fix Layer (auto, heuristic)                               ✅ auto
- * - System Stability Layer                                             ✅ per-scene level via `stability: off|standard|strict` (default: standard)
  *
  * ✅ IMPORTANT (behavior unchanged):
- * - "Stability" switch only controls the Stability layer.
  * - Coordinate machine-notes + LRL are core and always appended (no switch).
  * - Media mode (image/video) is parsed PER SCENE from `scene.notes` marker `media: image|video`.
  *   - image scene: outputs t0 only, no seconds in header
@@ -93,6 +92,7 @@ export type PromptProfile =
   | "jimeng"
   | "qwen"
   | "openai"
+  | "fal"
   | "runway"
   | "midjourney"
   | "vertex"
@@ -233,19 +233,6 @@ function getShotPlan(project: Project): ShotPlan {
   return "single";
 }
 
-/* -------------------- Stability Toggle (per-scene) -------------------- */
-
-type StabilityLevel = "off" | "standard" | "strict";
-
-function parseStability(input: Scene | string): StabilityLevel {
-  const resolved = typeof input === "string" ? resolveSceneConfig({ notes: input, config: undefined }) : resolveSceneConfig(input);
-  return resolved.stability;
-}
-
-function getStabilityForScene(scene: Scene): StabilityLevel {
-  return parseStability(scene);
-}
-
 /* -------------------- Layer / Scene formatting -------------------- */
 
 function formatLayerLine(lang: Lang, layer: Layer, mode: MediaMode): string {
@@ -309,16 +296,21 @@ function formatScenePrompt(lang: Lang, scene: Scene): string {
   const duration = Number.isFinite(scene.duration_s) ? Math.round(scene.duration_s) : 0;
 
   const mode: MediaMode = parseMedia(scene);
+  const sceneStrategy = resolveSceneStrategy(scene, lang, mode);
 
   const shotRaw = typeof camera.shot === "string" ? camera.shot.trim() : "";
-  const shot = shotRaw || cameraPreset;
+  const shot = shotRaw || cameraPreset || sceneStrategy.defaults.shot;
   const effectiveMotion = resolveEffectiveMotion(scene);
-  const movement = effectiveMotion.source === "camera_movement" ? effectiveMotion.movementValue : "";
+  const movement = effectiveMotion.source === "camera_movement"
+    ? effectiveMotion.movementValue
+    : effectiveMotion.source === "none"
+      ? sceneStrategy.defaults.movement
+      : "";
   const imageProLine = mode === "image" ? buildImageProPromptLine(scene.notes ?? "", lang) : "";
 
-  const time = typeof lighting.time === "string" ? lighting.time.trim() : "";
-  const keyDir = typeof lighting.key_dir === "string" ? lighting.key_dir.trim() : "";
-  const mood = typeof lighting.mood === "string" ? lighting.mood.trim() : "";
+  const time = (typeof lighting.time === "string" ? lighting.time.trim() : "") || sceneStrategy.defaults.time;
+  const keyDir = (typeof lighting.key_dir === "string" ? lighting.key_dir.trim() : "") || sceneStrategy.defaults.keyDir;
+  const mood = (typeof lighting.mood === "string" ? lighting.mood.trim() : "") || sceneStrategy.defaults.mood;
 
   const layerLines = (scene.layers ?? [])
     .slice()
@@ -343,7 +335,8 @@ function formatScenePrompt(lang: Lang, scene: Scene): string {
         : "";
 
     const noteLine = shotNote ? `分镜说明：${shotNote}` : "";
-    const sceneMeta = [bg ? `背景：${bg}` : "", cameraLine, lightingLine, noteLine, proMotionLine, imageProLine].filter(Boolean).join("\n");
+    const strategyLines = sceneStrategy.promptLines;
+    const sceneMeta = [bg ? `背景：${bg}` : "", cameraLine, lightingLine, noteLine, ...strategyLines, proMotionLine, imageProLine].filter(Boolean).join("\n");
 
     return [header, sceneMeta, layerLines].filter(Boolean).join("\n\n");
   }
@@ -366,7 +359,8 @@ function formatScenePrompt(lang: Lang, scene: Scene): string {
       : "";
 
   const noteLine = shotNote ? `Shot note: ${shotNote}` : "";
-  const sceneMeta = [bg ? `Background: ${bg}` : "", cameraLine, lightingLine, noteLine, proMotionLine, imageProLine].filter(Boolean).join("\n");
+  const strategyLines = sceneStrategy.promptLines;
+  const sceneMeta = [bg ? `Background: ${bg}` : "", cameraLine, lightingLine, noteLine, ...strategyLines, proMotionLine, imageProLine].filter(Boolean).join("\n");
 
   return [header, sceneMeta, layerLines].filter(Boolean).join("\n\n");
 }
@@ -409,40 +403,6 @@ function machineNotesVideo(lang: Lang): string {
     "[Video] Apply t0→t1 across duration with smooth easing and continuous motion.",
     "[Rules] Keep identity and object count consistent unless requested; treat coordinates as control metadata, not visible text."
   ].join("\n");
-}
-
-/* -------------------- System Stability Layer (TOGGLE ONLY THIS) -------------------- */
-/** 极限压缩：避免与 machine-notes 重复太多 */
-function stabilityBlock(lang: Lang, mode: MediaMode, level: StabilityLevel): string {
-  if (lang === "zh") {
-    const lines: string[] = [
-      level === "strict"
-        ? "【系统稳定层（严格）】高优先级执行坐标/镜头/时间约束；坐标数字仅作控制信息；透视与比例保持一致。"
-        : "【系统稳定层】仅提升成功率：优先遵循坐标/镜头/时间/风格；坐标数字仅作控制信息；透视保持一致。"
-    ];
-    if (mode === "video") {
-      lines.push(
-        level === "strict"
-          ? "【视频补充】严格保持身份连续、对象数量稳定、运动平滑；避免额外对象与突发镜头变化。"
-          : "【视频补充】保持身份连续、对象数量稳定、运动平滑。"
-      );
-    }
-    return lines.join("\n");
-  }
-
-  const lines: string[] = [
-    level === "strict"
-      ? "[Stability Layer: Strict] Enforce coords/camera/time with high priority; treat coordinates as control metadata; keep perspective and scale consistent."
-      : "[Stability Layer] Success booster only: prioritize coords/camera/time/style; treat coordinates as control metadata; keep perspective consistent."
-  ];
-  if (mode === "video") {
-    lines.push(
-      level === "strict"
-        ? "[Video] Strictly keep identity and object count stable, with smooth continuity and no sudden camera behavior."
-        : "[Video] Keep identity and object count stable, with smooth motion continuity."
-    );
-  }
-  return lines.join("\n");
 }
 
 /* -------------------- Exposure Fix Layer (auto) -------------------- */
@@ -741,7 +701,6 @@ function languageReinforcementBlock(lang: Lang, project: Project): string {
  * ✅ Unified tail block (single tail for the exported project)
  * - Marker must stay as first line so ExportPanel can gray-split it.
  * - Machine notes + LRL are ALWAYS appended.
- * - Stability is per-scene: appended according to `off|standard|strict`.
  */
 function appendUnifiedTail(prompt: string, lang: Lang, project: Project): string {
   const scenes = project?.scenes ?? [];
@@ -756,15 +715,6 @@ function appendUnifiedTail(prompt: string, lang: Lang, project: Project): string
   const machineBody = machineLines.slice(1).join("\n").trimEnd();
 
   parts.push(marker);
-
-  // ✅ Stability: per-scene (ExportPanel usually exports 1 scene)
-  const sceneLevels = scenes.map((s) => getStabilityForScene(s));
-  const stabilityLevel: StabilityLevel =
-    sceneLevels.includes("strict") ? "strict" : sceneLevels.includes("standard") || sceneLevels.length === 0 ? "standard" : "off";
-
-  if (stabilityLevel !== "off") {
-    parts.push("", stabilityBlock(lang, mode, stabilityLevel));
-  }
 
   if (shouldAppendExposureFix(project)) {
     parts.push("", exposureFixBlock(lang));
@@ -894,6 +844,10 @@ function platformGuide(profile: PromptProfile, lang: Lang): string {
     profileRules = zh
       ? ["OpenAI 策略：自然语言分段，但每段只表达单一约束目标，避免含糊代词。"]
       : ["OpenAI: natural-language sections, but one constraint goal per sentence; avoid ambiguous pronouns."];
+  } else if (profile === "fal") {
+    profileRules = zh
+      ? ["fal 策略：图片优先对象与关系，先主体再关系再构图，复杂场景保留结构化分段。"]
+      : ["fal: prioritize subject and relation first; for complex scenes, keep structured object blocks before style."];
   } else if (profile === "runway") {
     profileRules = zh
       ? ["Runway 策略：视频优先时间连续性，动作描述使用“起点→终点”形式，镜头变化保持平滑。"]
@@ -1053,7 +1007,8 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
     scenes.forEach((s, i) => {
       out.push(formatScenePrompt(lang, s));
       if (i < scenes.length - 1) {
-        const t = (s as any).transitionType ?? (shotPlan === "multicam" ? "reverse_angle" : "cut");
+        const strategy = resolveSceneStrategy(s, lang, parseMedia(s));
+        const t = (s as any).transitionType ?? strategy.defaults.transitionType ?? (shotPlan === "multicam" ? "reverse_angle" : "cut");
         out.push(transitionLineByType(lang, i, i + 1, t));
       }
     });

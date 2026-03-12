@@ -1,9 +1,13 @@
+import { corsOptions, json, rejectDisallowedOrigin } from "./api/_shared/http";
+
 export const onRequestPost: PagesFunction = async (context) => {
   try {
+    const originErr = rejectDisallowedOrigin(context.request, context.env);
+    if (originErr) return originErr;
     const data = await context.request.json();
 
     if (!data?.event) {
-      return new Response("missing event", { status: 400 });
+      return json({ error: "missing_event" }, 400, context.request, context.env);
     }
 
     const mode =
@@ -28,8 +32,10 @@ export const onRequestPost: PagesFunction = async (context) => {
       )
       .run();
 
-    return new Response("ok");
+    return json({ ok: true }, 200, context.request, context.env);
   } catch {
-    return new Response("error", { status: 500 });
+    return json({ error: "track_error" }, 500, context.request, context.env);
   }
 };
+
+export const onRequestOptions: PagesFunction = async (context) => corsOptions("POST, OPTIONS", context.request, context.env);

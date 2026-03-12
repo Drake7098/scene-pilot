@@ -25,3 +25,8 @@ dist-ssr
 
 # Robot test generated artifacts (keep scripts/configs under tests/robots tracked)
 tests/robots/artifacts/
+tests/ab/dist/
+tests/ab/outputs/
+tests/local-ab/dist/
+tests/local-ab/outputs/
+tests/intent-benchmark/dist/

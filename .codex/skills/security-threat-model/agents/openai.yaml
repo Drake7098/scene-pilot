@@ -1,0 +1,4 @@
+interface:
+  display_name: "Security Threat Model"
+  short_description: "Create feature threat model with required checks."
+  default_prompt: "Build a feature-level threat model and list blocking mitigations."

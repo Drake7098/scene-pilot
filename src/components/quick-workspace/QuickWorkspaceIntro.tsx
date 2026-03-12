@@ -11,6 +11,7 @@ type Props = {
 };
 
 export function QuickWorkspaceIntro({ lang, mode = "full" }: Props) {
+  void lang;
   return (
     <header
       style={{ ...styles.wrap, ...(mode === "compact" ? styles.wrapCompact : null) }}
@@ -21,9 +22,7 @@ export function QuickWorkspaceIntro({ lang, mode = "full" }: Props) {
           {t(lang, "先说你想看到什么", "Tell us what you want to see first")}
         </h1>
       ) : (
-        <p style={styles.compactLine} data-testid="quick-intro-compact">
-          {t(lang, "通过分镜结构和机器语言提升图片和视频制作达成率。", "Use storyboard structure and machine-ready language to improve image and video hit rate.")}
-        </p>
+        <div style={styles.compactSpacer} data-testid="quick-intro-compact" aria-hidden="true" />
       )}
     </header>
   );
@@ -58,5 +57,9 @@ const styles: Record<string, React.CSSProperties> = {
     color: "rgba(255,255,255,0.82)",
     textAlign: "left",
     letterSpacing: -0.2
+  },
+  compactSpacer: {
+    width: 1,
+    height: 1
   }
 };

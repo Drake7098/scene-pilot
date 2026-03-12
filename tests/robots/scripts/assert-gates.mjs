@@ -3,6 +3,7 @@ import path from "node:path";
 
 const summaryPath = path.resolve("tests/robots/artifacts/summary.json");
 const resultsPath = path.resolve("tests/robots/artifacts/results.json");
+const functionalAuditPath = path.resolve("tests/robots/artifacts/functional-audit.json");
 
 if (!fs.existsSync(summaryPath)) {
   console.error(`[robots:gate] Missing summary file: ${summaryPath}`);
@@ -32,41 +33,32 @@ if (!allowSkips && skipped > 0) {
   violations.push(`${skipped} skipped tests (set ROBOT_ALLOW_SKIPS=1 to bypass)`);
 }
 
-const requiredUiGuardSpecs = [
-  "tests/robots/scenarios/quick-workspace-layout-guard.spec.ts",
-];
-
 if (!fs.existsSync(resultsPath)) {
   violations.push(`missing results file: ${resultsPath}`);
 } else {
   const results = JSON.parse(fs.readFileSync(resultsPath, "utf8"));
-  const seenRequired = new Set();
-  let requiredFailures = 0;
+  const suites = Array.isArray(results.suites) ? results.suites.length : 0;
+  if (!suites) violations.push("results file has no suites");
+}
 
-  const walkSuite = (suite) => {
-    for (const spec of suite.specs || []) {
-      const file = String(spec.file || "");
-      const isRequired = requiredUiGuardSpecs.some((item) => file.endsWith(item));
-      if (!isRequired) continue;
-      const matched = requiredUiGuardSpecs.find((item) => file.endsWith(item));
-      if (matched) seenRequired.add(matched);
-      for (const t of spec.tests || []) {
-        const statuses = (t.results || []).map((r) => r.status);
-        const hasFailed = statuses.some((s) => s === "failed" || s === "timedOut" || s === "interrupted");
-        if (hasFailed) requiredFailures += 1;
-      }
-    }
-    for (const child of suite.suites || []) walkSuite(child);
-  };
+if (!fs.existsSync(functionalAuditPath)) {
+  violations.push(`missing functional audit file: ${functionalAuditPath}`);
+} else {
+  const audit = JSON.parse(fs.readFileSync(functionalAuditPath, "utf8"));
+  const caps = Array.isArray(audit.capabilities) ? audit.capabilities : [];
+  const missingCaps = caps.filter((cap) => !cap.executed);
+  const failedCaps = caps.filter((cap) => cap.executed && !cap.passed);
+  const blockerFailures = caps.filter((cap) => cap.severity === "blocker" && (!cap.executed || !cap.passed));
 
-  for (const suite of results.suites || []) walkSuite(suite);
-
-  const missing = requiredUiGuardSpecs.filter((item) => !seenRequired.has(item));
-  if (missing.length) {
-    violations.push(`required ui guard specs not executed: ${missing.join(", ")}`);
+  if (!caps.length) violations.push("functional audit has no capabilities");
+  if (missingCaps.length) {
+    violations.push(`missing functional capabilities: ${missingCaps.map((cap) => cap.id).join(", ")}`);
   }
-  if (requiredFailures > 0) {
-    violations.push(`${requiredFailures} failures in required ui guard specs`);
+  if (failedCaps.length) {
+    violations.push(`failed functional capabilities: ${failedCaps.map((cap) => cap.id).join(", ")}`);
+  }
+  if (blockerFailures.length) {
+    violations.push(`blocker capability failures: ${blockerFailures.map((cap) => cap.id).join(", ")}`);
   }
 }
 

@@ -1,0 +1,68 @@
+{
+  "requiredCapabilities": [
+    {
+      "id": "quick.image.local_generation",
+      "label": "Quick 工作台本地图片生成/继续生成/结构调整",
+      "severity": "blocker",
+      "specs": [
+        "tests/robots/scenarios/quick-workspace-local-drawthings.spec.ts"
+      ]
+    },
+    {
+      "id": "quick.image.fallback_comfy",
+      "label": "Quick 工作台 ComfyUI 失败回退 Draw Things",
+      "severity": "blocker",
+      "specs": [
+        "tests/robots/scenarios/quick-workspace-local-fallback-comfy.spec.ts"
+      ]
+    },
+    {
+      "id": "quick.image.handoff_pack",
+      "label": "Quick 工作台双离线降级任务包",
+      "severity": "blocker",
+      "specs": [
+        "tests/robots/scenarios/quick-workspace-handoff-pack.spec.ts"
+      ]
+    },
+    {
+      "id": "quick.to_pro.handoff",
+      "label": "Quick 工作台进入 Pro（模式切换，不自动继承文本）",
+      "severity": "blocker",
+      "specs": [
+        "tests/robots/scenarios/quick-workspace-to-pro.spec.ts"
+      ]
+    },
+    {
+      "id": "pro.media.contract",
+      "label": "Pro 图片/视频媒体契约分流",
+      "severity": "blocker",
+      "specs": [
+        "tests/robots/scenarios/pro-media-contract.spec.ts"
+      ]
+    },
+    {
+      "id": "pro.save.export.local",
+      "label": "Pro 保存/另存/导出本地链路",
+      "severity": "blocker",
+      "specs": [
+        "tests/robots/scenarios/pro-save-export-local.spec.ts"
+      ]
+    },
+    {
+      "id": "project.menu.flow",
+      "label": "项目菜单连续流",
+      "severity": "high",
+      "specs": [
+        "tests/robots/scenarios/project-menu-flow.spec.ts"
+      ]
+    },
+    {
+      "id": "quick.layout.guard",
+      "label": "Quick 工作台布局守卫",
+      "severity": "blocker",
+      "specs": [
+        "tests/robots/scenarios/quick-workspace-layout-guard.spec.ts"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+{
+  "project": {
+    "mode": "storyboard",
+    "mediaType": "image",
+    "shotPlan": "single",
+    "creativeContext": {
+      "source": "imported",
+      "mediaType": "image",
+      "fileName": "pro_img_realestate_004.json",
+      "primaryInput": "地产样板间推广图",
+      "secondaryInput": "置业顾问、客户和室内空间同框，强调空间品质。",
+      "mergedInput": "地产样板间推广图 置业顾问、客户和室内空间同框，强调空间品质。",
+      "intentSummary": "地产样板间推广图",
+      "locationHint": "media: image\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\nstability: standard\nbg: 样板间客厅空间",
+      "styleHint": "bright premium",
+      "subjectLabels": [
+        "置业顾问",
+        "客户夫妻",
+        "样板间客厅"
+      ]
+    }
+  },
+  "scenes": [
+    {
+      "id": "S01",
+      "name": "分镜1",
+      "index": 1,
+      "transitionType": "cut",
+      "duration_s": 4,
+      "shotNote": "置业顾问、客户和室内空间同框，强调空间品质。",
+      "entryDir": "S",
+      "exitDir": "S",
+      "camera": {
+        "shot": "wide",
+        "movement": "static",
+        "keyframes": [
+          {
+            "t": 0,
+            "x": 0,
+            "y": 0,
+            "zoom": 1,
+            "rot": 0
+          },
+          {
+            "t": 1,
+            "x": 0,
+            "y": 0,
+            "zoom": 1,
+            "rot": 0
+          }
+        ]
+      },
+      "lighting": {
+        "time": "day",
+        "key_dir": "window",
+        "mood": "bright premium"
+      },
+      "layers": [
+        {
+          "id": "主体1",
+          "type": "置业顾问",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "职业装，手持户型图",
+          "z": 11,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 30,
+              "y": 58,
+              "w": 16,
+              "h": 30,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 30,
+              "y": 58,
+              "w": 16,
+              "h": 30,
+              "rot": 0
+            }
+          ],
+          "notes": "左中景，介绍动作",
+          "externalPrompt": "讲解状态自然",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "主体2",
+          "type": "客户夫妻",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "休闲商务穿搭",
+          "z": 11,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 68,
+              "y": 58,
+              "w": 24,
+              "h": 30,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 68,
+              "y": 58,
+              "w": 24,
+              "h": 30,
+              "rot": 0
+            }
+          ],
+          "notes": "右中景，两人共同观看",
+          "externalPrompt": "客户互动自然",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "主体3",
+          "type": "样板间客厅",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "沙发、落地窗、装饰画",
+          "z": 5,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 50,
+              "y": 50,
+              "w": 96,
+              "h": 92,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 50,
+              "y": 50,
+              "w": 96,
+              "h": 92,
+              "rot": 0
+            }
+          ],
+          "notes": "背景主空间，体现品质",
+          "externalPrompt": "空间层次与透视",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        }
+      ],
+      "config": {
+        "mediaMode": "image",
+        "compiler": "v2",
+        "sceneTier": "open_space",
+        "v2Mode": "strict",
+        "stability": "standard"
+      },
+      "notes": "media: image\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\nstability: standard\nbg: 样板间客厅空间"
+    }
+  ]
+}

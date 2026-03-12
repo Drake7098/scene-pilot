@@ -1,24 +1,36 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { Check, CreditCard, Crown, X } from "lucide-react";
+import type { Lang } from "../../i18n";
 import type { UserState } from "../../types/account";
 import type { CreditPackConfig, ProPlanConfig } from "../../types/billing";
 import { LEGAL_DOCS, legalText, type LegalDocId } from "../../content/legal";
+import type { LocalProviderStatus } from "../../utils/localGeneration";
 
 type BillingPage = "upgrade" | "credits";
+type LocalTestProvider = "comfyui" | "drawthings";
 
 type Props = {
   open: boolean;
   page: BillingPage | null;
+  lang: Lang;
   user: UserState | null;
   creditsBalance: number;
   creditPacks: CreditPackConfig[];
   proPlan: ProPlanConfig | null;
   billingBusy: boolean;
+  localTestBusy: boolean;
+  localTestHint: string;
+  localProviderStatus: {
+    comfy: LocalProviderStatus;
+    draw: LocalProviderStatus;
+  };
   billingLegalAccepted: boolean;
   onClose: () => void;
   onOpenUpgrade: () => void;
   onOpenCredits: () => void;
+  onProbeLocalProviders: () => void;
+  onRunLocalTest: (provider: LocalTestProvider) => void;
   onRequireAuth: () => void;
   onBillingLegalAcceptedChange: (value: boolean) => void;
   onUpgrade: () => void;
@@ -38,15 +50,21 @@ export function BillingOverlay(props: Props) {
   const {
     open,
     page,
+    lang,
     user,
     creditsBalance,
     creditPacks,
     proPlan,
     billingBusy,
+    localTestBusy,
+    localTestHint,
+    localProviderStatus,
     billingLegalAccepted,
     onClose,
     onOpenUpgrade,
     onOpenCredits,
+    onProbeLocalProviders,
+    onRunLocalTest,
     onRequireAuth,
     onBillingLegalAcceptedChange,
     onUpgrade,
@@ -54,9 +72,17 @@ export function BillingOverlay(props: Props) {
     onManageBilling
   } = props;
   const [activeLegalDoc, setActiveLegalDoc] = React.useState<LegalDocId | null>(null);
+  const [localProvider, setLocalProvider] = React.useState<LocalTestProvider>("comfyui");
   const legalDoc = activeLegalDoc ? LEGAL_DOCS[activeLegalDoc] : null;
 
   if (!open || !page) return null;
+
+  const localStatusText = (status: LocalProviderStatus) => {
+    if (status.state === "ready") return status.baseUrl ? `ready · ${status.baseUrl}` : "ready";
+    if (status.state === "checking") return "checking...";
+    if (status.state === "handoff") return status.detail || "handoff only";
+    return status.error || status.detail || "unavailable";
+  };
 
   return createPortal(
     <div style={styles.mask} onMouseDown={onClose} role="presentation">
@@ -142,6 +168,63 @@ export function BillingOverlay(props: Props) {
             <div style={styles.noteCard} data-testid="upgrade-credits-note">
               <div>AI image and video generation uses credits.</div>
               <div>Credits are included with Pro and can be purchased separately.</div>
+            </div>
+
+            <div style={styles.localTestCard} data-testid="billing-local-test-card">
+              <div style={styles.blockTitle}>
+                {lang === "zh" ? "本地测试生成（跳过会员）" : "Local test generation (membership bypass)"}
+              </div>
+              <div style={styles.localTestDesc}>
+                {lang === "zh"
+                  ? "用于本地链路调试：选择 ComfyUI 或 Draw Things，直接本地生成。"
+                  : "For local pipeline debugging: choose ComfyUI or Draw Things and generate locally."}
+              </div>
+              <div style={styles.localTestRow}>
+                <select
+                  value={localProvider}
+                  onChange={(e) => setLocalProvider(e.target.value as LocalTestProvider)}
+                  style={styles.localSelect}
+                  data-testid="billing-local-provider-select"
+                >
+                  <option value="comfyui">ComfyUI</option>
+                  <option value="drawthings">Draw Things</option>
+                </select>
+                <button
+                  type="button"
+                  style={styles.secondaryBtn}
+                  onClick={onProbeLocalProviders}
+                  disabled={localTestBusy}
+                  data-testid="billing-local-probe"
+                >
+                  {lang === "zh" ? "检测本地 API" : "Check local APIs"}
+                </button>
+                <button
+                  type="button"
+                  style={styles.primaryBtn}
+                  onClick={() => onRunLocalTest(localProvider)}
+                  disabled={localTestBusy}
+                  data-testid="billing-local-generate"
+                >
+                  {localTestBusy
+                    ? (lang === "zh" ? "本地生成中..." : "Running local generation...")
+                    : (lang === "zh" ? "本地测试生成" : "Run local test generate")}
+                </button>
+              </div>
+              <div style={styles.localStatusGrid}>
+                <div style={styles.localStatusItem}>
+                  <span style={styles.localStatusLabel}>ComfyUI</span>
+                  <span style={styles.localStatusValue}>{localStatusText(localProviderStatus.comfy)}</span>
+                </div>
+                <div style={styles.localStatusItem}>
+                  <span style={styles.localStatusLabel}>Draw Things</span>
+                  <span style={styles.localStatusValue}>{localStatusText(localProviderStatus.draw)}</span>
+                </div>
+              </div>
+              {localTestHint ? (
+                <div style={styles.localHint} data-testid="billing-local-hint">
+                  {localTestHint}
+                </div>
+              ) : null}
             </div>
 
             <div style={styles.legalCard}>
@@ -450,6 +533,79 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8,
     color: "rgba(255,255,255,0.84)",
     lineHeight: 1.6
+  },
+  localTestCard: {
+    borderRadius: 20,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "linear-gradient(180deg, rgba(70,90,188,0.16), rgba(34,44,98,0.12))",
+    padding: 18,
+    display: "grid",
+    gap: 10
+  },
+  localTestDesc: {
+    fontSize: 13,
+    lineHeight: 1.6,
+    color: "rgba(236,241,255,0.86)"
+  },
+  localTestRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap"
+  },
+  localSelect: {
+    minWidth: 148,
+    minHeight: 36,
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.18)",
+    background: "rgba(255,255,255,0.06)",
+    color: "#f5f7fb",
+    padding: "0 10px",
+    fontSize: 13
+  },
+  secondaryBtn: {
+    minHeight: 36,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.2)",
+    background: "rgba(255,255,255,0.06)",
+    color: "#f5f7fb",
+    padding: "0 14px",
+    cursor: "pointer",
+    fontWeight: 640,
+    fontSize: 13
+  },
+  localStatusGrid: {
+    display: "grid",
+    gap: 8,
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))"
+  },
+  localStatusItem: {
+    borderRadius: 12,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.04)",
+    padding: "8px 10px",
+    display: "grid",
+    gap: 4
+  },
+  localStatusLabel: {
+    fontSize: 11,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color: "rgba(255,255,255,0.6)"
+  },
+  localStatusValue: {
+    fontSize: 12.5,
+    color: "rgba(255,255,255,0.9)",
+    lineHeight: 1.4
+  },
+  localHint: {
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.16)",
+    background: "rgba(255,255,255,0.06)",
+    padding: "8px 10px",
+    fontSize: 12.5,
+    color: "rgba(241,245,255,0.96)",
+    lineHeight: 1.5
   },
   legalCard: {
     borderRadius: 20,

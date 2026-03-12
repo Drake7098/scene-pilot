@@ -11,6 +11,7 @@ This folder contains a minimal robot testing scaffold for Phase 5.
 - `npm run robots:run`: run tests and update run-state + summary
 - `npm run robots:test`: run Playwright tests directly
 - `npm run robots:gate`: enforce quality gates from `artifacts/summary.json`
+- `node tests/robots/scripts/audit-functional-coverage.mjs`: audit P0/P1 functional capabilities from Playwright results
 - `npm run robots:test:ui`: Playwright live UI mode
 - `npm run robots:dashboard`: open local robot dashboard server
 - `npm run robots:prompt:ab:clean`: generate/evaluate 100 clean prompt sims
@@ -30,6 +31,21 @@ This folder contains a minimal robot testing scaffold for Phase 5.
   - dropdown selected text fits available width (no clipping/half-text)
   - dropdown width is not excessively loose (prevents large blank area + useless wrapping)
   - capsule field height remains within a compact bound
+
+## Functional Capability Gates
+- Default robot runs now audit an explicit capability matrix before final gate pass/fail.
+- Capability manifest: [`tests/robots/config/functional-capabilities.json`](/Users/dk/scene-pilot/tests/robots/config/functional-capabilities.json)
+- Audit outputs:
+  - `tests/robots/artifacts/functional-audit.json`
+  - `tests/robots/artifacts/functional-audit.md`
+- Current blocker capabilities include:
+  - Quick 本地图片生成 / refine / 结构调整
+  - Quick 回退 ComfyUI
+  - Quick 双离线任务包
+  - Quick 进入 Pro 承接
+  - Pro 图片/视频媒体契约
+  - Pro 保存/另存/导出
+  - Quick 布局守卫
 
 ## Daily Automation
 - GitHub Actions workflow: `.github/workflows/robots-daily.yml`

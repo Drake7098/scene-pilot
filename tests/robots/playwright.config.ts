@@ -1,5 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
+const appUrl = process.env.APP_URL || "http://127.0.0.1:5173";
+const useExternalServer = Boolean(process.env.APP_URL);
+
 export default defineConfig({
   testDir: "./scenarios",
   timeout: 90_000,
@@ -11,16 +14,18 @@ export default defineConfig({
   ],
   outputDir: "./artifacts/raw",
   use: {
-    baseURL: process.env.APP_URL || "http://127.0.0.1:5173",
+    baseURL: appUrl,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     headless: true,
   },
-  webServer: {
-    command: "npm run dev -- --host 127.0.0.1 --port 5173",
-    url: process.env.APP_URL || "http://127.0.0.1:5173",
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  webServer: useExternalServer
+    ? undefined
+    : {
+        command: "npm run dev -- --host 127.0.0.1 --port 5173",
+        url: appUrl,
+        reuseExistingServer: true,
+        timeout: 120_000,
+      },
 });

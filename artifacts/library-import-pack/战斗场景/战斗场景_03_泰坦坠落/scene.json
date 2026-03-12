@@ -1,0 +1,213 @@
+{
+  "project": {
+    "mode": "storyboard"
+  },
+  "scenes": [
+    {
+      "id": "s3",
+      "name": "03 泰坦坠落",
+      "index": 3,
+      "duration_s": 6,
+      "transitionType": "dissolve",
+      "inheritFromPrevious": true,
+      "inheritBgRefFromPrevious": true,
+      "inheritObjectRefsFromPrevious": "all",
+      "cameraPreset": "",
+      "shotNote": "桥面爆裂，敌方泰坦被主角机甲贯穿失衡，烟雾和火花把空间切成多层，镜头拉开，让坠落体量真正压下来。",
+      "camera": {
+        "shot": "wide",
+        "movement": "slow_pull_out",
+        "keyframes": [
+          { "t": 0, "x": 1, "y": -1, "zoom": 1.08, "rot": 0 },
+          { "t": 1, "x": -2, "y": -3, "zoom": 0.94, "rot": 0 }
+        ]
+      },
+      "lighting": {
+        "time": "night",
+        "key_dir": "backlight",
+        "mood": "mysterious"
+      },
+      "layers": [
+        {
+          "id": "主角机甲_曜",
+          "type": "assault mech commander",
+          "shape": "rect",
+          "shapeDesc": "hero mech with spear impact follow-through",
+          "look": "hero mech framed by sparks, bright amber core, spear driven through armor, rim-lit silhouette",
+          "z": 54,
+          "color": "#b7c3ff",
+          "opacity": 0.98,
+          "kf": [
+            { "t": 0, "x": 46, "y": 62, "w": 16, "h": 24, "rot": -4 },
+            { "t": 1, "x": 43, "y": 60, "w": 15, "h": 23, "rot": -8 }
+          ],
+          "notes": "role:hero_lead\naction:impact follow-through atop collapsing armor",
+          "externalPrompt": "The hero mech remains readable at the exact emotional center of the titan collapse.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "突击兵_A",
+          "type": "shock trooper",
+          "shape": "rect",
+          "shapeDesc": "left-side cover fire silhouette",
+          "look": "small trooper silhouette lit by sparks, rifle muzzle flash, low stance",
+          "z": 36,
+          "color": "#9dd6ff",
+          "opacity": 0.9,
+          "kf": [
+            { "t": 0, "x": 24, "y": 73, "w": 7, "h": 13, "rot": -6 },
+            { "t": 1, "x": 22, "y": 72, "w": 7, "h": 13, "rot": -8 }
+          ],
+          "notes": "role:left_cover\nstate:bracing against shockwave",
+          "externalPrompt": "Small but readable left-side trooper bracing into the blast wave.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "突击兵_B",
+          "type": "shock trooper",
+          "shape": "rect",
+          "shapeDesc": "right-side recoil silhouette",
+          "look": "right flank trooper leaning back from debris burst, shoulder lights visible",
+          "z": 35,
+          "color": "#f6b0b0",
+          "opacity": 0.9,
+          "kf": [
+            { "t": 0, "x": 61, "y": 71, "w": 7, "h": 13, "rot": 8 },
+            { "t": 1, "x": 64, "y": 70, "w": 7, "h": 13, "rot": 12 }
+          ],
+          "notes": "role:right_cover\nstate:thrown sideways by concussion",
+          "externalPrompt": "The right-side trooper is caught by the blast without stealing focus from the titan fall.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "重装兵_盾",
+          "type": "heavy infantry",
+          "shape": "rect",
+          "shapeDesc": "shield planted into floor",
+          "look": "heavy shield frame, grounded stance, amber barrier taking debris impacts",
+          "z": 37,
+          "color": "#ffe2a8",
+          "opacity": 0.92,
+          "kf": [
+            { "t": 0, "x": 54, "y": 76, "w": 10, "h": 15, "rot": 1 },
+            { "t": 1, "x": 55, "y": 76, "w": 10, "h": 15, "rot": 0 }
+          ],
+          "notes": "role:stabilizer\nstate:shield planted under impact",
+          "externalPrompt": "The heavy soldier acts as a grounded stabilizer against the titan shockwave.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "无人机群",
+          "type": "drone swarm",
+          "shape": "rect",
+          "shapeDesc": "swarm broken into scattered arcs",
+          "look": "drones disrupted by EMP haze, staggered light trails, fragments of blue engine flare",
+          "z": 20,
+          "color": "#8bd6ff",
+          "opacity": 0.76,
+          "kf": [
+            { "t": 0, "x": 63, "y": 34, "w": 20, "h": 10, "rot": 22 },
+            { "t": 1, "x": 69, "y": 29, "w": 20, "h": 10, "rot": 30 }
+          ],
+          "notes": "role:airspace_noise\nstate:scattered by shockwave",
+          "externalPrompt": "The drone cluster partially breaks apart into readable streaks, not random clutter.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "炮艇_晨矛",
+          "type": "gunship",
+          "shape": "arrow",
+          "shapeDesc": "climbing out of debris plume",
+          "look": "gunship banking hard, cockpit glow, missile streak after passing the titan",
+          "z": 26,
+          "color": "#d6e4ff",
+          "opacity": 0.88,
+          "kf": [
+            { "t": 0, "x": 30, "y": 18, "w": 17, "h": 8, "rot": -8 },
+            { "t": 1, "x": 24, "y": 14, "w": 17, "h": 8, "rot": -16 }
+          ],
+          "notes": "role:air_support\nstate:climbing away after strike",
+          "externalPrompt": "The gunship reads as a coordinated strike asset peeling out of the collapse.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "坠落运输舰",
+          "type": "damaged dropship wreck",
+          "shape": "rect",
+          "shapeDesc": "wreckage burning below the bridge",
+          "look": "wreck fragments, secondary fireballs, smoke pillars rising from below frame",
+          "z": 10,
+          "color": "#f0c6a8",
+          "opacity": 0.68,
+          "kf": [
+            { "t": 0, "x": 86, "y": 30, "w": 20, "h": 12, "rot": -30 },
+            { "t": 1, "x": 89, "y": 33, "w": 20, "h": 12, "rot": -36 }
+          ],
+          "notes": "role:environment_debris\nstate:falling lower into lava clouds",
+          "externalPrompt": "The old dropship wreck falls deeper into the lower battle layer, extending vertical scale.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "能量裂隙",
+          "type": "dimensional breach",
+          "shape": "ring",
+          "shapeDesc": "distant breach dimmed by smoke",
+          "look": "distant ring aperture, dark blue core, smoke and ash partially obscuring edge light",
+          "z": 6,
+          "color": "#7dc8ff",
+          "opacity": 0.48,
+          "kf": [
+            { "t": 0, "x": 13, "y": 26, "w": 22, "h": 28, "rot": 8 },
+            { "t": 1, "x": 12, "y": 25, "w": 22, "h": 28, "rot": 8 }
+          ],
+          "notes": "role:background_memory\nstate:barely visible through smoke",
+          "externalPrompt": "The breach stays as a dim mythic landmark through smoke and atmospheric loss.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "敌方泰坦_破城",
+          "type": "enemy titan walker",
+          "shape": "rect",
+          "shapeDesc": "titan collapsing off-axis",
+          "look": "colossal siege mech splitting open, red core failing, armor sections peeling, smoke and sparks",
+          "z": 32,
+          "color": "#ffb3b3",
+          "opacity": 0.94,
+          "kf": [
+            { "t": 0, "x": 70, "y": 50, "w": 24, "h": 34, "rot": 12 },
+            { "t": 1, "x": 76, "y": 57, "w": 23, "h": 33, "rot": 26 }
+          ],
+          "notes": "role:main_antagonist\nstate:falling off the bridge after core breach",
+          "externalPrompt": "The titan's collapse must feel huge, off-balance, and structurally catastrophic.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        }
+      ],
+      "config": {
+        "mediaMode": "video",
+        "compiler": "v2",
+        "sceneTier": "open_space",
+        "v2Mode": "strict",
+        "stability": "standard"
+      },
+      "notes": "media: video\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\ngenmode: pro\nbg: fractured bridge span over black smoke and lava light, collapsing support ribs, heavy ash, vertical depth into cloud sea\nvideo_classic_mode: mystery_reveal\ndirector_pack: architectural_tension\npro_plus_motion: vertigo_drop, smoke_manifest"
+    }
+  ]
+}

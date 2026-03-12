@@ -16,6 +16,7 @@ import {
   generateVideoShotTitles,
   inferImageFocus,
   inferImageStructureHintByKeywords,
+  inferMainSceneByKeywords,
   inferVideoStructureHintByKeywords
 } from "./structureDraftRules";
 
@@ -122,6 +123,8 @@ export function generateStructureDraft(args: GenerateStructureDraftArgs): Struct
   }));
   const shotCount = defaultVideoShotCount(videoType) as 1 | 3 | 4 | 5;
   const titles = generateVideoShotTitles(args.userInput, shotCount, args.lang);
+  const mainScene = inferMainSceneByKeywords(args.userInput, videoType);
+  const sceneTransition = videoType === "multi_scene" ? "location_switch" : "none";
   return completeStructureDraft({
     mediaType: "video",
     primaryBrief: args.userInput.trim(),
@@ -130,10 +133,10 @@ export function generateStructureDraft(args: GenerateStructureDraftArgs): Struct
     scene: extractImageScene(args.userInput, args.lang),
     objects,
     shotCount,
-    mainScene: "indoor",
+    mainScene,
     continuityFocus: "identity",
     rhythm: videoType === "continuous" ? "push" : videoType === "multicam" ? "switch" : videoType === "multi_scene" ? "emotion" : "stable",
-    sceneTransitions: videoType === "multi_scene" ? "location_switch" : "none",
+    sceneTransitions: sceneTransition,
     cameraMotion: videoType === "single_shot" ? "follow" : "static",
     expressionFocus: "character_action",
     styleGoal: "cinematic",

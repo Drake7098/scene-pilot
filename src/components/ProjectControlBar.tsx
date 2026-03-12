@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "../i18n";
 import {
   ChevronDown,
+  Copy,
   Download,
   FilePlus2,
   FolderOpen,
   PencilLine,
-  Save,
-  SaveAll
+  Save
 } from "lucide-react";
 import { UI_COMMAND, UI_MENU, UI_PALETTE, UI_TYPO } from "../uiTokens";
 
@@ -15,14 +15,13 @@ type Props = {
   lang: Lang;
   isMac: boolean;
   projectLabel: string;
-  onOpenQuickWorkspace: () => void;
   onOpenProject: () => void;
   onRenameProject: () => void;
   onNewProject: () => void;
   onSaveProject: () => void;
   onSaveAs: () => void;
+  onCopyPrompt: () => void;
   onExportProject: () => void;
-  onSaveAll: () => void;
   onOpenLibrary: () => void;
 };
 
@@ -31,14 +30,13 @@ export function ProjectControlBar(props: Props) {
     lang,
     isMac,
     projectLabel,
-    onOpenQuickWorkspace,
     onOpenProject,
     onRenameProject,
     onNewProject,
     onSaveProject,
     onSaveAs,
+    onCopyPrompt,
     onExportProject,
-    onSaveAll,
     onOpenLibrary
   } = props;
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
@@ -97,10 +95,23 @@ export function ProjectControlBar(props: Props) {
 
         {projectMenuOpen ? (
           <div style={styles.menu} data-testid="project-menu">
-            <button style={styles.menuItem} data-testid="project-menu-quick-workspace" type="button" onClick={() => { closeMenus(); onOpenQuickWorkspace(); }}>
+            <button style={styles.menuItem} data-testid="project-menu-save" type="button" onClick={() => { closeMenus(); onSaveProject(); }}>
               <span style={styles.menuItemLabel}>
-                <FolderOpen size={menuIconSize} />
-                <span>{lang === "zh" ? "快捷工作台" : "Quick Workspace"}</span>
+                <Save size={menuIconSize} />
+                <span>{lang === "zh" ? "保存项目…" : "Save Project..."}</span>
+              </span>
+              <span style={styles.menuShortcut}>{shortcuts.save}</span>
+            </button>
+            <button style={styles.menuItem} data-testid="project-menu-copy-prompt" type="button" onClick={() => { closeMenus(); onCopyPrompt(); }}>
+              <span style={styles.menuItemLabel}>
+                <Copy size={menuIconSize} />
+                <span>{lang === "zh" ? "复制提示词" : "Copy Prompt"}</span>
+              </span>
+            </button>
+            <button style={styles.menuItem} data-testid="project-menu-export" type="button" onClick={() => { closeMenus(); onExportProject(); }}>
+              <span style={styles.menuItemLabel}>
+                <Download size={menuIconSize} />
+                <span>{lang === "zh" ? "导出…" : "Export..."}</span>
               </span>
             </button>
             <div style={styles.menuSep} />
@@ -111,51 +122,32 @@ export function ProjectControlBar(props: Props) {
               </span>
               <span style={styles.menuShortcut}>{shortcuts.open}</span>
             </button>
+            <button style={styles.menuItem} data-testid="project-menu-library" type="button" onClick={() => { closeMenus(); onOpenLibrary(); }}>
+              <span style={styles.menuItemLabel}>
+                <FolderOpen size={menuIconSize} />
+                <span>{lang === "zh" ? "项目库" : "Project Library"}</span>
+              </span>
+            </button>
             <button style={styles.menuItem} data-testid="project-menu-rename" type="button" onClick={() => { closeMenus(); onRenameProject(); }}>
               <span style={styles.menuItemLabel}>
                 <PencilLine size={menuIconSize} />
                 <span>{lang === "zh" ? "重命名项目" : "Rename Project"}</span>
               </span>
             </button>
-            <button style={styles.menuItem} data-testid="project-menu-save" type="button" onClick={() => { closeMenus(); onSaveProject(); }}>
-              <span style={styles.menuItemLabel}>
-                <Save size={menuIconSize} />
-                <span>{lang === "zh" ? "保存…" : "Save..."}</span>
-              </span>
-              <span style={styles.menuShortcut}>{shortcuts.save}</span>
-            </button>
             <button style={styles.menuItem} data-testid="project-menu-save-as" type="button" onClick={() => { closeMenus(); onSaveAs(); }}>
               <span style={styles.menuItemLabel}>
                 <Save size={menuIconSize} />
-                <span>{lang === "zh" ? "另存为…" : "Save As..."}</span>
+                <span>{lang === "zh" ? "另存项目…" : "Save Project As..."}</span>
               </span>
               <span style={styles.menuShortcut}>{shortcuts.saveAs}</span>
             </button>
-            <button style={styles.menuItem} data-testid="project-menu-export" type="button" onClick={() => { closeMenus(); onExportProject(); }}>
-              <span style={styles.menuItemLabel}>
-                <Download size={menuIconSize} />
-                <span>{lang === "zh" ? "导出…" : "Export..."}</span>
-              </span>
-            </button>
+            <div style={styles.menuSep} />
             <button style={styles.menuItem} data-testid="project-menu-new" type="button" onClick={() => { closeMenus(); onNewProject(); }}>
               <span style={styles.menuItemLabel}>
                 <FilePlus2 size={menuIconSize} />
                 <span>{lang === "zh" ? "新建项目" : "New Project"}</span>
               </span>
               <span style={styles.menuShortcut}>{shortcuts.newProject}</span>
-            </button>
-            <div style={styles.menuSep} />
-            <button style={styles.menuItem} data-testid="project-menu-save-all" type="button" onClick={() => { closeMenus(); onSaveAll(); }}>
-              <span style={styles.menuItemLabel}>
-                <SaveAll size={menuIconSize} />
-                <span>{lang === "zh" ? "保存全部分镜…" : "Save All Shots..."}</span>
-              </span>
-            </button>
-            <button style={styles.menuItem} data-testid="project-menu-library" type="button" onClick={() => { closeMenus(); onOpenLibrary(); }}>
-              <span style={styles.menuItemLabel}>
-                <FolderOpen size={menuIconSize} />
-                <span>{lang === "zh" ? "我的分镜库" : "My Library"}</span>
-              </span>
             </button>
           </div>
         ) : null}

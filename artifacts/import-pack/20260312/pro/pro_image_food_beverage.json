@@ -1,0 +1,203 @@
+{
+  "project": {
+    "mode": "storyboard",
+    "mediaType": "image",
+    "shotPlan": "single",
+    "creativeContext": {
+      "source": "imported",
+      "mediaType": "image",
+      "fileName": "pro_img_food_003.json",
+      "primaryInput": "餐饮新品套餐主图",
+      "secondaryInput": "主菜、饮品、品牌元素同框，突出食欲与商业信息。",
+      "mergedInput": "餐饮新品套餐主图 主菜、饮品、品牌元素同框，突出食欲与商业信息。",
+      "intentSummary": "餐饮新品套餐主图",
+      "locationHint": "media: image\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: standard\nbg: 餐厅桌面场景",
+      "styleHint": "warm appetizing",
+      "subjectLabels": [
+        "主菜盘",
+        "饮品杯",
+        "品牌标识牌",
+        "木质桌面环境"
+      ]
+    }
+  },
+  "scenes": [
+    {
+      "id": "S01",
+      "name": "分镜1",
+      "index": 1,
+      "transitionType": "cut",
+      "duration_s": 4,
+      "shotNote": "主菜、饮品、品牌元素同框，突出食欲与商业信息。",
+      "entryDir": "S",
+      "exitDir": "S",
+      "camera": {
+        "shot": "medium",
+        "movement": "static",
+        "keyframes": [
+          {
+            "t": 0,
+            "x": 0,
+            "y": 0,
+            "zoom": 1,
+            "rot": 0
+          },
+          {
+            "t": 1,
+            "x": 0,
+            "y": 0,
+            "zoom": 1,
+            "rot": 0
+          }
+        ]
+      },
+      "lighting": {
+        "time": "indoor",
+        "key_dir": "top_left",
+        "mood": "warm appetizing"
+      },
+      "layers": [
+        {
+          "id": "主体1",
+          "type": "主菜盘",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "牛排套餐，食物纹理清晰",
+          "z": 14,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 50,
+              "y": 60,
+              "w": 30,
+              "h": 20,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 50,
+              "y": 60,
+              "w": 30,
+              "h": 20,
+              "rot": 0
+            }
+          ],
+          "notes": "中心前景，主卖点",
+          "externalPrompt": "食物热气与高光",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "主体2",
+          "type": "饮品杯",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "冷饮透明杯，带水珠",
+          "z": 13,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 30,
+              "y": 62,
+              "w": 14,
+              "h": 22,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 30,
+              "y": 62,
+              "w": 14,
+              "h": 22,
+              "rot": 0
+            }
+          ],
+          "notes": "左前景，辅助销售",
+          "externalPrompt": "杯体通透",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "主体3",
+          "type": "品牌标识牌",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "简洁logo立卡",
+          "z": 9,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 72,
+              "y": 50,
+              "w": 14,
+              "h": 16,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 72,
+              "y": 50,
+              "w": 14,
+              "h": 16,
+              "rot": 0
+            }
+          ],
+          "notes": "右中景，识别品牌",
+          "externalPrompt": "logo可读",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "主体4",
+          "type": "木质桌面环境",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "木纹桌面和模糊背景灯光",
+          "z": 4,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 50,
+              "y": 52,
+              "w": 98,
+              "h": 94,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 50,
+              "y": 52,
+              "w": 98,
+              "h": 94,
+              "rot": 0
+            }
+          ],
+          "notes": "背景层，保持暖色氛围",
+          "externalPrompt": "背景柔和不抢主体",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        }
+      ],
+      "config": {
+        "mediaMode": "image",
+        "compiler": "v2",
+        "sceneTier": "indoor",
+        "v2Mode": "strict",
+        "stability": "standard"
+      },
+      "notes": "media: image\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: standard\nbg: 餐厅桌面场景"
+    }
+  ]
+}

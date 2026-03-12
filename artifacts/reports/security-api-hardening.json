@@ -1,0 +1,157 @@
+{
+  "generatedAt": "2026-03-12T12:41:47.169Z",
+  "root": "/Users/dk/scene-pilot",
+  "pass": true,
+  "summary": {
+    "files": 10,
+    "requiredFailures": 0,
+    "warnings": 7
+  },
+  "failures": [],
+  "checks": [
+    {
+      "file": "functions/api/collect.ts",
+      "kind": "other",
+      "checks": {
+        "hasAuth": false,
+        "hasSchemaGuard": true,
+        "hasCorsGuard": true,
+        "hasCorsPreflight": true,
+        "hasRateLimitHint": false
+      },
+      "missingRequired": [],
+      "warnings": []
+    },
+    {
+      "file": "functions/api/feedback.ts",
+      "kind": "other",
+      "checks": {
+        "hasAuth": false,
+        "hasSchemaGuard": true,
+        "hasCorsGuard": true,
+        "hasCorsPreflight": true,
+        "hasRateLimitHint": false
+      },
+      "missingRequired": [],
+      "warnings": []
+    },
+    {
+      "file": "functions/api/stats.ts",
+      "kind": "other",
+      "checks": {
+        "hasAuth": false,
+        "hasSchemaGuard": false,
+        "hasCorsGuard": true,
+        "hasCorsPreflight": true,
+        "hasRateLimitHint": false
+      },
+      "missingRequired": [],
+      "warnings": []
+    },
+    {
+      "file": "functions/api/paddle/checkout.ts",
+      "kind": "checkout",
+      "checks": {
+        "hasAuth": true,
+        "hasSchemaGuard": true,
+        "hasCorsGuard": true,
+        "hasCorsPreflight": true,
+        "hasRateLimitHint": false
+      },
+      "missingRequired": [],
+      "warnings": [
+        "rate_limit"
+      ]
+    },
+    {
+      "file": "functions/api/paddle/customer-portal.ts",
+      "kind": "checkout",
+      "checks": {
+        "hasAuth": true,
+        "hasSchemaGuard": true,
+        "hasCorsGuard": true,
+        "hasCorsPreflight": true,
+        "hasRateLimitHint": false
+      },
+      "missingRequired": [],
+      "warnings": [
+        "rate_limit"
+      ]
+    },
+    {
+      "file": "functions/api/paddle/webhook.ts",
+      "kind": "webhook",
+      "checks": {
+        "hasAuth": false,
+        "hasSchemaGuard": true,
+        "hasCorsGuard": true,
+        "hasCorsPreflight": true,
+        "hasRateLimitHint": false
+      },
+      "missingRequired": [],
+      "warnings": [
+        "rate_limit"
+      ]
+    },
+    {
+      "file": "functions/api/generation/providers.ts",
+      "kind": "generation",
+      "checks": {
+        "hasAuth": true,
+        "hasSchemaGuard": false,
+        "hasCorsGuard": true,
+        "hasCorsPreflight": true,
+        "hasRateLimitHint": false
+      },
+      "missingRequired": [],
+      "warnings": [
+        "rate_limit"
+      ]
+    },
+    {
+      "file": "functions/api/generation/status.ts",
+      "kind": "generation",
+      "checks": {
+        "hasAuth": true,
+        "hasSchemaGuard": true,
+        "hasCorsGuard": true,
+        "hasCorsPreflight": true,
+        "hasRateLimitHint": false
+      },
+      "missingRequired": [],
+      "warnings": [
+        "rate_limit"
+      ]
+    },
+    {
+      "file": "functions/api/generation/submit.ts",
+      "kind": "generation",
+      "checks": {
+        "hasAuth": true,
+        "hasSchemaGuard": true,
+        "hasCorsGuard": true,
+        "hasCorsPreflight": true,
+        "hasRateLimitHint": false
+      },
+      "missingRequired": [],
+      "warnings": [
+        "rate_limit"
+      ]
+    },
+    {
+      "file": "functions/api/billing/me.ts",
+      "kind": "billing",
+      "checks": {
+        "hasAuth": true,
+        "hasSchemaGuard": true,
+        "hasCorsGuard": true,
+        "hasCorsPreflight": true,
+        "hasRateLimitHint": false
+      },
+      "missingRequired": [],
+      "warnings": [
+        "rate_limit"
+      ]
+    }
+  ]
+}

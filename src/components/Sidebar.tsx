@@ -2,13 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Lang } from "../i18n";
 import { t } from "../i18n";
-import { resolveSceneConfig, withSceneConfig } from "../model";
+import { resolveSceneConfig } from "../model";
 import type { Project, Scene, Layer, ShotPlan, Direction, TransitionType } from "../model";
 import { defaultObjectName, defaultSceneName } from "../utils/naming";
 import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_FONT, UI_INFO, UI_OPACITY, UI_PALETTE, UI_RADIUS, UI_SIZE, UI_SPACE, UI_STATUS, UI_TYPO } from "../uiTokens";
 import { Plus, Minus, ChevronRight } from "lucide-react";
 import {
   PRO_PLUS_MOTION_CATEGORIES,
+  applyProMotionSelection,
   getProCameraPreset,
   parseProMotionSelection,
   proMotionDesc,
@@ -16,6 +17,7 @@ import {
 } from "../content/proCameraPresets";
 import {
   IMAGE_PRO_CATEGORIES,
+  applyImageProEffects,
   applyImageClassicMode,
   applyVideoClassicMode,
   disabledImageEffectIds,
@@ -25,12 +27,22 @@ import {
   getImageProEffect,
   getImageProEffectsByCategory,
   parseVideoClassicModeId,
+  setImageClassicModeMarker,
+  setVideoClassicModeMarker,
   getVideoClassicModes,
   getVisibleVideoProPlusPresets,
   parseImageProEffects,
   syncImageClassicMode,
   syncVideoClassicMode
 } from "../content/proCreativeModes";
+import {
+  DIRECTOR_STYLE_PACKS,
+  applyDirectorStylePack,
+  directorStylePackLabel,
+  parseDirectorStylePackId,
+  type DirectorStylePackId
+} from "../content/directorStylePacks";
+import { resolveSceneStrategy } from "../utils/sceneStrategyResolver";
 
 type Props = {
   lang: Lang;
@@ -94,12 +106,12 @@ function suggestSpawnKf(layers: Layer[]) {
   return best;
 }
 
-function buildDefaultObjectLayer(lang: Lang, layers: Layer[]): Layer {
+function buildDefaultObjectLayer(lang: Lang, layers: Layer[], seedLabel?: string): Layer {
   const nextIndex = Math.max(1, layers.length + 1);
-  const id = defaultObjectName(lang, nextIndex);
+  const id = (seedLabel ?? "").trim() || defaultObjectName(lang, nextIndex);
   return {
     id,
-    type: lang === "zh" ? "主体" : "subject",
+    type: (seedLabel ?? "").trim() || (lang === "zh" ? "主体" : "subject"),
     shape: "rect",
     shapeDesc: "",
     look: "",
@@ -142,17 +154,11 @@ function setGenMode(notes: string, mode: GenMode): string {
 }
 
 // -------------------- Stability marker in scene.notes --------------------
-type StabilityMode = "off" | "standard" | "strict";
 type FloatingHintTone = "info" | "danger";
-function parseStability(scene: Scene): StabilityMode {
-  return resolveSceneConfig(scene).stability;
-}
-
-function applyStability(scene: Scene, mode: StabilityMode): Scene {
-  return withSceneConfig(scene, { stability: mode });
-}
 
 const IMAGE_PRO_PLUS_CATEGORY_IDS = new Set(["psychology", "surreal_material", "body_perception"]);
+const MAX_SCENES = 6;
+const MAX_LAYERS_PER_SCENE = 8;
 
 // -------------------- New Scene Draft UI --------------------
 type NewSceneDraft = {
@@ -241,13 +247,15 @@ export function Sidebar(props: Props) {
   const [durDraft, setDurDraft] = useState<string>("");
 
   // per-scene markers (current scene)
-  const stabilityMode = useMemo<StabilityMode>(() => parseStability(scene), [scene]);
   const projectShotPlan: ShotPlan = (project.project?.shotPlan as ShotPlan) ?? "single";
   const projectMediaType: MediaMode = (project.project?.mediaType as MediaMode) ?? "video";
-  const isImageProject = projectMediaType === "image";
-  const isVideoProject = projectMediaType === "video";
+  const sceneMediaType: MediaMode = resolveSceneConfig(scene).mediaMode;
+  const activeMediaType: MediaMode = sceneMediaType || projectMediaType;
+  const isImageProject = activeMediaType === "image";
+  const isVideoProject = activeMediaType === "video";
   const proMotionSelection = useMemo(() => parseProMotionSelection(scene.notes ?? ""), [scene.notes]);
   const imageProSelection = useMemo(() => parseImageProEffects(scene.notes ?? ""), [scene.notes]);
+  const directorStylePackId = useMemo(() => parseDirectorStylePackId(scene.notes ?? ""), [scene.notes]);
   const videoClassicModes = useMemo(() => getVideoClassicModes(), []);
   const imageClassicModes = useMemo(() => getImageClassicModes(), []);
   const disabledProPlusIds = useMemo(
@@ -296,6 +304,17 @@ export function Sidebar(props: Props) {
   const deleteHintAnchorRef = useRef<HTMLElement | null>(null);
 
   const [confirmDelIdx, setConfirmDelIdx] = useState<number | null>(null);
+  const sceneLimitReached = scenes.length >= MAX_SCENES;
+  const layerLimitReached = (scene.layers ?? []).length >= MAX_LAYERS_PER_SCENE;
+  const remainingSceneSlots = Math.max(0, MAX_SCENES - scenes.length);
+
+  function sceneLimitText() {
+    return lang === "zh" ? `分镜最多 ${MAX_SCENES} 个` : `Max ${MAX_SCENES} shots`;
+  }
+
+  function layerLimitText() {
+    return lang === "zh" ? `单分镜对象最多 ${MAX_LAYERS_PER_SCENE} 个` : `Max ${MAX_LAYERS_PER_SCENE} objects per shot`;
+  }
 
   useEffect(() => {
     setVideoProMenuOpen(false);
@@ -357,45 +376,17 @@ export function Sidebar(props: Props) {
   }
 
   function addSceneByProjectDefaults(anchorEl: HTMLElement | null) {
+    if (sceneLimitReached) {
+      showFloatingHint(sceneLimitText(), anchorEl, "danger");
+      return;
+    }
     const mode = projectMediaDefault();
     const shotPlan = projectShotPlanDefault();
     const genMode: GenMode = parseGenMode(scene?.notes ?? "");
-    const duration_s = Math.max(1, Math.round(Number(scene?.duration_s) || 6));
     const idxNo = scenes.length + 1;
     const name = defaultSceneName(lang, mode, idxNo);
-    const id = nextId("s", (x) => scenes.some((s) => s.id === x));
     const copyLayers = JSON.parse(JSON.stringify(scene.layers ?? [])) as Layer[];
-    const nextSceneObj: Scene = {
-      id,
-      index: idxNo,
-      name,
-      duration_s,
-      cameraPreset: mode === "video" ? "first-person" : "",
-      inheritFromPrevious: mode === "video" && idxNo > 1 && (shotPlan === "multicam" || shotPlan === "continuous"),
-      ...defaultRefInheritByPlan(shotPlan, mode !== "video" || idxNo <= 1),
-      transitionType: mode === "video" ? defaultTransitionByPlan(shotPlan) : "cut",
-      entryDir: mode === "video" && shotPlan === "continuous" && idxNo > 1 ? "E" : undefined,
-      exitDir: mode === "video" && shotPlan === "continuous" ? "E" : undefined,
-      camera: {
-        shot: "",
-        movement: "",
-        keyframes: [
-          { t: 0, x: 0, y: 0, zoom: 1, rot: 0 },
-          { t: 1, x: 0, y: 0, zoom: 1, rot: 0 }
-        ]
-      } as any,
-      lighting: { time: "", key_dir: "", mood: "" } as any,
-      layoutLocked: false,
-      layers: [buildDefaultObjectLayer(lang, [])],
-      config: {
-        mediaMode: mode,
-        compiler: mode === "video" ? "v2" : "v1",
-        sceneTier: resolveSceneConfig(scene).sceneTier,
-        v2Mode: resolveSceneConfig(scene).v2Mode,
-        stability: resolveSceneConfig(scene).stability
-      },
-      notes: setGenMode(`media: ${mode}`, genMode)
-    };
+    const nextSceneObj: Scene = buildSceneSeed(mode, shotPlan, idxNo, name, genMode);
     if (mode === "video" && shotPlan === "multicam") {
       nextSceneObj.layers = copyLayers;
       nextSceneObj.backgroundRef = scene.backgroundRef ? JSON.parse(JSON.stringify(scene.backgroundRef)) : undefined;
@@ -491,17 +482,6 @@ export function Sidebar(props: Props) {
     setEditingLayerId(null);
   }
 
-  function commitStabilityMode(mode: StabilityMode) {
-    onUpdateScene(applyStability(scene, mode));
-    showToast(
-      mode === "strict"
-        ? tt("sidebar.constraintToastStrict")
-        : mode === "standard"
-          ? tt("sidebar.constraintToastStandard")
-          : tt("sidebar.constraintToastOff")
-    );
-  }
-
   function cancelAddScenePanel() {
     setNewScene((s) => ({ ...s, open: false }));
     setNewSceneModeTouched(false);
@@ -510,6 +490,10 @@ export function Sidebar(props: Props) {
   }
 
   function confirmAddScene(anchorEl: HTMLElement | null) {
+    if (remainingSceneSlots <= 0) {
+      showFloatingHint(sceneLimitText(), anchorEl, "danger");
+      return;
+    }
     const mode: MediaMode = newScene.mode;
     const fallbackName = defaultSceneName(lang, mode, scenes.length + 1);
     const name = (newScene.name ?? "").trim() || fallbackName;
@@ -521,46 +505,26 @@ export function Sidebar(props: Props) {
     const askedCount = Math.max(1, Math.round(Number(newScene.shotCount) || defaultShotCountForPlan(shotPlan)));
     const shotCount =
       mode === "image" || shotPlan === "single" ? 1 : Math.max(2, askedCount);
+    const allowedShotCount = Math.min(shotCount, remainingSceneSlots);
+    if (allowedShotCount < shotCount) {
+      showToast(
+        lang === "zh"
+          ? `超出分镜上限，已按剩余名额创建 ${allowedShotCount} 个`
+          : `Shot limit reached. Creating ${allowedShotCount} with the remaining slots.`
+      );
+    }
     const baseLayers = JSON.parse(JSON.stringify(scene.layers ?? [])) as Layer[];
 
     const makeBaseScene = (sceneName: string, index: number): Scene => {
-      const id = nextId("s", (x) => scenes.some((s) => s.id === x) || addedScenes.some((s) => s.id === x));
-      return {
-        id,
-        index,
-        name: sceneName,
-        duration_s,
-        cameraPreset: mode === "video" ? "first-person" : "",
-        inheritFromPrevious: mode === "video" && index > 1 && (shotPlan === "multicam" || shotPlan === "continuous"),
-        ...defaultRefInheritByPlan(shotPlan, mode !== "video" || index <= 1),
-        transitionType: mode === "video" ? defaultTransitionByPlan(shotPlan) : "cut",
-        entryDir: shotPlan === "continuous" && index > 1 ? "E" : undefined,
-        exitDir: shotPlan === "continuous" ? "E" : undefined,
-        camera: {
-          shot: "",
-          movement: "",
-          keyframes: [
-            { t: 0, x: 0, y: 0, zoom: 1, rot: 0 },
-            { t: 1, x: 0, y: 0, zoom: 1, rot: 0 }
-          ]
-        } as any,
-        lighting: { time: "", key_dir: "", mood: "" } as any,
-        layoutLocked: false,
-        layers: [buildDefaultObjectLayer(lang, [])],
-        config: {
-          mediaMode: mode,
-          compiler: mode === "video" ? "v2" : "v1",
-          sceneTier: resolveSceneConfig(scene).sceneTier,
-          v2Mode: resolveSceneConfig(scene).v2Mode,
-          stability: resolveSceneConfig(scene).stability
-        },
-        notes: setGenMode(`media: ${mode}`, genMode)
-      };
+      const base = buildSceneSeed(mode, shotPlan, index, sceneName, genMode);
+      base.id = nextId("s", (x) => scenes.some((s) => s.id === x) || addedScenes.some((s) => s.id === x));
+      base.duration_s = duration_s;
+      return base;
     };
 
     const addedScenes: Scene[] = [];
-    if (mode === "video" && shotCount > 1) {
-      for (let i = 0; i < shotCount; i++) {
+    if (mode === "video" && allowedShotCount > 1) {
+      for (let i = 0; i < allowedShotCount; i++) {
         const idxNo = scenes.length + i + 1;
         const s = makeBaseScene(defaultSceneName(lang, mode, idxNo), idxNo);
         if (shotPlan === "multicam") {
@@ -628,6 +592,10 @@ export function Sidebar(props: Props) {
 
   function addLayer() {
     const layers = scene.layers ?? [];
+    if (layers.length >= MAX_LAYERS_PER_SCENE) {
+      showToast(layerLimitText());
+      return;
+    }
     const spawn = suggestSpawnKf(layers);
     const newLayer = buildDefaultObjectLayer(lang, layers);
     let objectNo = 1;
@@ -726,10 +694,71 @@ export function Sidebar(props: Props) {
 
   const currentShot = (scene.camera?.shot ?? "").toString();
   const currentMovement = (scene.camera?.movement ?? "").toString();
+  const sceneStrategy = useMemo(
+    () => resolveSceneStrategy(scene, lang, isVideoProject ? "video" : "image"),
+    [scene, lang, isVideoProject]
+  );
+  const visibleShot = currentShot || sceneStrategy.defaults.shot || "";
+  const visibleMovement = currentMovement || sceneStrategy.defaults.movement || "";
+  const visibleTransition = (scene.transitionType ?? sceneStrategy.defaults.transitionType ?? defaultTransitionByPlan(projectShotPlan)).toString();
+  const visibleLightingTime = (scene.lighting?.time ?? "").toString() || sceneStrategy.defaults.time || "";
+  const visibleLightingKeyDir = (scene.lighting?.key_dir ?? "").toString() || sceneStrategy.defaults.keyDir || "";
+  const visibleLightingMood = (scene.lighting?.mood ?? "").toString() || sceneStrategy.defaults.mood || "";
   const hasVideoManualClassic = !selectedVideoClassicModeId && Boolean(currentShot || currentMovement || proMotionSelection.proPlusIds.length);
   const hasImageManualClassic = !selectedImageClassicModeId && Boolean(currentShot || imageProSelection.length);
   const videoClassicSelectValue = selectedVideoClassicModeId || (hasVideoManualClassic ? "__manual__" : "");
   const imageClassicSelectValue = selectedImageClassicModeId || (hasImageManualClassic ? "__manual__" : "");
+
+  function buildInheritedSceneNotes(mode: MediaMode, genMode: GenMode) {
+    let nextNotes = setGenMode(`media: ${mode}`, genMode);
+    if (mode !== activeMediaType) return nextNotes;
+    nextNotes = applyDirectorStylePack(nextNotes, directorStylePackId ?? "");
+    if (mode === "video") {
+      nextNotes = setVideoClassicModeMarker(nextNotes, selectedVideoClassicModeId);
+      nextNotes = applyProMotionSelection(nextNotes, proMotionSelection);
+      return nextNotes;
+    }
+    nextNotes = setImageClassicModeMarker(nextNotes, selectedImageClassicModeId);
+    nextNotes = applyImageProEffects(nextNotes, imageProSelection);
+    return nextNotes;
+  }
+
+  function buildSceneSeed(mode: MediaMode, shotPlan: ShotPlan, idxNo: number, name: string, genMode: GenMode): Scene {
+    return {
+      id: nextId("s", (x) => scenes.some((s) => s.id === x)),
+      index: idxNo,
+      name,
+      duration_s: Math.max(1, Math.round(Number(scene?.duration_s) || 6)),
+      cameraPreset: mode === "video" ? "first-person" : "",
+      inheritFromPrevious: mode === "video" && idxNo > 1 && (shotPlan === "multicam" || shotPlan === "continuous"),
+      ...defaultRefInheritByPlan(shotPlan, mode !== "video" || idxNo <= 1),
+      transitionType: mode === "video" ? (scene.transitionType ?? defaultTransitionByPlan(shotPlan)) : "cut",
+      entryDir: mode === "video" && shotPlan === "continuous" && idxNo > 1 ? "E" : undefined,
+      exitDir: mode === "video" && shotPlan === "continuous" ? "E" : undefined,
+      camera: {
+        shot: mode === activeMediaType ? visibleShot : "",
+        movement: mode === "video" && mode === activeMediaType ? visibleMovement : "",
+        keyframes: [
+          { t: 0, x: 0, y: 0, zoom: 1, rot: 0 },
+          { t: 1, x: 0, y: 0, zoom: 1, rot: 0 }
+        ]
+      } as any,
+      lighting: {
+        time: mode === activeMediaType ? visibleLightingTime : "",
+        key_dir: mode === activeMediaType ? visibleLightingKeyDir : "",
+        mood: mode === activeMediaType ? visibleLightingMood : ""
+      } as any,
+      layoutLocked: false,
+      layers: [buildDefaultObjectLayer(lang, [])],
+      config: {
+        mediaMode: mode,
+        compiler: mode === "video" ? "v2" : "v1",
+        sceneTier: resolveSceneConfig(scene).sceneTier,
+        v2Mode: resolveSceneConfig(scene).v2Mode
+      },
+      notes: buildInheritedSceneNotes(mode, genMode)
+    };
+  }
 
   function updateCameraField(field: "shot" | "movement", value: string) {
     const nextShot = field === "shot" ? value : currentShot;
@@ -829,10 +858,39 @@ export function Sidebar(props: Props) {
     return item ? (lang === "zh" ? item.labelZh : item.labelEn) : (lang === "zh" ? "未选择" : "None");
   }
 
+  function currentDirectorStylePackLabel() {
+    return directorStylePackLabel(directorStylePackId, lang);
+  }
+
+  function compactRecipeNameEn(recipeId: string, name: string) {
+    const map: Record<string, string> = {
+      premium_commercial: "Premium Ad",
+      relationship_standoff: "Standoff",
+      first_person_impact: "FP Impact",
+      character_trail: "Trail Follow",
+      rhythm_transition: "Rhythm Cut",
+      mystery_reveal: "Mystery Reveal"
+    };
+    if (map[recipeId]) return map[recipeId];
+    return name;
+  }
+
+  function recipeOptionLabel(recipe: { id: string; nameZh: string; nameEn: string }) {
+    if (lang === "zh") return recipe.nameZh;
+    return compactRecipeNameEn(recipe.id, recipe.nameEn);
+  }
+
+  function updateDirectorStylePack(packId: string) {
+    const nextNotes = applyDirectorStylePack(scene.notes ?? "", packId as DirectorStylePackId | "");
+    onUpdateScene({ ...scene, notes: nextNotes });
+  }
+
   function menuRect(trigger: HTMLButtonElement | null) {
     if (!trigger) return null;
     const rect = trigger.getBoundingClientRect();
-    const width = Math.max(rect.width, 216);
+    const minMenuWidth = lang === "zh" ? 216 : 248;
+    const maxMenuWidth = Math.max(minMenuWidth, Math.floor(window.innerWidth * 0.42));
+    const width = Math.min(maxMenuWidth, Math.max(rect.width, minMenuWidth));
     const maxLeft = Math.max(8, window.innerWidth - width * 2 - 12);
     const maxMenuHeight = 320;
     const desiredTop = rect.bottom + 4;
@@ -1268,6 +1326,8 @@ export function Sidebar(props: Props) {
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => confirmAddScene(e.currentTarget as HTMLElement)}
                 style={styles.btnPrimary}
+                disabled={remainingSceneSlots <= 0}
+                title={remainingSceneSlots <= 0 ? sceneLimitText() : undefined}
               >
                 {tt("sidebar.create")}
               </button>
@@ -1286,8 +1346,8 @@ export function Sidebar(props: Props) {
             style={styles.iconBtn}
             onMouseDown={(e) => e.preventDefault()}
             onClick={(e) => addSceneByProjectDefaults(e.currentTarget as HTMLElement)}
-            title={tt("sidebar.addScene")}
-            disabled={isImageProject}
+            title={sceneLimitReached ? sceneLimitText() : tt("sidebar.addScene")}
+            disabled={isImageProject || sceneLimitReached}
           >
             <Plus size={16} />
           </button>
@@ -1433,7 +1493,8 @@ export function Sidebar(props: Props) {
             style={styles.iconBtn}
             onMouseDown={(e) => e.preventDefault()}
             onClick={addLayer}
-            title={tt("sidebar.addLayer")}
+            title={layerLimitReached ? layerLimitText() : tt("sidebar.addLayer")}
+            disabled={layerLimitReached}
           >
             <Plus size={16} />
           </button>
@@ -1512,28 +1573,11 @@ export function Sidebar(props: Props) {
         </div>
 
       </div>
-
-      {/* Stability */}
+      {/* Scene Strategy + Lighting */}
       <div style={styles.section}>
-        <div style={styles.sectionHead}>
-          <div style={styles.sectionTitle} title={tt("sidebar.constraintHint")}>{tt("sidebar.constraintTitle")}</div>
-        </div>
+        <div style={styles.sectionTitle}>{lang === "zh" ? "场景策略" : "Scene Strategy"}</div>
 
-        <div style={styles.formRow}>
-          <div style={styles.formLabel} title={tt("sidebar.constraintHint")}>{tt("sidebar.constraintField")}</div>
-          <select value={stabilityMode} onChange={(e) => commitStabilityMode(e.target.value as StabilityMode)} style={styles.select}>
-            <option value="off">{tt("sidebar.constraintOff")}</option>
-            <option value="standard">{tt("sidebar.constraintStandard")}</option>
-            <option value="strict">{tt("sidebar.constraintStrict")}</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Camera + Lighting */}
-      <div style={styles.section}>
-        <div style={styles.sectionTitle}>{tt("camera.title")}</div>
-
-        {projectMediaType === "video" && projectShotPlan === "continuous" ? (
+        {isVideoProject && projectShotPlan === "continuous" ? (
           <>
             <div style={styles.formRow}>
               <div style={styles.formLabel}>{lang === "zh" ? "入镜方向" : "Entry"}</div>
@@ -1574,40 +1618,23 @@ export function Sidebar(props: Props) {
           </>
         ) : null}
 
-        {projectMediaType === "video" && projectShotPlan !== "single" ? (
-          <>
-            <div style={styles.formRow}>
-              <div style={styles.formLabel}>{lang === "zh" ? "对象继承" : "Inherit Objects"}</div>
-              <select
-                style={styles.select}
-                value={scene.inheritFromPrevious ? "on" : "off"}
-                onChange={(e) => {
-                  const on = e.target.value === "on";
-                  const forced = projectShotPlan === "continuous" ? true : on;
-                  onUpdateScene({ ...scene, inheritFromPrevious: forced });
-                }}
-                disabled={safeIdx === 0 || projectShotPlan === "continuous"}
-              >
-                <option value="on">{lang === "zh" ? "开启" : "On"}</option>
-                <option value="off">{lang === "zh" ? "关闭" : "Off"}</option>
-              </select>
-            </div>
-            <div style={styles.formRow}>
-              <div style={styles.formLabel}>{lang === "zh" ? "衔接方式" : "Transition"}</div>
-              <select
-                style={styles.select}
-                value={(scene.transitionType ?? defaultTransitionByPlan(projectShotPlan)).toString()}
-                onChange={(e) => onUpdateScene({ ...scene, transitionType: e.target.value as TransitionType })}
-                disabled={projectShotPlan === "continuous" || safeIdx >= scenes.length - 1}
-              >
-                <option value="cut">{lang === "zh" ? "切换 (cut)" : "Cut"}</option>
-                <option value="reverse_angle">{lang === "zh" ? "反打 (reverse angle)" : "Reverse angle"}</option>
-                <option value="camera_continues">{lang === "zh" ? "连续推进 (camera continues)" : "Camera continues"}</option>
-                <option value="dissolve">{lang === "zh" ? "叠化 (dissolve)" : "Dissolve"}</option>
-                <option value="time_jump">{lang === "zh" ? "时间跳转 (time jump)" : "Time jump"}</option>
-              </select>
-            </div>
-          </>
+        {isVideoProject && projectShotPlan !== "single" ? (
+          <div style={styles.formRow}>
+            <div style={styles.formLabel}>{lang === "zh" ? "对象继承" : "Inherit Objects"}</div>
+            <select
+              style={styles.select}
+              value={scene.inheritFromPrevious ? "on" : "off"}
+              onChange={(e) => {
+                const on = e.target.value === "on";
+                const forced = projectShotPlan === "continuous" ? true : on;
+                onUpdateScene({ ...scene, inheritFromPrevious: forced });
+              }}
+              disabled={safeIdx === 0 || projectShotPlan === "continuous"}
+            >
+              <option value="on">{lang === "zh" ? "开启" : "On"}</option>
+              <option value="off">{lang === "zh" ? "关闭" : "Off"}</option>
+            </select>
+          </div>
         ) : null}
 
         <div style={styles.proDirectorBlock} data-testid="pro-director-block">
@@ -1615,7 +1642,7 @@ export function Sidebar(props: Props) {
           <div style={styles.formRow}>
             <div style={styles.formLabel}>{lang === "zh" ? "一键选择" : "Preset"}</div>
             <select
-              style={styles.select}
+              style={{ ...styles.select, ...styles.selectWide }}
               value={isVideoProject ? videoClassicSelectValue : imageClassicSelectValue}
               onChange={(e) => {
                 if (e.target.value === "__manual__") return;
@@ -1628,17 +1655,17 @@ export function Sidebar(props: Props) {
                 <option value="__manual__" disabled>{lang === "zh" ? "手动设置" : "Manual Setup"}</option>
               ) : null}
               {(isVideoProject ? videoClassicModes : imageClassicModes).map((recipe) => (
-                <option key={recipe.id} value={recipe.id}>
-                  {lang === "zh" ? recipe.nameZh : recipe.nameEn}
+                <option key={recipe.id} value={recipe.id} title={lang === "zh" ? recipe.nameZh : recipe.nameEn}>
+                  {recipeOptionLabel(recipe)}
                 </option>
               ))}
             </select>
           </div>
           <div style={styles.formRow}>
-            <div style={styles.formLabel}>{tt("camera.shot")}</div>
+            <div style={styles.formLabel}>{isVideoProject ? tt("camera.shot") : (lang === "zh" ? "构图景别" : "Framing")}</div>
             <select
-              style={styles.select}
-              value={(scene.camera?.shot ?? "").toString()}
+              style={{ ...styles.select, ...styles.selectWide }}
+              value={visibleShot}
               onChange={(e) => updateCameraField("shot", e.target.value)}
               data-testid="classic-shot-select"
             >
@@ -1653,8 +1680,8 @@ export function Sidebar(props: Props) {
             <div style={styles.formRow}>
               <div style={styles.formLabel}>{tt("camera.movement")}</div>
               <select
-                style={styles.select}
-                value={(scene.camera?.movement ?? "").toString()}
+                style={{ ...styles.select, ...styles.selectWide }}
+                value={visibleMovement}
                 onChange={(e) => updateCameraField("movement", e.target.value)}
                 data-testid="classic-movement-select"
               >
@@ -1670,6 +1697,26 @@ export function Sidebar(props: Props) {
 
         {isVideoProject ? (
           <div style={styles.proMotionBlock} data-testid="pro-motion-block">
+            <div style={styles.proDirectorTitle}>{lang === "zh" ? "PRO+ 导演控制" : "PRO+ Director Controls"}</div>
+            <div style={styles.proMotionPanel}>
+              <div style={styles.formRow}>
+                <div style={styles.formLabel}>{lang === "zh" ? "导演级风格包" : "Directing Pack"}</div>
+                <select
+                  style={{ ...styles.select, ...styles.selectWide }}
+                  value={directorStylePackId ?? ""}
+                  onChange={(e) => updateDirectorStylePack(e.target.value)}
+                  data-testid="director-style-pack-select"
+                  title={currentDirectorStylePackLabel()}
+                >
+                  <option value="">{lang === "zh" ? "自动" : "Auto"}</option>
+                  {DIRECTOR_STYLE_PACKS.map((pack) => (
+                    <option key={pack.id} value={pack.id}>
+                      {lang === "zh" ? pack.labelZh : pack.labelEn}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <div style={styles.proMotionPanel} data-testid="pro-motion-plus-panel">
               <div style={styles.formRow}>
                 <div style={styles.formLabel}>{lang === "zh" ? "镜头语言" : "Shot Language"}</div>
@@ -1692,6 +1739,26 @@ export function Sidebar(props: Props) {
           </div>
         ) : (
           <div style={styles.proMotionBlock} data-testid="pro-image-block">
+            <div style={styles.proDirectorTitle}>{lang === "zh" ? "PRO+ 风格控制" : "PRO+ Style Controls"}</div>
+            <div style={styles.proMotionPanel}>
+              <div style={styles.formRow}>
+                <div style={styles.formLabel}>{lang === "zh" ? "导演级风格包" : "Directing Pack"}</div>
+                <select
+                  style={{ ...styles.select, ...styles.selectWide }}
+                  value={directorStylePackId ?? ""}
+                  onChange={(e) => updateDirectorStylePack(e.target.value)}
+                  data-testid="director-style-pack-select"
+                  title={currentDirectorStylePackLabel()}
+                >
+                  <option value="">{lang === "zh" ? "自动" : "Auto"}</option>
+                  {DIRECTOR_STYLE_PACKS.map((pack) => (
+                    <option key={pack.id} value={pack.id}>
+                      {lang === "zh" ? pack.labelZh : pack.labelEn}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <div style={styles.proMotionPanel}>
               <div style={styles.formRow}>
                 <div style={styles.formLabel}>{lang === "zh" ? "画面语言" : "Visual Language"}</div>
@@ -1714,6 +1781,24 @@ export function Sidebar(props: Props) {
           </div>
         )}
 
+        {isVideoProject && projectShotPlan !== "single" ? (
+          <div style={styles.formRow}>
+            <div style={styles.formLabel}>{lang === "zh" ? "衔接方式" : "Transition"}</div>
+            <select
+              style={styles.select}
+              value={visibleTransition}
+              onChange={(e) => onUpdateScene({ ...scene, transitionType: e.target.value as TransitionType })}
+              disabled={projectShotPlan === "continuous" || safeIdx >= scenes.length - 1}
+            >
+              <option value="cut">{lang === "zh" ? "切换 (cut)" : "Cut"}</option>
+              <option value="reverse_angle">{lang === "zh" ? "反打 (reverse angle)" : "Reverse angle"}</option>
+              <option value="camera_continues">{lang === "zh" ? "连续推进 (camera continues)" : "Camera continues"}</option>
+              <option value="dissolve">{lang === "zh" ? "叠化 (dissolve)" : "Dissolve"}</option>
+              <option value="time_jump">{lang === "zh" ? "时间跳转 (time jump)" : "Time jump"}</option>
+            </select>
+          </div>
+        ) : null}
+
         <div style={{ height: 8 }} />
 
         <div style={styles.sectionTitle}>{tt("lighting.title")}</div>
@@ -1722,7 +1807,7 @@ export function Sidebar(props: Props) {
           <div style={styles.formLabel}>{tt("lighting.time")}</div>
           <select
             style={styles.select}
-            value={(scene.lighting?.time ?? "").toString()}
+            value={visibleLightingTime}
             onChange={(e) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, time: e.target.value } as any })}
           >
             {timeOptions.map((o) => (
@@ -1737,7 +1822,7 @@ export function Sidebar(props: Props) {
           <div style={styles.formLabel}>{tt("lighting.keyDir")}</div>
           <select
             style={styles.select}
-            value={(scene.lighting?.key_dir ?? "").toString()}
+            value={visibleLightingKeyDir}
             onChange={(e) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, key_dir: e.target.value } as any })}
           >
             {dirOptions.map((o) => (
@@ -1752,7 +1837,7 @@ export function Sidebar(props: Props) {
           <div style={styles.formLabel}>{tt("lighting.mood")}</div>
           <select
             style={styles.select}
-            value={(scene.lighting?.mood ?? "").toString()}
+            value={visibleLightingMood}
             onChange={(e) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, mood: e.target.value } as any })}
           >
             {moodOptions.map((o) => (
@@ -1772,11 +1857,11 @@ export function Sidebar(props: Props) {
 
 const styles: Record<string, React.CSSProperties> = {
   wrap: {
-    width: "clamp(232px, 24vw, 320px)",
-    minWidth: 232,
-    borderRight: "1px solid rgba(255,255,255,0.12)",
-    background: "linear-gradient(180deg, rgba(12,12,12,0.9) 0%, rgba(4,4,4,0.92) 100%)",
-    backdropFilter: "blur(14px)",
+    width: "clamp(252px, 26vw, 332px)",
+    minWidth: 252,
+    borderRight: "none",
+    background: "#000000",
+    backdropFilter: "none",
     padding: UI_SPACE.sm,
     display: "flex",
     flexDirection: "column",
@@ -1784,15 +1869,15 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 0,
     overflow: "auto",
     position: "relative",
-    boxShadow: "inset -1px 0 0 rgba(255,255,255,0.05)"
+    boxShadow: "none"
   },
 
   section: {
-    border: "1px solid rgba(255,255,255,0.14)",
+    border: "none",
     borderRadius: UI_RADIUS.panel,
-    background: "linear-gradient(180deg, rgba(12,12,12,0.82) 0%, rgba(4,4,4,0.86) 100%)",
+    background: "transparent",
     padding: UI_SPACE.sm,
-    boxShadow: "0 10px 24px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.06)"
+    boxShadow: "none"
   },
 
   sectionHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 2 },
@@ -1806,8 +1891,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   projectName: {
     borderRadius: 10,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
+    border: "none",
+    background: "transparent",
     padding: "8px 10px",
     fontSize: UI_FONT.body,
     fontWeight: 800,
@@ -1836,13 +1921,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   ruleSummaryBox: {
     borderRadius: 10,
-    border: `1px solid ${UI_INFO.border.default}`,
-    background: UI_INFO.surface.default,
+    border: "none",
+    background: "rgba(255,255,255,0.02)",
     padding: "8px 10px",
     marginBottom: 10,
     display: "grid",
     gap: 4,
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)"
+    boxShadow: "none"
   },
   ruleSummaryTitle: {
     fontSize: UI_TYPO.size12,
@@ -1903,8 +1988,8 @@ const styles: Record<string, React.CSSProperties> = {
   // ✅ New scene card
   addCard: {
     borderRadius: UI_RADIUS.control,
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "rgba(0,0,0,0.42)",
+    border: "none",
+    background: "transparent",
     padding: UI_SPACE.sm,
     marginBottom: 10,
     display: "flex",
@@ -2018,7 +2103,9 @@ const styles: Record<string, React.CSSProperties> = {
   itemRowWrap: { display: "flex", gap: 8, alignItems: "center", minWidth: 0 },
 
   rowBtn: {
-    flex: 1,
+    flex: "1 1 0",
+    width: "100%",
+    maxWidth: "100%",
     minWidth: 0,
     borderRadius: UI_RADIUS.control,
     border: "1px solid rgba(255,255,255,0.14)",
@@ -2154,18 +2241,20 @@ const styles: Record<string, React.CSSProperties> = {
     appearance: "none",
     WebkitAppearance: "none",
     MozAppearance: "none",
-    flex: 1,
-    minWidth: 0,
+    flex: "0 0 clamp(166px, 44%, 208px)",
+    width: "clamp(166px, 44%, 208px)",
+    minWidth: 166,
+    maxWidth: 208,
     height: UI_SIZE.controlH,
     borderRadius: UI_SIZE.controlRadius,
     border: `1px solid ${UI_COLOR.border}`,
-    background: UI_COLOR.bgInput,
+    background: "linear-gradient(180deg, rgba(26,31,41,0.86), rgba(16,20,29,0.92))",
     color: UI_COLOR.text,
     outline: "none",
-    padding: "0 30px 0 10px",
+    padding: "0 30px 0 11px",
     fontSize: UI_FONT.body,
     fontWeight: 700,
-    lineHeight: 1.24,
+    lineHeight: 1.2,
     boxShadow: UI_CONTROL.shadow.soft,
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
@@ -2177,6 +2266,7 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundRepeat: "no-repeat"
   },
   selectWide: {
+    flex: "1 1 0",
     width: "100%",
     minWidth: 0,
     maxWidth: "100%"
@@ -2274,7 +2364,7 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: "nowrap"
   },
   proMenuRowActive: {
-    background: "#1f67be",
+    background: "linear-gradient(180deg, rgba(130,104,70,0.96), rgba(102,80,53,0.96))",
     color: "#ffffff"
   },
   proMenuRowDisabled: {
@@ -2287,8 +2377,8 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 8,
     padding: "8px 10px",
     borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "rgba(0,0,0,0.28)"
+    border: "none",
+    background: "transparent"
   },
   proTitleRow: {
     display: "flex",
@@ -2420,8 +2510,8 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 10,
     padding: "10px 12px",
     borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "rgba(0,0,0,0.24)"
+    border: "none",
+    background: "transparent"
   },
   proDirectorTitle: {
     fontSize: 13,

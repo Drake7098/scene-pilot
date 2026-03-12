@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, Download, Heart, Layers3, MoreHorizontal, Sparkles, Trash2 } from "lucide-react";
+import { ArrowUp, Download, FolderOpen, MoreHorizontal, Plus, Save } from "lucide-react";
 import type { Lang } from "../i18n";
 import type { CanvasDraft } from "../types/canvasDraft";
 import type { IntentPlan } from "../types/intentPlan";
@@ -22,6 +22,7 @@ export type ResultConsoleMode = "results" | "pro";
 export type ResultGenerationPrefs = {
   mediaType: "image" | "video";
   ratio: "16:9" | "9:16" | "1:1";
+  durationSec: 6 | 15 | 30;
   batchSize: 1 | 2 | 4 | 8;
   engineMode: "auto" | "comfyui" | "drawthings";
   showcaseMode: "show" | "headless";
@@ -91,6 +92,8 @@ type Props = {
   onModeChange: (mode: ResultConsoleMode) => void;
   brief: string;
   onBriefChange: (value: string) => void;
+  secondaryBrief: string;
+  onSecondaryBriefChange: (value: string) => void;
   feedback: string;
   onFeedbackChange: (value: string) => void;
   busy: boolean;
@@ -98,6 +101,8 @@ type Props = {
   freeUsed: number;
   plan: ResultPlan | null;
   previews: ResultPreview[];
+  onReplacePreviews?: (next: ResultPreview[]) => void;
+  onClearPreviews?: () => void;
   prefs: ResultGenerationPrefs;
   onPrefsChange: (next: ResultGenerationPrefs) => void;
   canGenerate: boolean;
@@ -126,7 +131,25 @@ function t(lang: Lang, zh: string, en: string) {
   return lang === "zh" ? zh : en;
 }
 
-type MediaGroup = "mine" | "liked" | "downloads" | "trash";
+type QuickLibraryItem = {
+  id: string;
+  title: string;
+  mediaType: "image" | "video";
+  updatedAt: number;
+  firstInput?: string;
+  secondInput?: string;
+  firstLayerSelections?: FirstLayerSelections;
+  secondLayerSelections?: SecondLayerSelections;
+  ratio?: ResultGenerationPrefs["ratio"];
+  durationSec?: ResultGenerationPrefs["durationSec"];
+  structureDraft: StructureDraft;
+  canvasDraft: CanvasDraft;
+  prompt: string;
+  previews?: ResultPreview[];
+};
+
+const QUICK_LIBRARY_KEY = "sp_quick_workspace_library_v1";
+const QUICK_PREVIEW_SESSION_CACHE = new Map<string, ResultPreview[]>();
 
 type FirstLayerSelections = {
   image: {
@@ -160,6 +183,49 @@ const defaultFirstLayerSelections: FirstLayerSelections = {
     styleGoal: "cinematic"
   }
 };
+
+const IMAGE_FRAME_TYPE_VALUES: FirstLayerSelections["image"]["frameType"][] = [
+  "single_subject",
+  "multi_subject",
+  "environment",
+  "product_object",
+  "auto"
+];
+const VIDEO_SHOT_STRUCTURE_VALUES: FirstLayerSelections["video"]["shotStructure"][] = [
+  "single_shot",
+  "continuous",
+  "multi_scene",
+  "multicam",
+  "auto"
+];
+const IMAGE_COMPOSITION_FOCUS_VALUES: FirstLayerSelections["image"]["compositionFocus"][] = [
+  "subject_highlight",
+  "relation_expression",
+  "environment_wrap",
+  "product_showcase",
+  "auto"
+];
+const VIDEO_EXPRESSION_FOCUS_VALUES: FirstLayerSelections["video"]["expressionFocus"][] = [
+  "character_action",
+  "relation_change",
+  "scene_progression",
+  "mood_atmosphere",
+  "auto"
+];
+const IMAGE_STYLE_GOAL_VALUES: FirstLayerSelections["image"]["styleGoal"][] = [
+  "cinematic",
+  "realistic",
+  "animation",
+  "commercial",
+  "auto"
+];
+const VIDEO_STYLE_GOAL_VALUES: FirstLayerSelections["video"]["styleGoal"][] = [
+  "cinematic",
+  "realistic",
+  "animation",
+  "advertising",
+  "auto"
+];
 
 function imageCompositionFocusLabel(lang: Lang, value: FirstLayerSelections["image"]["compositionFocus"]) {
   const map: Record<FirstLayerSelections["image"]["compositionFocus"], string> = {
@@ -300,13 +366,36 @@ function textVisualUnits(text: string) {
   }, 0);
 }
 
-function selectWidthFromLabel(label: string, minPx: number, maxPx: number) {
-  const px = Math.round(textVisualUnits(label) * 7.2 + 22);
+function selectWidthFromLabels(currentLabel: string, labels: string[], minPx: number, maxPx: number) {
+  const currentUnits = textVisualUnits(currentLabel);
+  const widestUnits = labels.reduce((max, label) => Math.max(max, textVisualUnits(label)), 0);
+  const targetUnits = Math.max(currentUnits, Math.min(widestUnits, currentUnits + 4.8));
+  const px = Math.round(targetUnits * 7.1 + 30);
   return Math.max(minPx, Math.min(maxPx, px));
 }
 
 function buildCanvasAutoTitle() {
   return "Untitled-001";
+}
+
+function loadQuickLibrary(): QuickLibraryItem[] {
+  try {
+    const raw = localStorage.getItem(QUICK_LIBRARY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item) => Boolean(item?.structureDraft && item?.canvasDraft)) as QuickLibraryItem[];
+  } catch {
+    return [];
+  }
+}
+
+function saveQuickLibrary(items: QuickLibraryItem[]) {
+  try {
+    localStorage.setItem(QUICK_LIBRARY_KEY, JSON.stringify(items));
+  } catch {
+    // ignore storage failures
+  }
 }
 
 function structureSummaryText(
@@ -433,6 +522,8 @@ export function ResultConsole(props: Props) {
     onModeChange,
     brief,
     onBriefChange,
+    secondaryBrief,
+    onSecondaryBriefChange,
     busy,
     prefs,
     onPrefsChange,
@@ -444,13 +535,15 @@ export function ResultConsole(props: Props) {
     runtime,
     onDownloadDrawPack,
     previews,
+    onReplacePreviews,
+    onClearPreviews,
     selectedPreviewId,
+    onSelectPreview,
     onIntentPlanReady,
     onStructureChange,
     structureState
   } = props;
 
-  const [group, setGroup] = useState<MediaGroup>("mine");
   const [mediaType, setMediaType] = useState<"image" | "video">(prefs.mediaType);
   const [firstInput, setFirstInput] = useState(brief);
   const [secondLayerVisible, setSecondLayerVisible] = useState(false);
@@ -467,6 +560,10 @@ export function ResultConsole(props: Props) {
   const [canvasMenuOpen, setCanvasMenuOpen] = useState(false);
   const [copyPromptDone, setCopyPromptDone] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState("");
+  const [quickLibrary, setQuickLibrary] = useState<QuickLibraryItem[]>(() => loadQuickLibrary());
+  const [activeQuickItemId, setActiveQuickItemId] = useState<string | null>(null);
+  const [savedQuickSnapshot, setSavedQuickSnapshot] = useState("");
+  const [openDraftsOpen, setOpenDraftsOpen] = useState(false);
   const [composerLiftBottom, setComposerLiftBottom] = useState(118);
   const mediaInitRef = useRef(false);
   const secondaryInputRef = useRef<HTMLInputElement | null>(null);
@@ -491,6 +588,15 @@ export function ResultConsole(props: Props) {
     if (secondLayerVisible || stage === "results") return;
     setFirstInput(brief);
   }, [brief, secondLayerVisible, stage]);
+
+  useEffect(() => {
+    if (stage === "results") return;
+    setSecondInput(secondaryBrief);
+  }, [secondaryBrief, stage]);
+
+  useEffect(() => {
+    saveQuickLibrary(quickLibrary);
+  }, [quickLibrary]);
 
   useEffect(() => {
     setMediaType(prefs.mediaType);
@@ -584,6 +690,44 @@ export function ResultConsole(props: Props) {
         : "Line 2: framing and constraints (e.g. eye-level medium shot with cleaner background)"
   );
   const secondaryComposerVisible = secondLayerVisible;
+  const savedDraftItems = useMemo(
+    () => [...quickLibrary].sort((a, b) => b.updatedAt - a.updatedAt),
+    [quickLibrary]
+  );
+  const currentQuickSnapshot = useMemo(() => JSON.stringify({
+    mediaType,
+    firstInput: firstInput.trim(),
+    secondInput: secondInput.trim(),
+    firstLayerSelections,
+    secondLayerSelections,
+    canvasTitleOverride: canvasTitleOverride.trim(),
+    editablePrompt: editablePrompt.trim(),
+    structureDraft,
+    canvasDraft,
+    ratio: prefs.ratio,
+    durationSec: prefs.durationSec
+  }), [
+    mediaType,
+    firstInput,
+    secondInput,
+    firstLayerSelections,
+    secondLayerSelections,
+    canvasTitleOverride,
+    editablePrompt,
+    structureDraft,
+    canvasDraft,
+    prefs.ratio,
+    prefs.durationSec
+  ]);
+  const hasQuickContent = Boolean(
+    firstInput.trim() ||
+    secondInput.trim() ||
+    structureDraft ||
+    canvasDraft ||
+    editablePrompt.trim()
+  );
+  const hasSavedQuickDraft = Boolean(savedQuickSnapshot);
+  const isQuickDirty = hasQuickContent && currentQuickSnapshot !== savedQuickSnapshot;
 
   const canSubmitFirst = useMemo(() => {
     if (busy) return false;
@@ -621,6 +765,135 @@ export function ResultConsole(props: Props) {
     }
   }
 
+  function upsertQuickLibraryItem(next: QuickLibraryItem) {
+    setQuickLibrary((prev) => {
+      const filtered = prev.filter((item) => item.id !== next.id);
+      return [next, ...filtered];
+    });
+    setActiveQuickItemId(next.id);
+    return next.id;
+  }
+
+  function syncCurrentQuickLibraryItem(nextTitle?: string) {
+    if (!structureDraft || !canvasDraft) return;
+    const id = activeQuickItemId ?? `quick_${Date.now()}`;
+    const persistablePreviews = previews.map((item) => ({
+      ...item,
+      imageUrl: item.imageUrl?.startsWith("blob:") ? undefined : item.imageUrl,
+      videoUrl: item.videoUrl?.startsWith("blob:") ? undefined : item.videoUrl
+    }));
+    QUICK_PREVIEW_SESSION_CACHE.set(id, previews.map((item) => ({ ...item })));
+    return upsertQuickLibraryItem({
+      id,
+      title: (nextTitle ?? canvasTitle).trim() || "Untitled-001",
+      mediaType,
+      updatedAt: Date.now(),
+      firstInput: firstInput.trim(),
+      secondInput: secondInput.trim(),
+      firstLayerSelections,
+      secondLayerSelections,
+      ratio: prefs.ratio,
+      durationSec: prefs.durationSec,
+      structureDraft,
+      canvasDraft,
+      prompt: editablePrompt || generateQuickWorkspacePrompt(lang, canvasDraft, prefs.ratio),
+      previews: persistablePreviews
+    });
+  }
+
+  function removeQuickLibraryItem(id: string) {
+    setQuickLibrary((prev) => prev.filter((item) => item.id !== id));
+    setActiveQuickItemId((prev) => (prev === id ? null : prev));
+    QUICK_PREVIEW_SESSION_CACHE.delete(id);
+  }
+
+  function restoreQuickLibraryItem(item: QuickLibraryItem) {
+    setActiveQuickItemId(item.id);
+    setMediaType(item.mediaType);
+    const nextFirst = item.firstInput ?? item.structureDraft.primaryBrief ?? "";
+    const nextSecond = item.secondInput ?? item.structureDraft.secondaryBrief ?? "";
+    setFirstInput(nextFirst);
+    setSecondInput(nextSecond);
+    onBriefChange(nextFirst);
+    onSecondaryBriefChange(nextSecond);
+    setFirstLayerSelections(item.firstLayerSelections ?? defaultFirstLayerSelections);
+    setSecondLayerSelections(item.secondLayerSelections ?? defaultSecondLayerSelections);
+    onPrefsChange({
+      ...prefs,
+      mediaType: item.mediaType,
+      ratio: item.ratio ?? prefs.ratio,
+      durationSec: item.durationSec ?? prefs.durationSec
+    });
+    setStructureDraft(item.structureDraft);
+    setCanvasDraft(item.canvasDraft);
+    setCanvasTitleOverride(item.title);
+    setEditablePrompt(item.prompt);
+    setStage("results");
+    setSecondLayerVisible(true);
+    setSecondaryMounted(true);
+    setCanvasMenuOpen(false);
+    setIsCanvasTitleEditing(false);
+    setSavedQuickSnapshot(JSON.stringify({
+      mediaType: item.mediaType,
+      firstInput: nextFirst.trim(),
+      secondInput: nextSecond.trim(),
+      firstLayerSelections: item.firstLayerSelections ?? defaultFirstLayerSelections,
+      secondLayerSelections: item.secondLayerSelections ?? defaultSecondLayerSelections,
+      canvasTitleOverride: item.title.trim(),
+      editablePrompt: item.prompt.trim(),
+      structureDraft: item.structureDraft,
+      canvasDraft: item.canvasDraft,
+      ratio: item.ratio ?? prefs.ratio,
+      durationSec: item.durationSec ?? prefs.durationSec
+    }));
+    const cachedPreviews = QUICK_PREVIEW_SESSION_CACHE.get(item.id) ?? [];
+    const nextPreviews = cachedPreviews.length ? cachedPreviews : (item.previews ?? []);
+    if (nextPreviews.length) {
+      onReplacePreviews?.(nextPreviews.map((preview) => ({ ...preview })));
+    } else {
+      onClearPreviews?.();
+    }
+    setOpenDraftsOpen(false);
+  }
+
+  function saveCurrentQuickWorkspace() {
+    if (!structureDraft || !canvasDraft) return;
+    const title = canvasTitle.trim() || "Untitled-001";
+    const savedId = syncCurrentQuickLibraryItem(title);
+    if (!savedId) return;
+    setSavedQuickSnapshot(currentQuickSnapshot);
+  }
+
+  function resetQuickWorkspace() {
+    setFirstInput("");
+    setSecondInput("");
+    onBriefChange("");
+    onSecondaryBriefChange("");
+    setStructureDraft(null);
+    setCanvasDraft(null);
+    setEditablePrompt("");
+    setCanvasTitleOverride("");
+    setCanvasTitleDraft("");
+    setCanvasMenuOpen(false);
+    setIsCanvasTitleEditing(false);
+    setSecondLayerVisible(false);
+    setSecondaryMounted(false);
+    setStage("input");
+    setActiveQuickItemId(null);
+    setSavedQuickSnapshot("");
+    onClearPreviews?.();
+  }
+
+  function handleNewQuickWorkspace() {
+    if (isQuickDirty) {
+      const ok = window.confirm(
+        t(lang, "当前内容还没保存，确定新建吗？", "Current draft is not saved. Create a new one?")
+      );
+      if (!ok) return;
+    }
+    resetQuickWorkspace();
+  }
+
   function handleDownloadStructure() {
     const payload = (editablePrompt || structureSummaryText(lang, canvasTitle, canvasDraft)).trim();
     const blob = new Blob([payload], { type: "text/plain;charset=utf-8" });
@@ -634,16 +907,20 @@ export function ResultConsole(props: Props) {
   }
 
   function handleDeleteStructure() {
+    if (activeQuickItemId) removeQuickLibraryItem(activeQuickItemId);
     setStructureDraft(null);
     setCanvasDraft(null);
     setEditablePrompt("");
     setCanvasTitleOverride("");
+    setActiveQuickItemId(null);
     setCanvasMenuOpen(false);
     setStage(secondLayerVisible ? "draft" : "input");
+    onClearPreviews?.();
   }
 
   function commitCanvasTitle(next: string) {
-    setCanvasTitleOverride(next.trim() || "Untitled-001");
+    const normalized = next.trim() || "Untitled-001";
+    setCanvasTitleOverride(normalized);
     setCanvasTitleDraft("");
     setIsCanvasTitleEditing(false);
     setCanvasMenuOpen(false);
@@ -655,6 +932,10 @@ export function ResultConsole(props: Props) {
     setCanvasMenuOpen(true);
   }
 
+  function handleOpenDrafts() {
+    setOpenDraftsOpen(true);
+  }
+
   function clearPreviewToDraft() {
     setStructureDraft(null);
     setCanvasDraft(null);
@@ -663,6 +944,7 @@ export function ResultConsole(props: Props) {
     setCanvasTitleDraft("");
     setIsCanvasTitleEditing(false);
     setStage(secondLayerVisible ? "draft" : "input");
+    onClearPreviews?.();
   }
 
   function applyMediaType(nextMediaType: "image" | "video") {
@@ -983,8 +1265,10 @@ export function ResultConsole(props: Props) {
     setCanvasTitleOverride("");
     setCanvasMenuOpen(false);
     setIsCanvasTitleEditing(false);
-    setEditablePrompt(generateQuickWorkspacePrompt(lang, nextCanvasDraft, prefs.ratio));
-    onBriefChange(merged);
+    const nextPrompt = generateQuickWorkspacePrompt(lang, nextCanvasDraft, prefs.ratio);
+    setEditablePrompt(nextPrompt);
+    onBriefChange(primaryText);
+    onSecondaryBriefChange(secondaryText);
     onIntentPlanReady?.(canvasDraftToIntentPlan(nextCanvasDraft, lang));
     setStage("results");
   }
@@ -1006,43 +1290,69 @@ export function ResultConsole(props: Props) {
   const firstLayer4ValueLabel = mediaType === "image"
     ? imageStyleGoalLabel(lang, firstLayerSelections.image.styleGoal)
     : videoStyleGoalLabel(lang, firstLayerSelections.video.styleGoal);
+  const primaryLabelCandidates = useMemo(() => ({
+    mediaType: [mediaTypeLabel(lang, "image"), mediaTypeLabel(lang, "video")],
+    layer2: mediaType === "image"
+      ? IMAGE_FRAME_TYPE_VALUES.map((value) => imageFrameTypeLabel(lang, value))
+      : VIDEO_SHOT_STRUCTURE_VALUES.map((value) => videoShotStructureLabel(lang, value)),
+    layer3: mediaType === "image"
+      ? IMAGE_COMPOSITION_FOCUS_VALUES.map((value) => imageCompositionFocusLabel(lang, value))
+      : VIDEO_EXPRESSION_FOCUS_VALUES.map((value) => videoExpressionFocusLabel(lang, value)),
+    layer4: mediaType === "image"
+      ? IMAGE_STYLE_GOAL_VALUES.map((value) => imageStyleGoalLabel(lang, value))
+      : VIDEO_STYLE_GOAL_VALUES.map((value) => videoStyleGoalLabel(lang, value))
+  }), [lang, mediaType]);
   const primarySelectWidths = lang === "zh"
     ? {
-        mediaType: selectWidthFromLabel(mediaTypeValueLabel, 66, 96),
-        layer2: selectWidthFromLabel(firstLayer2ValueLabel, 102, 178),
-        layer3: selectWidthFromLabel(firstLayer3ValueLabel, 102, 182),
-        layer4: selectWidthFromLabel(firstLayer4ValueLabel, 96, 166)
+        mediaType: selectWidthFromLabels(mediaTypeValueLabel, primaryLabelCandidates.mediaType, 66, 98),
+        layer2: selectWidthFromLabels(firstLayer2ValueLabel, primaryLabelCandidates.layer2, 100, 176),
+        layer3: selectWidthFromLabels(firstLayer3ValueLabel, primaryLabelCandidates.layer3, 100, 186),
+        layer4: selectWidthFromLabels(firstLayer4ValueLabel, primaryLabelCandidates.layer4, 96, 168)
       }
     : {
-        mediaType: selectWidthFromLabel(mediaTypeValueLabel, 76, 112),
-        layer2: selectWidthFromLabel(firstLayer2ValueLabel, 120, 224),
-        layer3: selectWidthFromLabel(firstLayer3ValueLabel, 126, 238),
-        layer4: selectWidthFromLabel(firstLayer4ValueLabel, 114, 206)
+        mediaType: selectWidthFromLabels(mediaTypeValueLabel, primaryLabelCandidates.mediaType, 76, 112),
+        layer2: selectWidthFromLabels(firstLayer2ValueLabel, primaryLabelCandidates.layer2, 114, 198),
+        layer3: selectWidthFromLabels(firstLayer3ValueLabel, primaryLabelCandidates.layer3, 118, 210),
+        layer4: selectWidthFromLabels(firstLayer4ValueLabel, primaryLabelCandidates.layer4, 110, 192)
       };
   return (
     <div style={styles.root} data-testid="media-studio-root">
       <div style={styles.frame}>
         <aside style={styles.left}>
           <div style={styles.panelTitle}>{t(lang, "快捷工作台", "Quick Workspace")}</div>
-          <button style={{ ...styles.navBtn, ...(group === "mine" ? styles.navOn : null) }} onClick={() => setGroup("mine")} data-testid="media-nav-mine">
-            <span style={styles.navLabel}><Layers3 size={14} style={styles.navIcon} />{t(lang, "我的", "Mine")}</span>
-          </button>
-          <button style={{ ...styles.navBtn, ...(group === "liked" ? styles.navOn : null) }} onClick={() => setGroup("liked")} data-testid="media-nav-liked">
-            <span style={styles.navLabel}><Heart size={14} style={styles.navIcon} />{t(lang, "喜欢的", "Liked")}</span>
-          </button>
-          <button style={{ ...styles.navBtn, ...(group === "downloads" ? styles.navOn : null) }} onClick={() => setGroup("downloads")} data-testid="media-nav-downloads">
-            <span style={styles.navLabel}><Download size={14} style={styles.navIcon} />{t(lang, "下载", "Downloads")}</span>
-          </button>
-          <button style={{ ...styles.navBtn, ...(group === "trash" ? styles.navOn : null) }} onClick={() => setGroup("trash")} data-testid="media-nav-trash">
-            <span style={styles.navLabel}><Trash2 size={14} style={styles.navIcon} />{t(lang, "删除", "Trash")}</span>
+          <button
+            style={styles.navBtn}
+            onClick={handleNewQuickWorkspace}
+            data-testid="media-nav-new"
+            type="button"
+          >
+            <span style={styles.navLabel}><Plus size={14} style={styles.navIcon} />{t(lang, "新建", "New")}</span>
           </button>
           <button
-            style={{ ...styles.proBtn, ...(mode === "pro" ? styles.navOn : null) }}
+            style={{ ...styles.navBtn, ...(!structureDraft || !canvasDraft ? styles.navBtnDisabled : null) }}
+            onClick={saveCurrentQuickWorkspace}
+            data-testid="media-nav-save"
             type="button"
+            disabled={!structureDraft || !canvasDraft}
+          >
+            <span style={styles.navLabel}><Save size={14} style={styles.navIcon} />{t(lang, "保存", "Save")}</span>
+          </button>
+          <button
+            style={{ ...styles.navBtn, ...(savedDraftItems.length ? null : styles.navBtnDisabled) }}
+            onClick={handleOpenDrafts}
+            data-testid="media-nav-open"
+            type="button"
+            disabled={!savedDraftItems.length}
+          >
+            <span style={styles.navLabel}><FolderOpen size={14} style={styles.navIcon} />{t(lang, "打开", "Open")}</span>
+          </button>
+          <button
+            style={styles.navBtn}
             onClick={() => onModeChange("pro")}
             data-testid="media-nav-pro"
+            type="button"
           >
-            <span style={styles.navLabel}><Sparkles size={14} style={styles.navIcon} />{t(lang, "Pro 模式", "Pro Mode")}</span>
+            <span style={styles.navLabel}>{t(lang, "Pro 工作台", "Pro Workspace")}</span>
           </button>
         </aside>
 
@@ -1052,158 +1362,208 @@ export function ResultConsole(props: Props) {
           <div
             style={{
               ...styles.mainContent,
-              ...(structureDraft ? styles.mainContentWithCanvas : styles.mainContentSingle),
+              ...styles.mainContentSingle,
               ...(structureDraft ? { paddingBottom: secondaryComposerVisible ? 228 : 104 } : null)
             }}
           >
-            <section style={styles.mainLeft}>
-              {structureDraft ? (
-                <div style={{ ...styles.previewPane, ...styles.previewPaneRaised }} data-testid="quick-preview-pane">
-                  {activePreview?.imageUrl ? (
-                    <img
-                      src={activePreview.imageUrl}
-                      alt={activePreview.title || "preview"}
-                      style={styles.previewImage}
-                      data-testid="quick-preview-image"
-                    />
-                  ) : null}
-                </div>
-              ) : null}
-            </section>
-
             {canvasDraft ? (
-              <div style={styles.rightStage}>
-                <aside style={{ ...styles.rightCanvas, ...styles.rightCanvasRaised }} data-testid="quick-structure-canvas">
-                  <div style={styles.canvasReady} data-testid="quick-structure-canvas-ready">
-                    <div style={styles.canvasSurface}>
-                      <div style={styles.canvasTopBar}>
-                        <div style={styles.canvasTitleWrap}>
-                          <div style={styles.canvasTitle} data-testid="quick-canvas-title">
-                            {canvasTitle}
-                          </div>
-                        </div>
-                        <div style={styles.canvasMenuWrap}>
-                          <button
-                            type="button"
-                            style={styles.canvasMenuBtn}
-                            data-testid="quick-canvas-menu-trigger"
-                            aria-label={t(lang, "更多操作", "More actions")}
-                            onClick={() => setCanvasMenuOpen((v) => !v)}
-                          >
-                            <MoreHorizontal size={16} />
-                          </button>
-                          {canvasMenuOpen ? (
-                            <div style={styles.canvasMenu} data-testid="quick-canvas-menu">
-                              {isCanvasTitleEditing ? (
-                                <div style={styles.canvasMenuEditor}>
-                                  <div style={styles.canvasMenuEditorLabel}>{t(lang, "改名", "Rename")}</div>
-                                  <input
-                                    autoFocus
-                                    value={canvasTitleDraft}
-                                    onChange={(e) => setCanvasTitleDraft(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") commitCanvasTitle(canvasTitleDraft);
-                                      if (e.key === "Escape") {
-                                        setCanvasTitleDraft("");
-                                        setIsCanvasTitleEditing(false);
-                                      }
-                                    }}
-                                    style={styles.canvasTitleInput}
-                                    data-testid="quick-canvas-title-input"
-                                  />
-                                  <div style={styles.canvasMenuEditorActions}>
-                                    <button
-                                      type="button"
-                                      style={styles.canvasMenuEditorBtn}
-                                      onClick={() => commitCanvasTitle(canvasTitleDraft)}
-                                    >
-                                      {t(lang, "保存", "Save")}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      style={{ ...styles.canvasMenuEditorBtn, ...styles.canvasMenuEditorBtnGhost }}
-                                      onClick={() => {
-                                        setCanvasTitleDraft("");
-                                        setIsCanvasTitleEditing(false);
-                                      }}
-                                    >
-                                      {t(lang, "取消", "Cancel")}
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
+              <div style={styles.quickWorkspaceBody} data-testid="quick-structure-canvas-ready">
+                <section style={styles.previewPane} data-testid="quick-preview-pane">
+                  {previews.length ? (
+                    <div style={styles.previewMasonry}>
+                      {previews.map((preview) => (
+                        <button
+                          key={preview.id}
+                          type="button"
+                          style={{ ...styles.previewCard, ...(selectedPreviewId === preview.id ? styles.previewCardOn : null) }}
+                          onClick={() => onSelectPreview(preview.id)}
+                          data-testid={`quick-preview-card-${preview.id}`}
+                        >
+                          {preview.imageUrl ? (
+                            <img
+                              src={preview.imageUrl}
+                              alt={preview.title || "preview"}
+                              style={styles.previewCardImage}
+                              data-testid="quick-preview-image"
+                            />
+                          ) : preview.videoUrl ? (
+                            <video
+                              src={preview.videoUrl}
+                              style={styles.previewCardImage}
+                              muted
+                              playsInline
+                              data-testid="quick-preview-video"
+                            />
+                          ) : (
+                            <div style={styles.previewCardEmpty}>{preview.title || t(lang, "结果", "Result")}</div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={styles.previewEmpty}>{t(lang, "生成后的结果会显示在这里", "Generated results will appear here")}</div>
+                  )}
+                </section>
+                <section style={styles.promptBlock} data-testid="quick-structure-canvas">
+                  <div style={styles.promptBlockTop}>
+                    <div style={styles.canvasTitle} data-testid="quick-canvas-title">
+                      {canvasTitle}
+                    </div>
+                    <div style={styles.canvasMenuWrap}>
+                      <button
+                        type="button"
+                        style={styles.canvasMenuBtn}
+                        data-testid="quick-canvas-menu-trigger"
+                        aria-label={t(lang, "更多操作", "More actions")}
+                        onClick={() => setCanvasMenuOpen((v) => !v)}
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+                      {canvasMenuOpen ? (
+                        <div style={styles.canvasMenu} data-testid="quick-canvas-menu">
+                          {isCanvasTitleEditing ? (
+                            <div style={styles.canvasMenuEditor}>
+                              <div style={styles.canvasMenuEditorLabel}>{t(lang, "改名", "Rename")}</div>
+                              <input
+                                autoFocus
+                                value={canvasTitleDraft}
+                                onChange={(e) => setCanvasTitleDraft(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") commitCanvasTitle(canvasTitleDraft);
+                                  if (e.key === "Escape") {
+                                    setCanvasTitleDraft("");
+                                    setIsCanvasTitleEditing(false);
+                                  }
+                                }}
+                                style={styles.canvasTitleInput}
+                                data-testid="quick-canvas-title-input"
+                              />
+                              <div style={styles.canvasMenuEditorActions}>
                                 <button
                                   type="button"
-                                  style={styles.canvasMenuItem}
-                                  onClick={beginCanvasTitleEdit}
+                                  style={styles.canvasMenuEditorBtn}
+                                  onClick={() => commitCanvasTitle(canvasTitleDraft)}
                                 >
-                                  {t(lang, "改名", "Rename")}
+                                  {t(lang, "保存", "Save")}
                                 </button>
-                              )}
-                              <button type="button" style={styles.canvasMenuItem} onClick={handleDownloadStructure}>
-                                {t(lang, "下载", "Download")}
-                              </button>
-                              <button type="button" style={{ ...styles.canvasMenuItem, ...styles.canvasMenuDanger }} onClick={handleDeleteStructure}>
-                                {t(lang, "删除", "Delete")}
-                              </button>
+                                <button
+                                  type="button"
+                                  style={{ ...styles.canvasMenuEditorBtn, ...styles.canvasMenuEditorBtnGhost }}
+                                  onClick={() => {
+                                    setCanvasTitleDraft("");
+                                    setIsCanvasTitleEditing(false);
+                                  }}
+                                >
+                                  {t(lang, "取消", "Cancel")}
+                                </button>
+                              </div>
                             </div>
-                          ) : null}
+                          ) : (
+                            <button
+                              type="button"
+                              style={styles.canvasMenuItem}
+                              onClick={beginCanvasTitleEdit}
+                            >
+                              {t(lang, "改名", "Rename")}
+                            </button>
+                          )}
+                          <button type="button" style={styles.canvasMenuItem} onClick={handleDownloadStructure}>
+                            {t(lang, "下载", "Download")}
+                          </button>
+                          <button type="button" style={{ ...styles.canvasMenuItem, ...styles.canvasMenuDanger }} onClick={handleDeleteStructure}>
+                            {t(lang, "删除", "Delete")}
+                          </button>
                         </div>
-                      </div>
-                      <div style={styles.promptPanel} data-testid="quick-prompt-panel">
-                        <div style={styles.promptPanelTitle}>
-                          {t(lang, "结构化提示词（可编辑）", "Structured Prompt (Editable)")}
-                        </div>
-                        <textarea
-                          value={editablePrompt}
-                          onChange={(e) => setEditablePrompt(e.target.value)}
-                          style={styles.promptEditor}
-                          data-testid="quick-canvas-prompt-editor"
-                        />
-                      </div>
+                      ) : null}
                     </div>
                   </div>
-                </aside>
-                <div style={styles.canvasActionBar} data-testid="quick-canvas-actions">
-                  <label style={styles.canvasActionSelectWrap}>
-                    <span style={styles.canvasActionLabel}>{t(lang, "尺寸", "Size")}</span>
-                    <select
-                      value={prefs.ratio}
-                      onChange={(e) => onPrefsChange({ ...prefs, ratio: e.target.value as ResultGenerationPrefs["ratio"] })}
-                      style={styles.canvasActionSelect}
-                      data-testid="quick-canvas-ratio"
-                    >
-                      <option value="16:9">16:9</option>
-                      <option value="9:16">9:16</option>
-                      <option value="1:1">1:1</option>
-                    </select>
-                  </label>
-                  <button type="button" style={styles.canvasActionBtn} onClick={() => void handleCopyPrompt()} data-testid="quick-canvas-copy">
-                    {copyPromptDone ? t(lang, "已复制", "Copied") : t(lang, "复制提示词", "Copy Prompt")}
-                  </button>
-                  {canGenerate ? (
-                    <>
-                      <div style={styles.canvasCreditsMeta} data-testid="quick-canvas-credits-balance">
-                        Credits: {creditsBalance}
-                      </div>
-                      <button type="button" style={styles.canvasActionPrimary} onClick={onGenerate} disabled={busy} data-testid="quick-canvas-generate">
-                        {busy ? t(lang, "生成中…", "Generating...") : "Generate Preview"}
-                      </button>
-                      <button type="button" style={styles.canvasActionBtn} onClick={onOpenCredits} data-testid="quick-canvas-buy-credits">
-                        Buy credits
-                      </button>
-                      {hasLocalDirect ? (
-                        <button type="button" style={styles.canvasActionBtn} onClick={onDownloadDrawPack} data-testid="quick-canvas-local">
-                          {t(lang, "本地直出", "Local Output")}
-                        </button>
+                  <div style={styles.promptPanel} data-testid="quick-prompt-panel">
+                    <div style={styles.promptPanelTitle}>
+                      {t(lang, "提示词", "Prompt")}
+                    </div>
+                    <textarea
+                      value={editablePrompt}
+                      onChange={(e) => setEditablePrompt(e.target.value)}
+                      style={styles.promptEditor}
+                      data-testid="quick-canvas-prompt-editor"
+                    />
+                  </div>
+                  <div style={styles.canvasActionDock} data-testid="quick-canvas-actions">
+                    <div style={styles.canvasActionGroupLeft}>
+                      <label style={styles.canvasActionSelectWrap}>
+                        <span style={styles.canvasActionLabel}>{t(lang, "尺寸", "Size")}</span>
+                        <select
+                          value={prefs.ratio}
+                          onChange={(e) => onPrefsChange({ ...prefs, ratio: e.target.value as ResultGenerationPrefs["ratio"] })}
+                          style={styles.canvasActionSelect}
+                          data-testid="quick-canvas-ratio"
+                        >
+                          <option value="16:9">16:9</option>
+                          <option value="9:16">9:16</option>
+                          <option value="1:1">1:1</option>
+                        </select>
+                      </label>
+                      {mediaType === "video" ? (
+                        <label style={styles.canvasActionSelectWrap}>
+                          <span style={styles.canvasActionLabel}>{t(lang, "秒数", "Duration")}</span>
+                          <select
+                            value={prefs.durationSec}
+                            onChange={(e) => onPrefsChange({ ...prefs, durationSec: Number(e.target.value) as ResultGenerationPrefs["durationSec"] })}
+                            style={styles.canvasActionSelect}
+                            data-testid="quick-canvas-duration"
+                          >
+                            <option value={6}>6s</option>
+                            <option value={15}>15s</option>
+                            <option value={30}>30s</option>
+                          </select>
+                        </label>
                       ) : null}
-                    </>
-                  ) : (
-                    <button type="button" style={styles.canvasActionPrimary} onClick={onOpenUpgrade} data-testid="quick-canvas-upgrade">
-                      Upgrade for AI generation
-                    </button>
-                  )}
-                </div>
+                      <button
+                        type="button"
+                        style={styles.canvasActionBtn}
+                        onClick={() => void handleCopyPrompt()}
+                        data-testid="quick-canvas-copy"
+                      >
+                        {copyPromptDone ? t(lang, "已复制", "Copied") : t(lang, "复制", "Copy")}
+                      </button>
+                    </div>
+                    <div style={styles.canvasActionGroupRight}>
+                      {canGenerate ? (
+                        <>
+                          <div style={styles.canvasCreditsMeta} data-testid="quick-canvas-credits-balance">
+                            Credits {creditsBalance}
+                          </div>
+                          <button type="button" style={styles.canvasActionBtn} onClick={onOpenCredits} data-testid="quick-canvas-buy-credits">
+                            {t(lang, "充值", "Buy Credits")}
+                          </button>
+                          {hasLocalDirect ? (
+                            <button type="button" style={styles.canvasActionBtn} onClick={onDownloadDrawPack} data-testid="quick-canvas-local">
+                              {t(lang, "本地直出", "Local Output")}
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            style={styles.canvasActionPrimary}
+                            onClick={onGenerate}
+                            disabled={busy}
+                            data-testid="quick-canvas-generate"
+                          >
+                            {busy ? t(lang, "生成中…", "Generating...") : t(lang, "生成", "Generate")}
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          style={styles.canvasActionPrimary}
+                          onClick={onOpenUpgrade}
+                          data-testid="quick-canvas-upgrade"
+                        >
+                          {t(lang, "会员生成", "Member Generate")}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </section>
               </div>
             ) : null}
           </div>
@@ -1234,7 +1594,7 @@ export function ResultConsole(props: Props) {
                 data-testid="result-console-generate"
                 aria-label={t(lang, "继续", "Continue")}
               >
-                <ArrowUp size={16} />
+                <ArrowUp size={15} strokeWidth={2.25} style={styles.sendIcon} />
               </button>
             ) : null}
           </div>
@@ -1332,7 +1692,9 @@ export function ResultConsole(props: Props) {
                 ref={secondaryInputRef}
                 value={secondInput}
                 onChange={(e) => {
-                  setSecondInput(e.target.value);
+                  const next = e.target.value;
+                  setSecondInput(next);
+                  onSecondaryBriefChange(next);
                   if (structureDraft) clearPreviewToDraft();
                 }}
                 onKeyDown={handleSecondaryEnter}
@@ -1347,7 +1709,7 @@ export function ResultConsole(props: Props) {
                 data-testid="result-console-generate-secondary"
                 aria-label={t(lang, "确认", "Confirm")}
               >
-                <ArrowUp size={16} />
+                <ArrowUp size={15} strokeWidth={2.25} style={styles.sendIcon} />
               </button>
             </div>
             <QuickWorkspaceSecondaryCards
@@ -1366,6 +1728,37 @@ export function ResultConsole(props: Props) {
                 video: normalizeVideoSelections(activeVideoStructure, next)
               }))}
             />
+          </div>
+        </div>
+      ) : null}
+      {openDraftsOpen ? (
+        <div style={styles.draftOverlay} onClick={() => setOpenDraftsOpen(false)} data-testid="quick-drafts-overlay">
+          <div style={styles.draftModal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.draftModalHeader}>
+              <div style={styles.draftModalTitle}>{t(lang, "打开草稿", "Open Draft")}</div>
+              <button type="button" style={styles.draftModalClose} onClick={() => setOpenDraftsOpen(false)}>
+                <ArrowUp size={14} style={{ transform: "rotate(45deg)" }} />
+              </button>
+            </div>
+            <div style={styles.draftModalList}>
+              {savedDraftItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  style={styles.draftItem}
+                  onClick={() => restoreQuickLibraryItem(item)}
+                  data-testid={`quick-draft-open-${item.id}`}
+                >
+                  <div style={styles.draftItemTitle}>{item.title}</div>
+                  <div style={styles.draftItemMeta}>
+                    {item.mediaType === "video" ? t(lang, "视频", "Video") : t(lang, "图片", "Image")} · {new Date(item.updatedAt).toLocaleString()}
+                  </div>
+                </button>
+              ))}
+              {!savedDraftItems.length ? (
+                <div style={styles.draftEmpty}>{t(lang, "还没有已保存草稿", "No saved drafts yet")}</div>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : null}
@@ -1417,17 +1810,9 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer"
   },
   navOn: { color: "#ffffff", fontWeight: 700, border: "none", background: "rgba(255,255,255,0.08)" },
-  proBtn: {
-    marginTop: 0,
-    minHeight: 38,
-    borderRadius: 10,
-    border: "none",
-    background: "#000000",
-    color: "#ffffff",
-    fontWeight: 620,
-    cursor: "pointer",
-    textAlign: "left",
-    padding: "0 10px"
+  navBtnDisabled: {
+    opacity: 0.42,
+    cursor: "not-allowed"
   },
   main: {
     minHeight: 0,
@@ -1443,73 +1828,88 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 12,
     alignItems: "stretch",
-    minHeight: 0
+    minHeight: 0,
+    overflowY: "auto",
+    overflowX: "hidden",
+    paddingRight: 4
   },
   mainContentSingle: {
     gridTemplateColumns: "minmax(0,1fr)"
   },
-  mainContentWithCanvas: {
-    gridTemplateColumns: "minmax(0,1fr) minmax(420px, 48%)",
-    height: "100%",
-    minHeight: 0,
-    alignItems: "start",
-    paddingBottom: 34
-  },
-  mainLeft: {
+  quickWorkspaceBody: {
     display: "grid",
-    gap: 8,
-    minHeight: 0
+    gridTemplateColumns: "minmax(0,1fr) 360px",
+    gap: 12,
+    minHeight: 0,
+    alignContent: "start",
+    alignItems: "start"
   },
   previewPane: {
-    minHeight: 560,
-    height: "100%",
-    overflow: "hidden",
-    animation: "spxFadeUpIn 420ms ease both"
-  },
-  previewPaneRaised: {
-    marginTop: -52,
-    height: "calc(100% + 52px)"
-  },
-  previewImage: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    display: "block"
-  },
-  rightStage: {
-    display: "grid",
-    gap: 8,
-    minHeight: 0,
-    animation: "spxFadeUpIn 420ms ease both"
-  },
-  rightCanvas: {
-    borderRadius: 0,
-    border: "none",
-    background: "transparent",
-    minHeight: 0,
-    padding: 0,
-    display: "grid",
-    alignContent: "start",
-    gap: 10
-  },
-  rightCanvasRaised: {
-    marginTop: -46,
-    height: "calc(100% + 46px)"
-  },
-  canvasReady: {
-    display: "grid",
-    gap: 8
-  },
-  canvasSurface: {
-    position: "relative",
-    display: "grid"
-  },
-  promptPanel: {
-    height: 420,
+    minHeight: 320,
     borderRadius: 14,
     border: "1px solid rgba(255,255,255,0.12)",
     background: "linear-gradient(180deg, rgba(8,8,8,0.96), rgba(0,0,0,0.98))",
-    padding: "40px 12px 12px",
+    padding: 12,
+    overflow: "hidden",
+    animation: "spxFadeUpIn 420ms ease both"
+  },
+  previewMasonry: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+    gap: 12,
+    alignContent: "start"
+  },
+  previewCard: {
+    borderRadius: 12,
+    overflow: "hidden",
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.04)",
+    cursor: "pointer",
+    padding: 0
+  },
+  previewCardOn: {
+    borderColor: "rgba(232, 238, 255, 0.34)",
+    boxShadow: "0 0 0 1px rgba(232,238,255,0.12), 0 10px 22px rgba(0,0,0,0.28)"
+  },
+  previewCardImage: {
+    width: "100%",
+    aspectRatio: "1 / 1",
+    objectFit: "cover",
+    display: "block",
+    background: "rgba(255,255,255,0.04)"
+  },
+  previewCardEmpty: {
+    minHeight: 180,
+    display: "grid",
+    placeItems: "center",
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 12,
+    padding: 16,
+    textAlign: "center"
+  },
+  previewEmpty: {
+    minHeight: 180,
+    display: "grid",
+    placeItems: "center",
+    color: "rgba(255,255,255,0.56)",
+    fontSize: 12.5,
+    textAlign: "center"
+  },
+  promptBlock: {
+    display: "grid",
+    gap: 10,
+    minHeight: 0,
+    alignContent: "start"
+  },
+  promptBlockTop: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    minHeight: 28
+  },
+  promptPanel: {
+    height: 360,
     display: "grid",
     gridTemplateRows: "auto minmax(0,1fr)",
     gap: 8
@@ -1533,26 +1933,6 @@ const styles: Record<string, React.CSSProperties> = {
     outline: "none",
     padding: "10px 12px",
     overflowY: "auto"
-  },
-  canvasIdle: {
-    display: "grid",
-    gap: 8
-  },
-  canvasTopBar: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    zIndex: 5,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    minHeight: 28,
-    gap: 6
-  },
-  canvasTitleWrap: {
-    minWidth: 0,
-    display: "grid",
-    justifyItems: "end"
   },
   canvasTitle: {
     fontSize: 11,
@@ -1651,8 +2031,8 @@ const styles: Record<string, React.CSSProperties> = {
   canvasTagPrimary: {
     minHeight: 28,
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.16)",
-    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(122,154,202,0.28)",
+    background: "rgba(16,25,39,0.78)",
     color: "#ffffff",
     fontSize: 12,
     fontWeight: 650,
@@ -1663,8 +2043,8 @@ const styles: Record<string, React.CSSProperties> = {
   canvasTagSecondary: {
     minHeight: 26,
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(122,154,202,0.22)",
+    background: "rgba(11,18,29,0.72)",
     color: "rgba(255,255,255,0.82)",
     fontSize: 11,
     fontWeight: 600,
@@ -1676,8 +2056,9 @@ const styles: Record<string, React.CSSProperties> = {
     position: "relative",
     height: 420,
     borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "linear-gradient(180deg, rgba(8,8,8,0.96), rgba(0,0,0,0.98))",
+    border: "1px solid rgba(122,154,202,0.24)",
+    background:
+      "radial-gradient(640px 380px at 50% 36%, rgba(104,171,255,0.16), rgba(52,86,128,0.08) 30%, rgba(0,0,0,0) 60%), rgba(9,13,24,0.74)",
     overflow: "hidden"
   },
   canvasEmptyState: {
@@ -1705,8 +2086,8 @@ const styles: Record<string, React.CSSProperties> = {
     position: "absolute",
     minHeight: 26,
     borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.22)",
-    background: "rgba(154,174,220,0.2)",
+    border: "1px solid rgba(170,193,226,0.26)",
+    background: "rgba(118,146,198,0.22)",
     color: "#ffffff",
     fontSize: 11,
     padding: "4px 8px",
@@ -1736,8 +2117,8 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 6,
     alignItems: "center",
     borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(122,154,202,0.22)",
+    background: "rgba(13,21,33,0.74)",
     padding: "4px 8px",
     fontSize: 12
   },
@@ -1788,78 +2169,187 @@ const styles: Record<string, React.CSSProperties> = {
   canvasSelect: {
     minHeight: 28,
     borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.16)",
-    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(122,154,202,0.3)",
+    background: "rgba(10,16,26,0.84)",
     color: "#ffffff",
     fontSize: 12,
     outline: "none",
     padding: "0 8px"
   },
-  canvasActionBar: {
+  canvasActionDock: {
+    marginTop: 2,
+    marginLeft: "auto",
     display: "flex",
     alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "nowrap",
     gap: 8,
-    flexWrap: "wrap",
-    borderRadius: 0,
-    border: "none",
-    background: "transparent",
-    padding: 0
+    width: "100%",
+    maxWidth: "100%",
+    minHeight: 44,
+    borderRadius: 14,
+    border: "1px solid rgba(122,154,202,0.24)",
+    background: "linear-gradient(135deg, rgba(14,22,34,0.92), rgba(10,16,26,0.92) 44%, rgba(5,8,14,0.94) 100%)",
+    boxShadow: "inset 0 1px 0 rgba(170,193,226,0.07), 0 8px 18px rgba(0,0,0,0.22)",
+    padding: 6,
+    overflowX: "auto",
+    overflowY: "hidden"
+  },
+  canvasActionGroupLeft: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "nowrap"
+  },
+  canvasActionGroupRight: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "nowrap",
+    marginLeft: "auto"
   },
   canvasActionSelectWrap: {
     display: "inline-flex",
     alignItems: "center",
-    gap: 8,
-    minHeight: 34,
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.04)",
+    gap: 6,
+    justifyContent: "space-between",
+    minHeight: 32,
+    minWidth: 112,
+    borderRadius: 12,
+    border: "1px solid rgba(122,154,202,0.3)",
+    background: "linear-gradient(180deg, rgba(18,28,44,0.8), rgba(10,16,26,0.9))",
     padding: "0 10px"
   },
   canvasActionLabel: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.56)"
+    fontSize: 10.5,
+    color: "rgba(233,239,250,0.62)"
   },
   canvasActionSelect: {
-    minHeight: 24,
+    minHeight: 20,
     border: "none",
     background: "transparent",
-    color: "#ffffff",
-    fontSize: 12,
+    color: "#f0f4ff",
+    fontSize: 11.5,
+    fontWeight: 650,
     outline: "none",
-    cursor: "pointer"
+    cursor: "pointer",
+    paddingRight: 0,
+    textAlign: "right"
   },
   canvasActionBtn: {
-    minHeight: 34,
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.05)",
-    color: "#ffffff",
-    fontSize: 12,
+    minHeight: 32,
+    minWidth: 136,
+    borderRadius: 12,
+    border: "1px solid rgba(122,154,202,0.3)",
+    background: "linear-gradient(180deg, rgba(18,28,44,0.78), rgba(10,16,26,0.88))",
+    color: "#e9edf7",
+    fontSize: 11.5,
     fontWeight: 650,
-    padding: "0 14px",
+    padding: "0 12px",
     cursor: "pointer"
   },
   canvasCreditsMeta: {
-    minHeight: 34,
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.03)",
-    color: "rgba(255,255,255,0.78)",
-    fontSize: 12,
-    padding: "0 14px",
+    minHeight: 32,
+    minWidth: 136,
+    borderRadius: 12,
+    border: "1px solid rgba(122,154,202,0.24)",
+    background: "linear-gradient(180deg, rgba(14,22,34,0.74), rgba(8,12,20,0.82))",
+    color: "rgba(234,240,252,0.8)",
+    fontSize: 11.5,
+    padding: "0 12px",
     display: "inline-flex",
-    alignItems: "center"
+    alignItems: "center",
+    justifyContent: "center"
   },
   canvasActionPrimary: {
-    minHeight: 34,
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.22)",
-    background: "#ffffff",
-    color: "#111111",
-    fontSize: 12,
+    minHeight: 32,
+    minWidth: 136,
+    borderRadius: 12,
+    border: "1px solid rgba(146,182,232,0.74)",
+    background: "linear-gradient(180deg, rgba(88,132,198,0.96), rgba(56,92,146,0.98))",
+    color: "#eaf2ff",
+    fontSize: 11.5,
     fontWeight: 760,
-    padding: "0 14px",
+    padding: "0 12px",
+    cursor: "pointer",
+    boxShadow: "0 6px 14px rgba(6,14,30,0.28), inset 0 1px 0 rgba(234,245,255,0.36)"
+  },
+  draftOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.56)",
+    display: "grid",
+    placeItems: "center",
+    zIndex: 220
+  },
+  draftModal: {
+    width: "min(520px, 92vw)",
+    maxHeight: "min(70vh, 640px)",
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "linear-gradient(180deg, rgba(16,18,24,0.96), rgba(8,10,14,0.98))",
+    boxShadow: "0 24px 48px rgba(0,0,0,0.44)",
+    display: "grid",
+    gridTemplateRows: "auto minmax(0,1fr)",
+    overflow: "hidden"
+  },
+  draftModalHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: "14px 16px",
+    borderBottom: "1px solid rgba(255,255,255,0.08)"
+  },
+  draftModalTitle: {
+    fontSize: 14,
+    fontWeight: 720,
+    color: "#ffffff"
+  },
+  draftModalClose: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    border: "none",
+    background: "transparent",
+    color: "rgba(255,255,255,0.82)",
+    display: "grid",
+    placeItems: "center",
     cursor: "pointer"
+  },
+  draftModalList: {
+    display: "grid",
+    gap: 8,
+    padding: 16,
+    overflowY: "auto"
+  },
+  draftItem: {
+    minHeight: 58,
+    borderRadius: 12,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.04)",
+    color: "#ffffff",
+    textAlign: "left",
+    padding: "10px 12px",
+    display: "grid",
+    gap: 4,
+    cursor: "pointer"
+  },
+  draftItemTitle: {
+    fontSize: 12.5,
+    fontWeight: 680,
+    color: "#ffffff"
+  },
+  draftItemMeta: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.58)"
+  },
+  draftEmpty: {
+    minHeight: 140,
+    display: "grid",
+    placeItems: "center",
+    color: "rgba(255,255,255,0.56)",
+    fontSize: 12.5
   },
   composerWrap: {
     position: "fixed",
@@ -1885,24 +2375,24 @@ const styles: Record<string, React.CSSProperties> = {
   secondaryGlass: {
     width: "100%",
     borderRadius: 16,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06) 42%, rgba(0,0,0,0.18) 100%)",
+    border: "1px solid rgba(122,154,202,0.26)",
+    background: "linear-gradient(135deg, rgba(14,22,34,0.9), rgba(10,16,26,0.92) 42%, rgba(5,8,14,0.94) 100%)",
     boxShadow: "0 12px 30px rgba(0,0,0,0.22)",
-    backdropFilter: "blur(24px) saturate(135%)",
-    WebkitBackdropFilter: "blur(24px) saturate(135%)",
-    padding: "4px 8px 5px",
+    backdropFilter: "blur(14px) saturate(120%)",
+    WebkitBackdropFilter: "blur(14px) saturate(120%)",
+    padding: "3px 8px 4px",
     display: "grid",
     gap: 6
   },
   composerGlass: {
     width: "100%",
     borderRadius: 16,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06) 42%, rgba(0,0,0,0.18) 100%)",
+    border: "1px solid rgba(122,154,202,0.26)",
+    background: "linear-gradient(135deg, rgba(14,22,34,0.9), rgba(10,16,26,0.92) 42%, rgba(5,8,14,0.94) 100%)",
     boxShadow: "0 12px 30px rgba(0,0,0,0.22)",
-    backdropFilter: "blur(24px) saturate(135%)",
-    WebkitBackdropFilter: "blur(24px) saturate(135%)",
-    padding: "4px 8px 5px",
+    backdropFilter: "blur(14px) saturate(120%)",
+    WebkitBackdropFilter: "blur(14px) saturate(120%)",
+    padding: "3px 8px 4px",
     display: "grid",
     gap: 6,
     pointerEvents: "auto"
@@ -1927,8 +2417,8 @@ const styles: Record<string, React.CSSProperties> = {
     backdropFilter: "blur(28px) saturate(128%)",
     WebkitBackdropFilter: "blur(28px) saturate(128%)",
     boxShadow: "0 10px 28px rgba(0,0,0,0.4)",
-    minHeight: 32,
-    padding: "1px 10px"
+    minHeight: 30,
+    padding: "0 10px"
   },
   composerTopSingle: {
     gridTemplateColumns: "minmax(0,1fr)"
@@ -1939,21 +2429,25 @@ const styles: Record<string, React.CSSProperties> = {
     background: "transparent",
     color: "#ffffff",
     fontSize: 12,
-    lineHeight: 1.24,
+    lineHeight: 1.2,
     outline: "none",
-    padding: "0 2px 0 12px",
+    padding: "0 2px 0 10px",
     fontWeight: 560
   },
   sendCircle: {
     width: 26,
     height: 26,
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.24)",
-    background: "rgba(255,255,255,0.16)",
+    border: "1px solid rgba(122,154,202,0.3)",
+    background: "rgba(20,30,46,0.84)",
     color: "#ffffff",
     display: "grid",
     placeItems: "center",
     cursor: "pointer"
+  },
+  sendIcon: {
+    display: "block",
+    transform: "translateX(-0.5px)"
   },
   sendDisabled: {
     opacity: 0.45,
@@ -1964,26 +2458,26 @@ const styles: Record<string, React.CSSProperties> = {
     display: "inline-flex",
     alignItems: "center",
     gap: 5,
-    minHeight: 25,
+    minHeight: 24,
     width: "fit-content",
     flex: "0 0 auto",
     whiteSpace: "nowrap",
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.16)",
-    background: "#000000",
-    padding: "0 7px",
+    border: "1px solid rgba(122,154,202,0.24)",
+    background: "rgba(9,13,21,0.9)",
+    padding: "0 6px",
     color: "rgba(255,255,255,0.9)"
   },
-  selectLabel: { fontSize: 10, lineHeight: 1.14, color: "rgba(255,255,255,0.62)", letterSpacing: 0.08 },
+  selectLabel: { fontSize: 10, lineHeight: 1.08, color: "rgba(255,255,255,0.62)", letterSpacing: 0.06 },
   optSelect: {
-    minHeight: 18,
+    minHeight: 17,
     minWidth: 0,
     maxWidth: "100%",
     border: "none",
     background: "transparent",
     color: "#ffffff",
     fontSize: 11.5,
-    lineHeight: 1.24,
+    lineHeight: 1.2,
     outline: "none",
     cursor: "pointer",
     padding: "0 6px 0 2px",

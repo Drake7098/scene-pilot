@@ -4,6 +4,7 @@ import { sanitizeProject } from "../model";
 import type { ResultStructureState } from "../components/ResultConsole";
 import type { CanvasDraft } from "../types/canvasDraft";
 import type { IntentPlan } from "../types/intentPlan";
+import { applySceneStrategyFromCanvas } from "./sceneStrategyBridge";
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
@@ -83,10 +84,9 @@ function imageProjectFromCanvas(intentPlan: IntentPlan, structureState: ResultSt
           mediaMode: "image",
           compiler: "v1",
           sceneTier: canvas.sceneType === "indoor" ? "indoor" : "small_plaza",
-          v2Mode: "strict",
-          stability: "standard"
+          v2Mode: "strict"
         },
-        notes: [
+        notes: applySceneStrategyFromCanvas([
           "media: image",
           `goal: ${intentPlan.goal}`,
           `ratio: ${intentPlan.ratio}`,
@@ -98,7 +98,7 @@ function imageProjectFromCanvas(intentPlan: IntentPlan, structureState: ResultSt
           ...canvas.compileHints,
           ...(intentPlan.hardConstraints ?? []),
           ...intentPlan.editHints
-        ].filter(Boolean).join("\n")
+        ].filter(Boolean).join("\n"), canvas)
       }
     ]
   });
@@ -169,10 +169,9 @@ function videoProjectFromCanvas(intentPlan: IntentPlan, structureState: ResultSt
         mediaMode: "video" as const,
         compiler: "v2" as const,
         sceneTier: (canvas.mainScene === "indoor" ? "indoor" : canvas.mainScene === "complex" || canvas.structureType === "multi_scene" ? "open_space" : "small_plaza") as "indoor" | "small_plaza" | "open_space",
-        v2Mode: "strict" as const,
-        stability: "strict" as const
+        v2Mode: "strict" as const
       },
-      notes: [
+      notes: applySceneStrategyFromCanvas([
         "media: video",
         "@compiler: v2",
         `goal: ${intentPlan.goal}`,
@@ -185,7 +184,7 @@ function videoProjectFromCanvas(intentPlan: IntentPlan, structureState: ResultSt
         ...canvas.compileHints,
         ...(intentPlan.hardConstraints ?? []),
         ...intentPlan.editHints
-      ].filter(Boolean).join("\n")
+      ].filter(Boolean).join("\n"), canvas)
     };
   });
 
@@ -268,8 +267,7 @@ function fallbackProject(intentPlan: IntentPlan, structureState: ResultStructure
           mediaMode: intentPlan.mediaType,
           compiler: intentPlan.mediaType === "video" ? "v2" : "v1",
           sceneTier: "small_plaza",
-          v2Mode: "strict",
-          stability: "standard"
+          v2Mode: "strict"
         },
         notes: [
           `media: ${intentPlan.mediaType}`,

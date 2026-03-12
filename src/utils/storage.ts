@@ -4,6 +4,21 @@ import type { Project } from "../model";
 const KEY_PROJECT = "scenepilot_project";
 const KEY_LANG = "scenepilot_lang";
 
+function detectSystemLang(): Lang {
+  try {
+    if (typeof navigator === "undefined") return "en";
+    const primary = typeof navigator.language === "string" ? navigator.language : "";
+    const list = Array.isArray(navigator.languages) ? navigator.languages : [];
+    const tags = [primary, ...list]
+      .map((item) => String(item || "").trim().toLowerCase())
+      .filter(Boolean);
+    const hasZh = tags.some((tag) => tag.startsWith("zh"));
+    return hasZh ? "zh" : "en";
+  } catch {
+    return "en";
+  }
+}
+
 /**
  * Language
  */
@@ -11,9 +26,9 @@ export function loadLang(): Lang {
   try {
     const saved = localStorage.getItem(KEY_LANG);
     if (saved === "zh" || saved === "en") return saved;
-    return "en";
+    return detectSystemLang();
   } catch {
-    return "en";
+    return detectSystemLang();
   }
 }
 

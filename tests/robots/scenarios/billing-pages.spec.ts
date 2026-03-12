@@ -49,9 +49,24 @@ test("upgrade_page_and_credits_page_open_from_top_menu", async ({ page }) => {
   await expect(page.getByText("Credits are non-refundable once used.")).toBeVisible();
 });
 
-test("upgrade_and_buy_trigger_paddle_checkout", async ({ page }) => {
+test("upgrade_page_exposes_local_test_controls", async ({ page }) => {
+  await openTopMenu(page);
+  await page.getByTestId("top-help-item-upgrade").click();
+  await expect(page.getByTestId("billing-local-test-card")).toBeVisible();
+  await expect(page.getByTestId("billing-local-provider-select")).toBeVisible();
+  await expect(page.getByTestId("billing-local-probe")).toBeVisible();
+  await expect(page.getByTestId("billing-local-generate")).toBeVisible();
+
+  await page.getByTestId("billing-local-provider-select").selectOption("drawthings");
+  await page.getByTestId("billing-local-generate").click();
+  await expect(page.getByTestId("billing-local-hint")).toContainText(/请先输入|Please enter/i);
+});
+
+test("upgrade_triggers_paddle_checkout", async ({ page }) => {
+  const checkoutBodies: Array<Record<string, unknown>> = [];
   await page.route("**/api/paddle/checkout", async (route) => {
     const body = JSON.parse(route.request().postData() || "{}");
+    checkoutBodies.push(body);
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -72,19 +87,52 @@ test("upgrade_and_buy_trigger_paddle_checkout", async ({ page }) => {
   });
 
   await signIn(page, "paddle-user@example.com");
+  await page.reload();
 
   await openTopMenu(page);
   await page.getByTestId("top-help-item-upgrade").click();
   await page.getByTestId("billing-legal-consent").check();
   await page.getByTestId("upgrade-pro-cta").click();
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__SCENEPILOT_LAST_PADDLE_CHECKOUT__?.customData?.productId || "");
+    return String(checkoutBodies.at(-1)?.productId ?? "");
   }).toBe("pro_monthly");
+});
 
-  await page.getByTestId("billing-tab-credits").click();
-  await page.getByTestId("credits-buy-credit_500").click();
+test("credits_buy_triggers_paddle_checkout", async ({ page }) => {
+  const checkoutBodies: Array<Record<string, unknown>> = [];
+  await page.route("**/api/paddle/checkout", async (route) => {
+    const body = JSON.parse(route.request().postData() || "{}");
+    checkoutBodies.push(body);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        provider: "paddle",
+        mock: false,
+        kind: body.kind,
+        productId: body.productId,
+        items: [{ priceId: `price_${body.productId}`, quantity: 1 }],
+        customer: body.userEmail ? { email: body.userEmail } : undefined,
+        customData: {
+          userId: body.userId,
+          productId: body.productId,
+          kind: body.kind
+        }
+      })
+    });
+  });
+
+  await signIn(page, "paddle-credit-user@example.com");
+  await openTopMenu(page);
+  await page.getByTestId("top-help-item-account").click();
+  await page.getByRole("button", { name: /购买点数|Buy Credits/i }).click();
+  const billingConsent = page.getByTestId("account-billing-legal-consent");
+  if (!(await billingConsent.isChecked())) {
+    await billingConsent.check();
+  }
+  await page.getByTestId("account-credit-pack-credit_500").click();
   await expect.poll(async () => {
-    return await page.evaluate(() => window.__SCENEPILOT_LAST_PADDLE_CHECKOUT__?.customData?.productId || "");
+    return String(checkoutBodies.at(-1)?.productId ?? "");
   }).toBe("credit_500");
 });
 

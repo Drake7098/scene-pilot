@@ -2,6 +2,12 @@ import type { Lang } from "../i18n";
 import type { ImageStructureHint, VideoStructureHint } from "../types/structureDraft";
 
 type ObjType = "person" | "animal" | "prop" | "environment" | "unknown";
+type ExtractedObject = {
+  id: string;
+  name: string;
+  type: ObjType;
+  isPrimary: boolean;
+};
 
 const IMAGE_SCENE_TERMS = [
   "卧室", "客厅", "厨房", "酒吧", "房间", "街道", "森林", "雪地", "海边",
@@ -24,24 +30,55 @@ const VIDEO_MULTI_SCENE_TERMS = ["来到另一个地方", "后来", "第二天",
 
 const SHOT_SCENE_TERMS = ["门外", "客厅", "厨房", "卧室", "街道", "风雪", "室内", "door", "living room", "kitchen", "bedroom", "street", "indoor"];
 const SHOT_ACTION_TERMS = ["开门", "进入", "看向", "转身", "切到", "回到", "推进", "穿过", "open", "enter", "look", "turn", "cut", "back", "push", "through"];
+const INDOOR_TERMS = ["室内", "房间", "客厅", "卧室", "厨房", "酒吧", "咖啡馆", "indoor", "room", "interior", "living room", "bedroom", "kitchen", "bar", "cafe"];
+const OUTDOOR_TERMS = ["室外", "街道", "森林", "公园", "海边", "山", "沙漠", "雪地", "outdoor", "street", "forest", "park", "beach", "mountain", "desert", "snowfield"];
+const OBJECT_BANNED_TERMS = [
+  "shot", "scene", "camera", "transition", "grammar", "continuity",
+  "镜头", "场景", "运镜", "衔接", "语法", "连续性",
+  "same_space", "location_switch", "indoor_outdoor", "time_jump",
+  "shot_count", "scene_transition", "main_scene"
+];
 
 function lower(text: string) {
   return text.toLowerCase();
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function isAsciiTerm(term: string) {
+  return /^[\x20-\x7E]+$/.test(term);
+}
+
+function matchTerm(text: string, term: string) {
+  const normalized = term.trim().toLowerCase();
+  if (!normalized) return false;
+  if (!isAsciiTerm(normalized)) return text.includes(normalized);
+  const pattern = new RegExp(`\\b${escapeRegExp(normalized).replace(/\\ /g, "\\s+")}\\b`, "i");
+  return pattern.test(text);
+}
+
 function hasAny(text: string, terms: string[]) {
-  return terms.some((term) => text.includes(term));
+  return terms.some((term) => matchTerm(text, term));
 }
 
 function countAny(text: string, terms: string[]) {
-  return terms.reduce((acc, term) => acc + (text.includes(term) ? 1 : 0), 0);
+  return terms.reduce((acc, term) => acc + (matchTerm(text, term) ? 1 : 0), 0);
 }
 
 function parseFallbackObjectNames(userInput: string, lang: Lang) {
   const parts = userInput
     .split(/[\n,，。;；]|(?:\band\b)|(?:\bwith\b)|和/g)
-    .map((item) => item.trim())
+    .map((item) => item.trim().replace(/^[-•\d.\s]+/, ""))
+    .map((item) => item.replace(/\s+/g, " "))
     .filter(Boolean)
+    .filter((item) => item.length <= 24)
+    .filter((item) => {
+      const low = lower(item);
+      if (OBJECT_BANNED_TERMS.some((term) => matchTerm(low, term))) return false;
+      return true;
+    })
     .slice(0, 5);
   if (parts.length) return parts;
   return [lang === "zh" ? "主体" : "subject"];
@@ -49,9 +86,19 @@ function parseFallbackObjectNames(userInput: string, lang: Lang) {
 
 function firstMatched(text: string, terms: string[]) {
   for (const term of terms) {
-    if (text.includes(term)) return term;
+    if (matchTerm(text, term)) return term;
   }
   return "";
+}
+
+function sanitizeObjectName(name: string, lang: Lang) {
+  const cleaned = name.trim().replace(/\s+/g, " ");
+  if (!cleaned) return "";
+  if (cleaned.length > 24) return "";
+  const low = lower(cleaned);
+  if (OBJECT_BANNED_TERMS.some((term) => matchTerm(low, term))) return "";
+  if (lang === "en" && cleaned.split(/\s+/).length > 4) return "";
+  return cleaned;
 }
 
 function classify(name: string): ObjType {
@@ -63,7 +110,7 @@ function classify(name: string): ObjType {
   return "unknown";
 }
 
-export function extractImageObjects(userInput: string, lang: Lang) {
+export function extractImageObjects(userInput: string, lang: Lang): ExtractedObject[] {
   const text = lower(userInput);
   const matched: Array<{ index: number; name: string; type: ObjType }> = [];
   const collect = (terms: string[], type: ObjType) => {
@@ -82,21 +129,38 @@ export function extractImageObjects(userInput: string, lang: Lang) {
     if (!uniq.has(item.name)) uniq.set(item.name, item);
   }
 
-  const result = [...uniq.values()].slice(0, 6).map((item, idx) => ({
-    id: `obj_${idx + 1}`,
-    name: item.name,
-    type: item.type,
-    isPrimary: idx === 0
-  }));
+  const result = [...uniq.values()]
+    .map((item, idx) => ({
+      id: `obj_${idx + 1}`,
+      name: sanitizeObjectName(item.name, lang),
+      type: item.type,
+      isPrimary: idx === 0
+    }))
+    .filter((item) => item.name)
+    .slice(0, 6)
+    .map((item, idx) => ({ ...item, id: `obj_${idx + 1}`, isPrimary: idx === 0 }));
 
   if (result.length) return result;
 
-  return parseFallbackObjectNames(userInput, lang).map((name, idx) => ({
-    id: `obj_${idx + 1}`,
-    name,
-    type: classify(name),
-    isPrimary: idx === 0
-  }));
+  const fallback = parseFallbackObjectNames(userInput, lang)
+    .map((name, idx) => {
+      const safe = sanitizeObjectName(name, lang);
+      return {
+        id: `obj_${idx + 1}`,
+        name: safe,
+        type: classify(safe),
+        isPrimary: idx === 0
+      };
+    })
+    .filter((item) => item.name)
+    .slice(0, 5);
+  if (fallback.length) return fallback;
+  return [{
+    id: "obj_1",
+    name: lang === "zh" ? "主体" : "subject",
+    type: "unknown",
+    isPrimary: true
+  }];
 }
 
 export function extractImageScene(userInput: string, lang: Lang) {
@@ -104,6 +168,17 @@ export function extractImageScene(userInput: string, lang: Lang) {
   const hit = firstMatched(text, IMAGE_SCENE_TERMS);
   if (hit) return hit;
   return lang === "zh" ? "通用场景" : "generic scene";
+}
+
+export function inferMainSceneByKeywords(userInput: string, structureType: VideoStructureHint): "indoor" | "outdoor" | "complex" | "multi_scene" {
+  if (structureType === "multi_scene") return "multi_scene";
+  const text = lower(userInput);
+  const indoor = countAny(text, INDOOR_TERMS);
+  const outdoor = countAny(text, OUTDOOR_TERMS);
+  if (outdoor > 0 && indoor === 0) return "outdoor";
+  if (indoor > 0 && outdoor === 0) return "indoor";
+  if (indoor > 0 && outdoor > 0) return "complex";
+  return "complex";
 }
 
 export function extractImageRelations(userInput: string, lang: Lang) {

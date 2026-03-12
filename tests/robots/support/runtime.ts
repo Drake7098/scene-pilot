@@ -16,7 +16,7 @@ type TestFsSnapshot = {
   files: Record<string, string>;
 };
 
-export type LocalProviderMockMode = "drawthings_ready" | "comfy_fallback" | "handoff_only";
+export type LocalProviderMockMode = "drawthings_ready" | "draw_fallback" | "comfy_fallback" | "handoff_only";
 
 export type LocalProviderMockState = {
   mode: LocalProviderMockMode;
@@ -94,6 +94,89 @@ async function isVisible(locator: Locator): Promise<boolean> {
   }
 }
 
+async function openTopMenu(page: Page): Promise<void> {
+  await page.getByTestId("top-help-trigger").click();
+}
+
+async function signIn(page: Page, email: string): Promise<void> {
+  await openTopMenu(page);
+  await page.getByTestId("top-help-item-account").click();
+  await page.getByPlaceholder(/邮箱地址|Email/i).fill(email);
+  await page.getByTestId("account-auth-legal-consent").check();
+  await page.getByTestId("account-auth-send-code").click();
+  const devCodeText = await page.locator("text=/开发验证码：|Dev code:/").textContent();
+  const code = devCodeText?.match(/(\d{6})/)?.[1] ?? "";
+  await page.getByPlaceholder(/6 位验证码|6-digit code/i).fill(code);
+  await page.getByTestId("account-auth-verify").click();
+  await page.mouse.click(10, 10);
+}
+
+export async function openQuickWorkspace(page: Page, lang: "zh" | "en" = "en"): Promise<void> {
+  await page.goto("/");
+  await page.evaluate((nextLang) => {
+    localStorage.setItem("sp_workspace_mode", "results");
+    localStorage.setItem("scenepilot_lang", nextLang);
+  }, lang);
+  await page.reload();
+  await expect(page.getByTestId("media-studio-root")).toBeVisible();
+}
+
+export async function ensureMockProAccount(
+  page: Page,
+  options: { email?: string; creditsBalance?: number } = {},
+): Promise<void> {
+  const { email = "robot-pro@example.com", creditsBalance = 200 } = options;
+  const hasSession = await page.evaluate(() => {
+    const raw = localStorage.getItem("scenepilot_mock_account_store_v1");
+    if (!raw) return false;
+    try {
+      return Boolean(JSON.parse(raw)?.session?.userId);
+    } catch {
+      return false;
+    }
+  });
+
+  if (!hasSession) {
+    await signIn(page, email);
+  }
+
+  await page.evaluate((nextCreditsBalance) => {
+    const raw = localStorage.getItem("scenepilot_mock_account_store_v1");
+    if (!raw) throw new Error("Mock account store is missing");
+    const store = JSON.parse(raw);
+    const userId = store.session?.userId;
+    if (!userId) throw new Error("Mock account session is missing");
+    store.users[userId] = {
+      ...store.users[userId],
+      tier: "pro",
+      proConsoleEnabled: true,
+      bringYourOwnApiEnabled: true,
+      creditsBalance: nextCreditsBalance
+    };
+    store.wallets[userId] = { creditsBalance: nextCreditsBalance, currency: "credits" };
+    store.subscriptions[userId] = {
+      userId,
+      planId: "pro_monthly",
+      status: "active",
+      currentPeriodStart: new Date().toISOString(),
+      currentPeriodEnd: new Date(Date.now() + 86400000).toISOString(),
+      lastCreditGrantAt: new Date().toISOString(),
+      provider: "mock",
+      customerPortalUrl: "/mock/paddle/customer-portal"
+    };
+    localStorage.setItem("scenepilot_mock_account_store_v1", JSON.stringify(store));
+  }, creditsBalance);
+
+  await page.reload();
+}
+
+export async function skipProGateIfPresent(page: Page): Promise<void> {
+  const skipButton = page.getByTestId("account-auth-skip-pro");
+  if (await skipButton.count()) {
+    await skipButton.click();
+  }
+}
+
 export async function openWizard(page: Page): Promise<void> {
   const onboardingStartBtn = page.getByRole("button", { name: TXT.startCreating });
   const wizardStep1Title = page.getByText(TXT.wizardStep1);
@@ -115,6 +198,18 @@ export async function openWizard(page: Page): Promise<void> {
     return;
   }
 
+  const mediaStudioRoot = page.getByTestId("media-studio-root");
+  if (await isVisible(mediaStudioRoot)) {
+    await ensureMockProAccount(page, { creditsBalance: 240 });
+    await page.evaluate(() => {
+      localStorage.setItem("sp_workspace_mode", "pro");
+    });
+    await page.reload();
+    if (await isVisible(wizardStep1Title)) {
+      return;
+    }
+  }
+
   const projectMenuTrigger = page.getByTestId("project-menu-trigger");
   if (await isVisible(projectMenuTrigger)) {
     await projectMenuTrigger.click();
@@ -131,6 +226,15 @@ export async function openWizard(page: Page): Promise<void> {
   const newWithoutSavingBtn = page.getByRole("button", { name: TXT.newWithoutSaving });
   if (await isVisible(newWithoutSavingBtn)) {
     await newWithoutSavingBtn.click();
+  }
+
+  const accountAuthSendCode = page.getByTestId("account-auth-send-code");
+  if (await isVisible(accountAuthSendCode)) {
+    await ensureMockProAccount(page, { creditsBalance: 240 });
+    await page.evaluate(() => {
+      localStorage.setItem("sp_workspace_mode", "pro");
+    });
+    await page.reload();
   }
 
   await expect(wizardStep1Title).toBeVisible();
@@ -334,6 +438,7 @@ export async function installTestDirectoryBridge(page: Page): Promise<void> {
       skipHandlePersistence: true,
       showDirectoryPicker: async () => rootHandle,
     };
+    (window as any).showDirectoryPicker = async () => rootHandle;
 
     window.confirm = () => true;
     window.prompt = (_message?: string, defaultValue?: string) => {
@@ -378,7 +483,7 @@ export async function installLocalProviderMocks(page: Page, mode: LocalProviderM
 
   await page.route("**/__localgen/draw/", async (route) => {
     state.drawProbeCalls += 1;
-    if (mode === "drawthings_ready") {
+    if (mode === "drawthings_ready" || mode === "draw_fallback") {
       await route.fulfill({ status: 200, body: "ok", contentType: "text/plain" });
       return;
     }
@@ -392,7 +497,7 @@ export async function installLocalProviderMocks(page: Page, mode: LocalProviderM
     } catch {
       state.drawPayloads.push({});
     }
-    if (mode !== "drawthings_ready") {
+    if (mode !== "drawthings_ready" && mode !== "draw_fallback") {
       await route.abort("failed");
       return;
     }
@@ -405,7 +510,7 @@ export async function installLocalProviderMocks(page: Page, mode: LocalProviderM
 
   await page.route("**/__localgen/comfy/system_stats", async (route) => {
     state.comfyProbeCalls += 1;
-    if (mode === "handoff_only") {
+    if (mode === "handoff_only" || mode === "draw_fallback") {
       await route.abort("failed");
       return;
     }
@@ -417,7 +522,7 @@ export async function installLocalProviderMocks(page: Page, mode: LocalProviderM
   });
 
   await page.route("**/__localgen/comfy/models/checkpoints", async (route) => {
-    if (mode === "handoff_only") {
+    if (mode === "handoff_only" || mode === "draw_fallback") {
       await route.abort("failed");
       return;
     }
@@ -435,7 +540,7 @@ export async function installLocalProviderMocks(page: Page, mode: LocalProviderM
     } catch {
       state.comfyPromptPayloads.push({});
     }
-    if (mode === "handoff_only") {
+    if (mode === "handoff_only" || mode === "draw_fallback") {
       await route.abort("failed");
       return;
     }
@@ -450,7 +555,7 @@ export async function installLocalProviderMocks(page: Page, mode: LocalProviderM
 
   await page.route(/.*\/__localgen\/comfy\/history\/.+$/, async (route) => {
     state.comfyHistoryCalls += 1;
-    if (mode === "handoff_only") {
+    if (mode === "handoff_only" || mode === "draw_fallback") {
       await route.abort("failed");
       return;
     }
@@ -482,7 +587,7 @@ export async function installLocalProviderMocks(page: Page, mode: LocalProviderM
 
   await page.route(/.*\/__localgen\/comfy\/view\?.*$/, async (route) => {
     state.comfyViewCalls += 1;
-    if (mode === "handoff_only") {
+    if (mode === "handoff_only" || mode === "draw_fallback") {
       await route.abort("failed");
       return;
     }

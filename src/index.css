@@ -200,6 +200,53 @@ button:focus-visible {
   box-shadow: var(--spx-shadow-focus) !important;
 }
 
+.spx-canvas-tab {
+  transition:
+    transform var(--spx-transition-fast),
+    box-shadow var(--spx-transition-normal),
+    border-color var(--spx-transition-normal),
+    filter var(--spx-transition-normal),
+    opacity var(--spx-transition-fast);
+  will-change: transform, box-shadow;
+}
+
+.spx-canvas-tab-active {
+  border-color: rgba(232, 238, 255, 0.28) !important;
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+}
+
+.spx-canvas-tab-primary {
+  box-shadow:
+    0 7px 16px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 246, 225, 0.55) !important;
+}
+
+.spx-canvas-tab-meta {
+  opacity: 0.92;
+}
+
+.spx-pro-result-rail::-webkit-scrollbar {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .spx-canvas-tab:hover {
+    transform: translateY(-1px);
+    border-color: rgba(238, 244, 255, 0.32) !important;
+    box-shadow:
+      0 8px 16px rgba(0, 0, 0, 0.24),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+    filter: brightness(1.04);
+  }
+
+  .spx-canvas-tab:active {
+    transform: translateY(0);
+    filter: brightness(0.98);
+  }
+}
+
 .spx-card {
   border: 1px solid var(--spx-border);
   border-radius: 14px;
@@ -217,7 +264,8 @@ button:focus-visible {
 .spx-glass-right {
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(18px);
+  backdrop-filter: none;
+  background: #000;
 }
 
 .spx-glass-left::before,
@@ -226,7 +274,10 @@ button:focus-visible {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.8;
+  opacity: 1;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.016) 0, rgba(255, 255, 255, 0.016) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.01) 0%, rgba(0, 0, 0, 0) 20%);
 }
 
 .spx-glass-left::after,
@@ -235,7 +286,7 @@ button:focus-visible {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.08;
+  opacity: 0.04;
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
@@ -244,14 +295,14 @@ button:focus-visible {
 
 .spx-glass-left::before {
   background:
-    radial-gradient(560px 420px at 18% 88%, rgba(82, 138, 228, 0.18), transparent 58%),
-    radial-gradient(420px 260px at 84% 18%, rgba(64, 182, 194, 0.11), transparent 56%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.016) 0, rgba(255, 255, 255, 0.016) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.01) 0%, rgba(0, 0, 0, 0) 20%);
 }
 
 .spx-glass-right::before {
   background:
-    radial-gradient(520px 360px at 82% 18%, rgba(74, 196, 192, 0.12), transparent 58%),
-    radial-gradient(420px 260px at 24% 84%, rgba(104, 171, 255, 0.12), transparent 56%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.016) 0, rgba(255, 255, 255, 0.016) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.01) 0%, rgba(0, 0, 0, 0) 20%);
 }
 
 .spx-hint {

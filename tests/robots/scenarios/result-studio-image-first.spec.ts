@@ -75,29 +75,15 @@ test("quick_workspace_two_layer_input_flow_image", async ({ page }) => {
     await page.getByTestId("result-console-generate-secondary").click();
 
     await expect(page.getByTestId("quick-structure-canvas-ready")).toBeVisible();
-    await expect(page.getByTestId("quick-canvas-editor")).toBeVisible();
-    await expect(page.getByTestId("quick-canvas-primary-brief")).toHaveText(/三个人站在酒吧里，中间是主角/);
-    await expect(page.getByTestId("quick-canvas-secondary-brief")).toHaveText(/主角更大，背景别太乱/);
-    await expect(page.getByTestId("quick-canvas-image-subject-count")).toContainText("1");
-    await expect(page.getByTestId("quick-canvas-image-composition")).toContainText(/left_right|center|depth|environment_wrap/);
-    await expect(page.getByTestId("quick-canvas-image-background")).toContainText(/rich|normal|clean|strong_environment/);
-  });
-
-  await runStep(page, "image_canvas_object_can_drag", async () => {
-    const firstObj = page.locator("[data-testid^='quick-canvas-object-']").first();
-    await expect(firstObj).toBeVisible();
-    await firstObj.click();
-    const position = page.getByTestId("quick-canvas-object-position");
-    const before = (await position.textContent()) ?? "";
-
-    const box = await firstObj.boundingBox();
-    if (box) {
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-      await page.mouse.down();
-      await page.mouse.move(box.x + box.width / 2 + 36, box.y + box.height / 2 + 20);
-      await page.mouse.up();
-    }
-    await expect(position).not.toHaveText(before);
+    await expect(page.getByTestId("quick-prompt-panel")).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toHaveValue(/三个人站在酒吧里，中间是主角/);
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toHaveValue(/主角更大，背景别太乱/);
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toHaveValue(/16:9/);
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toHaveValue(/rich|丰富/);
+    await expect(page.getByTestId("quick-canvas-actions")).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-copy")).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-ratio")).toBeVisible();
   });
 });
 
@@ -156,13 +142,14 @@ test("quick_workspace_two_layer_input_flow_video", async ({ page }) => {
     await page.getByTestId("result-console-generate-secondary").click();
 
     await expect(page.getByTestId("quick-structure-canvas-ready")).toBeVisible();
-    await expect(page.getByTestId("quick-canvas-editor")).toBeVisible();
-    await expect(page.getByTestId("quick-canvas-primary-brief")).toHaveText(/先看到门外风雪，然后开门进入屋内/);
-    await expect(page.getByTestId("quick-canvas-secondary-brief")).toHaveText(/保持第一视角，室内暖光不要变/);
-    await expect(page.getByTestId("quick-canvas-video-structure")).toContainText(/single_shot/);
-    await expect(page.getByTestId("quick-canvas-video-shot-count")).toContainText("1");
-    await expect(page.getByTestId("quick-canvas-video-continuity")).toContainText(/lighting/);
-    await page.getByTestId("quick-canvas-video-shot-title").fill("门外到屋内的单镜头");
-    await expect(page.getByTestId("quick-canvas-video-active-shot")).toHaveText(/门外到屋内的单镜头/);
+    await expect(page.getByTestId("quick-prompt-panel")).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toHaveValue(/先看到门外风雪，然后开门进入屋内/);
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toHaveValue(/保持第一视角，室内暖光不要变/);
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toHaveValue(/single-shot|单镜头/);
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toHaveValue(/lighting consistency|光线一致/);
+    await expect(page.getByTestId("quick-canvas-actions")).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-copy")).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-ratio")).toBeVisible();
   });
 });

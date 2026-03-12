@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { assertProjectVisible, captureArtifacts, createVideoProject, openWizard, requireLiveMode, runStep } from "../support/runtime";
+import {
+  assertProjectVisible,
+  captureArtifacts,
+  createVideoProject,
+  ensureMockProAccount,
+  openWizard,
+  requireLiveMode,
+  runStep
+} from "../support/runtime";
 
 test("export_platform_switch_and_policy_hint", async ({ page }) => {
   requireLiveMode();
@@ -8,6 +16,11 @@ test("export_platform_switch_and_policy_hint", async ({ page }) => {
 
   await runStep(page, "open_and_create_video_project", async () => {
     await page.goto("/");
+    await ensureMockProAccount(page, { creditsBalance: 240 });
+    await page.evaluate(() => {
+      localStorage.setItem("sp_workspace_mode", "pro");
+    });
+    await page.reload();
     await expect(page).toHaveTitle(/Scene|Pilot|Vite/i);
     await openWizard(page);
     await createVideoProject(page, projectName, 2, 12, "open_space");

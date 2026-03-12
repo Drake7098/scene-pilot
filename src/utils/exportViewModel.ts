@@ -89,11 +89,16 @@ export function buildSystemProcessRows(input: { lang: Lang; summary: ExportSumma
   const { lang, summary, pipeline } = input;
   const z = lang === "zh";
   return [
+    { label: z ? "提示词引擎" : "Prompt Engine", value: summary.engineId },
+    { label: z ? "工作台" : "Workspace", value: summary.workspace === "pro" ? (z ? "Pro" : "Pro") : (z ? "快捷工作台" : "Quick") },
     { label: z ? "当前 compiler" : "Compiler", value: summary.compiler },
     { label: z ? "当前 media" : "Media", value: summary.mediaMode },
     { label: z ? "图片清理" : "Image Cleanup", value: summary.imageCleanupApplied ? (z ? "已执行" : "Applied") : (z ? "未执行" : "No") },
+    { label: z ? "图片去视频骨架" : "Image Scaffold Strip", value: summary.imageVideoScaffoldRemoved ? (z ? "已执行" : "Applied") : (z ? "未执行" : "No") },
+    { label: z ? "引擎压缩" : "Engine Compaction", value: summary.engineCompactionApplied ? (z ? "已执行" : "Applied") : (z ? "未执行" : "No") },
     { label: z ? "结构控制层" : "Machine Tail", value: pipeline.metadata.tailApplied ? (z ? "已追加" : "Applied") : (z ? "未追加" : "No") },
     { label: z ? "预算裁剪" : "Budget Trim", value: summary.budgetTrimmed ? (z ? "已触发" : "Triggered") : (z ? "未触发" : "No") },
+    { label: z ? "引擎处理" : "Engine Passes", value: summary.enginePasses.join(", ") || "-" },
     { label: z ? "Patch" : "Patches", value: summary.appliedPatches.join(", ") || "-" }
   ];
 }
@@ -131,12 +136,17 @@ export function buildSystemSummary(input: Input): string {
   lines.push("");
   lines.push(line("适配策略", "Adaptation Strategy", preset.nativeStrategy ? (lang === "zh" ? "原生策略" : "Native") : (lang === "zh" ? "映射策略" : "Mapped"), lang));
   lines.push(line("基础策略", "Base Profile", summary.baseProfile, lang));
+  lines.push(line("提示词引擎", "Prompt Engine", summary.engineId, lang));
+  lines.push(line("工作台", "Workspace", summary.workspace === "pro" ? "Pro" : lang === "zh" ? "快捷工作台" : "Quick", lang));
   lines.push(line("Compiler", "Compiler", summary.compiler, lang));
   lines.push(line("媒体模式", "Media Mode", summary.mediaMode, lang));
   lines.push(line("结构控制层", "Machine Tail", pipeline.metadata.tailApplied ? (lang === "zh" ? "已追加" : "Applied") : (lang === "zh" ? "未追加" : "Not Applied"), lang));
-  lines.push(line("图片模式清理", "Image Cleanup", summary.imageCleanupApplied ? (lang === "zh" ? "已执行（剥离时长/T1）" : "Applied (duration/T1 stripped)") : (lang === "zh" ? "未执行" : "Not Applied"), lang));
+  lines.push(line("图片模式清理", "Image Cleanup", summary.imageCleanupApplied ? (lang === "zh" ? "已执行" : "Applied") : (lang === "zh" ? "未执行" : "Not Applied"), lang));
+  lines.push(line("图片去视频骨架", "Image Scaffold Strip", summary.imageVideoScaffoldRemoved ? (lang === "zh" ? "已执行" : "Applied") : (lang === "zh" ? "未执行" : "Not Applied"), lang));
+  lines.push(line("引擎压缩", "Engine Compaction", summary.engineCompactionApplied ? (lang === "zh" ? "已执行" : "Applied") : (lang === "zh" ? "未执行" : "Not Applied"), lang));
   lines.push(line("预算裁剪", "Budget Trim", summary.budgetTrimmed ? (lang === "zh" ? "已触发" : "Triggered") : (lang === "zh" ? "未触发" : "Not Triggered"), lang));
   lines.push(line("裁剪原因", "Trim Reason", summary.trimReason, lang));
+  lines.push(line("引擎处理", "Engine Passes", summary.enginePasses.join(", "), lang));
   lines.push(line("Patch", "Patches", summary.appliedPatches.join(", "), lang));
   return lines.join("\n").trim();
 }

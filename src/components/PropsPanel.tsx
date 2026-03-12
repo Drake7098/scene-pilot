@@ -206,19 +206,19 @@ function buildLookPresets(lang: Lang, typeKey: TypeKey) {
       label: zh ? "赛博霓虹（潮湿表面/粗粝纹理）" : "Cyberpunk neon (wet surfaces / gritty texture)"
     },
     {
-      value: "low-key dramatic lighting, deep contrast, powerful mood, visible details",
-      label: zh ? "低调戏剧光（高反差但保留细节）" : "Low-key dramatic (high contrast with detail)"
+      value: "heavy contrast surfaces, dense structure separation, visible industrial detail",
+      label: zh ? "高对比结构分离（保留工业细节）" : "High-contrast structure separation"
     }
   ];
 
   const celestial = [
     {
-      value: "photoreal celestial body, atmospheric scattering, limb glow, high dynamic range",
-      label: zh ? "写实天体（大气散射/边缘辉光）" : "Photoreal celestial (scattering / limb glow)"
+      value: "photoreal celestial body, clear atmospheric banding, large-scale planetary texture",
+      label: zh ? "写实天体（大气层与地表纹理）" : "Photoreal celestial (atmosphere / surface texture)"
     },
     {
-      value: "cold color temperature, crisp terminator boundary, subtle space haze",
-      label: zh ? "冷色天体（清晰明暗界线）" : "Cold celestial (crisp terminator boundary)"
+      value: "crisp terminator boundary, controlled surface contrast, subtle orbital haze",
+      label: zh ? "明暗界线清晰（轨道薄雾）" : "Crisp terminator boundary"
     }
   ];
 
@@ -228,8 +228,8 @@ function buildLookPresets(lang: Lang, typeKey: TypeKey) {
       label: zh ? "写实人物（自然皮肤/真实比例）" : "Photoreal character (natural skin / real proportions)"
     },
     {
-      value: "cinematic portrait lighting, shallow depth of field, detailed eyes and facial micro details",
-      label: zh ? "电影肖像（浅景深/面部微细节）" : "Cinematic portrait (shallow DOF / facial micro detail)"
+      value: "detailed eyes, strong facial micro details, portrait-oriented subject finish",
+      label: zh ? "肖像细节（眼部与面部微细节）" : "Portrait detail (eyes / facial micro detail)"
     },
     {
       value: "stylized realism, clean design language, consistent identity features",
@@ -239,12 +239,12 @@ function buildLookPresets(lang: Lang, typeKey: TypeKey) {
 
   const env = [
     {
-      value: "cinematic environment, volumetric lighting, layered atmosphere, film-still style",
-      label: zh ? "电影环境（体积光/层次氛围）" : "Cinematic environment (volumetric / layered atmosphere)"
+      value: "cinematic environment, layered atmosphere, film-still structure",
+      label: zh ? "电影环境（层次与气氛结构）" : "Cinematic environment (layered structure)"
     },
     {
-      value: "documentary natural lighting, realistic materials, physically plausible textures",
-      label: zh ? "纪实环境（自然光/真实材质）" : "Documentary environment (natural light / real materials)"
+      value: "documentary environment, realistic materials, physically plausible textures",
+      label: zh ? "纪实环境（真实材质）" : "Documentary environment (real materials)"
     }
   ];
 
@@ -379,24 +379,24 @@ export function PropsPanel(props: Props) {
     () => [
       { value: "", label: lang === "zh" ? "（无）" : "(none)" },
       // common/high-frequency first
-      { value: "plain white seamless backdrop, studio soft light", label: lang === "zh" ? "白底棚拍（柔光无缝背景）" : "White seamless studio backdrop" },
-      { value: "plain black seamless backdrop, controlled rim light", label: lang === "zh" ? "黑底棚拍（轮廓光）" : "Black seamless studio backdrop" },
-      { value: "neutral gray studio backdrop, balanced soft lighting", label: lang === "zh" ? "灰底棚拍（均匀柔光）" : "Gray studio backdrop" },
-      { value: "modern indoor living room, natural window light", label: lang === "zh" ? "现代客厅（自然窗光）" : "Modern living room (natural window light)" },
-      { value: "minimal office interior, clean daylight, tidy desk area", label: lang === "zh" ? "简洁办公室（日光）" : "Minimal office interior (daylight)" },
-      { value: "city street at night, neon signs, wet pavement reflections", label: lang === "zh" ? "夜晚城市街道（霓虹反射）" : "City street at night (neon reflections)" },
-      { value: "urban rooftop skyline at dusk, cinematic atmosphere", label: lang === "zh" ? "黄昏城市天台（天际线）" : "Urban rooftop skyline at dusk" },
+      { value: "plain white seamless backdrop", label: lang === "zh" ? "白底棚拍" : "White seamless studio backdrop" },
+      { value: "plain black seamless backdrop", label: lang === "zh" ? "黑底棚拍" : "Black seamless studio backdrop" },
+      { value: "neutral gray studio backdrop", label: lang === "zh" ? "灰底棚拍" : "Gray studio backdrop" },
+      { value: "modern indoor living room", label: lang === "zh" ? "现代客厅" : "Modern living room" },
+      { value: "minimal office interior, tidy desk area", label: lang === "zh" ? "简洁办公室" : "Minimal office interior" },
+      { value: "city street, wet pavement, dense storefront signs", label: lang === "zh" ? "城市街道（湿地面/招牌）" : "City street (wet pavement / storefront signs)" },
+      { value: "urban rooftop skyline", label: lang === "zh" ? "城市天台（天际线）" : "Urban rooftop skyline" },
       { value: "industrial interior, metallic structures, depth layers", label: lang === "zh" ? "工业舱内（金属结构）" : "Industrial interior (metal structures)" },
-      { value: "clean futuristic corridor, sci-fi lighting accents", label: lang === "zh" ? "未来科幻走廊（冷色灯带）" : "Futuristic corridor (sci-fi accents)" },
-      { value: "forest clearing, soft volumetric sunlight, natural haze", label: lang === "zh" ? "森林空地（体积阳光）" : "Forest clearing (volumetric sunlight)" },
+      { value: "clean futuristic corridor", label: lang === "zh" ? "未来科幻走廊" : "Futuristic corridor" },
+      { value: "forest clearing, natural haze", label: lang === "zh" ? "森林空地（自然薄雾）" : "Forest clearing (natural haze)" },
       { value: "mountain valley, distant peaks, crisp atmosphere", label: lang === "zh" ? "山谷远山（空气通透）" : "Mountain valley (distant peaks)" },
-      { value: "desert dunes, warm tone, long shadows", label: lang === "zh" ? "沙漠沙丘（暖色长阴影）" : "Desert dunes (warm long shadows)" },
+      { value: "desert dunes", label: lang === "zh" ? "沙漠沙丘" : "Desert dunes" },
       { value: "coastal beach, open sky, soft sea haze", label: lang === "zh" ? "海岸沙滩（开阔天空）" : "Coastal beach (open sky)" },
-      { value: "snow field landscape, high albedo, cold atmosphere", label: lang === "zh" ? "雪地场景（冷色高反照）" : "Snow field landscape (cold high albedo)" },
+      { value: "snow field landscape", label: lang === "zh" ? "雪地场景" : "Snow field landscape" },
       { value: "deep space, dense starfield", label: lang === "zh" ? "深空（密集星场）" : "Deep space (dense starfield)" },
-      { value: "earth limb in frame, atmospheric glow", label: lang === "zh" ? "地球弧面（大气辉光）" : "Earth limb (atmospheric glow)" },
-      { value: "distant moon, cold tone", label: lang === "zh" ? "远月背景（冷色调）" : "Distant moon (cold tone)" },
-      { value: "nebula clouds, volumetric cosmic haze", label: lang === "zh" ? "星云背景（体积雾）" : "Nebula background (volumetric haze)" },
+      { value: "earth limb in frame", label: lang === "zh" ? "地球弧面" : "Earth limb" },
+      { value: "distant moon", label: lang === "zh" ? "远月背景" : "Distant moon" },
+      { value: "nebula clouds, cosmic haze", label: lang === "zh" ? "星云背景（宇宙雾）" : "Nebula background (cosmic haze)" },
       { value: CUSTOM, label: lang === "zh" ? "自定义…" : "Custom…" }
     ],
     [lang]
@@ -478,12 +478,10 @@ const typePresets = useMemo(
   const [shapeMode, setShapeMode] = useState<string>("");
   const [shapeDraft, setShapeDraft] = useState<string>("");
   const [externalDraft, setExternalDraft] = useState<string>("");
-  const [localPromptToast, setLocalPromptToast] = useState<string>("");
   const [localRefToast, setLocalRefToast] = useState<string>("");
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [showRefHelp, setShowRefHelp] = useState(false);
   const [localRefThumb, setLocalRefThumb] = useState<string>("");
-  const [showBgRefHelp, setShowBgRefHelp] = useState(false);
   const [bgRefThumb, setBgRefThumb] = useState<string>("");
   const [bgRefToast, setBgRefToast] = useState<string>("");
   const localSyncPauseRef = useRef(false);
@@ -517,11 +515,6 @@ const typePresets = useMemo(
   }, [layer?.id, scene.id, typeKey, lang]);
 
   React.useEffect(() => {
-    if (!localPromptToast) return;
-    const timer = window.setTimeout(() => setLocalPromptToast(""), 3000);
-    return () => window.clearTimeout(timer);
-  }, [localPromptToast]);
-  React.useEffect(() => {
     if (!localRefToast) return;
     const timer = window.setTimeout(() => setLocalRefToast(""), 3000);
     return () => window.clearTimeout(timer);
@@ -543,9 +536,6 @@ const typePresets = useMemo(
   }
   function commitExternalPrompt(v: string) {
     patchLayer({ externalPrompt: v });
-    const tags = detectGlobalScopeTags(v);
-    if (!tags.length) return;
-    setLocalPromptToast(tt("props.localPromptGlobalHint").replace("{tags}", tags.join(", ")));
   }
 
   const localRefs = useMemo<LocalRefMeta[]>(() => {
@@ -689,11 +679,12 @@ const typePresets = useMemo(
   const notePresets = useMemo(() => {
     return [
       { key: "high_detail", line: "high detail, intricate textures", zh: "高细节、丰富纹理" },
-      { key: "cinematic", line: "cinematic, film still, dramatic lighting", zh: "电影感、剧照质感、戏剧光" },
       { key: "sharp", line: "sharp focus, crisp edges", zh: "清晰锐利、焦点明确" },
+      { key: "material_readable", line: "readable materials, clear surface details", zh: "材质可读、表面细节清楚" },
+      { key: "clear_action", line: "clear action silhouette, readable body language", zh: "动作清楚、身体语言可读" },
       { key: "no_text", line: "no text, no watermark, no logo", zh: "无文字、无水印、无Logo" },
-      { key: "clean_bg", line: "clean background, uncluttered", zh: "背景干净、不杂乱" },
-      { key: "style_consistent", line: "consistent style across shots", zh: "风格一致（分镜统一）" }
+      { key: "identity_consistent", line: "keep this object identity consistent", zh: "保持该对象身份一致" },
+      { key: "local_only", line: "object-local only, do not override camera or overall composition", zh: "仅作用于该对象，不改镜头和整体构图" }
     ];
   }, []);
 
@@ -904,25 +895,8 @@ const typePresets = useMemo(
                   }}
                 />
               </label>
-              <button
-                type="button"
-                style={styles.qBtn}
-                onMouseEnter={() => setShowBgRefHelp(true)}
-                onMouseLeave={() => setShowBgRefHelp(false)}
-                onFocus={() => setShowBgRefHelp(true)}
-                onBlur={() => setShowBgRefHelp(false)}
-              >
-                ?
-              </button>
             </div>
           </div>
-          {showBgRefHelp ? (
-            <div style={styles.helpFloat}>
-              {lang === "zh"
-                ? "可选项：每个分镜仅 1 张背景参考图。画布会整图自适应并淡化虚化显示，不影响前景对象编辑。不同大模型对多参考图支持不同，请确认你将使用的大模型支持多参考图。"
-                : "Optional: one background reference per shot. Canvas fits the full image with a faint blur behind objects. Multi-reference support varies across models; confirm your target model supports multiple references."}
-            </div>
-          ) : null}
           <div style={styles.localRefList}>
             {scene.backgroundRef ? (
               <div style={styles.localRefItem}>
@@ -1207,8 +1181,6 @@ const typePresets = useMemo(
               </div>
               {localRefToast ? <div style={styles.toastHint}>{localRefToast}</div> : null}
             </div>
-            {localPromptToast ? <div style={styles.toastHint}>{localPromptToast}</div> : null}
-
             {conflictHints.length > 0 && (
               <div style={styles.warnHint}>
                 {conflictHints.map((x, i) => (
@@ -1427,7 +1399,7 @@ const typePresets = useMemo(
 
       {/* Composition + Trajectory buttons */}
       <div style={styles.card}>
-        <div style={styles.cardTitle}>{lang === "zh" ? "对象构图" : "Composition (Start / End)"}</div>
+        <div style={styles.cardTitle}>{lang === "zh" ? "对象构图" : "Composition"}</div>
 
         {!layer || !k0 || !k1 ? (
           <div style={styles.miniHint}>{lang === "zh" ? "先选择一个对象" : "Select an object first"}</div>
@@ -1435,14 +1407,14 @@ const typePresets = useMemo(
           <>
             <div style={styles.row}>
               <div style={styles.label}>{lang === "zh" ? "轨迹" : "Path"}</div>
-              <div style={styles.btnRow}>
+              <div style={styles.pathBtnRow}>
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
-                  style={{ ...styles.pillBtn, ...(editT === 0 ? styles.pillBtnOn : {}) }}
+                  style={{ ...styles.pillBtn, ...styles.pathBtn, ...(editT === 0 ? styles.pillBtnOn : {}) }}
                   onClick={() => setEditT(0)}
                 >
-                  {lang === "zh" ? "编辑起点" : "Edit Start"}
+                  {lang === "zh" ? "编辑起点" : "Start"}
                 </button>
 
                 <button
@@ -1458,6 +1430,7 @@ const typePresets = useMemo(
                   }
                   style={{
                     ...styles.pillBtn,
+                    ...styles.pathBtn,
                     ...(editT === 1 ? styles.pillBtnOn : {}),
                     ...(isImageMode ? styles.pillBtnDisabled : {})
                   }}
@@ -1466,7 +1439,7 @@ const typePresets = useMemo(
                     setEditT(1);
                   }}
                 >
-                  {lang === "zh" ? "编辑终点" : "Edit End"}
+                  {lang === "zh" ? "编辑终点" : "End"}
                 </button>
               </div>
             </div>
@@ -1479,9 +1452,9 @@ const typePresets = useMemo(
               </div>
             ) : null}
 
-            <div style={styles.grid2}>
+            <div style={styles.kfGrid}>
               <div style={styles.subCard}>
-                <div style={styles.subTitle}>{lang === "zh" ? "起点 t=0" : "Start t=0"}</div>
+                <div style={styles.subTitle}>{lang === "zh" ? "起点 t=0" : "Start"}</div>
                 <KRow
                   tVal={0}
                   label="x"
@@ -1525,7 +1498,7 @@ const typePresets = useMemo(
               </div>
 
               <div style={{ ...styles.subCard, ...(isImageMode ? styles.subCardDisabled : {}) }}>
-                <div style={styles.subTitle}>{lang === "zh" ? "终点 t=1" : "End t=1"}</div>
+                <div style={styles.subTitle}>{lang === "zh" ? "终点 t=1" : "End"}</div>
                 <KRow
                   tVal={1}
                   label="x"
@@ -1634,8 +1607,8 @@ const styles: Record<string, React.CSSProperties> = {
   wrap: {
     width: "clamp(240px, 26vw, 344px)",
     minWidth: 240,
-    borderLeft: `1px solid ${UI_PALETTE.border.soft}`,
-    background: `${UI_PANEL.rightGlow}, ${UI_PANEL.rightGlass}`,
+    borderLeft: "none",
+    background: "#000000",
     padding: 12,
     display: "flex",
     flexDirection: "column",
@@ -1643,15 +1616,15 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 0,
     overflow: "auto",
     position: "relative",
-    boxShadow: "inset 1px 0 0 rgba(255,255,255,0.03)"
+    boxShadow: "none"
   },
 
   card: {
-    border: `1px solid ${UI_PANEL.frostBorder}`,
+    border: "none",
     borderRadius: UI_RADIUS.panel,
-    background: "linear-gradient(180deg, rgba(20,28,38,0.72) 0%, rgba(15,22,32,0.82) 100%)",
+    background: "transparent",
     padding: 12,
-    boxShadow: "0 10px 24px rgba(4,10,22,0.14), inset 0 1px 0 rgba(255,255,255,0.04)"
+    boxShadow: "none"
   },
 
   cardTitle: { fontWeight: 850, fontSize: UI_TYPO.size13, opacity: UI_OPACITY.title, marginBottom: 10, color: UI_PALETTE.text.secondary },
@@ -1856,9 +1829,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   localTemplateWrap: {
     marginTop: 8,
-    border: `1px solid ${UI_PALETTE.border.soft}`,
+    border: "none",
     borderRadius: UI_RADIUS.control,
-    background: UI_PALETTE.bg.canvas,
+    background: "transparent",
     padding: 8
   },
   localTemplateTitle: {
@@ -1874,12 +1847,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   localRefCard: {
     position: "relative",
-    border: `1px solid ${UI_PANEL.frostBorder}`,
+    border: "none",
     borderRadius: UI_RADIUS.control,
-    background: "linear-gradient(180deg, rgba(17,24,34,0.7) 0%, rgba(12,18,28,0.8) 100%)",
+    background: "rgba(255,255,255,0.02)",
     padding: 8,
     marginBottom: 8,
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)"
+    boxShadow: "none"
   },
   localRefHead: {
     display: "flex",
@@ -1968,10 +1941,10 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: 8,
     justifyContent: "space-between",
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "none",
     borderRadius: 10,
     padding: "6px 8px",
-    background: "rgba(255,255,255,0.03)"
+    background: "rgba(255,255,255,0.02)"
   },
   localRefText: {
     fontSize: 12,
@@ -1985,7 +1958,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: 48,
     objectFit: "cover",
     borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.16)",
+    border: "none",
     flexShrink: 0
   },
   hiddenInput: {
@@ -1993,13 +1966,15 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
+  kfGrid: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 },
 
   subCard: {
-    border: `1px solid ${UI_PANEL.frostBorder}`,
+    minWidth: 0,
+    border: "none",
     borderRadius: UI_RADIUS.control,
-    background: "linear-gradient(180deg, rgba(17,24,34,0.7) 0%, rgba(12,18,28,0.8) 100%)",
+    background: "transparent",
     padding: 10,
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)"
+    boxShadow: "none"
   },
   subCardDisabled: {
     opacity: 0.55
@@ -2007,9 +1982,9 @@ const styles: Record<string, React.CSSProperties> = {
 
   subTitle: { fontWeight: 900, fontSize: UI_FONT.section, opacity: UI_OPACITY.title, marginBottom: 8 },
 
-  kfRow: { display: "flex", alignItems: "center", gap: 10, marginBottom: 8 },
+  kfRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 },
   kfLabel: {
-    width: UI_SIZE.labelWKf,
+    width: 30,
     fontSize: UI_FONT.body,
     opacity: UI_OPACITY.label,
     fontWeight: 900,
@@ -2018,7 +1993,7 @@ const styles: Record<string, React.CSSProperties> = {
   kfLabelDisabled: { opacity: 0.55 },
 
   kfInput: {
-    width: 96,
+    width: 70,
     height: UI_SIZE.compactH,
     borderRadius: UI_SIZE.compactRadius,
     border: "1px solid rgba(255,255,255,0.14)",
@@ -2034,6 +2009,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   btnRow: { display: "flex", gap: 8, alignItems: "center" },
+  pathBtnRow: { display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" },
+  pathBtn: { padding: "0 8px", minWidth: 74 },
 
   pillBtn: {
     height: UI_SIZE.compactH,

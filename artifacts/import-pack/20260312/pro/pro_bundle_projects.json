@@ -1,0 +1,1593 @@
+[
+  {
+    "project": {
+      "mode": "storyboard",
+      "mediaType": "image",
+      "shotPlan": "single",
+      "creativeContext": {
+        "source": "imported",
+        "mediaType": "image",
+        "fileName": "pro_img_fintech_001.json",
+        "primaryInput": "金融科技新品发布KV",
+        "secondaryInput": "手机端产品页面作为主视觉，人物与金融卡片形成关系层次。",
+        "mergedInput": "金融科技新品发布KV 手机端产品页面作为主视觉，人物与金融卡片形成关系层次。",
+        "intentSummary": "金融科技新品发布KV",
+        "locationHint": "media: image\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: standard\nbg: 金融发布会背景",
+        "styleHint": "clean commercial",
+        "subjectLabels": [
+          "产品经理",
+          "手机屏幕UI",
+          "信用卡道具",
+          "品牌背景墙"
+        ]
+      }
+    },
+    "scenes": [
+      {
+        "id": "S01",
+        "name": "分镜1",
+        "index": 1,
+        "layoutLocked": false,
+        "transitionType": "cut",
+        "duration_s": 4,
+        "shotNote": "手机端产品页面作为主视觉，人物与金融卡片形成关系层次。",
+        "entryDir": "S",
+        "exitDir": "S",
+        "camera": {
+          "shot": "medium",
+          "movement": "static",
+          "keyframes": [
+            {
+              "t": 0,
+              "x": 0,
+              "y": 0,
+              "zoom": 1,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 0,
+              "y": 0,
+              "zoom": 1,
+              "rot": 0
+            }
+          ]
+        },
+        "lighting": {
+          "time": "day",
+          "key_dir": "front_left",
+          "mood": "clean commercial"
+        },
+        "layers": [
+          {
+            "id": "主体1",
+            "type": "产品经理",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "商务休闲，站立展示姿态",
+            "z": 12,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 28,
+                "y": 56,
+                "w": 20,
+                "h": 34,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 28,
+                "y": 56,
+                "w": 20,
+                "h": 34,
+                "rot": 0
+              }
+            ],
+            "notes": "中景前景，表情自信",
+            "externalPrompt": "产品经理面向镜头介绍",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体2",
+            "type": "手机屏幕UI",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "理财App页面，高亮收益卡片",
+            "z": 14,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 58,
+                "y": 54,
+                "w": 26,
+                "h": 38,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 58,
+                "y": 54,
+                "w": 26,
+                "h": 38,
+                "rot": 0
+              }
+            ],
+            "notes": "画面中心偏右，主视觉对象",
+            "externalPrompt": "手机UI清晰可读",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体3",
+            "type": "信用卡道具",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "金属质感卡片，品牌色",
+            "z": 15,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 50,
+                "y": 74,
+                "w": 20,
+                "h": 12,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 50,
+                "y": 74,
+                "w": 20,
+                "h": 12,
+                "rot": 0
+              }
+            ],
+            "notes": "前景偏下，辅助金融属性",
+            "externalPrompt": "卡片有质感高光",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体4",
+            "type": "品牌背景墙",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "渐变品牌背景与图形元素",
+            "z": 4,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 50,
+                "y": 50,
+                "w": 94,
+                "h": 92,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 50,
+                "y": 50,
+                "w": 94,
+                "h": 92,
+                "rot": 0
+              }
+            ],
+            "notes": "背景层，保持简洁",
+            "externalPrompt": "品牌主色平滑渐变",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          }
+        ],
+        "config": {
+          "mediaMode": "image",
+          "compiler": "v2",
+          "sceneTier": "indoor",
+          "v2Mode": "strict",
+          "stability": "standard"
+        },
+        "notes": "media: image\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: standard\nbg: 金融发布会背景"
+      }
+    ]
+  },
+  {
+    "project": {
+      "mode": "storyboard",
+      "mediaType": "image",
+      "shotPlan": "single",
+      "creativeContext": {
+        "source": "imported",
+        "mediaType": "image",
+        "fileName": "pro_img_retail_002.json",
+        "primaryInput": "零售服饰春季橱窗海报",
+        "secondaryInput": "双模特与陈列台同框，突出新品和店内层次。",
+        "mergedInput": "零售服饰春季橱窗海报 双模特与陈列台同框，突出新品和店内层次。",
+        "intentSummary": "零售服饰春季橱窗海报",
+        "locationHint": "media: image\n@compiler: v2\n@scene_tier: small_plaza\n@v2_mode: strict\nstability: standard\nbg: 零售店橱窗环境",
+        "styleHint": "spring lifestyle",
+        "subjectLabels": [
+          "模特A",
+          "模特B",
+          "陈列台与新品包",
+          "橱窗环境"
+        ]
+      }
+    },
+    "scenes": [
+      {
+        "id": "S01",
+        "name": "分镜1",
+        "index": 1,
+        "transitionType": "cut",
+        "duration_s": 4,
+        "shotNote": "双模特与陈列台同框，突出新品和店内层次。",
+        "entryDir": "S",
+        "exitDir": "S",
+        "camera": {
+          "shot": "wide",
+          "movement": "static",
+          "keyframes": [
+            {
+              "t": 0,
+              "x": 0,
+              "y": 0,
+              "zoom": 1,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 0,
+              "y": 0,
+              "zoom": 1,
+              "rot": 0
+            }
+          ]
+        },
+        "lighting": {
+          "time": "day",
+          "key_dir": "top",
+          "mood": "spring lifestyle"
+        },
+        "layers": [
+          {
+            "id": "主体1",
+            "type": "模特A",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "浅色春装，站姿自然",
+            "z": 13,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 32,
+                "y": 58,
+                "w": 18,
+                "h": 36,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 32,
+                "y": 58,
+                "w": 18,
+                "h": 36,
+                "rot": 0
+              }
+            ],
+            "notes": "左侧前景，人物清晰",
+            "externalPrompt": "表现服装垂感",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体2",
+            "type": "模特B",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "亮色春装，提包道具",
+            "z": 13,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 66,
+                "y": 58,
+                "w": 18,
+                "h": 36,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 66,
+                "y": 58,
+                "w": 18,
+                "h": 36,
+                "rot": 0
+              }
+            ],
+            "notes": "右侧前景，与模特A形成关系",
+            "externalPrompt": "人物互动感",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体3",
+            "type": "陈列台与新品包",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "木质陈列台+包袋",
+            "z": 10,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 50,
+                "y": 66,
+                "w": 24,
+                "h": 16,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 50,
+                "y": 66,
+                "w": 24,
+                "h": 16,
+                "rot": 0
+              }
+            ],
+            "notes": "中景偏中，产品辅助",
+            "externalPrompt": "产品细节清晰",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体4",
+            "type": "橱窗环境",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "店铺玻璃橱窗与春季装饰",
+            "z": 5,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 50,
+                "y": 48,
+                "w": 96,
+                "h": 92,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 50,
+                "y": 48,
+                "w": 96,
+                "h": 92,
+                "rot": 0
+              }
+            ],
+            "notes": "背景层次丰富",
+            "externalPrompt": "保留空间透视",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          }
+        ],
+        "config": {
+          "mediaMode": "image",
+          "compiler": "v2",
+          "sceneTier": "small_plaza",
+          "v2Mode": "strict",
+          "stability": "standard"
+        },
+        "notes": "media: image\n@compiler: v2\n@scene_tier: small_plaza\n@v2_mode: strict\nstability: standard\nbg: 零售店橱窗环境"
+      }
+    ]
+  },
+  {
+    "project": {
+      "mode": "storyboard",
+      "mediaType": "image",
+      "shotPlan": "single",
+      "creativeContext": {
+        "source": "imported",
+        "mediaType": "image",
+        "fileName": "pro_img_food_003.json",
+        "primaryInput": "餐饮新品套餐主图",
+        "secondaryInput": "主菜、饮品、品牌元素同框，突出食欲与商业信息。",
+        "mergedInput": "餐饮新品套餐主图 主菜、饮品、品牌元素同框，突出食欲与商业信息。",
+        "intentSummary": "餐饮新品套餐主图",
+        "locationHint": "media: image\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: standard\nbg: 餐厅桌面场景",
+        "styleHint": "warm appetizing",
+        "subjectLabels": [
+          "主菜盘",
+          "饮品杯",
+          "品牌标识牌",
+          "木质桌面环境"
+        ]
+      }
+    },
+    "scenes": [
+      {
+        "id": "S01",
+        "name": "分镜1",
+        "index": 1,
+        "transitionType": "cut",
+        "duration_s": 4,
+        "shotNote": "主菜、饮品、品牌元素同框，突出食欲与商业信息。",
+        "entryDir": "S",
+        "exitDir": "S",
+        "camera": {
+          "shot": "medium",
+          "movement": "static",
+          "keyframes": [
+            {
+              "t": 0,
+              "x": 0,
+              "y": 0,
+              "zoom": 1,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 0,
+              "y": 0,
+              "zoom": 1,
+              "rot": 0
+            }
+          ]
+        },
+        "lighting": {
+          "time": "indoor",
+          "key_dir": "top_left",
+          "mood": "warm appetizing"
+        },
+        "layers": [
+          {
+            "id": "主体1",
+            "type": "主菜盘",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "牛排套餐，食物纹理清晰",
+            "z": 14,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 50,
+                "y": 60,
+                "w": 30,
+                "h": 20,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 50,
+                "y": 60,
+                "w": 30,
+                "h": 20,
+                "rot": 0
+              }
+            ],
+            "notes": "中心前景，主卖点",
+            "externalPrompt": "食物热气与高光",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体2",
+            "type": "饮品杯",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "冷饮透明杯，带水珠",
+            "z": 13,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 30,
+                "y": 62,
+                "w": 14,
+                "h": 22,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 30,
+                "y": 62,
+                "w": 14,
+                "h": 22,
+                "rot": 0
+              }
+            ],
+            "notes": "左前景，辅助销售",
+            "externalPrompt": "杯体通透",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体3",
+            "type": "品牌标识牌",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "简洁logo立卡",
+            "z": 9,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 72,
+                "y": 50,
+                "w": 14,
+                "h": 16,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 72,
+                "y": 50,
+                "w": 14,
+                "h": 16,
+                "rot": 0
+              }
+            ],
+            "notes": "右中景，识别品牌",
+            "externalPrompt": "logo可读",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体4",
+            "type": "木质桌面环境",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "木纹桌面和模糊背景灯光",
+            "z": 4,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 50,
+                "y": 52,
+                "w": 98,
+                "h": 94,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 50,
+                "y": 52,
+                "w": 98,
+                "h": 94,
+                "rot": 0
+              }
+            ],
+            "notes": "背景层，保持暖色氛围",
+            "externalPrompt": "背景柔和不抢主体",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          }
+        ],
+        "config": {
+          "mediaMode": "image",
+          "compiler": "v2",
+          "sceneTier": "indoor",
+          "v2Mode": "strict",
+          "stability": "standard"
+        },
+        "notes": "media: image\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: standard\nbg: 餐厅桌面场景"
+      }
+    ]
+  },
+  {
+    "project": {
+      "mode": "storyboard",
+      "mediaType": "image",
+      "shotPlan": "single",
+      "creativeContext": {
+        "source": "imported",
+        "mediaType": "image",
+        "fileName": "pro_img_realestate_004.json",
+        "primaryInput": "地产样板间推广图",
+        "secondaryInput": "置业顾问、客户和室内空间同框，强调空间品质。",
+        "mergedInput": "地产样板间推广图 置业顾问、客户和室内空间同框，强调空间品质。",
+        "intentSummary": "地产样板间推广图",
+        "locationHint": "media: image\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\nstability: standard\nbg: 样板间客厅空间",
+        "styleHint": "bright premium",
+        "subjectLabels": [
+          "置业顾问",
+          "客户夫妻",
+          "样板间客厅"
+        ]
+      }
+    },
+    "scenes": [
+      {
+        "id": "S01",
+        "name": "分镜1",
+        "index": 1,
+        "transitionType": "cut",
+        "duration_s": 4,
+        "shotNote": "置业顾问、客户和室内空间同框，强调空间品质。",
+        "entryDir": "S",
+        "exitDir": "S",
+        "camera": {
+          "shot": "wide",
+          "movement": "static",
+          "keyframes": [
+            {
+              "t": 0,
+              "x": 0,
+              "y": 0,
+              "zoom": 1,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 0,
+              "y": 0,
+              "zoom": 1,
+              "rot": 0
+            }
+          ]
+        },
+        "lighting": {
+          "time": "day",
+          "key_dir": "window",
+          "mood": "bright premium"
+        },
+        "layers": [
+          {
+            "id": "主体1",
+            "type": "置业顾问",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "职业装，手持户型图",
+            "z": 11,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 30,
+                "y": 58,
+                "w": 16,
+                "h": 30,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 30,
+                "y": 58,
+                "w": 16,
+                "h": 30,
+                "rot": 0
+              }
+            ],
+            "notes": "左中景，介绍动作",
+            "externalPrompt": "讲解状态自然",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体2",
+            "type": "客户夫妻",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "休闲商务穿搭",
+            "z": 11,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 68,
+                "y": 58,
+                "w": 24,
+                "h": 30,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 68,
+                "y": 58,
+                "w": 24,
+                "h": 30,
+                "rot": 0
+              }
+            ],
+            "notes": "右中景，两人共同观看",
+            "externalPrompt": "客户互动自然",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体3",
+            "type": "样板间客厅",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "沙发、落地窗、装饰画",
+            "z": 5,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 50,
+                "y": 50,
+                "w": 96,
+                "h": 92,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 50,
+                "y": 50,
+                "w": 96,
+                "h": 92,
+                "rot": 0
+              }
+            ],
+            "notes": "背景主空间，体现品质",
+            "externalPrompt": "空间层次与透视",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          }
+        ],
+        "config": {
+          "mediaMode": "image",
+          "compiler": "v2",
+          "sceneTier": "open_space",
+          "v2Mode": "strict",
+          "stability": "standard"
+        },
+        "notes": "media: image\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\nstability: standard\nbg: 样板间客厅空间"
+      }
+    ]
+  },
+  {
+    "project": {
+      "mode": "storyboard",
+      "mediaType": "video",
+      "shotPlan": "continuous",
+      "creativeContext": {
+        "source": "imported",
+        "mediaType": "video",
+        "fileName": "pro_vid_auto_005.json",
+        "primaryInput": "汽车展厅新品讲解短片",
+        "secondaryInput": "销售顾问围绕新车讲解，客户从左向右靠近车辆。",
+        "mergedInput": "汽车展厅新品讲解短片 销售顾问围绕新车讲解，客户从左向右靠近车辆。",
+        "intentSummary": "汽车展厅新品讲解短片",
+        "locationHint": "media: video\n@compiler: v2\n@scene_tier: small_plaza\n@v2_mode: strict\nstability: standard\nbg: 汽车展厅",
+        "styleHint": "premium dynamic",
+        "subjectLabels": [
+          "销售顾问",
+          "客户",
+          "新车型",
+          "展厅背景"
+        ]
+      }
+    },
+    "scenes": [
+      {
+        "id": "S01",
+        "name": "分镜1",
+        "index": 1,
+        "transitionType": "camera_continues",
+        "duration_s": 6,
+        "shotNote": "销售顾问围绕新车讲解，客户从左向右靠近车辆。",
+        "entryDir": "W",
+        "exitDir": "E",
+        "camera": {
+          "shot": "medium_wide",
+          "movement": "follow_push",
+          "keyframes": [
+            {
+              "t": 0,
+              "x": -10,
+              "y": 0,
+              "zoom": 1.02,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 12,
+              "y": 0,
+              "zoom": 1.1,
+              "rot": 0
+            }
+          ]
+        },
+        "lighting": {
+          "time": "day",
+          "key_dir": "top",
+          "mood": "premium dynamic"
+        },
+        "layers": [
+          {
+            "id": "主体1",
+            "type": "销售顾问",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "深色西装，讲解手势",
+            "z": 12,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 44,
+                "y": 58,
+                "w": 16,
+                "h": 30,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 48,
+                "y": 58,
+                "w": 16,
+                "h": 30,
+                "rot": 0
+              }
+            ],
+            "notes": "前景中部，动作连贯",
+            "externalPrompt": "保持专业讲解姿态",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体2",
+            "type": "客户",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "休闲装，观察车辆细节",
+            "z": 11,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 22,
+                "y": 60,
+                "w": 15,
+                "h": 28,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 34,
+                "y": 60,
+                "w": 15,
+                "h": 28,
+                "rot": 0
+              }
+            ],
+            "notes": "从左向中移动",
+            "externalPrompt": "动作自然不过快",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体3",
+            "type": "新车型",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "亮银色SUV，车灯高光",
+            "z": 13,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 66,
+                "y": 56,
+                "w": 36,
+                "h": 28,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 62,
+                "y": 56,
+                "w": 38,
+                "h": 30,
+                "rot": 0
+              }
+            ],
+            "notes": "主视觉对象，中心偏右",
+            "externalPrompt": "车体轮廓清晰",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体4",
+            "type": "展厅背景",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "展厅灯带和品牌墙",
+            "z": 4,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 50,
+                "y": 50,
+                "w": 98,
+                "h": 92,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 50,
+                "y": 50,
+                "w": 98,
+                "h": 92,
+                "rot": 0
+              }
+            ],
+            "notes": "背景稳定",
+            "externalPrompt": "保持空间感",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          }
+        ],
+        "config": {
+          "mediaMode": "video",
+          "compiler": "v2",
+          "sceneTier": "small_plaza",
+          "v2Mode": "strict",
+          "stability": "standard"
+        },
+        "notes": "media: video\n@compiler: v2\n@scene_tier: small_plaza\n@v2_mode: strict\nstability: standard\nbg: 汽车展厅"
+      }
+    ]
+  },
+  {
+    "project": {
+      "mode": "storyboard",
+      "mediaType": "video",
+      "shotPlan": "continuous",
+      "creativeContext": {
+        "source": "imported",
+        "mediaType": "video",
+        "fileName": "pro_vid_logistics_006.json",
+        "primaryInput": "物流仓储作业流程",
+        "secondaryInput": "叉车、分拣员和货架协同作业，镜头沿过道推进。",
+        "mergedInput": "物流仓储作业流程 叉车、分拣员和货架协同作业，镜头沿过道推进。",
+        "intentSummary": "物流仓储作业流程",
+        "locationHint": "media: video\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\nstability: standard\nbg: 物流仓储通道",
+        "styleHint": "efficient industrial",
+        "subjectLabels": [
+          "分拣员",
+          "叉车",
+          "货架通道",
+          "安全标识"
+        ]
+      }
+    },
+    "scenes": [
+      {
+        "id": "S01",
+        "name": "分镜1",
+        "index": 1,
+        "transitionType": "camera_continues",
+        "duration_s": 6,
+        "shotNote": "叉车、分拣员和货架协同作业，镜头沿过道推进。",
+        "entryDir": "W",
+        "exitDir": "E",
+        "camera": {
+          "shot": "wide",
+          "movement": "forward_follow",
+          "keyframes": [
+            {
+              "t": 0,
+              "x": -14,
+              "y": 0,
+              "zoom": 1,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 16,
+              "y": 0,
+              "zoom": 1.08,
+              "rot": 0
+            }
+          ]
+        },
+        "lighting": {
+          "time": "day",
+          "key_dir": "top_left",
+          "mood": "efficient industrial"
+        },
+        "layers": [
+          {
+            "id": "主体1",
+            "type": "分拣员",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "工装马甲，手持扫码枪",
+            "z": 12,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 34,
+                "y": 62,
+                "w": 14,
+                "h": 28,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 40,
+                "y": 62,
+                "w": 14,
+                "h": 28,
+                "rot": 0
+              }
+            ],
+            "notes": "前景偏左，动作明确",
+            "externalPrompt": "执行扫描动作",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体2",
+            "type": "叉车",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "黄色叉车，货箱在叉臂上",
+            "z": 11,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 66,
+                "y": 60,
+                "w": 22,
+                "h": 18,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 58,
+                "y": 60,
+                "w": 24,
+                "h": 19,
+                "rot": 0
+              }
+            ],
+            "notes": "中景偏右，缓慢前进",
+            "externalPrompt": "保持安全速度",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体3",
+            "type": "货架通道",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "高位货架和箱体",
+            "z": 5,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 50,
+                "y": 48,
+                "w": 98,
+                "h": 94,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 50,
+                "y": 48,
+                "w": 98,
+                "h": 94,
+                "rot": 0
+              }
+            ],
+            "notes": "背景深度明显",
+            "externalPrompt": "保持透视线",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体4",
+            "type": "安全标识",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "地面引导线和警示牌",
+            "z": 9,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 52,
+                "y": 78,
+                "w": 22,
+                "h": 10,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 52,
+                "y": 78,
+                "w": 22,
+                "h": 10,
+                "rot": 0
+              }
+            ],
+            "notes": "前景辅助信息",
+            "externalPrompt": "标识可辨识",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          }
+        ],
+        "config": {
+          "mediaMode": "video",
+          "compiler": "v2",
+          "sceneTier": "open_space",
+          "v2Mode": "strict",
+          "stability": "standard"
+        },
+        "notes": "media: video\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\nstability: standard\nbg: 物流仓储通道"
+      }
+    ]
+  },
+  {
+    "project": {
+      "mode": "storyboard",
+      "mediaType": "video",
+      "shotPlan": "multicam",
+      "creativeContext": {
+        "source": "imported",
+        "mediaType": "video",
+        "fileName": "pro_vid_edu_007.json",
+        "primaryInput": "教育课堂互动演示",
+        "secondaryInput": "老师授课与学生互动，镜头切换保持关系清楚。",
+        "mergedInput": "教育课堂互动演示 老师授课与学生互动，镜头切换保持关系清楚。",
+        "intentSummary": "教育课堂互动演示",
+        "locationHint": "media: video\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: standard\nbg: 课堂教学环境",
+        "styleHint": "bright trust",
+        "subjectLabels": [
+          "老师",
+          "学生A",
+          "学生B",
+          "白板与课堂背景"
+        ]
+      }
+    },
+    "scenes": [
+      {
+        "id": "S01",
+        "name": "分镜1",
+        "index": 1,
+        "transitionType": "reverse_angle",
+        "duration_s": 6,
+        "shotNote": "老师授课与学生互动，镜头切换保持关系清楚。",
+        "entryDir": "S",
+        "exitDir": "S",
+        "camera": {
+          "shot": "medium",
+          "movement": "static_cut",
+          "keyframes": [
+            {
+              "t": 0,
+              "x": 0,
+              "y": 0,
+              "zoom": 1.03,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 0,
+              "y": 0,
+              "zoom": 1.06,
+              "rot": 0
+            }
+          ]
+        },
+        "lighting": {
+          "time": "day",
+          "key_dir": "window",
+          "mood": "bright trust"
+        },
+        "layers": [
+          {
+            "id": "主体1",
+            "type": "老师",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "手持平板讲解",
+            "z": 12,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 50,
+                "y": 52,
+                "w": 16,
+                "h": 30,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 50,
+                "y": 52,
+                "w": 16,
+                "h": 30,
+                "rot": 0
+              }
+            ],
+            "notes": "中景中心，主讲对象",
+            "externalPrompt": "表情亲和清晰",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体2",
+            "type": "学生A",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "举手互动",
+            "z": 11,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 30,
+                "y": 62,
+                "w": 14,
+                "h": 26,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 30,
+                "y": 62,
+                "w": 14,
+                "h": 26,
+                "rot": 0
+              }
+            ],
+            "notes": "左侧前景",
+            "externalPrompt": "动作自然",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体3",
+            "type": "学生B",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "记录笔记",
+            "z": 11,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 70,
+                "y": 62,
+                "w": 14,
+                "h": 26,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 70,
+                "y": 62,
+                "w": 14,
+                "h": 26,
+                "rot": 0
+              }
+            ],
+            "notes": "右侧前景",
+            "externalPrompt": "保持课堂状态",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体4",
+            "type": "白板与课堂背景",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "白板内容和教室布景",
+            "z": 5,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 50,
+                "y": 46,
+                "w": 96,
+                "h": 90,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 50,
+                "y": 46,
+                "w": 96,
+                "h": 90,
+                "rot": 0
+              }
+            ],
+            "notes": "背景层",
+            "externalPrompt": "信息清晰不过载",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          }
+        ],
+        "config": {
+          "mediaMode": "video",
+          "compiler": "v2",
+          "sceneTier": "indoor",
+          "v2Mode": "strict",
+          "stability": "standard"
+        },
+        "notes": "media: video\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: standard\nbg: 课堂教学环境"
+      }
+    ]
+  },
+  {
+    "project": {
+      "mode": "storyboard",
+      "mediaType": "video",
+      "shotPlan": "edit",
+      "creativeContext": {
+        "source": "imported",
+        "mediaType": "video",
+        "fileName": "pro_vid_travel_008.json",
+        "primaryInput": "文旅机场值机流程",
+        "secondaryInput": "旅客、值机员、行李与导视系统协同出现，流程清晰。",
+        "mergedInput": "文旅机场值机流程 旅客、值机员、行李与导视系统协同出现，流程清晰。",
+        "intentSummary": "文旅机场值机流程",
+        "locationHint": "media: video\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\nstability: standard\nbg: 机场值机大厅",
+        "styleHint": "clean efficient",
+        "subjectLabels": [
+          "旅客",
+          "值机员",
+          "值机柜台与导视屏",
+          "机场大厅环境"
+        ]
+      }
+    },
+    "scenes": [
+      {
+        "id": "S01",
+        "name": "分镜1",
+        "index": 1,
+        "transitionType": "dissolve",
+        "duration_s": 6,
+        "shotNote": "旅客、值机员、行李与导视系统协同出现，流程清晰。",
+        "entryDir": "W",
+        "exitDir": "E",
+        "camera": {
+          "shot": "medium_wide",
+          "movement": "guided_pan",
+          "keyframes": [
+            {
+              "t": 0,
+              "x": -8,
+              "y": 0,
+              "zoom": 1.01,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 8,
+              "y": 0,
+              "zoom": 1.06,
+              "rot": 0
+            }
+          ]
+        },
+        "lighting": {
+          "time": "day",
+          "key_dir": "top",
+          "mood": "clean efficient"
+        },
+        "layers": [
+          {
+            "id": "主体1",
+            "type": "旅客",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "拉杆箱，准备办理登机",
+            "z": 12,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 24,
+                "y": 60,
+                "w": 14,
+                "h": 28,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 34,
+                "y": 60,
+                "w": 14,
+                "h": 28,
+                "rot": 0
+              }
+            ],
+            "notes": "左中景向右移动",
+            "externalPrompt": "保持步态自然",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体2",
+            "type": "值机员",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "制服站在柜台后",
+            "z": 11,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 56,
+                "y": 58,
+                "w": 14,
+                "h": 27,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 56,
+                "y": 58,
+                "w": 14,
+                "h": 27,
+                "rot": 0
+              }
+            ],
+            "notes": "中景稳定",
+            "externalPrompt": "服务姿态自然",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体3",
+            "type": "值机柜台与导视屏",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "柜台品牌标识与航班屏",
+            "z": 8,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 62,
+                "y": 54,
+                "w": 34,
+                "h": 24,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 62,
+                "y": 54,
+                "w": 34,
+                "h": 24,
+                "rot": 0
+              }
+            ],
+            "notes": "中后景主信息",
+            "externalPrompt": "信息可辨识",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          },
+          {
+            "id": "主体4",
+            "type": "机场大厅环境",
+            "shape": "rect",
+            "shapeDesc": "",
+            "look": "大厅穹顶和排队区域",
+            "z": 4,
+            "color": "#b7c3ff",
+            "opacity": 1,
+            "kf": [
+              {
+                "t": 0,
+                "x": 50,
+                "y": 48,
+                "w": 98,
+                "h": 92,
+                "rot": 0
+              },
+              {
+                "t": 1,
+                "x": 50,
+                "y": 48,
+                "w": 98,
+                "h": 92,
+                "rot": 0
+              }
+            ],
+            "notes": "背景空间",
+            "externalPrompt": "保持空间深度",
+            "referenceLinks": "",
+            "localRefs": [],
+            "referencePolicy": "optional"
+          }
+        ],
+        "config": {
+          "mediaMode": "video",
+          "compiler": "v2",
+          "sceneTier": "open_space",
+          "v2Mode": "strict",
+          "stability": "standard"
+        },
+        "notes": "media: video\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\nstability: standard\nbg: 机场值机大厅"
+      }
+    ]
+  }
+]

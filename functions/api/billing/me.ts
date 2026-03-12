@@ -1,9 +1,14 @@
 import { ensureBillingTables, ensureUserWallet, seedDefaultProducts } from "../_shared/billing-db";
-import { corsOptions, json } from "../_shared/http";
+import { corsOptions, json, rejectDisallowedOrigin } from "../_shared/http";
+import { requireApiAuth } from "../_shared/auth";
 
 export const onRequestGet: PagesFunction = async (context) => {
   try {
+    const originErr = rejectDisallowedOrigin(context.request, context.env);
+    if (originErr) return originErr;
     const userId = new URL(context.request.url).searchParams.get("userId") || "";
+    const authErr = await requireApiAuth(context, { claimedUserId: userId || undefined });
+    if (authErr) return authErr;
     if (!userId) {
       return json({
         tier: "free",
@@ -11,7 +16,7 @@ export const onRequestGet: PagesFunction = async (context) => {
         subscription: { status: "inactive", planId: "" },
         packs: [],
         note: "missing_user_id"
-      }, 400);
+      }, 400, context.request, context.env);
     }
 
     if (!context.env?.DB) {
@@ -21,7 +26,7 @@ export const onRequestGet: PagesFunction = async (context) => {
         subscription: { status: "inactive", planId: "" },
         packs: [],
         note: "DB not configured"
-      });
+      }, 200, context.request, context.env);
     }
 
     await ensureBillingTables(context.env.DB);
@@ -63,13 +68,13 @@ export const onRequestGet: PagesFunction = async (context) => {
         periodEnd: subscription?.current_period_end || null
       },
       packs
-    });
+    }, 200, context.request, context.env);
   } catch (error) {
     return json({
       error: "billing_me_error",
       message: error instanceof Error ? error.message : String(error)
-    }, 500);
+    }, 500, context.request, context.env);
   }
 };
 
-export const onRequestOptions: PagesFunction = async () => corsOptions("GET, OPTIONS");
+export const onRequestOptions: PagesFunction = async (context) => corsOptions("GET, OPTIONS", context.request, context.env);

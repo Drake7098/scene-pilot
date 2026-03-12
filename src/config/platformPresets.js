@@ -13,6 +13,19 @@ export const PLATFORM_PRESETS = [
         strategyNote: "Native universal strategy."
     },
     {
+        id: "fal",
+        labelZh: "fal",
+        labelEn: "fal",
+        url: "https://fal.ai/",
+        baseProfile: "fal",
+        nativeStrategy: true,
+        uploadMode: "upload-first",
+        promptStyle: "long",
+        maxRefsPerObject: 3,
+        patchId: "",
+        strategyNote: "Native object-first engine family."
+    },
+    {
         id: "midjourney",
         labelZh: "Midjourney",
         labelEn: "Midjourney",

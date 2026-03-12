@@ -76,6 +76,21 @@ export type Camera = {
 
 export type Lighting = { time: string; key_dir: string; mood: string };
 
+export type ProjectCreativeSource = "quick_workspace" | "manual" | "imported";
+
+export type ProjectCreativeContext = {
+  source: ProjectCreativeSource;
+  mediaType?: MediaType;
+  fileName?: string;
+  primaryInput?: string;
+  secondaryInput?: string;
+  mergedInput?: string;
+  intentSummary?: string;
+  locationHint?: string;
+  styleHint?: string;
+  subjectLabels?: string[];
+};
+
 export type Scene = {
   id: string;
   name: string;
@@ -105,7 +120,7 @@ export type Scene = {
 };
 
 export type Project = {
-  project: { mode: Mode; mediaType?: MediaType; shotPlan?: ShotPlan };
+  project: { mode: Mode; mediaType?: MediaType; shotPlan?: ShotPlan; creativeContext?: ProjectCreativeContext };
   scenes: Scene[];
 };
 
@@ -325,6 +340,37 @@ export function sanitizeProject(p: Project): Project {
     : inferMediaTypeFromScenes(scenes);
   const rawPlan = (p.project.shotPlan ?? "single") as ShotPlan;
   p.project.shotPlan = (["single", "multicam", "continuous", "edit"] as const).includes(rawPlan as any) ? rawPlan : "single";
+  const creativeRaw = (p.project as any).creativeContext;
+  if (creativeRaw && typeof creativeRaw === "object") {
+    p.project.creativeContext = {
+      source:
+        creativeRaw.source === "quick_workspace" || creativeRaw.source === "imported"
+          ? creativeRaw.source
+          : "manual",
+      mediaType:
+        creativeRaw.mediaType === "image" || creativeRaw.mediaType === "video"
+          ? creativeRaw.mediaType
+          : undefined,
+      fileName: typeof creativeRaw.fileName === "string" ? creativeRaw.fileName.trim() : "",
+      primaryInput: typeof creativeRaw.primaryInput === "string" ? creativeRaw.primaryInput.trim() : "",
+      secondaryInput: typeof creativeRaw.secondaryInput === "string" ? creativeRaw.secondaryInput.trim() : "",
+      mergedInput: typeof creativeRaw.mergedInput === "string" ? creativeRaw.mergedInput.trim() : "",
+      intentSummary: typeof creativeRaw.intentSummary === "string" ? creativeRaw.intentSummary.trim() : "",
+      locationHint: typeof creativeRaw.locationHint === "string" ? creativeRaw.locationHint.trim() : "",
+      styleHint: typeof creativeRaw.styleHint === "string" ? creativeRaw.styleHint.trim() : "",
+      subjectLabels: Array.isArray(creativeRaw.subjectLabels)
+        ? (Array.from(
+            new Set(
+              creativeRaw.subjectLabels
+                .map((item: unknown) => (typeof item === "string" ? item.trim() : ""))
+                .filter(Boolean)
+            )
+          ).slice(0, 12) as string[])
+        : []
+    };
+  } else {
+    p.project.creativeContext = undefined;
+  }
 
   scenes.forEach((s, i) => {
     if (!s.index) s.index = i + 1;

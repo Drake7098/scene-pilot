@@ -1,0 +1,203 @@
+{
+  "project": {
+    "mode": "storyboard",
+    "mediaType": "video",
+    "shotPlan": "edit",
+    "creativeContext": {
+      "source": "imported",
+      "mediaType": "video",
+      "fileName": "pro_vid_travel_008.json",
+      "primaryInput": "文旅机场值机流程",
+      "secondaryInput": "旅客、值机员、行李与导视系统协同出现，流程清晰。",
+      "mergedInput": "文旅机场值机流程 旅客、值机员、行李与导视系统协同出现，流程清晰。",
+      "intentSummary": "文旅机场值机流程",
+      "locationHint": "media: video\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\nstability: standard\nbg: 机场值机大厅",
+      "styleHint": "clean efficient",
+      "subjectLabels": [
+        "旅客",
+        "值机员",
+        "值机柜台与导视屏",
+        "机场大厅环境"
+      ]
+    }
+  },
+  "scenes": [
+    {
+      "id": "S01",
+      "name": "分镜1",
+      "index": 1,
+      "transitionType": "dissolve",
+      "duration_s": 6,
+      "shotNote": "旅客、值机员、行李与导视系统协同出现，流程清晰。",
+      "entryDir": "W",
+      "exitDir": "E",
+      "camera": {
+        "shot": "medium_wide",
+        "movement": "guided_pan",
+        "keyframes": [
+          {
+            "t": 0,
+            "x": -8,
+            "y": 0,
+            "zoom": 1.01,
+            "rot": 0
+          },
+          {
+            "t": 1,
+            "x": 8,
+            "y": 0,
+            "zoom": 1.06,
+            "rot": 0
+          }
+        ]
+      },
+      "lighting": {
+        "time": "day",
+        "key_dir": "top",
+        "mood": "clean efficient"
+      },
+      "layers": [
+        {
+          "id": "主体1",
+          "type": "旅客",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "拉杆箱，准备办理登机",
+          "z": 12,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 24,
+              "y": 60,
+              "w": 14,
+              "h": 28,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 34,
+              "y": 60,
+              "w": 14,
+              "h": 28,
+              "rot": 0
+            }
+          ],
+          "notes": "左中景向右移动",
+          "externalPrompt": "保持步态自然",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "主体2",
+          "type": "值机员",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "制服站在柜台后",
+          "z": 11,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 56,
+              "y": 58,
+              "w": 14,
+              "h": 27,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 56,
+              "y": 58,
+              "w": 14,
+              "h": 27,
+              "rot": 0
+            }
+          ],
+          "notes": "中景稳定",
+          "externalPrompt": "服务姿态自然",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "主体3",
+          "type": "值机柜台与导视屏",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "柜台品牌标识与航班屏",
+          "z": 8,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 62,
+              "y": 54,
+              "w": 34,
+              "h": 24,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 62,
+              "y": 54,
+              "w": 34,
+              "h": 24,
+              "rot": 0
+            }
+          ],
+          "notes": "中后景主信息",
+          "externalPrompt": "信息可辨识",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "主体4",
+          "type": "机场大厅环境",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "大厅穹顶和排队区域",
+          "z": 4,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 50,
+              "y": 48,
+              "w": 98,
+              "h": 92,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 50,
+              "y": 48,
+              "w": 98,
+              "h": 92,
+              "rot": 0
+            }
+          ],
+          "notes": "背景空间",
+          "externalPrompt": "保持空间深度",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        }
+      ],
+      "config": {
+        "mediaMode": "video",
+        "compiler": "v2",
+        "sceneTier": "open_space",
+        "v2Mode": "strict",
+        "stability": "standard"
+      },
+      "notes": "media: video\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\nstability: standard\nbg: 机场值机大厅"
+    }
+  ]
+}

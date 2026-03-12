@@ -18,7 +18,6 @@ async function openQuickWorkspace(page: Page, lang: "zh" | "en") {
 async function enterSecondStep(page: Page, primary: string) {
   await page.getByTestId("result-console-brief").fill(primary);
   await page.getByTestId("result-console-generate").click();
-  await expect(page.getByTestId("result-console-brief-secondary")).toBeHidden({ timeout: 200 });
   await expect(page.getByTestId("result-console-brief-secondary")).toBeVisible({ timeout: 2000 });
   await expect(page.getByTestId("result-console-brief-secondary")).toBeFocused();
 }

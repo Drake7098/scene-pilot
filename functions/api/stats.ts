@@ -1,5 +1,9 @@
+import { corsOptions, json, rejectDisallowedOrigin } from "./_shared/http";
+
 export const onRequestGet: PagesFunction = async (context) => {
   try {
+    const originErr = rejectDisallowedOrigin(context.request, context.env);
+    if (originErr) return originErr;
     const url = new URL(context.request.url);
     const days = Math.min(30, Math.max(1, Number(url.searchParams.get("days") || 7)));
 
@@ -16,31 +20,10 @@ export const onRequestGet: PagesFunction = async (context) => {
       `
     ).all();
 
-    return new Response(JSON.stringify({ days, results }), {
-      headers: {
-        "content-type": "application/json",
-        "access-control-allow-origin": "*",
-      },
-    });
+    return json({ days, results }, 200, context.request, context.env);
   } catch {
-    return new Response(JSON.stringify({ error: "stats_error" }), {
-      status: 500,
-      headers: {
-        "content-type": "application/json",
-        "access-control-allow-origin": "*",
-      },
-    });
+    return json({ error: "stats_error" }, 500, context.request, context.env);
   }
 };
 
-export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "GET, OPTIONS",
-      "access-control-allow-headers": "content-type",
-      "access-control-max-age": "86400",
-    },
-  });
-};
+export const onRequestOptions: PagesFunction = async (context) => corsOptions("GET, OPTIONS", context.request, context.env);

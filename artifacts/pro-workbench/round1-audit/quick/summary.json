@@ -1,0 +1,156 @@
+{
+  "generatedAt": "2026-03-11T13:25:22.032Z",
+  "workspace": "quick",
+  "totalCount": 40,
+  "distribution": {
+    "cleanImageCases": 12,
+    "cleanVideoCases": 16,
+    "dirtyConflictCases": 12,
+    "actualImageCases": 18,
+    "actualVideoCases": 22,
+    "cleanImageRatio": 30,
+    "cleanVideoRatio": 40,
+    "dirtyConflictRatio": 30
+  },
+  "averages": {
+    "score": 92,
+    "promptLength": 318.77
+  },
+  "engines": [
+    {
+      "engineId": "IM v5",
+      "count": 18,
+      "avgScore": 92,
+      "avgPromptLength": 280.5,
+      "issueCount": 18,
+      "avgIssueCount": 1
+    },
+    {
+      "engineId": "VI V5",
+      "count": 22,
+      "avgScore": 92,
+      "avgPromptLength": 350.09,
+      "issueCount": 15,
+      "avgIssueCount": 0.68
+    }
+  ],
+  "issueCounts": [
+    {
+      "code": "engine_length_over_budget",
+      "count": 33
+    }
+  ],
+  "topFailures": [
+    {
+      "id": "quick_round1_image_0001",
+      "engineId": "IM v5",
+      "mediaMode": "image",
+      "score": 92,
+      "issueCodes": [
+        "engine_length_over_budget"
+      ]
+    },
+    {
+      "id": "quick_round1_image_0002",
+      "engineId": "IM v5",
+      "mediaMode": "image",
+      "score": 92,
+      "issueCodes": [
+        "engine_length_over_budget"
+      ]
+    },
+    {
+      "id": "quick_round1_image_0003",
+      "engineId": "IM v5",
+      "mediaMode": "image",
+      "score": 92,
+      "issueCodes": [
+        "engine_length_over_budget"
+      ]
+    },
+    {
+      "id": "quick_round1_image_0004",
+      "engineId": "IM v5",
+      "mediaMode": "image",
+      "score": 92,
+      "issueCodes": [
+        "engine_length_over_budget"
+      ]
+    },
+    {
+      "id": "quick_round1_image_0005",
+      "engineId": "IM v5",
+      "mediaMode": "image",
+      "score": 92,
+      "issueCodes": [
+        "engine_length_over_budget"
+      ]
+    },
+    {
+      "id": "quick_round1_image_0006",
+      "engineId": "IM v5",
+      "mediaMode": "image",
+      "score": 92,
+      "issueCodes": [
+        "engine_length_over_budget"
+      ]
+    },
+    {
+      "id": "quick_round1_image_0007",
+      "engineId": "IM v5",
+      "mediaMode": "image",
+      "score": 92,
+      "issueCodes": [
+        "engine_length_over_budget"
+      ]
+    },
+    {
+      "id": "quick_round1_image_0008",
+      "engineId": "IM v5",
+      "mediaMode": "image",
+      "score": 92,
+      "issueCodes": [
+        "engine_length_over_budget"
+      ]
+    },
+    {
+      "id": "quick_round1_image_0009",
+      "engineId": "IM v5",
+      "mediaMode": "image",
+      "score": 92,
+      "issueCodes": [
+        "engine_length_over_budget"
+      ]
+    },
+    {
+      "id": "quick_round1_image_0010",
+      "engineId": "IM v5",
+      "mediaMode": "image",
+      "score": 92,
+      "issueCodes": [
+        "engine_length_over_budget"
+      ]
+    },
+    {
+      "id": "quick_round1_image_0011",
+      "engineId": "IM v5",
+      "mediaMode": "image",
+      "score": 92,
+      "issueCodes": [
+        "engine_length_over_budget"
+      ]
+    },
+    {
+      "id": "quick_round1_image_0012",
+      "engineId": "IM v5",
+      "mediaMode": "image",
+      "score": 92,
+      "issueCodes": [
+        "engine_length_over_budget"
+      ]
+    }
+  ],
+  "recommendations": [
+    "Quick 引擎需要按媒体和工作台设置字数预算，避免视频 prompt 过长。"
+  ]
+}

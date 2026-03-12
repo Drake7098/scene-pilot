@@ -2,6 +2,7 @@ import { resolveSceneConfig } from "../model";
 import { getPlatformPreset } from "../config/platformPresets";
 import { generatePrompts } from "./prompt";
 import { adaptPromptToPlatformDetailed } from "./platformAdapter";
+import { summarizeProjectSceneStrategy } from "./sceneStrategyResolver";
 function collapseStaticKeyframes(text, lang) {
     const lines = (text ?? "").split("\n");
     const out = [];
@@ -195,13 +196,15 @@ export function runPromptPipeline(input) {
     const compiler = scenes.some((scene) => resolveSceneConfig(scene).compiler === "v2") ? "v2" : resolved.compiler;
     const sceneTitle = (firstScene?.name ?? "").trim() || firstScene?.id || (input.lang === "zh" ? "分镜" : "Scene");
     const stages = ["compile", "assemble", "append_tail", "adapt_platform", "final_cleanup"];
+    const sceneStrategy = summarizeProjectSceneStrategy(input.project);
     const corePrompt = generatePrompts(input.project, input.lang, "universal");
     const adapted = adaptPromptToPlatformDetailed({
         prompt: corePrompt,
         profile,
         platformId: preset.id,
         lang: input.lang,
-        media: mediaMode
+        media: mediaMode,
+        sceneStrategy
     });
     const cleaned = cleanupFinalPrompt({
         input: adapted.prompt,
@@ -216,17 +219,29 @@ export function runPromptPipeline(input) {
         metadata: {
             platformId: preset.id,
             baseProfile: preset.baseProfile,
+            platformEngineKey: adapted.meta.engineKey,
+            platformEngineFamily: adapted.meta.engineFamily,
+            sceneStrategyLayer: adapted.meta.sceneStrategyLayer,
+            sceneStrategyClassicIds: adapted.meta.sceneStrategyClassicIds,
+            sceneStrategyDirectorIds: adapted.meta.sceneStrategyDirectorIds,
+            sceneStrategyUsesAdvancedLanguage: adapted.meta.sceneStrategyUsesAdvancedLanguage,
+            sceneStrategyUsesLightingDefaults: adapted.meta.sceneStrategyUsesLightingDefaults,
             nativeStrategy: preset.nativeStrategy,
             mappedFromProfile: preset.nativeStrategy ? null : preset.baseProfile,
             mediaMode,
             compiler,
+            workspace: "quick",
+            engineId: mediaMode === "image" ? "IM v5" : "VI V5",
             strippedDurationForImage: cleaned.strippedDurationForImage,
             strippedT1ForImage: cleaned.strippedT1ForImage,
+            strippedVideoScaffoldForImage: false,
+            compactedForEngine: false,
             tailApplied: /system structural control layer/i.test(corePrompt) || corePrompt.includes("系统结构控制层") || corePrompt.includes("系统追加结构控制层"),
             trimmedByBudget: adapted.meta.trimmedByBudget,
             trimReason: adapted.meta.trimReason,
             appliedPatches: adapted.meta.appliedPatches,
             stages,
+            enginePasses: [],
             exportScope: input.scope ?? "current_scene"
         }
     };

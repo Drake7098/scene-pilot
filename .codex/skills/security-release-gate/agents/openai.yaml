@@ -1,0 +1,4 @@
+interface:
+  display_name: "Security Release Gate"
+  short_description: "Aggregate checks into clear go/no-go decision."
+  default_prompt: "Run release security gate and summarize blockers."

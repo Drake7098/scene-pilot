@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "updatedAt": "2026-03-12T11:33:58.408Z",
+  "alerts": [],
+  "items": [
+    {
+      "id": "TK-20260312-001",
+      "title": "接入 fal provider adapter（图片主链路）",
+      "status": "backlog",
+      "type": "api",
+      "priority": "p0",
+      "workspace": "global",
+      "owner": "dk",
+      "testStatus": "none",
+      "progress": 0,
+      "tags": [
+        "fal",
+        "provider",
+        "image",
+        "hosted"
+      ],
+      "createdAt": "2026-03-12T00:00:00.000Z",
+      "updatedAt": "2026-03-12T00:00:00.000Z",
+      "notes": [
+        {
+          "at": "2026-03-12T00:00:00.000Z",
+          "text": "目标：把 Pro hosted/byo 的 fal 执行从本地临时链路切到真实 provider adapter。"
+        }
+      ],
+      "reminders": [],
+      "notifyRules": {
+        "status": [
+          "done"
+        ],
+        "testStatus": []
+      }
+    },
+    {
+      "id": "TK-20260312-002",
+      "title": "接入 Runway provider adapter（视频主链路）",
+      "status": "backlog",
+      "type": "api",
+      "priority": "p0",
+      "workspace": "global",
+      "owner": "dk",
+      "testStatus": "none",
+      "progress": 0,
+      "tags": [
+        "runway",
+        "provider",
+        "video",
+        "hosted"
+      ],
+      "createdAt": "2026-03-12T00:00:00.000Z",
+      "updatedAt": "2026-03-12T00:00:00.000Z",
+      "notes": [
+        {
+          "at": "2026-03-12T00:00:00.000Z",
+          "text": "目标：视频生成主链路从本地测试路径切到真实 Runway 执行。"
+        }
+      ],
+      "reminders": [],
+      "notifyRules": {
+        "status": [
+          "done"
+        ],
+        "testStatus": []
+      }
+    },
+    {
+      "id": "TK-20260312-003",
+      "title": "补齐 Pro hosted/BYO provider gateway 的端到端测试门禁",
+      "status": "active",
+      "type": "test",
+      "priority": "p1",
+      "workspace": "pro",
+      "owner": "dk",
+      "testStatus": "running",
+      "progress": 40,
+      "tags": [
+        "provider-gateway",
+        "pro",
+        "e2e"
+      ],
+      "createdAt": "2026-03-12T00:00:00.000Z",
+      "updatedAt": "2026-03-12T00:00:00.000Z",
+      "notes": [
+        {
+          "at": "2026-03-12T00:00:00.000Z",
+          "text": "目标：覆盖保存/导出/切换/回退/失败回滚的回归链路。"
+        }
+      ],
+      "reminders": [],
+      "notifyRules": {
+        "status": [
+          "done"
+        ],
+        "testStatus": []
+      }
+    },
+    {
+      "id": "TK-20260312-004",
+      "title": "Quick 引擎长度预算优化（IM v5 / VI V5）",
+      "status": "active",
+      "type": "prompt",
+      "priority": "p1",
+      "workspace": "quick",
+      "owner": "dk",
+      "testStatus": "running",
+      "progress": 35,
+      "tags": [
+        "quick",
+        "prompt",
+        "budget",
+        "im-v5",
+        "vi-v5"
+      ],
+      "createdAt": "2026-03-12T00:00:00.000Z",
+      "updatedAt": "2026-03-12T00:00:00.000Z",
+      "notes": [
+        {
+          "at": "2026-03-12T00:00:00.000Z",
+          "text": "背景：round1 审计显示 engine_length_over_budget 为高频问题。"
+        }
+      ],
+      "reminders": [],
+      "notifyRules": {
+        "status": [
+          "done"
+        ],
+        "testStatus": []
+      }
+    }
+  ]
+}

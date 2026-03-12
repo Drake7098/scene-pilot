@@ -1,48 +1,42 @@
 import { expect, test } from "@playwright/test";
-import { captureArtifacts, getStoredProject, installLocalProviderMocks, runStep } from "../support/runtime";
+import { captureArtifacts, ensureMockProAccount, openQuickWorkspace, runStep } from "../support/runtime";
 
-test("quick_workspace_to_pro_preserves_goal_composition_and_structure", async ({ page }) => {
-  await installLocalProviderMocks(page, "drawthings_ready");
+test("quick_workspace_to_pro_switches_mode_without_auto_inheriting_quick_text", async ({ page }) => {
+  await openQuickWorkspace(page, "zh");
+  await ensureMockProAccount(page, { creditsBalance: 240 });
+  await openQuickWorkspace(page, "zh");
 
-  await runStep(page, "generate_adjust_structure_and_open_pro", async () => {
-    await page.goto("/");
-    await page.getByTestId("result-console-brief").fill("cyberpunk heroine, left position, neon light, 16:9");
+  await runStep(page, "two_step_input_builds_structure_canvas", async () => {
+    await page.getByTestId("result-console-brief").fill("赛博朋克女主在霓虹酒吧，主角偏左，画面有压迫感");
     await page.getByTestId("composer-media-type").selectOption("image");
-    await page.getByTestId("composer-ratio").selectOption("16:9");
-    await page.getByTestId("composer-variants").selectOption("1");
+    await page.getByTestId("composer-primary-2").selectOption("multi_subject");
+    await page.getByTestId("composer-primary-3").selectOption("relation_expression");
+    await page.getByTestId("composer-primary-4").selectOption("cinematic");
     await page.getByTestId("result-console-generate").click();
-    await expect(page.getByTestId("inspector-preview-image")).toBeVisible();
 
-    await page.getByTestId("inspector-toggle-structure").click();
-    await page.getByTestId("structure-subject-size").evaluate((node) => {
-      const input = node as HTMLInputElement;
-      input.value = "46";
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    await page.getByTestId("structure-composition-focus").selectOption("right");
-    await page.getByTestId("inspector-open-pro").click();
+    await expect(page.getByTestId("quick-secondary-layer")).toBeVisible();
+    await page.getByTestId("result-console-brief-secondary").fill("两人左右对峙，主角更靠前景，背景更丰富");
+    await page.getByTestId("quick-second-image-subject-count").locator("select").selectOption("3");
+    await page.getByTestId("quick-second-image-composition-position").locator("select").selectOption("left");
+    await page.getByTestId("quick-second-image-background-complexity").locator("select").selectOption("rich");
+    await page.getByTestId("result-console-generate-secondary").click();
 
+    await expect(page.getByTestId("quick-structure-canvas-ready")).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toHaveValue(/赛博朋克女主在霓虹酒吧/);
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toHaveValue(/两人左右对峙/);
+  });
+
+  await runStep(page, "open_pro_from_quick_workspace", async () => {
+    await page.getByTestId("media-nav-pro").click();
     await expect(page.getByTestId("project-menu-trigger")).toBeVisible();
   });
 
-  await runStep(page, "project_snapshot_contains_goal_and_composition_focus", async () => {
-    const project = await getStoredProject(page);
-    expect(project).not.toBeNull();
-    const notes = String(project?.scenes?.[0]?.notes ?? "");
-    expect(notes).toContain("goal:");
-    expect(notes).toContain("composition_focus:right");
-
-    const layerXs = (project?.scenes?.[0]?.layers ?? []).map((layer) => Number(layer.kf?.[0]?.x ?? 0));
-    expect(layerXs.some((x) => x >= 40)).toBeTruthy();
+  await runStep(page, "quick_content_is_not_auto_written_into_pro_project_snapshot", async () => {
+    const projectRaw = await page.evaluate(() => localStorage.getItem("scenepilot_project"));
+    if (!projectRaw) return;
+    expect(projectRaw).not.toContain("赛博朋克女主在霓虹酒吧");
+    expect(projectRaw).not.toContain("两人左右对峙");
   });
 
-  await runStep(page, "top_quick_workspace_button_returns_without_losing_brief", async () => {
-    await page.getByTestId("top-open-quick-workspace").click();
-    await expect(page.getByText(/快捷工作台|Quick Workspace/i).first()).toBeVisible();
-    await expect(page.getByTestId("result-console-brief")).toHaveValue(/cyberpunk heroine/i);
-    await expect(page.getByTestId("inspector-provider-badge")).toContainText("Draw Things");
-  });
-
-  await captureArtifacts(page, { robotId: "quick_workspace_to_pro", caseId: "handoff" });
+  await captureArtifacts(page, { robotId: "quick_workspace_to_pro", caseId: "mode_switch_no_auto_inherit" });
 });

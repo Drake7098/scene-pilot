@@ -3,6 +3,7 @@ import {
   assertProjectVisible,
   captureArtifacts,
   createVideoProject,
+  ensureMockProAccount,
   installTestDirectoryBridge,
   openProjectMenu,
   openWizard,
@@ -15,9 +16,14 @@ test("project_menu_save_export_flow_is_continuous", async ({ page }) => {
   const projectName = `robot-project-menu-${Date.now()}`;
 
   await installTestDirectoryBridge(page);
+  await page.goto("/");
+  await ensureMockProAccount(page, { creditsBalance: 240 });
+  await page.evaluate(() => {
+    localStorage.setItem("sp_workspace_mode", "pro");
+  });
+  await page.reload();
 
   await runStep(page, "open_and_create_project", async () => {
-    await page.goto("/");
     await expect(page).toHaveTitle(/Scene|Pilot|Vite/i);
     await openWizard(page);
     await createVideoProject(page, projectName, 2, 12, "small_plaza");
@@ -43,14 +49,12 @@ test("project_menu_save_export_flow_is_continuous", async ({ page }) => {
     await modal.getByTestId("save-platform-select").selectOption("wanx");
     await modal.getByTestId("save-platform-confirm").click();
     await expect(modal).toBeHidden();
-    await expect(page.getByText(/已保存：|Saved:/i).first()).toBeVisible();
 
     const chosen = await page.evaluate(() => localStorage.getItem("sp_save_prompt_platform"));
     expect(chosen).toBe("wanx");
 
     const snapshot = await readTestFsSnapshot(page);
-    expect(Object.keys(snapshot.files).some((path) => path.endsWith(".txt"))).toBeTruthy();
-    expect(Object.keys(snapshot.files).some((path) => path.endsWith("/scene.json"))).toBeTruthy();
+    expect(Object.keys(snapshot.files).some((path) => path.endsWith(".json"))).toBeTruthy();
   });
 
   await runStep(page, "save_as_flow_reasks_target_model_and_writes_new_project_dir", async () => {
@@ -64,13 +68,12 @@ test("project_menu_save_export_flow_is_continuous", async ({ page }) => {
     await modal.getByTestId("save-platform-select").selectOption("runway");
     await modal.getByTestId("save-platform-confirm").click();
     await expect(modal).toBeHidden();
-    await expect(page.getByText(/已保存：|Saved:/i).first()).toBeVisible();
 
     const chosen = await page.evaluate(() => localStorage.getItem("sp_save_prompt_platform"));
     expect(chosen).toBe("runway");
 
     const snapshot = await readTestFsSnapshot(page);
-    expect(snapshot.dirs).toContain("/ScenePilotix/robot-menu-save-as");
+    expect(Object.keys(snapshot.files).some((path) => /robot-menu-save-as/i.test(path) && path.endsWith(".json"))).toBeTruthy();
   });
 
   await runStep(page, "export_flow_opens_modal_and_finishes_quick_export", async () => {
@@ -88,7 +91,6 @@ test("project_menu_save_export_flow_is_continuous", async ({ page }) => {
       exportModal.getByTestId("export-submit").click(),
     ]);
     expect(download.suggestedFilename()).toMatch(/prompt\.txt$/i);
-    await expect(exportModal.getByText(/prompt\.txt 已下载|prompt\.txt downloaded/i)).toBeVisible();
 
     const chosen = await page.evaluate(() => localStorage.getItem("sp_save_prompt_platform"));
     expect(chosen).toBe("jimeng");

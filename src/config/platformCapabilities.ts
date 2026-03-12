@@ -3,6 +3,7 @@ export type PlatformProfile =
   | "qwen"
   | "jimeng"
   | "openai"
+  | "fal"
   | "runway"
   | "midjourney"
   | "vertex"
@@ -53,6 +54,16 @@ export const PLATFORM_CAPABILITIES: Record<PlatformProfile, PlatformCapability> 
     recommendedPromptStyle: "long",
     maxCharsImage: 5200,
     maxCharsVideo: 7600
+  },
+  fal: {
+    ...BASE,
+    prefersStructuredBlocks: true,
+    prefersNaturalLanguage: true,
+    baseProfile: "fal",
+    recommendedLanguage: "en",
+    recommendedPromptStyle: "long",
+    maxCharsImage: 4400,
+    maxCharsVideo: 6200
   },
   runway: {
     ...BASE,

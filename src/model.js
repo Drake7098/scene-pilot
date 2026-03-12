@@ -190,6 +190,32 @@ export function sanitizeProject(p) {
         : inferMediaTypeFromScenes(scenes);
     const rawPlan = (p.project.shotPlan ?? "single");
     p.project.shotPlan = ["single", "multicam", "continuous", "edit"].includes(rawPlan) ? rawPlan : "single";
+    const creativeRaw = p.project.creativeContext;
+    if (creativeRaw && typeof creativeRaw === "object") {
+        p.project.creativeContext = {
+            source: creativeRaw.source === "quick_workspace" || creativeRaw.source === "imported"
+                ? creativeRaw.source
+                : "manual",
+            mediaType: creativeRaw.mediaType === "image" || creativeRaw.mediaType === "video"
+                ? creativeRaw.mediaType
+                : undefined,
+            fileName: typeof creativeRaw.fileName === "string" ? creativeRaw.fileName.trim() : "",
+            primaryInput: typeof creativeRaw.primaryInput === "string" ? creativeRaw.primaryInput.trim() : "",
+            secondaryInput: typeof creativeRaw.secondaryInput === "string" ? creativeRaw.secondaryInput.trim() : "",
+            mergedInput: typeof creativeRaw.mergedInput === "string" ? creativeRaw.mergedInput.trim() : "",
+            intentSummary: typeof creativeRaw.intentSummary === "string" ? creativeRaw.intentSummary.trim() : "",
+            locationHint: typeof creativeRaw.locationHint === "string" ? creativeRaw.locationHint.trim() : "",
+            styleHint: typeof creativeRaw.styleHint === "string" ? creativeRaw.styleHint.trim() : "",
+            subjectLabels: Array.isArray(creativeRaw.subjectLabels)
+                ? Array.from(new Set(creativeRaw.subjectLabels
+                    .map((item) => typeof item === "string" ? item.trim() : "")
+                    .filter(Boolean))).slice(0, 12)
+                : []
+        };
+    }
+    else {
+        p.project.creativeContext = undefined;
+    }
     scenes.forEach((s, i) => {
         if (!s.index)
             s.index = i + 1;

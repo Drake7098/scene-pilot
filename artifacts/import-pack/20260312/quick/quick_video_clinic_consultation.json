@@ -1,0 +1,304 @@
+{
+  "id": "quick_vid_clinic_consult_003",
+  "title": "医疗门诊咨询流程",
+  "mediaType": "video",
+  "firstInput": "门诊咨询短视频，医生、患者和家属三方沟通，过程要连贯可信",
+  "secondInput": "先全景建立关系，再到医生解释，最后患者点头确认，保持身份和光线一致",
+  "ratio": "16:9",
+  "durationSec": 15,
+  "firstLayerSelections": {
+    "image": {
+      "frameType": "multi_subject",
+      "compositionFocus": "relation_expression",
+      "styleGoal": "realistic"
+    },
+    "video": {
+      "shotStructure": "continuous",
+      "expressionFocus": "relation_change",
+      "styleGoal": "realistic"
+    }
+  },
+  "secondLayerSelections": {
+    "image": {
+      "subjectCount": "3",
+      "compositionPosition": "depth",
+      "backgroundComplexity": "normal",
+      "subjectScale": "balanced"
+    },
+    "video": {
+      "shotCount": "4",
+      "mainScene": "indoor",
+      "continuityFocus": "identity",
+      "cameraMotion": "follow",
+      "sceneTransition": "same_space",
+      "shotGrammar": "over_shoulder"
+    }
+  },
+  "structureDraft": {
+    "mediaType": "video",
+    "primaryBrief": "门诊咨询短视频，医生、患者和家属三方沟通，过程要连贯可信",
+    "secondaryBrief": "先全景建立关系，再到医生解释，最后患者点头确认，保持身份和光线一致",
+    "structureType": "continuous",
+    "scene": "门诊诊室",
+    "objects": [
+      {
+        "id": "obj_1",
+        "name": "医生",
+        "type": "person",
+        "role": "primary",
+        "depth": "midground",
+        "isPrimary": true
+      },
+      {
+        "id": "obj_2",
+        "name": "患者",
+        "type": "person",
+        "role": "secondary",
+        "depth": "midground"
+      },
+      {
+        "id": "obj_3",
+        "name": "家属",
+        "type": "person",
+        "role": "support",
+        "depth": "midground"
+      },
+      {
+        "id": "obj_4",
+        "name": "诊疗桌与病历",
+        "type": "prop",
+        "role": "environment",
+        "depth": "foreground"
+      }
+    ],
+    "shotCount": 4,
+    "mainScene": "indoor",
+    "continuityFocus": "identity",
+    "rhythm": "switch",
+    "sceneTransitions": "same_space",
+    "cameraMotion": "follow",
+    "expressionFocus": "relation_change",
+    "styleGoal": "realistic",
+    "shots": [
+      {
+        "id": "shot_1",
+        "index": 1,
+        "title": "诊室全景建立",
+        "durationSec": 4,
+        "sceneLabel": "门诊诊室",
+        "objectIds": [
+          "obj_1",
+          "obj_2",
+          "obj_3",
+          "obj_4"
+        ],
+        "transitionFromPrev": "none",
+        "emphasis": "建立三方关系"
+      },
+      {
+        "id": "shot_2",
+        "index": 2,
+        "title": "医生解释方案",
+        "durationSec": 4,
+        "sceneLabel": "诊疗桌近中景",
+        "objectIds": [
+          "obj_1",
+          "obj_2",
+          "obj_4"
+        ],
+        "transitionFromPrev": "same_space",
+        "emphasis": "信息沟通清晰"
+      },
+      {
+        "id": "shot_3",
+        "index": 3,
+        "title": "家属提问与确认",
+        "durationSec": 3,
+        "sceneLabel": "侧向过肩",
+        "objectIds": [
+          "obj_1",
+          "obj_2",
+          "obj_3"
+        ],
+        "transitionFromPrev": "same_space",
+        "emphasis": "关系变化"
+      },
+      {
+        "id": "shot_4",
+        "index": 4,
+        "title": "患者点头结束",
+        "durationSec": 4,
+        "sceneLabel": "中近景收束",
+        "objectIds": [
+          "obj_2",
+          "obj_1"
+        ],
+        "transitionFromPrev": "same_space",
+        "emphasis": "结论确认"
+      }
+    ],
+    "continuity": [
+      "身份一致",
+      "光线一致",
+      "动作与对话连贯",
+      "医疗场景真实可信"
+    ]
+  },
+  "updatedAt": 1773309454092,
+  "canvasDraft": {
+    "mediaType": "video",
+    "primaryBrief": "门诊咨询短视频，医生、患者和家属三方沟通，过程要连贯可信",
+    "secondaryBrief": "先全景建立关系，再到医生解释，最后患者点头确认，保持身份和光线一致",
+    "structureType": "continuous",
+    "shotCount": 4,
+    "shots": [
+      {
+        "id": "shot_1",
+        "index": 1,
+        "title": "诊室全景建立",
+        "summary": "建立三方关系",
+        "transitionFromPrev": "none",
+        "emphasis": "建立三方关系",
+        "sceneLabel": "门诊诊室",
+        "objectIds": [
+          "obj_1",
+          "obj_2",
+          "obj_3",
+          "obj_4"
+        ]
+      },
+      {
+        "id": "shot_2",
+        "index": 2,
+        "title": "医生解释方案",
+        "summary": "信息沟通清晰",
+        "transitionFromPrev": "same_space",
+        "emphasis": "信息沟通清晰",
+        "sceneLabel": "诊疗桌近中景",
+        "objectIds": [
+          "obj_1",
+          "obj_2",
+          "obj_4"
+        ]
+      },
+      {
+        "id": "shot_3",
+        "index": 3,
+        "title": "家属提问与确认",
+        "summary": "关系变化",
+        "transitionFromPrev": "same_space",
+        "emphasis": "关系变化",
+        "sceneLabel": "侧向过肩",
+        "objectIds": [
+          "obj_1",
+          "obj_2",
+          "obj_3"
+        ]
+      },
+      {
+        "id": "shot_4",
+        "index": 4,
+        "title": "患者点头结束",
+        "summary": "结论确认",
+        "transitionFromPrev": "same_space",
+        "emphasis": "结论确认",
+        "sceneLabel": "中近景收束",
+        "objectIds": [
+          "obj_2",
+          "obj_1"
+        ]
+      }
+    ],
+    "keyObjects": [
+      {
+        "id": "obj_1",
+        "label": "医生",
+        "role": "primary",
+        "appearsInShotIds": [
+          "shot_1",
+          "shot_2",
+          "shot_3",
+          "shot_4"
+        ]
+      },
+      {
+        "id": "obj_2",
+        "label": "患者",
+        "role": "secondary",
+        "appearsInShotIds": [
+          "shot_1",
+          "shot_2",
+          "shot_3",
+          "shot_4"
+        ]
+      },
+      {
+        "id": "obj_3",
+        "label": "家属",
+        "role": "support",
+        "appearsInShotIds": [
+          "shot_1",
+          "shot_3"
+        ]
+      },
+      {
+        "id": "obj_4",
+        "label": "诊疗桌与病历",
+        "role": "environment",
+        "appearsInShotIds": [
+          "shot_1",
+          "shot_2"
+        ]
+      }
+    ],
+    "mainScene": "indoor",
+    "continuityFocus": "identity",
+    "rhythm": "switch",
+    "sceneTransitions": "same_space",
+    "storyboardNodes": [
+      {
+        "id": "node_shot_1",
+        "shotId": "shot_1",
+        "x": 6,
+        "y": 38,
+        "w": 18,
+        "h": 24
+      },
+      {
+        "id": "node_shot_2",
+        "shotId": "shot_2",
+        "x": 29,
+        "y": 38,
+        "w": 18,
+        "h": 24
+      },
+      {
+        "id": "node_shot_3",
+        "shotId": "shot_3",
+        "x": 52,
+        "y": 38,
+        "w": 18,
+        "h": 24
+      },
+      {
+        "id": "node_shot_4",
+        "shotId": "shot_4",
+        "x": 75,
+        "y": 38,
+        "w": 18,
+        "h": 24
+      }
+    ],
+    "compileHints": [
+      "身份一致",
+      "光线一致",
+      "动作与对话连贯",
+      "医疗场景真实可信",
+      "scene:门诊诊室",
+      "main_scene:indoor",
+      "camera_motion:follow",
+      "rhythm:switch"
+    ]
+  },
+  "prompt": "请生成一个专业级视频片段，核心任务是门诊咨询短视频，医生、患者和家属三方沟通，过程要连贯可信，先全景建立关系，再到医生解释，最后患者点头确认，保持身份和光线一致。 画幅 16:9，镜头结构 连续镜头，镜头数量 4，主场景 室内，连续性重点 人物身份一致，风格目标 电影感。 分镜计划 镜头1 诊室全景建立；镜头2 医生解释方案；镜头3 家属提问与确认；镜头4 患者点头结束。 关键对象 医生、患者、家属、诊疗桌与病历。 运镜 跟随主体，镜头语法 切镜，场景衔接 同空间衔接。 保持人物身份、服装与空间方位一致，动作动机连贯，不新增无依据剧情。"
+}

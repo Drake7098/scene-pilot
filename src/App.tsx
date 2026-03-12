@@ -23,9 +23,8 @@ import {
   type CreateStep,
   type WizardDraft
 } from "./components/CreateWizard";
-import { generatePrompts } from "./utils/prompt";
-import type { PromptProfile } from "./utils/prompt";
-import { getRefBlob } from "./utils/localRefs";
+import { buildPromptForScene } from "./utils/promptEngine";
+import { getRefBlob, putRefBlob } from "./utils/localRefs";
 import { defaultObjectName, defaultProjectName, defaultSceneName, safeExportName } from "./utils/naming";
 import { getPlatformLabel, getPlatformPreset, PLATFORM_PRESETS } from "./config/platformPresets";
 import type { PlatformPresetId } from "./config/platformPresets";
@@ -42,12 +41,13 @@ import {
   probeComfyUi,
   probeDrawThings,
   runComfyUiImage,
+  runComfyUiVideoPreview,
   runDrawThingsTxt2Img,
   type DrawThingsQueuePack,
   type LocalProviderStatus
 } from "./utils/localGeneration";
 
-import { CircleHelp, Languages, MoreHorizontal, X } from "lucide-react";
+import { CircleHelp, FolderOpen, Languages, ListChecks, MoreHorizontal, X } from "lucide-react";
 import { CreditCard, Crown, KeyRound, LogOut, UserRound, Wallet } from "lucide-react";
 import { AccountCenterModal } from "./components/AccountCenterModal";
 import { BillingOverlay } from "./components/billing/BillingOverlay";
@@ -82,13 +82,16 @@ import {
 import { UI_ACTION, UI_COMMAND, UI_EFFECT, UI_MENU, UI_PALETTE, UI_PANEL, UI_RADIUS, UI_SPACE, UI_TYPO } from "./uiTokens";
 
 type FSDirectoryHandle = any;
-type LibraryEntry = { name: string; kind: "file" | "directory" };
+type LibraryEntry = { name: string; kind: "file" | "directory"; label: string };
 type SavePlatformId = PlatformPresetId;
 type SavePlatformPickMode = "save" | "save_as" | "save_all";
+type ExportPanelOpenAction = "open" | "copy" | "package";
 type TestBridge = {
   skipHandlePersistence?: boolean;
   showDirectoryPicker?: (options?: { mode?: "read" | "readwrite"; id?: string }) => Promise<any>;
 };
+const LOCAL_TEST_IMAGE_PROVIDER: "comfyui" | "drawthings" = "comfyui";
+type LocalTestImageProvider = "comfyui" | "drawthings";
 const LIB_DB_NAME = "scenepilot_library_handles";
 const LIB_DB_STORE = "handles";
 const LIB_DB_VER = 1;
@@ -96,6 +99,40 @@ const LIB_ROOT_KEY = "root";
 const LIB_INIT_KEY = "spx_library_initialized";
 const AUTH_LEGAL_CONSENT_KEY = "sp_auth_legal_consent_v1";
 const BILLING_LEGAL_CONSENT_KEY = "sp_billing_legal_consent_v1";
+const PROJECT_SAVE_PLATFORM_LOCK_KEY = "sp_project_save_platform_locked";
+type SerializedLibraryRefAsset = {
+  id: string;
+  name: string;
+  mime: string;
+  size: number;
+  updatedAt: number;
+  dataUrl: string;
+};
+type SerializedLibraryProject = {
+  version: 2;
+  project: Project["project"];
+  scenes: Scene[];
+  assets?: {
+    refs: SerializedLibraryRefAsset[];
+  };
+};
+
+type ProGenerationSource = "hosted" | "byo";
+
+type ProGeneratedAsset = {
+  id: string;
+  sceneId: string;
+  kind: "image" | "video";
+  title: string;
+  prompt: string;
+  source: ProGenerationSource;
+  strategyPlatformId: SavePlatformId;
+  imageUrl?: string;
+  videoUrl?: string;
+  posterUrl?: string;
+  ownedUrls: string[];
+  createdAt: string;
+};
 
 function openLibDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -148,14 +185,51 @@ async function loadPersistedLibraryRootHandle(): Promise<any | null> {
   });
 }
 
-type HelpCenterSection = "quick_start" | "pro_motion_beginner" | "pro_motion_advanced" | "export" | "troubleshoot" | "feedback" | "about";
+type HelpCenterSection =
+  | "quick_start"
+  | "pro_motion_beginner"
+  | "pro_motion_advanced"
+  | "export"
+  | "troubleshoot"
+  | "development_board"
+  | "feedback"
+  | "about";
 const ONBOARDING_KEY = "sp_onboarding_done";
 const SAVE_PLATFORM_KEY = "sp_save_prompt_platform";
 const WORKSPACE_MODE_KEY = "sp_workspace_mode";
+const DEVELOPMENT_TRACKER_ASSET_URL = new URL("../docs/development-tracker.json", import.meta.url).href;
+const DEVELOPMENT_BOARD_ASSET_URL = new URL("../docs/development-board.md", import.meta.url).href;
+const DEVELOPMENT_BOARD_STATUS_ORDER = ["active", "testing", "blocked", "backlog", "done", "archived"] as const;
 
-function savePlatformToProfile(id: SavePlatformId): PromptProfile {
-  return getPlatformPreset(id).baseProfile;
-}
+type DevelopmentBoardStatus = (typeof DEVELOPMENT_BOARD_STATUS_ORDER)[number];
+type DevelopmentBoardReminder = {
+  status?: string;
+};
+type DevelopmentBoardNotifyRules = {
+  status?: string[];
+  testStatus?: string[];
+};
+type DevelopmentBoardItem = {
+  id: string;
+  title: string;
+  status: string;
+  type: string;
+  priority: string;
+  workspace: string;
+  testStatus: string;
+  progress: number;
+  tags?: string[];
+  reminders?: DevelopmentBoardReminder[];
+  notifyRules?: DevelopmentBoardNotifyRules;
+};
+type DevelopmentBoardAlert = {
+  read?: boolean;
+};
+type DevelopmentBoardData = {
+  updatedAt?: string;
+  alerts?: DevelopmentBoardAlert[];
+  items: DevelopmentBoardItem[];
+};
 
 function savePlatformLabel(id: SavePlatformId, lang: Lang) {
   return getPlatformLabel(id, lang === "zh" ? "zh" : "en");
@@ -222,6 +296,45 @@ function buildDefaultObjectLayer(lang: Lang, index: number) {
   };
 }
 
+function developmentBoardSectionTitle(status: DevelopmentBoardStatus, lang: Lang) {
+  if (status === "active") return lang === "zh" ? "进行中" : "Active";
+  if (status === "testing") return lang === "zh" ? "测试中" : "Testing";
+  if (status === "blocked") return lang === "zh" ? "阻塞" : "Blocked";
+  if (status === "backlog") return lang === "zh" ? "待开发" : "Backlog";
+  if (status === "done") return lang === "zh" ? "已完成" : "Done";
+  return lang === "zh" ? "归档" : "Archived";
+}
+
+function toDevelopmentBoardData(raw: unknown): DevelopmentBoardData | null {
+  if (!raw || typeof raw !== "object") return null;
+  const value = raw as { items?: unknown; updatedAt?: unknown; alerts?: unknown };
+  if (!Array.isArray(value.items)) return null;
+  const items: DevelopmentBoardItem[] = value.items
+    .filter((entry) => !!entry && typeof entry === "object")
+    .map((entry) => {
+      const item = entry as Record<string, unknown>;
+      return {
+        id: String(item.id ?? ""),
+        title: String(item.title ?? ""),
+        status: String(item.status ?? "backlog"),
+        type: String(item.type ?? "feature"),
+        priority: String(item.priority ?? "p1"),
+        workspace: String(item.workspace ?? "global"),
+        testStatus: String(item.testStatus ?? "none"),
+        progress: Number(item.progress ?? 0),
+        tags: Array.isArray(item.tags) ? item.tags.map((tag) => String(tag)) : [],
+        reminders: Array.isArray(item.reminders) ? item.reminders.map((reminder) => reminder as DevelopmentBoardReminder) : [],
+        notifyRules: (item.notifyRules as DevelopmentBoardNotifyRules | undefined) ?? { status: [], testStatus: [] }
+      };
+    })
+    .filter((item) => item.id && item.title);
+  return {
+    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : "",
+    alerts: Array.isArray(value.alerts) ? (value.alerts as DevelopmentBoardAlert[]) : [],
+    items
+  };
+}
+
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => loadLang());
   const [project, setProject] = useState<Project>(() => loadProject() ?? defaultProject());
@@ -237,6 +350,7 @@ export default function App() {
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
   const [editT, setEditT] = useState<0 | 1>(0);
   const [resultBrief, setResultBrief] = useState("");
+  const [resultSecondaryBrief, setResultSecondaryBrief] = useState("");
   const [resultFeedback, setResultFeedback] = useState("");
   const [resultBusy, setResultBusy] = useState(false);
   const [accountCenterOpen, setAccountCenterOpen] = useState(false);
@@ -270,11 +384,13 @@ export default function App() {
   const [creditPacks] = useState<CreditPackConfig[]>(CREDIT_PACKS);
   const [proPlan] = useState<ProPlanConfig | null>(PRO_PLAN);
   const [billingPage, setBillingPage] = useState<"upgrade" | "credits" | null>(null);
+  const [billingLocalHint, setBillingLocalHint] = useState("");
   const [insufficientCreditsOpen, setInsufficientCreditsOpen] = useState(false);
   const [insufficientCreditsMessage, setInsufficientCreditsMessage] = useState("");
   const [resultPrefs, setResultPrefs] = useState<ResultGenerationPrefs>({
     mediaType: "image",
     ratio: "16:9",
+    durationSec: 6,
     batchSize: 2,
     engineMode: "auto",
     showcaseMode: "show"
@@ -296,6 +412,12 @@ export default function App() {
   const [drawThingsPack, setDrawThingsPack] = useState<DrawThingsQueuePack | null>(null);
   const [comfyStatus, setComfyStatus] = useState<LocalProviderStatus>({ provider: "comfyui", state: "idle" });
   const [drawThingsStatus, setDrawThingsStatus] = useState<LocalProviderStatus>({ provider: "drawthings", state: "idle" });
+  const [proGenerationSource, setProGenerationSource] = useState<ProGenerationSource>("hosted");
+  const [proGenerateBusy, setProGenerateBusy] = useState(false);
+  const [proGenerateHint, setProGenerateHint] = useState("");
+  const [proAssetsBySceneId, setProAssetsBySceneId] = useState<Record<string, ProGeneratedAsset[]>>({});
+  const [proActiveAssetBySceneId, setProActiveAssetBySceneId] = useState<Record<string, string>>({});
+  const [proAssetMenuId, setProAssetMenuId] = useState<string | null>(null);
 
   const [, setFileHandle] = useState<any | null>(null);
   const [fileLabel, setFileLabel] = useState<string>(() => {
@@ -324,6 +446,9 @@ export default function App() {
   // ✅ Help Center
   const [helpCenterOpen, setHelpCenterOpen] = useState(false);
   const [helpCenterSection, setHelpCenterSection] = useState<HelpCenterSection>("quick_start");
+  const [developmentBoardData, setDevelopmentBoardData] = useState<DevelopmentBoardData | null>(null);
+  const [developmentBoardLoading, setDevelopmentBoardLoading] = useState(false);
+  const [developmentBoardError, setDevelopmentBoardError] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
 
   // ✅ 反馈发送状态
@@ -350,14 +475,24 @@ export default function App() {
   const [savePlatformModalOpen, setSavePlatformModalOpen] = useState(false);
   const [savePlatformPickMode, setSavePlatformPickMode] = useState<SavePlatformPickMode>("save");
   const [pendingSavePlatformId, setPendingSavePlatformId] = useState<SavePlatformId>("universal");
+  const [projectSavePlatformLocked, setProjectSavePlatformLocked] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(PROJECT_SAVE_PLATFORM_LOCK_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
   const [renameProjectOpen, setRenameProjectOpen] = useState(false);
   const [renameProjectDraft, setRenameProjectDraft] = useState("");
   const [helpMenuOpen, setHelpMenuOpen] = useState(false);
   const [openExportNonce, setOpenExportNonce] = useState(0);
+  const [openExportAction, setOpenExportAction] = useState<ExportPanelOpenAction>("open");
+  const [workspaceSwitchShield, setWorkspaceSwitchShield] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
     typeof window !== "undefined" ? window.innerWidth : 1440
   );
   const savePlatformResolverRef = useRef<((id: SavePlatformId | null) => void) | null>(null);
+  const proAssetsRef = useRef<Record<string, ProGeneratedAsset[]>>({});
   const shortcutActionsRef = useRef<{
     openProject: () => void;
     newProject: () => void;
@@ -382,6 +517,52 @@ export default function App() {
     } catch {
       // ignore
     }
+  }
+
+  function setProjectSavePlatformLockedPersist(next: boolean) {
+    setProjectSavePlatformLocked(next);
+    try {
+      localStorage.setItem(PROJECT_SAVE_PLATFORM_LOCK_KEY, next ? "1" : "0");
+    } catch {
+      // ignore localStorage errors
+    }
+  }
+
+  function openExportPanel(action: ExportPanelOpenAction) {
+    setOpenExportAction(action);
+    setOpenExportNonce((v) => v + 1);
+  }
+
+  const loadDevelopmentBoard = useCallback(async () => {
+    setDevelopmentBoardLoading(true);
+    setDevelopmentBoardError("");
+    try {
+      const response = await fetch(DEVELOPMENT_TRACKER_ASSET_URL, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const raw = await response.json();
+      const parsed = toDevelopmentBoardData(raw);
+      if (!parsed) {
+        throw new Error("invalid_data");
+      }
+      setDevelopmentBoardData(parsed);
+    } catch {
+      setDevelopmentBoardData(null);
+      setDevelopmentBoardError(
+        lang === "zh"
+          ? "看板数据读取失败。先执行 npm run tracker:board，然后重试。"
+          : "Failed to load board data. Run `npm run tracker:board`, then retry."
+      );
+    } finally {
+      setDevelopmentBoardLoading(false);
+    }
+  }, [lang]);
+
+  function enterProWorkspace() {
+    setWorkspaceSwitchShield(true);
+    setWorkspaceMode("pro");
+    window.setTimeout(() => setWorkspaceSwitchShield(false), 180);
   }
 
   useEffect(() => {
@@ -434,12 +615,19 @@ export default function App() {
     return list[idx] ?? list[0];
   }, [safeProject, sceneIdx]);
   const sceneNo = useMemo(() => clampInt(sceneIdx, 0, Math.max(0, safeProject.scenes.length - 1)) + 1, [sceneIdx, safeProject.scenes.length]);
+  const sceneAssetKey = scene.id || `scene_${sceneNo}`;
   const currentLibrarySnapshot = useMemo(() => JSON.stringify({ project: safeProject, fileLabel: fileLabel || "" }), [safeProject, fileLabel]);
   const [lastLibrarySavedSnapshot, setLastLibrarySavedSnapshot] = useState<string>("");
   const hasUnsavedLibraryChanges = currentLibrarySnapshot !== lastLibrarySavedSnapshot;
 
   // ---------------------- mediaMode + editT lock (minimal) ----------------------
   const mediaMode = useMemo<"image" | "video">(() => resolveSceneConfig(scene).mediaMode, [scene]);
+  const currentSceneAssets = useMemo(() => proAssetsBySceneId[sceneAssetKey] ?? [], [proAssetsBySceneId, sceneAssetKey]);
+  const currentSceneActiveAssetId = proActiveAssetBySceneId[sceneAssetKey] ?? "canvas";
+  const currentSceneActiveAsset = useMemo(
+    () => currentSceneAssets.find((item) => item.id === currentSceneActiveAssetId) ?? null,
+    [currentSceneAssets, currentSceneActiveAssetId]
+  );
 
   // image 模式强制只用 t0
   const effectiveEditT: 0 | 1 = mediaMode === "image" ? 0 : editT;
@@ -592,22 +780,32 @@ export default function App() {
   }, [helpCenterOpen]);
 
   useEffect(() => {
+    if (!helpCenterOpen || helpCenterSection !== "development_board") return;
+    void loadDevelopmentBoard();
+  }, [helpCenterOpen, helpCenterSection, loadDevelopmentBoard]);
+
+  const refreshLocalProviders = useCallback(async () => {
+    setComfyStatus({ provider: "comfyui", state: "checking", detail: lang === "zh" ? "探测中..." : "checking..." });
+    setDrawThingsStatus({ provider: "drawthings", state: "checking", detail: lang === "zh" ? "探测中..." : "checking..." });
+    const [nextComfy, nextDraw] = await Promise.all([
+      probeComfyUi(defaultComfyUiBaseUrls()),
+      probeDrawThings(defaultDrawThingsBaseUrls())
+    ]);
+    setComfyStatus(nextComfy);
+    setDrawThingsStatus(nextDraw);
+    return { nextComfy, nextDraw };
+  }, [lang]);
+
+  useEffect(() => {
     let alive = true;
     void (async () => {
-      setComfyStatus({ provider: "comfyui", state: "checking", detail: lang === "zh" ? "探测中..." : "checking..." });
-      setDrawThingsStatus({ provider: "drawthings", state: "checking", detail: lang === "zh" ? "探测中..." : "checking..." });
-      const [nextComfy, nextDraw] = await Promise.all([
-        probeComfyUi(defaultComfyUiBaseUrls()),
-        probeDrawThings(defaultDrawThingsBaseUrls())
-      ]);
+      await refreshLocalProviders();
       if (!alive) return;
-      setComfyStatus(nextComfy);
-      setDrawThingsStatus(nextDraw);
     })();
     return () => {
       alive = false;
     };
-  }, [lang]);
+  }, [refreshLocalProviders]);
 
   useEffect(() => {
     return () => {
@@ -633,6 +831,35 @@ export default function App() {
     });
   }, [resultPreviews]);
 
+  useEffect(() => {
+    if (!proGenerateHint) return;
+    const timer = window.setTimeout(() => setProGenerateHint(""), 1800);
+    return () => window.clearTimeout(timer);
+  }, [proGenerateHint]);
+
+  useEffect(() => {
+    if (!proAssetMenuId) return;
+    const onPointerDown = () => setProAssetMenuId(null);
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [proAssetMenuId]);
+
+  useEffect(() => {
+    proAssetsRef.current = proAssetsBySceneId;
+  }, [proAssetsBySceneId]);
+
+  useEffect(() => {
+    return () => {
+      for (const assets of Object.values(proAssetsRef.current)) {
+        for (const asset of assets) {
+          for (const url of asset.ownedUrls) {
+            if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+          }
+        }
+      }
+    };
+  }, []);
+
   function updateProject(next: Project) {
     setProject(next);
     saveProject(next);
@@ -645,6 +872,293 @@ export default function App() {
       scenes: safeProject.scenes.map((s, i) => (i === idx ? nextScene : s))
     };
     updateProject(next);
+  }
+
+  function makeProAssetId(prefix: string) {
+    return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  function revokeAssetUrls(asset: ProGeneratedAsset | null | undefined) {
+    if (!asset) return;
+    for (const url of asset.ownedUrls) {
+      if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+    }
+  }
+
+  function resetProGeneratedAssets() {
+    setProAssetsBySceneId((prev) => {
+      for (const assets of Object.values(prev)) {
+        for (const asset of assets) revokeAssetUrls(asset);
+      }
+      return {};
+    });
+    setProActiveAssetBySceneId({});
+    setProAssetMenuId(null);
+  }
+
+  function setActiveProAsset(sceneKey: string, assetId: string) {
+    setProActiveAssetBySceneId((prev) => ({ ...prev, [sceneKey]: assetId }));
+  }
+
+  function appendProAsset(sceneKey: string, asset: ProGeneratedAsset) {
+    setProAssetsBySceneId((prev) => ({
+      ...prev,
+      [sceneKey]: [...(prev[sceneKey] ?? []), asset]
+    }));
+    setActiveProAsset(sceneKey, asset.id);
+  }
+
+  function deleteProAsset(sceneKey: string, assetId: string) {
+    setProAssetsBySceneId((prev) => {
+      const current = prev[sceneKey] ?? [];
+      const target = current.find((item) => item.id === assetId);
+      revokeAssetUrls(target);
+      const nextSceneAssets = current.filter((item) => item.id !== assetId);
+      const next = { ...prev };
+      if (nextSceneAssets.length) next[sceneKey] = nextSceneAssets;
+      else delete next[sceneKey];
+      return next;
+    });
+    setProActiveAssetBySceneId((prev) => {
+      if (prev[sceneKey] !== assetId) return prev;
+      return { ...prev, [sceneKey]: "canvas" };
+    });
+    setProAssetMenuId((prev) => (prev === assetId ? null : prev));
+  }
+
+  function proAssetLabel(kind: "image" | "video", index: number) {
+    if (lang === "zh") return kind === "image" ? `图 ${index}` : `视频 ${index}`;
+    return kind === "image" ? `Image ${index}` : `Video ${index}`;
+  }
+
+  function resolveByoProviderForMedia(nextMediaMode: "image" | "video"): "fal" | "runway" | null {
+    const creds = accountApiCredentials;
+    if (!creds) return null;
+    const ordered = nextMediaMode === "video"
+      ? ["runway", "fal"] as const
+      : ["fal", "runway"] as const;
+    const preferred = creds.defaultProvider;
+    const candidates = [preferred, ...ordered.filter((item) => item !== preferred)];
+    for (const provider of candidates) {
+      const config = creds[provider];
+      if (config?.enabled && config.mode === "personal" && config.apiKey.trim()) return provider;
+    }
+    return null;
+  }
+
+  function resolveProGenerationPlatformId(source: ProGenerationSource, nextMediaMode: "image" | "video"): SavePlatformId {
+    if (source === "byo") {
+      const provider = resolveByoProviderForMedia(nextMediaMode);
+      if (provider === "runway") return "runway";
+      if (provider === "fal") return "fal";
+    }
+    return nextMediaMode === "video" ? "runway" : "fal";
+  }
+
+  async function runPreferredLocalImage(args: {
+    prompt: string;
+    resolution: string;
+    seed: number;
+    prefix?: string;
+    steps?: number;
+    cfg?: number;
+    guidanceScale?: number;
+    preferredCheckpoint?: string;
+    preferredProvider?: LocalTestImageProvider;
+    strictProvider?: boolean;
+  }) {
+    const preferredProvider = args.preferredProvider ?? LOCAL_TEST_IMAGE_PROVIDER;
+    const strictProvider = Boolean(args.strictProvider);
+    const comfyArgs = {
+      prompt: args.prompt,
+      resolution: args.resolution,
+      seed: args.seed,
+      baseUrls: defaultComfyUiBaseUrls(),
+      preferredCheckpoint: args.preferredCheckpoint ?? comfyStatus.checkpoint,
+      prefix: args.prefix,
+      steps: args.steps,
+      cfg: args.cfg
+    };
+    const drawArgs = {
+      prompt: args.prompt,
+      resolution: args.resolution,
+      seed: args.seed,
+      baseUrls: defaultDrawThingsBaseUrls(),
+      steps: args.steps,
+      guidanceScale: args.guidanceScale
+    };
+
+    if (preferredProvider === "comfyui") {
+      if (strictProvider) return await runComfyUiImage(comfyArgs);
+      try {
+        return await runComfyUiImage(comfyArgs);
+      } catch {
+        return await runDrawThingsTxt2Img(drawArgs);
+      }
+    }
+
+    if (strictProvider) return await runDrawThingsTxt2Img(drawArgs);
+    try {
+      return await runDrawThingsTxt2Img(drawArgs);
+    } catch {
+      return await runComfyUiImage(comfyArgs);
+    }
+  }
+
+  async function buildSceneAnchorImage(prompt: string, resolution: string, seed: number): Promise<{ url: string; ownedUrls: string[] }> {
+    const candidateRefs = [
+      scene.backgroundRef,
+      ...(scene.layers ?? []).flatMap((layer) => layer.localRefs ?? [])
+    ];
+    for (const ref of candidateRefs) {
+      if (!ref?.id) continue;
+      const blob = await getRefBlob(ref.id);
+      if (!blob) continue;
+      const url = URL.createObjectURL(blob);
+      return { url, ownedUrls: [url] };
+    }
+
+    try {
+      const draft = await runPreferredLocalImage({
+        prompt,
+        resolution,
+        seed,
+        preferredCheckpoint: comfyStatus.checkpoint
+      });
+      return { url: draft.imageUrl, ownedUrls: [draft.imageUrl] };
+    } catch {
+      throw new Error("Local image anchor generation failed");
+    }
+  }
+
+  async function generateProAsset(requestedSource: ProGenerationSource = proGenerationSource) {
+    if (proGenerateBusy) return;
+
+    if (requestedSource === "hosted") {
+      if (!canUseHostedGeneration(accountUser)) {
+        openBillingPage("upgrade");
+        return;
+      }
+    } else {
+      if (!accountUser) {
+        openAccountCenter("auth");
+        return;
+      }
+      if (!canUseBringYourOwnApi(accountUser)) {
+        openAccountCenter("api");
+        return;
+      }
+      if (!resolveByoProviderForMedia(mediaMode)) {
+        openAccountCenter("api");
+        return;
+      }
+    }
+
+    const strategyPlatformId = resolveProGenerationPlatformId(requestedSource, mediaMode);
+    const prompt = buildScenePromptText(scene, strategyPlatformId);
+    const resolution = resultModeResolution("16:9", mediaMode);
+    const seed = 101 + currentSceneAssets.length;
+    const cost = mediaMode === "video"
+      ? creditCostFor("video", "video", 1)
+      : creditCostFor("image", "standard", 1);
+    let reservedEntryId = "";
+
+    setProGenerateBusy(true);
+    setProAssetMenuId(null);
+
+    try {
+      if (requestedSource === "hosted" && accountUser) {
+        if (accountCredits < cost) {
+          openNotEnoughCredits(`Not enough credits. Need ${cost}, available ${accountCredits}.`);
+          openBillingPage("credits");
+          return;
+        }
+        const reserved = await reserveCredits(accountUser.id, cost, `pro_generate_${mediaMode}`);
+        reservedEntryId = reserved.id;
+      }
+
+      if (mediaMode === "image") {
+        const localImage = await runPreferredLocalImage({
+          prompt,
+          resolution,
+          seed,
+          preferredCheckpoint: comfyStatus.checkpoint
+        });
+
+        const imageCount = currentSceneAssets.filter((item) => item.kind === "image").length + 1;
+        appendProAsset(sceneAssetKey, {
+          id: makeProAssetId("image"),
+          sceneId: sceneAssetKey,
+          kind: "image",
+          title: proAssetLabel("image", imageCount),
+          prompt,
+          source: requestedSource,
+          strategyPlatformId,
+          imageUrl: localImage.imageUrl,
+          ownedUrls: [localImage.imageUrl],
+          createdAt: new Date().toISOString()
+        });
+      } else {
+        const anchor = await buildSceneAnchorImage(prompt, resolution, seed);
+        const localVideo = await runComfyUiVideoPreview({
+          prompt,
+          anchorImageUrl: anchor.url,
+          resolution,
+          seed,
+          baseUrls: defaultComfyUiBaseUrls(),
+          prefix: `scenepilotix_scene_${sceneNo}_${Date.now()}`
+        });
+        const videoCount = currentSceneAssets.filter((item) => item.kind === "video").length + 1;
+        appendProAsset(sceneAssetKey, {
+          id: makeProAssetId("video"),
+          sceneId: sceneAssetKey,
+          kind: "video",
+          title: proAssetLabel("video", videoCount),
+          prompt,
+          source: requestedSource,
+          strategyPlatformId,
+          videoUrl: localVideo.videoUrl,
+          posterUrl: localVideo.posterUrl || anchor.url,
+          ownedUrls: [...new Set([localVideo.videoUrl, localVideo.posterUrl || "", ...anchor.ownedUrls].filter(Boolean))],
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      if (requestedSource === "hosted" && accountUser && reservedEntryId) {
+        await finalizeReservedCredits(accountUser.id, reservedEntryId);
+        await refreshAccountState();
+      }
+
+      setProGenerateHint(
+        requestedSource === "hosted"
+          ? (lang === "zh" ? "已生成新结果" : "New result generated")
+          : (lang === "zh" ? "已用我的 API 生成结果" : "Generated with your API")
+      );
+    } catch (error) {
+      if (requestedSource === "hosted" && accountUser && reservedEntryId) {
+        await rollbackReservedCredits(accountUser.id, reservedEntryId);
+        await refreshAccountState();
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      setProGenerateHint(
+        lang === "zh"
+          ? `生成失败：${message}`
+          : `Generation failed: ${message}`
+      );
+    } finally {
+      setProGenerateBusy(false);
+    }
+  }
+
+  function downloadProAsset(asset: ProGeneratedAsset) {
+    const href = asset.kind === "video" ? asset.videoUrl : asset.imageUrl;
+    if (!href) return;
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = `${safeExportName(fileLabel || defaultProjectName(lang)) || "project"}_${safeExportName(asset.title) || asset.id}.${asset.kind === "video" ? "mp4" : "png"}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }
 
   useEffect(() => {
@@ -769,10 +1283,26 @@ export default function App() {
 
   function openBillingPage(page: "upgrade" | "credits") {
     setBillingPage(page);
+    if (page === "upgrade") {
+      setBillingLocalHint("");
+    }
   }
 
   function closeBillingPage() {
     setBillingPage(null);
+  }
+
+  function providerReadyText(provider: LocalTestImageProvider, status: LocalProviderStatus) {
+    const providerLabel = provider === "comfyui" ? "ComfyUI" : "Draw Things";
+    if (status.state === "ready") {
+      return lang === "zh"
+        ? `${providerLabel} 已连通${status.baseUrl ? ` (${status.baseUrl})` : ""}`
+        : `${providerLabel} is reachable${status.baseUrl ? ` (${status.baseUrl})` : ""}`;
+    }
+    const detail = status.error || status.detail || (lang === "zh" ? "服务不可用" : "service unavailable");
+    return lang === "zh"
+      ? `${providerLabel} 不可用：${detail}`
+      : `${providerLabel} unavailable: ${detail}`;
   }
 
   function requestProAccess(section: AccountCenterSection = "pro") {
@@ -908,10 +1438,6 @@ export default function App() {
   }, [billingLegalAccepted]);
 
   function requestNewProject() {
-    if (!canUseProConsole(accountUser)) {
-      openAccountCenter("pro");
-      return;
-    }
     if (!hasUnsavedLibraryChanges) {
       setWorkspaceMode("pro");
       openCreateWizard(false);
@@ -948,10 +1474,6 @@ export default function App() {
   }
 
   async function createNewProjectAfterSave() {
-    if (!canUseProConsole(accountUser)) {
-      openAccountCenter("pro");
-      return;
-    }
     setNewProjectConfirmBusy(true);
     try {
       const ok = await saveToDisk();
@@ -966,12 +1488,9 @@ export default function App() {
   }
 
   function createNewProjectDirectly() {
-    if (!canUseProConsole(accountUser)) {
-      openAccountCenter("pro");
-      return;
-    }
     setNewProjectConfirmOpen(false);
-    setWorkspaceMode("pro");
+    enterProWorkspace();
+    setProjectSavePlatformLockedPersist(false);
     openCreateWizard(false);
     trackProjectFlow("wizard_open", { withSave: false }, lang);
   }
@@ -1072,18 +1591,16 @@ export default function App() {
   }
 
   function createProjectFromWizard() {
-    if (!canUseProConsole(accountUser)) {
-      openAccountCenter("pro");
-      return;
-    }
     const p = sanitizeProject(buildProjectFromWizard(wizardDraft));
     const fallbackName = defaultProjectName(lang);
     const projectFileName = wizardDraft.projectName.trim() || fallbackName;
+    resetProGeneratedAssets();
     setSceneIdx(0);
     setSelectedLayerId(null);
     setEditT(0);
     setFileHandle(null);
     setLabelPersist(projectFileName);
+    setProjectSavePlatformLockedPersist(false);
     updateProject(p);
     setWorkspaceMode("pro");
     setWizardOpen(false);
@@ -1129,7 +1646,9 @@ export default function App() {
     const shotCount = 1;
     const ratio: ResultPlan["ratio"] = prefs.ratio ?? intentPlan.ratio;
     const outputCount = Math.min(4, prefs.batchSize);
-    const totalDuration = parseDurationFromBrief(mergedBrief, mediaType, shotCount);
+    const totalDuration = mediaType === "video"
+      ? prefs.durationSec
+      : parseDurationFromBrief(mergedBrief, mediaType, shotCount);
     const target = lang === "zh" ? "先把图做快、做准，再决定是否进 Pro" : "Get image direction right first, then decide on Pro";
     const route = [
       lang === "zh" ? "Intent Parser" : "Intent Parser",
@@ -1169,8 +1688,8 @@ export default function App() {
       scenes,
       structure,
       routeReason: lang === "zh"
-        ? "默认优先 Draw Things（低成本图像首轮更快）；不可用时回退 ComfyUI；两者都不可用则回退任务包。"
-        : "Prioritize Draw Things for faster low-cost first pass; fallback to ComfyUI; if both fail, fallback to handoff package."
+        ? "当前测试链路默认优先 ComfyUI；如本地不可用则回退 Draw Things；两者都不可用则回退任务包。"
+        : "Current test flow prioritizes ComfyUI; fallback to Draw Things if unavailable; if both fail, fallback to handoff package."
     };
   }
 
@@ -1205,13 +1724,20 @@ export default function App() {
 
   function buildScenePromptsForPlan(plan: ResultPlan): Array<{ id: string; title: string; prompt: string; resolution: string; seed: number }> {
     const intentPlan = resultIntentPlan ?? resultPlanToIntentPlan(plan);
-    const projectForPlan = plan.mediaType === "image"
+    const projectForPlan = intentPlan.canvas
       ? intentPlanToProProject(intentPlan, resultStructureState, lang)
       : buildProjectForResultPlan(plan);
     if (plan.mediaType === "image") {
       const sceneItem = projectForPlan.scenes[0];
       if (!sceneItem) return [];
-      const prompt = generatePrompts({ ...projectForPlan, scenes: [sceneItem] }, lang, savePlatformToProfile(savePlatformId)).trim();
+      const prompt = buildPromptForScene({
+        project: projectForPlan,
+        scene: sceneItem,
+        lang,
+        platformId: savePlatformId,
+        profile: getPlatformPreset(savePlatformId).baseProfile,
+        workspace: "quick"
+      }).finalCopyPrompt.trim();
       const count = Math.min(4, Math.max(1, plan.outputCount || 1));
       return Array.from({ length: count }, (_, index) => ({
         id: `${sceneItem.id || "scene_1"}_out_${index + 1}`,
@@ -1224,13 +1750,24 @@ export default function App() {
     return projectForPlan.scenes.slice(0, Math.min(3, projectForPlan.scenes.length)).map((sceneItem, index) => ({
       id: sceneItem.id || `scene_${index + 1}`,
       title: sceneItem.name || (lang === "zh" ? `镜头 ${index + 1}` : `Shot ${index + 1}`),
-      prompt: generatePrompts({ ...projectForPlan, scenes: [sceneItem] }, lang, savePlatformToProfile(savePlatformId)).trim(),
+      prompt: buildPromptForScene({
+        project: projectForPlan,
+        scene: sceneItem,
+        lang,
+        platformId: savePlatformId,
+        profile: getPlatformPreset(savePlatformId).baseProfile,
+        workspace: "quick"
+      }).finalCopyPrompt.trim(),
       resolution: resultModeResolution(plan.ratio, plan.mediaType),
       seed: 101 + index
     }));
   }
 
-  async function generateLocalPreviews(plan: ResultPlan): Promise<ResultPreview[]> {
+  async function generateLocalPreviews(
+    plan: ResultPlan,
+    preferredProvider: LocalTestImageProvider = LOCAL_TEST_IMAGE_PROVIDER,
+    strictProvider = false
+  ): Promise<ResultPreview[]> {
     const prompts = buildScenePromptsForPlan(plan);
     const fallback = buildResultPreviews(plan);
     const drawPack = buildDrawThingsQueuePack(prompts.map((item) => ({
@@ -1248,25 +1785,18 @@ export default function App() {
     for (let index = 0; index < maxExecutions; index += 1) {
       const item = prompts[index];
       try {
-        const localImage = plan.engineMode === "comfyui"
-          ? await runComfyUiImage({
-              prompt: item.prompt,
-              resolution: item.resolution,
-              seed: item.seed,
-              baseUrls: defaultComfyUiBaseUrls(),
-              preferredCheckpoint: comfyStatus.checkpoint,
-              prefix: `${item.id}_${Date.now()}`,
-              steps: STRUCTURE_FIRST_PRESET.comfySteps,
-              cfg: STRUCTURE_FIRST_PRESET.comfyCfg
-            })
-          : await runDrawThingsTxt2Img({
-              prompt: item.prompt,
-              resolution: item.resolution,
-              seed: item.seed,
-              baseUrls: defaultDrawThingsBaseUrls(),
-              steps: STRUCTURE_FIRST_PRESET.imageDrawSteps,
-              guidanceScale: STRUCTURE_FIRST_PRESET.imageDrawGuidance
-            });
+        const localImage = await runPreferredLocalImage({
+          prompt: item.prompt,
+          resolution: item.resolution,
+          seed: item.seed,
+          preferredProvider,
+          strictProvider,
+          preferredCheckpoint: comfyStatus.checkpoint,
+          prefix: `${item.id}_${Date.now()}`,
+          steps: STRUCTURE_FIRST_PRESET.comfySteps,
+          cfg: STRUCTURE_FIRST_PRESET.comfyCfg,
+          guidanceScale: STRUCTURE_FIRST_PRESET.imageDrawGuidance
+        });
         if (localImage.provider === "drawthings") {
           setDrawThingsStatus({
             provider: "drawthings",
@@ -1286,12 +1816,12 @@ export default function App() {
         previews[index] = {
           ...previews[index],
           summary: localImage.provider === "drawthings"
-            ? (lang === "zh" ? "来自 Draw Things 本地 HTTP 的低清结构预览，优先验证构图和对象关系。" : "Low-res structural preview from local Draw Things HTTP, prioritizing composition and object relationships.")
-            : (lang === "zh" ? "来自 ComfyUI 本地 workflow 的低清结构预览，优先验证构图和对象关系。" : "Low-res structural preview from local ComfyUI workflow, prioritizing composition and object relationships."),
+            ? (lang === "zh" ? "ComfyUI 不可用，当前结果来自 Draw Things 本地 HTTP，先验证构图和对象关系。" : "ComfyUI was unavailable, so this result came from local Draw Things HTTP to validate composition and subject relationships first.")
+            : (lang === "zh" ? "当前结果来自 ComfyUI 本地 workflow，优先验证构图和对象关系。" : "This result came from the local ComfyUI workflow, prioritizing composition and subject relationships first."),
           imageUrl: localImage.imageUrl,
           provider: localImage.provider,
           hint: localImage.provider === "drawthings"
-            ? (lang === "zh" ? "如需批量或 HTTP 不稳定，可直接下载 Draw Things 任务包。" : "If you need batch runs or HTTP is unstable, download the Draw Things pack.")
+            ? (lang === "zh" ? "这是 Draw Things 的临时回退结果，可继续指出偏差再修。" : "This is a temporary Draw Things fallback result; point out deviations to refine.")
             : (lang === "zh" ? "ComfyUI 已直接回传首轮图，可继续指出偏差再修。" : "ComfyUI returned a first pass directly; point out the deviation to refine.")
         };
       } catch (error) {
@@ -1356,6 +1886,10 @@ export default function App() {
     return previews;
   }
 
+  function hasGeneratedMedia(previews: ResultPreview[]) {
+    return previews.some((item) => Boolean(item.imageUrl || item.videoUrl));
+  }
+
   function resultPlanToWizardDraft(plan: ResultPlan): WizardDraft {
     const totalDuration = plan.mediaType === "image" ? 12 : Math.max(plan.shotCount, plan.totalDuration || plan.shotCount * 4);
     return nextWizardDraft({
@@ -1380,23 +1914,9 @@ export default function App() {
     return briefToIntentPlan(plan.brief, lang);
   }
 
-  function applyResultPlanToProject(plan: ResultPlan) {
-    if (!canUseProConsole(accountUser)) {
-      openAccountCenter("pro");
-      return;
-    }
-    const intentPlan = resultIntentPlan ?? resultPlanToIntentPlan(plan);
-    const nextProject = intentPlanToProProject(intentPlan, resultStructureState, lang);
-    setSceneIdx(0);
-    setSelectedLayerId(null);
-    setEditT(0);
-    setFileHandle(null);
-    setLabelPersist(intentPlan.sourceBrief.slice(0, 36).trim() || defaultProjectName(lang));
-    updateProject(nextProject);
-    setWizardOpen(false);
-    setWorkspaceMode("pro");
-    markOnboardingDone();
-    trackProjectFlow("assistant_to_pro", { media: intentPlan.mediaType, shots: intentPlan.subjects.length }, lang);
+  function openProFromQuickWorkspace() {
+    if (!requestProAccess("pro")) return;
+    enterProWorkspace();
   }
 
   async function generateResultPlan() {
@@ -1429,8 +1949,14 @@ export default function App() {
       }
       setResultPlan(plan);
       const previews = await generateLocalPreviews(plan);
+      const generated = hasGeneratedMedia(previews);
       if (accountUser && reservedEntryId) {
-        await finalizeReservedCredits(accountUser.id, reservedEntryId);
+        if (generated) {
+          await finalizeReservedCredits(accountUser.id, reservedEntryId);
+        } else {
+          await rollbackReservedCredits(accountUser.id, reservedEntryId);
+          reservedEntryId = "";
+        }
         await refreshAccountState();
       }
       setResultPreviews(previews);
@@ -1438,7 +1964,9 @@ export default function App() {
       setResultRatings({});
       setResultCardFeedbacks({});
       setResultFeedback("");
-      setFreeTrialUsed((v) => Math.min(20, v + 1));
+      if (generated) {
+        setFreeTrialUsed((v) => Math.min(20, v + 1));
+      }
       setInsufficientCreditsOpen(false);
       setInsufficientCreditsMessage("");
       closeBillingPage();
@@ -1448,6 +1976,77 @@ export default function App() {
         await refreshAccountState();
       }
       throw error;
+    } finally {
+      setResultBusy(false);
+    }
+  }
+
+  async function generateResultPlanLocalTest(preferredProvider: LocalTestImageProvider) {
+    const brief = resultBrief.trim();
+    if (!brief || resultBusy) {
+      setBillingLocalHint(
+        lang === "zh"
+          ? "请先输入第一句需求，再执行本地测试生成。"
+          : "Please enter the first-line brief before running local test generation."
+      );
+      return;
+    }
+
+    setResultBusy(true);
+    setWorkspaceMode("results");
+    setBillingLocalHint(lang === "zh" ? "正在探测本地引擎..." : "Checking local engines...");
+    trackProjectFlow("assistant_generate_local_test", { len: brief.length, provider: preferredProvider }, lang);
+
+    try {
+      const { nextComfy, nextDraw } = await refreshLocalProviders();
+      const selected = preferredProvider === "comfyui" ? nextComfy : nextDraw;
+      const selectedText = providerReadyText(preferredProvider, selected);
+      const bothReady = nextComfy.state === "ready" && nextDraw.state === "ready";
+      if (!bothReady) {
+        const comfyText = providerReadyText("comfyui", nextComfy);
+        const drawText = providerReadyText("drawthings", nextDraw);
+        setBillingLocalHint(`${comfyText} | ${drawText}`);
+      }
+      if (selected.state !== "ready") {
+        setBillingLocalHint(selectedText);
+        return;
+      }
+
+      await wait(260);
+      const intentPlan = resultIntentPlan ?? briefToIntentPlan(brief, lang);
+      setResultIntentPlan(intentPlan);
+      const plan = inferResultPlan(brief, "", resultPrefs, intentPlan);
+      setResultPlan(plan);
+      const previews = await generateLocalPreviews(plan, preferredProvider, true);
+      const generated = hasGeneratedMedia(previews);
+
+      setResultPreviews(previews);
+      setResultSelectedPreviewId(previews[0]?.id ?? null);
+      setResultRatings({});
+      setResultCardFeedbacks({});
+      setResultFeedback("");
+
+      if (generated) {
+        setBillingLocalHint(
+          lang === "zh"
+            ? `本地测试生成完成（优先 ${preferredProvider === "comfyui" ? "ComfyUI" : "Draw Things"}）。`
+            : `Local test generation completed (preferred ${preferredProvider === "comfyui" ? "ComfyUI" : "Draw Things"}).`
+        );
+        closeBillingPage();
+      } else {
+        setBillingLocalHint(
+          lang === "zh"
+            ? "本地引擎未返回可预览结果，已保留任务包降级路径。"
+            : "Local engines returned no preview media; handoff package fallback is preserved."
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setBillingLocalHint(
+        lang === "zh"
+          ? `本地测试生成失败：${message}`
+          : `Local test generation failed: ${message}`
+      );
     } finally {
       setResultBusy(false);
     }
@@ -1493,8 +2092,14 @@ export default function App() {
       }
       setResultPlan(refinedPlan);
       const nextPreviews = await generateLocalPreviews(refinedPlan);
+      const generated = hasGeneratedMedia(nextPreviews);
       if (accountUser && reservedEntryId) {
-        await finalizeReservedCredits(accountUser.id, reservedEntryId);
+        if (generated) {
+          await finalizeReservedCredits(accountUser.id, reservedEntryId);
+        } else {
+          await rollbackReservedCredits(accountUser.id, reservedEntryId);
+          reservedEntryId = "";
+        }
         await refreshAccountState();
       }
       setResultPreviews(nextPreviews.map((item, index) => ({
@@ -1547,6 +2152,7 @@ export default function App() {
     const pickedPlatform = await requestSavePlatform("save_as");
     if (!pickedPlatform) return false;
     syncSavePlatform(pickedPlatform);
+    setProjectSavePlatformLockedPersist(true);
     const defaultProjectDirName = safeExportName(fileLabel || defaultProjectName(lang)) || defaultProjectName(lang);
     const input = window.prompt(
       lang === "zh" ? "另存为：输入项目目录名（同名将覆盖）" : "Save As: enter project folder name (same name will overwrite)",
@@ -1559,26 +2165,27 @@ export default function App() {
         ? `另存项目：${pickedName}（适用大模型 ${savePlatformLabel(pickedPlatform, lang)}，同名覆盖）`
         : `Save As project: ${pickedName} (target model ${savePlatformLabel(pickedPlatform, lang)}, same name will be overwritten)`
     );
-    const ok = await saveSceneProToLibrary(pickedPlatform, pickedName);
+    const ok = await saveProjectToLibrary(pickedPlatform, pickedName);
     if (!ok) return false;
     setLastLibrarySavedSnapshot(currentLibrarySnapshot);
-    trackExportFlow("save_as", { mode: "pro", via: "library", platform: pickedPlatform }, lang);
+    trackExportFlow("save_as", { via: "library", platform: pickedPlatform, scope: "project" }, lang);
     return true;
   }
 
   async function saveToDisk(): Promise<boolean> {
-    const pickedPlatform = await requestSavePlatform("save");
+    const pickedPlatform = projectSavePlatformLocked ? savePlatformId : await requestSavePlatform("save");
     if (!pickedPlatform) return false;
     syncSavePlatform(pickedPlatform);
+    setProjectSavePlatformLockedPersist(true);
     setLibraryHint(
       lang === "zh"
-        ? `保存当前分镜到项目目录（适用大模型 ${savePlatformLabel(pickedPlatform, lang)}）。`
-        : `Saving current shot to project folder (target model ${savePlatformLabel(pickedPlatform, lang)}).`
+        ? `保存当前项目到分镜库（适用大模型 ${savePlatformLabel(pickedPlatform, lang)}）。`
+        : `Saving current project to the library (target model ${savePlatformLabel(pickedPlatform, lang)}).`
     );
-    const ok = await saveSceneQuickToLibrary(pickedPlatform);
+    const ok = await saveProjectToLibrary(pickedPlatform);
     if (!ok) return false;
     setLastLibrarySavedSnapshot(currentLibrarySnapshot);
-    trackExportFlow("save", { mode: "quick", via: "library", platform: pickedPlatform }, lang);
+    trackExportFlow("save", { via: "library", platform: pickedPlatform, scope: "project" }, lang);
     return true;
   }
 
@@ -1590,12 +2197,14 @@ export default function App() {
       const text = await f.text();
       const obj = JSON.parse(text);
       if (!obj || !Array.isArray(obj.scenes)) return;
+      resetProGeneratedAssets();
       setProject(obj as Project);
       setSceneIdx(0);
       setSelectedLayerId(null);
       setEditT(0);
       setFileHandle(null);
       setLabelPersist(f.name);
+      setProjectSavePlatformLockedPersist(false);
 
       trackProjectFlow("project_open", { via: "upload" }, lang);
     } catch {
@@ -1639,6 +2248,67 @@ export default function App() {
     await writable.close();
   }
 
+  function stripJsonExtension(name: string) {
+    return name.replace(/\.json$/i, "");
+  }
+
+  async function blobToDataUrl(blob: Blob): Promise<string> {
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(reader.error ?? new Error("Failed to read blob"));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
+    const res = await fetch(dataUrl);
+    return await res.blob();
+  }
+
+  async function serializeProjectForLibrary(project: Project): Promise<SerializedLibraryProject> {
+    const clonedProject = JSON.parse(JSON.stringify(project)) as Project;
+    const assets = new Map<string, SerializedLibraryRefAsset>();
+    const registerRef = async (ref: { id: string; name: string; mime: string; size: number; updatedAt: number } | undefined) => {
+      if (!ref?.id || assets.has(ref.id)) return;
+      const blob = await getRefBlob(ref.id);
+      if (!blob) return;
+      assets.set(ref.id, {
+        id: ref.id,
+        name: ref.name,
+        mime: ref.mime || blob.type || "application/octet-stream",
+        size: ref.size || blob.size,
+        updatedAt: ref.updatedAt || Date.now(),
+        dataUrl: await blobToDataUrl(blob)
+      });
+    };
+
+    for (const sceneItem of clonedProject.scenes ?? []) {
+      await registerRef(sceneItem.backgroundRef);
+      for (const layer of sceneItem.layers ?? []) {
+        for (const ref of layer.localRefs ?? []) {
+          await registerRef(ref);
+        }
+      }
+    }
+
+    return {
+      version: 2,
+      project: clonedProject.project,
+      scenes: clonedProject.scenes,
+      assets: { refs: [...assets.values()] }
+    };
+  }
+
+  async function restoreProjectAssetsFromLibrary(payload: SerializedLibraryProject) {
+    const refs = payload.assets?.refs ?? [];
+    for (const asset of refs) {
+      if (!asset?.id || !asset.dataUrl) continue;
+      const blob = await dataUrlToBlob(asset.dataUrl);
+      await putRefBlob(asset.id, blob);
+    }
+  }
+
   async function copyDirectoryRecursive(srcDir: any, dstDir: any) {
     for await (const [, handle] of srcDir.entries()) {
       if (handle.kind === "file") {
@@ -1680,9 +2350,13 @@ export default function App() {
       const out: LibraryEntry[] = [];
       const target = projectName ? await root.getDirectoryHandle(projectName) : root;
       for await (const [, handle] of target.entries()) {
-        if (handle.kind === "directory") out.push({ name: handle.name, kind: handle.kind });
+        if (handle.kind === "file" && /\.json$/i.test(handle.name)) {
+          out.push({ name: handle.name, kind: handle.kind, label: stripJsonExtension(handle.name) });
+        } else if (handle.kind === "directory") {
+          out.push({ name: handle.name, kind: handle.kind, label: handle.name });
+        }
       }
-      out.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+      out.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: "base" }));
       setLibraryEntries(out);
     } catch {
       setLibraryEntries([]);
@@ -1785,14 +2459,24 @@ export default function App() {
     return safeFsName(customProjectName || fileLabel || fallback) || fallback;
   }
 
+  function projectJsonFileName(customProjectName?: string) {
+    return `${projectDirName(customProjectName)}.json`;
+  }
+
   function sceneDirName(sceneItem: Scene, idx: number, projectName: string) {
     const sceneTitle = safeFsName(sceneItem?.name || sceneItem?.id || defaultSceneName(lang, "video", idx + 1)) || `scene_${idx + 1}`;
     return `${projectName}_${sceneTitle}`;
   }
 
   function buildScenePromptText(sceneItem: Scene, platformId: SavePlatformId) {
-    const promptProject: Project = { ...safeProject, scenes: [sceneItem] };
-    return generatePrompts(promptProject, lang, savePlatformToProfile(platformId)).trim();
+    return buildPromptForScene({
+      project: safeProject,
+      scene: sceneItem,
+      lang,
+      platformId,
+      profile: getPlatformPreset(platformId).baseProfile,
+      workspace: workspaceMode === "pro" ? "pro" : "quick"
+    }).finalCopyPrompt.trim();
   }
 
   async function ensureFreshSubDir(parent: any, dirName: string): Promise<any> {
@@ -1804,54 +2488,33 @@ export default function App() {
     return await parent.getDirectoryHandle(dirName, { create: true });
   }
 
-  async function saveSceneQuickToLibrary(platformId: SavePlatformId): Promise<boolean> {
-    const root = await ensureLibraryRoot(true);
-    if (!root) return false;
-    setLibraryBusy(true);
-    try {
-      const proj = projectDirName();
-      const projectDir = await root.getDirectoryHandle(proj, { create: true });
-      const sceneFolder = sceneDirName(scene, sceneNo - 1, proj);
-      const sceneDir = await ensureFreshSubDir(projectDir, sceneFolder);
-      const platformLabel = safeFsName(savePlatformLabel(platformId, lang));
-      const promptFile = `${sceneFolder}__${platformLabel}.txt`;
-      await writeTextToDirectory(sceneDir, promptFile, buildScenePromptText(scene, platformId) + "\n");
-      await writeTextToDirectory(sceneDir, "scene.json", JSON.stringify({ project: { mode: safeProject.project.mode }, scenes: [scene] }, null, 2));
-      await writeSceneRefsToDirectory(sceneDir, scene, sceneFolder);
-      await refreshLibraryEntries(root, libraryProjectName);
-      setLibraryHint(lang === "zh" ? `已保存：${proj}/${sceneDir.name}` : `Saved: ${proj}/${sceneDir.name}`);
-      trackExportFlow("save_scene", { mode: "quick", platform: platformId, result: "success" }, lang);
-      return true;
-    } catch {
-      setLibraryHint(lang === "zh" ? "快速存储失败" : "Quick save failed");
-      trackExportFlow("save_scene", { mode: "quick", platform: platformId, result: "fail" }, lang);
-      return false;
-    } finally {
-      setLibraryBusy(false);
-    }
-  }
-
-  async function saveSceneProToLibrary(platformId: SavePlatformId, pickedName?: string): Promise<boolean> {
+  async function saveProjectToLibrary(platformId: SavePlatformId, pickedName?: string): Promise<boolean> {
     const root = await ensureLibraryRoot(true);
     if (!root) return false;
     setLibraryBusy(true);
     try {
       const proj = projectDirName(pickedName);
-      const projectDir = await root.getDirectoryHandle(proj, { create: true });
-      const sceneFolder = sceneDirName(scene, sceneNo - 1, proj);
-      const sceneDir = await ensureFreshSubDir(projectDir, sceneFolder);
-      const platformLabel = safeFsName(savePlatformLabel(platformId, lang));
-      const promptFile = `${sceneFolder}__${platformLabel}.txt`;
-      await writeTextToDirectory(sceneDir, promptFile, buildScenePromptText(scene, platformId) + "\n");
-      await writeTextToDirectory(sceneDir, "scene.json", JSON.stringify({ project: { mode: safeProject.project.mode }, scenes: [scene] }, null, 2));
-      await writeSceneRefsToDirectory(sceneDir, scene, sceneFolder);
+      try {
+        await root.removeEntry(proj, { recursive: true });
+      } catch {
+        // ignore legacy directory absence
+      }
+      const payload = await serializeProjectForLibrary(safeProject);
+      const exported = {
+        ...payload,
+        exportProfile: {
+          platformId,
+          platformLabel: savePlatformLabel(platformId, lang)
+        }
+      };
+      await writeTextToDirectory(root, projectJsonFileName(pickedName), JSON.stringify(exported, null, 2));
       await refreshLibraryEntries(root, libraryProjectName);
-      setLibraryHint(lang === "zh" ? `已保存：${proj}/${sceneDir.name}` : `Saved: ${proj}/${sceneDir.name}`);
-      trackExportFlow("save_scene", { mode: "pro", platform: platformId, result: "success" }, lang);
+      setLibraryHint(lang === "zh" ? `已保存项目：${proj}` : `Saved project: ${proj}`);
+      trackExportFlow("save_project", { platform: platformId, scenes: safeProject.scenes.length, result: "success" }, lang);
       return true;
     } catch {
-      setLibraryHint(lang === "zh" ? "PRO 存储失败" : "PRO save failed");
-      trackExportFlow("save_scene", { mode: "pro", platform: platformId, result: "fail" }, lang);
+      setLibraryHint(lang === "zh" ? "项目保存失败" : "Project save failed");
+      trackExportFlow("save_project", { platform: platformId, scenes: safeProject.scenes.length, result: "fail" }, lang);
       return false;
     } finally {
       setLibraryBusy(false);
@@ -1862,41 +2525,19 @@ export default function App() {
     const pickedPlatform = await requestSavePlatform("save_all");
     if (!pickedPlatform) return false;
     syncSavePlatform(pickedPlatform);
-    const root = await ensureLibraryRoot(true);
-    if (!root) return false;
-    setLibraryBusy(true);
-    try {
-      const proj = projectDirName();
-      const projectDir = await root.getDirectoryHandle(proj, { create: true });
-      const platformLabel = safeFsName(savePlatformLabel(pickedPlatform, lang));
-      for (let i = 0; i < safeProject.scenes.length; i++) {
-        const s = safeProject.scenes[i];
-        const sceneFolder = sceneDirName(s, i, proj);
-        const sceneDir = await ensureFreshSubDir(projectDir, sceneFolder);
-        await writeTextToDirectory(sceneDir, `${sceneFolder}__${platformLabel}.txt`, buildScenePromptText(s, pickedPlatform) + "\n");
-        await writeTextToDirectory(sceneDir, "scene.json", JSON.stringify({ project: { mode: safeProject.project.mode }, scenes: [s] }, null, 2));
-        await writeSceneRefsToDirectory(sceneDir, s, sceneFolder);
-      }
-      await refreshLibraryEntries(root, libraryProjectName);
-      setLibraryHint(lang === "zh" ? `已保存全部分镜：${proj}` : `Saved all shots: ${proj}`);
-      setLastLibrarySavedSnapshot(currentLibrarySnapshot);
-      trackExportFlow("save_all", { platform: pickedPlatform, scenes: safeProject.scenes.length, result: "success" }, lang);
-      return true;
-    } catch {
-      setLibraryHint(lang === "zh" ? "保存全部失败" : "Save all failed");
-      trackExportFlow("save_all", { platform: pickedPlatform, scenes: safeProject.scenes.length, result: "fail" }, lang);
-      return false;
-    } finally {
-      setLibraryBusy(false);
-    }
+    const ok = await saveProjectToLibrary(pickedPlatform);
+    if (!ok) return false;
+    setLastLibrarySavedSnapshot(currentLibrarySnapshot);
+    trackExportFlow("save_all", { platform: pickedPlatform, scenes: safeProject.scenes.length, result: "success", scope: "project" }, lang);
+    return true;
   }
 
   async function ensureReadyForLibraryOpen(): Promise<boolean> {
     if (!hasUnsavedLibraryChanges) return true;
     const askSave = window.confirm(
       lang === "zh"
-        ? "当前项目有未保存改动。点击“确定”先保存再打开分镜库项目。"
-        : "Current project has unsaved changes. Click OK to save first before opening a library project."
+        ? "当前项目有未保存改动。点击“确定”先保存整个项目，再打开分镜库项目。"
+        : "Current project has unsaved changes. Click OK to save the whole project before opening a library project."
     );
     if (askSave) {
       return await saveToDisk();
@@ -1915,49 +2556,77 @@ export default function App() {
     if (!canOpen) return;
     setLibraryBusy(true);
     try {
-      const projectDir = await root.getDirectoryHandle(entry.name);
-      const importedScenes: Scene[] = [];
-      let importedMode: "static" | "storyboard" = "storyboard";
-      for await (const [, handle] of projectDir.entries()) {
-        if (handle.kind !== "directory") continue;
-        try {
-          const sceneFile = await handle.getFileHandle("scene.json");
-          const text = await (await sceneFile.getFile()).text();
-          const parsed = JSON.parse(text);
-          const sourceScene: Scene | undefined = Array.isArray(parsed?.scenes) ? parsed.scenes[0] : parsed?.scene ?? parsed;
-          if (!sourceScene || !Array.isArray(sourceScene.layers)) continue;
-          importedScenes.push(JSON.parse(JSON.stringify(sourceScene)) as Scene);
-          if (parsed?.project?.mode === "static" || parsed?.project?.mode === "storyboard") {
-            importedMode = parsed.project.mode;
-          }
-        } catch {
-          // skip invalid scene folder
+      let opened: Project | null = null;
+      if (entry.kind === "file") {
+        const projectFile = await root.getFileHandle(entry.name);
+        const text = await (await projectFile.getFile()).text();
+        const parsed = JSON.parse(text) as SerializedLibraryProject & { exportProfile?: { platformId?: SavePlatformId } };
+        if (!parsed || !Array.isArray(parsed.scenes)) {
+          setLibraryHint(lang === "zh" ? "导入失败：项目文件无效" : "Import failed: invalid project file");
+          return;
         }
+        if (parsed.exportProfile?.platformId && SAVE_PLATFORM_OPTIONS.includes(parsed.exportProfile.platformId)) {
+          syncSavePlatform(parsed.exportProfile.platformId);
+          setProjectSavePlatformLockedPersist(true);
+        } else {
+          setProjectSavePlatformLockedPersist(false);
+        }
+        await restoreProjectAssetsFromLibrary(parsed);
+        opened = sanitizeProject({
+          project: parsed.project ?? { mode: "storyboard" },
+          scenes: parsed.scenes
+        });
+      } else {
+        const projectDir = await root.getDirectoryHandle(entry.name);
+        const importedScenes: Scene[] = [];
+        let importedMode: "static" | "storyboard" = "storyboard";
+        for await (const [, handle] of projectDir.entries()) {
+          if (handle.kind !== "directory") continue;
+          try {
+            const sceneFile = await handle.getFileHandle("scene.json");
+            const text = await (await sceneFile.getFile()).text();
+            const parsed = JSON.parse(text);
+            const sourceScene: Scene | undefined = Array.isArray(parsed?.scenes) ? parsed.scenes[0] : parsed?.scene ?? parsed;
+            if (!sourceScene || !Array.isArray(sourceScene.layers)) continue;
+            importedScenes.push(JSON.parse(JSON.stringify(sourceScene)) as Scene);
+            if (parsed?.project?.mode === "static" || parsed?.project?.mode === "storyboard") {
+              importedMode = parsed.project.mode;
+            }
+          } catch {
+            // skip invalid legacy scene folder
+          }
+        }
+        if (!importedScenes.length) {
+          setLibraryHint(lang === "zh" ? "导入失败：项目下未找到有效分镜(scene.json)" : "Import failed: no valid shot scene.json found");
+          return;
+        }
+        importedScenes.sort((a, b) => {
+          const ai = Number.isFinite(a.index) ? Number(a.index) : Number.MAX_SAFE_INTEGER;
+          const bi = Number.isFinite(b.index) ? Number(b.index) : Number.MAX_SAFE_INTEGER;
+          if (ai !== bi) return ai - bi;
+          return String(a.name || a.id).localeCompare(String(b.name || b.id), undefined, { numeric: true, sensitivity: "base" });
+        });
+        opened = sanitizeProject({
+          project: { mode: importedMode },
+          scenes: importedScenes
+        });
+        setProjectSavePlatformLockedPersist(false);
       }
-      if (!importedScenes.length) {
-        setLibraryHint(lang === "zh" ? "导入失败：项目下未找到有效分镜(scene.json)" : "Import failed: no valid shot scene.json found");
+      if (!opened) {
+        setLibraryHint(lang === "zh" ? "导入失败：项目无效" : "Import failed: invalid project");
         return;
       }
-      importedScenes.sort((a, b) => {
-        const ai = Number.isFinite(a.index) ? Number(a.index) : Number.MAX_SAFE_INTEGER;
-        const bi = Number.isFinite(b.index) ? Number(b.index) : Number.MAX_SAFE_INTEGER;
-        if (ai !== bi) return ai - bi;
-        return String(a.name || a.id).localeCompare(String(b.name || b.id), undefined, { numeric: true, sensitivity: "base" });
-      });
-      const opened: Project = sanitizeProject({
-        project: { mode: importedMode },
-        scenes: importedScenes
-      });
+      resetProGeneratedAssets();
       updateProject(opened);
-      setLabelPersist(entry.name);
-      setLastLibrarySavedSnapshot(JSON.stringify({ project: opened, fileLabel: entry.name }));
+      setLabelPersist(entry.label);
+      setLastLibrarySavedSnapshot(JSON.stringify({ project: opened, fileLabel: entry.label }));
       setSceneIdx(0);
       setSelectedLayerId(null);
       setEditT(0);
       setLibraryOpen(false);
-      setLibraryHint(lang === "zh" ? `已打开分镜库项目：${entry.name}` : `Opened library project: ${entry.name}`);
+      setLibraryHint(lang === "zh" ? `已打开分镜库项目：${entry.label}` : `Opened library project: ${entry.label}`);
     } catch {
-      setLibraryHint(lang === "zh" ? "导入失败：无法读取项目目录" : "Import failed: unable to read project folder");
+      setLibraryHint(lang === "zh" ? "导入失败：无法读取项目文件" : "Import failed: unable to read project file");
     } finally {
       setLibraryBusy(false);
     }
@@ -2030,10 +2699,39 @@ export default function App() {
     }
   }
 
+  const developmentBoardSummary = useMemo(() => {
+    if (!developmentBoardData) return null;
+    const unreadAlerts = (developmentBoardData.alerts ?? []).filter((alert) => !alert.read).length;
+    const pendingReminders = developmentBoardData.items.reduce((count, item) => (
+      count + (item.reminders ?? []).filter((reminder) => reminder.status === "pending").length
+    ), 0);
+    return {
+      updatedAt: developmentBoardData.updatedAt ?? "",
+      unreadAlerts,
+      pendingReminders
+    };
+  }, [developmentBoardData]);
+
+  const developmentBoardGroups = useMemo(() => {
+    if (!developmentBoardData) return [] as Array<{ status: DevelopmentBoardStatus; items: DevelopmentBoardItem[] }>;
+    const byStatus = new Map<DevelopmentBoardStatus, DevelopmentBoardItem[]>();
+    for (const status of DEVELOPMENT_BOARD_STATUS_ORDER) {
+      byStatus.set(status, []);
+    }
+    for (const item of developmentBoardData.items) {
+      const status = item.status as DevelopmentBoardStatus;
+      if (!byStatus.has(status)) continue;
+      byStatus.get(status)?.push(item);
+    }
+    return DEVELOPMENT_BOARD_STATUS_ORDER
+      .map((status) => ({ status, items: byStatus.get(status) ?? [] }))
+      .filter((entry) => entry.items.length > 0);
+  }, [developmentBoardData]);
+
   const helpMenuItems = [
     {
       key: "account",
-      label: accountUser ? (lang === "zh" ? "我的账户" : "My Account") : (lang === "zh" ? "登录 / 注册" : "Sign In"),
+      label: accountUser ? (lang === "zh" ? "账户与会员" : "Account & Plan") : (lang === "zh" ? "登录 / 注册" : "Sign In"),
       icon: <UserRound size={UI_MENU.item.iconSize} />,
       onClick: () => {
         setHelpMenuOpen(false);
@@ -2041,26 +2739,26 @@ export default function App() {
       }
     },
     {
-      key: "upgrade",
-      label: "Upgrade",
-      icon: <Crown size={UI_MENU.item.iconSize} />,
-      onClick: () => {
-        setHelpMenuOpen(false);
-        openBillingPage("upgrade");
-      }
-    },
-    {
       key: "credits",
-      label: "Credits",
+      label: lang === "zh" ? "充值 Credits" : "Buy Credits",
       icon: <Wallet size={UI_MENU.item.iconSize} />,
       onClick: () => {
         setHelpMenuOpen(false);
         openBillingPage("credits");
       }
     },
+    ...(!accountUser || !canUseProConsole(accountUser) ? [{
+      key: "upgrade",
+      label: lang === "zh" ? "升级会员" : "Upgrade",
+      icon: <Crown size={UI_MENU.item.iconSize} />,
+      onClick: () => {
+        setHelpMenuOpen(false);
+        openBillingPage("upgrade");
+      }
+    }] : []),
     {
       key: "manage_billing",
-      label: "Manage billing",
+      label: lang === "zh" ? "管理订阅" : "Manage Billing",
       icon: <CreditCard size={UI_MENU.item.iconSize} />,
       onClick: () => {
         setHelpMenuOpen(false);
@@ -2091,6 +2789,25 @@ export default function App() {
         setHelpCenterOpen(true);
       }
     },
+    {
+      key: "development_board",
+      label: lang === "zh" ? "开发看板" : "Development Board",
+      icon: <ListChecks size={UI_MENU.item.iconSize} />,
+      onClick: () => {
+        setHelpMenuOpen(false);
+        setHelpCenterSection("development_board");
+        setHelpCenterOpen(true);
+      }
+    },
+    ...(workspaceMode === "pro" ? [{
+      key: "quick_workspace",
+      label: lang === "zh" ? "返回快捷工作台" : "Back to Quick Workspace",
+      icon: <FolderOpen size={UI_MENU.item.iconSize} />,
+      onClick: () => {
+        setHelpMenuOpen(false);
+        setWorkspaceMode("results");
+      }
+    }] : []),
     ...(accountUser ? [{
       key: "logout",
       label: lang === "zh" ? "退出登录" : "Log Out",
@@ -2108,6 +2825,7 @@ export default function App() {
     { id: "pro_motion_advanced", label: lang === "zh" ? "进阶专业教程" : "Advanced Motion" },
     { id: "export", label: lang === "zh" ? "导出说明" : "Export Guide" },
     { id: "troubleshoot", label: lang === "zh" ? "排错" : "Troubleshooting" },
+    { id: "development_board", label: lang === "zh" ? "开发看板" : "Development Board" },
     { id: "feedback", label: lang === "zh" ? "反馈" : "Feedback" },
     { id: "about", label: lang === "zh" ? "关于" : "About" }
   ];
@@ -2116,10 +2834,9 @@ export default function App() {
   return (
     <div style={{ ...styles.app, ...(workspaceMode === "pro" ? styles.appPro : styles.appQuick) }}>
       <div style={styles.appBackdrop} aria-hidden="true">
-        <div style={styles.appGlowLeft} />
-        <div style={styles.appGlowRight} />
-        <div style={styles.appGrid} />
+        <div style={styles.appBackdropPro} />
       </div>
+      {workspaceSwitchShield ? <div style={styles.workspaceSwitchShield} aria-hidden="true" /> : null}
       <div style={styles.top}>
         {/* ✅ 左上角 Logo：ScenePilotix + 放大中文；彻底移除原 tagline 行 */}
         <div style={styles.brand} title="ScenePilotix">
@@ -2136,14 +2853,13 @@ export default function App() {
                 lang={lang}
                 isMac={isMac}
                 projectLabel={fileLabel || defaultProjectName(lang)}
-                onOpenQuickWorkspace={() => setWorkspaceMode("results")}
                 onOpenProject={() => fileInputRef.current?.click()}
                 onRenameProject={requestRenameProject}
                 onNewProject={requestNewProject}
                 onSaveProject={() => void saveToDisk()}
                 onSaveAs={() => void saveAsToDisk()}
-                onExportProject={() => setOpenExportNonce((v) => v + 1)}
-                onSaveAll={() => void saveAllScenesToLibrary()}
+                onCopyPrompt={() => openExportPanel("copy")}
+                onExportProject={() => openExportPanel("open")}
                 onOpenLibrary={() => {
                   setLibraryOpen(true);
                   setLibraryProjectName(null);
@@ -2160,17 +2876,6 @@ export default function App() {
         )}
 
         <div style={{ flex: 1, minWidth: 0 }} />
-
-        {workspaceMode === "pro" ? (
-          <button
-            data-testid="top-open-quick-workspace"
-            style={styles.topBtn}
-            onClick={() => setWorkspaceMode("results")}
-            type="button"
-          >
-            <span style={styles.topBtnText}>{lang === "zh" ? "快捷工作台" : "Quick Workspace"}</span>
-          </button>
-        ) : null}
 
         {/* ✅ 保留中英文切换按钮 */}
         <button style={styles.topBtn} onClick={toggleLang} type="button">
@@ -2279,20 +2984,24 @@ export default function App() {
             <div style={styles.modalTitle}>
               {lang === "zh"
                 ? savePlatformPickMode === "save"
-                  ? "保存：选择适用大模型"
+                  ? "保存项目：选择适用大模型"
                   : savePlatformPickMode === "save_all"
-                    ? "保存全部：选择适用大模型"
+                    ? "保存项目：选择适用大模型"
                     : "另存为：选择适用大模型"
                 : savePlatformPickMode === "save"
-                  ? "Save: Choose Target Model"
+                  ? "Save Project: Choose Target Model"
                   : savePlatformPickMode === "save_all"
-                    ? "Save All: Choose Target Model"
+                    ? "Save Project: Choose Target Model"
                     : "Save As: Choose Target Model"}
             </div>
             <div style={styles.modalText}>
               {lang === "zh"
-                ? `这一步会决定本次输出适配给哪个大模型。当前默认值是 ${savePlatformLabel(savePlatformId, lang)}，你每次都可以重新选择。`
-                : `This decides which model the output will target. The current default is ${savePlatformLabel(savePlatformId, lang)}, and you can change it every time.`}
+                ? savePlatformPickMode === "save_as"
+                  ? `另存项目时可以重新指定适用大模型。当前默认值是 ${savePlatformLabel(savePlatformId, lang)}。`
+                  : `首次保存项目时需要指定适用大模型。设置后，后续“保存项目”将直接沿用当前选择：${savePlatformLabel(savePlatformId, lang)}。`
+                : savePlatformPickMode === "save_as"
+                  ? `Save As lets you choose a different target model. Current default: ${savePlatformLabel(savePlatformId, lang)}.`
+                  : `Choose the target model the first time you save this project. Later saves will reuse: ${savePlatformLabel(savePlatformId, lang)}.`}
             </div>
             <div style={{ ...styles.modalFormRow, gridTemplateColumns: "minmax(88px,120px) minmax(0,1fr)" }}>
               <div style={styles.modalLabel}>{lang === "zh" ? "适用大模型" : "Target Model"}</div>
@@ -2386,7 +3095,7 @@ export default function App() {
               ) : (
                 libraryEntries.map((entry) => (
                   <div key={`${entry.kind}:${entry.name}`} style={styles.libraryItem}>
-                    <div style={styles.libraryItemName}>{`📁 ${entry.name}`}</div>
+                    <div style={styles.libraryItemName}>{`${entry.kind === "file" ? "📄" : "📁"} ${entry.label}`}</div>
                     <button
                       style={styles.modalBtnGhost}
                       type="button"
@@ -2436,13 +3145,15 @@ export default function App() {
             mode={workspaceMode}
             onModeChange={(mode) => {
               if (mode === "pro") {
-                requestProAccess("pro");
+                openProFromQuickWorkspace();
                 return;
               }
               setWorkspaceMode(mode);
             }}
             brief={resultBrief}
             onBriefChange={setResultBrief}
+            secondaryBrief={resultSecondaryBrief}
+            onSecondaryBriefChange={setResultSecondaryBrief}
             feedback={resultFeedback}
             onFeedbackChange={setResultFeedback}
             busy={resultBusy}
@@ -2454,20 +3165,23 @@ export default function App() {
             onPrefsChange={setResultPrefs}
             canGenerate={canUseHostedGeneration(accountUser)}
             creditsBalance={accountCredits}
+            onReplacePreviews={(next) => {
+              setResultPreviews(next);
+              setResultSelectedPreviewId(next[0]?.id ?? null);
+              setResultRatings({});
+              setResultCardFeedbacks({});
+            }}
+            onClearPreviews={() => {
+              setResultPreviews([]);
+              setResultSelectedPreviewId(null);
+              setResultRatings({});
+              setResultCardFeedbacks({});
+            }}
             onGenerate={() => void generateResultPlan()}
             onOpenUpgrade={() => openBillingPage("upgrade")}
             onOpenCredits={() => openBillingPage("credits")}
             onRefine={() => void refineResultPlan()}
-            onApplyToPro={() => {
-              if (resultPlan) applyResultPlanToProject(resultPlan);
-              else if (requestProAccess("pro")) {
-                const intentPlan = briefToIntentPlan(resultBrief || (lang === "zh" ? "主主体 居中" : "main subject centered"), lang);
-                setResultIntentPlan(intentPlan);
-                const nextProject = intentPlanToProProject(intentPlan, resultStructureState, lang);
-                updateProject(nextProject);
-                setWorkspaceMode("pro");
-              }
-            }}
+            onApplyToPro={openProFromQuickWorkspace}
             onOpenWizard={openProWizardFromResults}
             runtime={{
               comfy: {
@@ -2542,35 +3256,189 @@ export default function App() {
 
           <div style={styles.center}>
             <div style={styles.stageShell}>
-              <Stage
-                scene={scene}
-                selectedLayerId={selectedLayerId}
-                onSelectLayer={(id) => {
-                  setSelectedLayerId(id);
-                  if (!id) setEditT(0);
-                  trackEditorChange("stage", "select", { id: id || "" }, lang);
-                }}
-                onUpdateScene={(s) => {
-                  updateScene(s);
-                  trackEditorChange("stage", "update", { idx: sceneIdx }, lang);
-                }}
-                editT={effectiveEditT}
-              />
+              <div style={styles.proCanvasWorkspace}>
+                {currentSceneActiveAsset ? (
+                  <div style={styles.proAssetStage}>
+                    <div style={styles.proAssetPreviewTop}>
+                      <div style={styles.proAssetMeta}>
+                        <span style={styles.proAssetMetaTitle}>{currentSceneActiveAsset.title}</span>
+                        <span style={styles.proAssetMetaChip}>
+                          {currentSceneActiveAsset.source === "hosted"
+                            ? (lang === "zh" ? "平台生成" : "Hosted")
+                            : (lang === "zh" ? "我的 API" : "My API")}
+                        </span>
+                        <span style={styles.proAssetMetaChip}>
+                          {getPlatformLabel(currentSceneActiveAsset.strategyPlatformId, lang)}
+                        </span>
+                      </div>
+
+                      <div style={{ position: "relative" }}>
+                        <button
+                          type="button"
+                          style={styles.proAssetMenuBtn}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={() => setProAssetMenuId((prev) => (prev === currentSceneActiveAsset.id ? null : currentSceneActiveAsset.id))}
+                        >
+                          <MoreHorizontal size={16} />
+                        </button>
+
+                        {proAssetMenuId === currentSceneActiveAsset.id ? (
+                          <div style={styles.proAssetMenu} onPointerDown={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              style={styles.proAssetMenuItem}
+                              onClick={() => {
+                                downloadProAsset(currentSceneActiveAsset);
+                                setProAssetMenuId(null);
+                              }}
+                            >
+                              {lang === "zh" ? "下载" : "Download"}
+                            </button>
+                            <button
+                              type="button"
+                              style={styles.proAssetMenuItem}
+                              onClick={() => {
+                                setProAssetMenuId(null);
+                                void generateProAsset(currentSceneActiveAsset.source);
+                              }}
+                            >
+                              {lang === "zh" ? "继续生成" : "Generate Again"}
+                            </button>
+                            <button
+                              type="button"
+                              style={{ ...styles.proAssetMenuItem, ...styles.proAssetMenuDanger }}
+                              onClick={() => {
+                                deleteProAsset(sceneAssetKey, currentSceneActiveAsset.id);
+                              }}
+                            >
+                              {lang === "zh" ? "删除" : "Delete"}
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div style={styles.proAssetViewport}>
+                      {currentSceneActiveAsset.kind === "video" && currentSceneActiveAsset.videoUrl ? (
+                        <video
+                          key={currentSceneActiveAsset.id}
+                          src={currentSceneActiveAsset.videoUrl}
+                          poster={currentSceneActiveAsset.posterUrl}
+                          style={styles.proAssetVideo}
+                          controls
+                          playsInline
+                        />
+                      ) : currentSceneActiveAsset.imageUrl ? (
+                        <img
+                          src={currentSceneActiveAsset.imageUrl}
+                          alt={currentSceneActiveAsset.title}
+                          style={styles.proAssetImage}
+                        />
+                      ) : (
+                        <div style={styles.proAssetEmpty}>
+                          {lang === "zh" ? "结果暂不可预览" : "Preview unavailable"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <Stage
+                    scene={scene}
+                    selectedLayerId={selectedLayerId}
+                    onSelectLayer={(id) => {
+                      setSelectedLayerId(id);
+                      if (!id) setEditT(0);
+                      trackEditorChange("stage", "select", { id: id || "" }, lang);
+                    }}
+                    onUpdateScene={(s) => {
+                      updateScene(s);
+                      trackEditorChange("stage", "update", { idx: sceneIdx }, lang);
+                    }}
+                    editT={effectiveEditT}
+                  />
+                )}
+
+              </div>
             </div>
 
-            <ExportPanel
-              lang={lang}
-              project={safeProject}
-              projectLabel={fileLabel}
-              sceneIdx={sceneIdx}
-              platformId={savePlatformId}
-              openExportNonce={openExportNonce}
-              onPlatformChange={(id) => syncSavePlatform(id as SavePlatformId)}
-              selectedLayerId={selectedLayerId}
-              onJumpToConflict={(layerId) => {
-                if (layerId) setSelectedLayerId(layerId);
-              }}
-            />
+            <div style={styles.proCanvasFooterOutside}>
+              <div style={styles.proCanvasFooter}>
+                <div className="spx-pro-result-rail" style={styles.proResultRailDock}>
+                  <button
+                    type="button"
+                    style={{
+                      ...styles.proResultTab,
+                      ...(currentSceneActiveAssetId === "canvas" ? styles.proResultTabOn : null)
+                    }}
+                    onClick={() => {
+                      setActiveProAsset(sceneAssetKey, "canvas");
+                      setProAssetMenuId(null);
+                    }}
+                  >
+                    {lang === "zh" ? "画布" : "Canvas"}
+                  </button>
+
+                  {currentSceneAssets.map((asset, index) => (
+                    <button
+                      key={asset.id}
+                      type="button"
+                      style={{
+                        ...styles.proResultTab,
+                        ...(currentSceneActiveAssetId === asset.id ? styles.proResultTabOn : null)
+                      }}
+                      onClick={() => {
+                        setActiveProAsset(sceneAssetKey, asset.id);
+                        setProAssetMenuId(null);
+                      }}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div>
+                <div style={styles.proGenerateHandle}>
+                  {canUseBringYourOwnApi(accountUser) ? (
+                    <select
+                      value={proGenerationSource}
+                      onChange={(e) => setProGenerationSource(e.target.value as ProGenerationSource)}
+                      style={styles.proSourceSelect}
+                    >
+                      <option value="hosted">{lang === "zh" ? "平台生成" : "Hosted"}</option>
+                      <option value="byo">{lang === "zh" ? "我的 API" : "My API"}</option>
+                    </select>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    style={styles.proActionBtnPrimary}
+                    onClick={() => void generateProAsset()}
+                    disabled={proGenerateBusy}
+                  >
+                    {proGenerateBusy
+                      ? (lang === "zh" ? "生成中…" : "Generating…")
+                      : (lang === "zh" ? "生成" : "Generate")}
+                  </button>
+
+                  {proGenerateHint ? <div style={styles.proActionHint}>{proGenerateHint}</div> : null}
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.proPromptZone}>
+              <ExportPanel
+                lang={lang}
+                project={safeProject}
+                projectLabel={fileLabel}
+                sceneIdx={sceneIdx}
+                platformId={savePlatformId}
+                openExportNonce={openExportNonce}
+                openExportAction={openExportAction}
+                onPlatformChange={(id) => syncSavePlatform(id as SavePlatformId)}
+                selectedLayerId={selectedLayerId}
+                onJumpToConflict={(layerId) => {
+                  if (layerId) setSelectedLayerId(layerId);
+                }}
+              />
+            </div>
           </div>
 
           <PropsPanel
@@ -2614,15 +3482,42 @@ export default function App() {
       <BillingOverlay
         open={billingPage !== null}
         page={billingPage}
+        lang={lang}
         user={accountUser}
         creditsBalance={accountCredits}
         creditPacks={creditPacks}
         proPlan={proPlan}
         billingBusy={billingBusy}
+        localTestBusy={resultBusy}
+        localTestHint={billingLocalHint}
+        localProviderStatus={{
+          comfy: comfyStatus,
+          draw: drawThingsStatus
+        }}
         billingLegalAccepted={billingLegalAccepted}
         onClose={closeBillingPage}
         onOpenUpgrade={() => openBillingPage("upgrade")}
         onOpenCredits={() => openBillingPage("credits")}
+        onProbeLocalProviders={() => {
+          void (async () => {
+            try {
+              const { nextComfy, nextDraw } = await refreshLocalProviders();
+              const comfyText = providerReadyText("comfyui", nextComfy);
+              const drawText = providerReadyText("drawthings", nextDraw);
+              setBillingLocalHint(`${comfyText} | ${drawText}`);
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              setBillingLocalHint(
+                lang === "zh"
+                  ? `本地探测失败：${message}`
+                  : `Local probing failed: ${message}`
+              );
+            }
+          })();
+        }}
+        onRunLocalTest={(provider) => {
+          void generateResultPlanLocalTest(provider);
+        }}
         onRequireAuth={() => openAccountCenter("auth")}
         onBillingLegalAcceptedChange={setBillingLegalAccepted}
         onUpgrade={() => void handleUpgradePro()}
@@ -2698,7 +3593,9 @@ export default function App() {
         }}
         onSectionChange={(nextSection) => {
           setAccountCenterSection(nextSection);
-          if (nextSection !== "pro") setAllowProSkip(false);
+          if (nextSection !== "pro") {
+            setAllowProSkip(false);
+          }
         }}
         onAuthEmailChange={setAuthEmail}
         onAuthCodeChange={setAuthCode}
@@ -2879,6 +3776,87 @@ export default function App() {
                   </>
                 ) : null}
 
+                {helpCenterSection === "development_board" ? (
+                  <>
+                    <div style={styles.tutBlockTitle}>{lang === "zh" ? "开发看板" : "Development Board"}</div>
+                    <div style={styles.boardTopBar}>
+                      <button
+                        style={styles.modalBtnGhost}
+                        type="button"
+                        onClick={() => {
+                          void loadDevelopmentBoard();
+                        }}
+                      >
+                        {developmentBoardLoading ? (lang === "zh" ? "刷新中…" : "Refreshing...") : (lang === "zh" ? "刷新" : "Refresh")}
+                      </button>
+                      <button
+                        style={styles.modalBtnGhost}
+                        type="button"
+                        onClick={() => {
+                          window.open(DEVELOPMENT_BOARD_ASSET_URL, "_blank", "noopener,noreferrer");
+                        }}
+                      >
+                        {lang === "zh" ? "打开 Markdown" : "Open Markdown"}
+                      </button>
+                    </div>
+
+                    {developmentBoardSummary ? (
+                      <div style={styles.boardSummaryRow}>
+                        <div style={styles.boardSummaryChip}>
+                          {lang === "zh" ? "更新时间" : "Updated"}: {developmentBoardSummary.updatedAt || "-"}
+                        </div>
+                        <div style={styles.boardSummaryChip}>
+                          {lang === "zh" ? "未读提醒" : "Unread Alerts"}: {developmentBoardSummary.unreadAlerts}
+                        </div>
+                        <div style={styles.boardSummaryChip}>
+                          {lang === "zh" ? "待处理提醒" : "Pending Reminders"}: {developmentBoardSummary.pendingReminders}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {developmentBoardLoading ? (
+                      <div style={styles.modalText}>{lang === "zh" ? "正在加载看板..." : "Loading board..."}</div>
+                    ) : null}
+
+                    {developmentBoardError ? <div style={styles.boardError}>{developmentBoardError}</div> : null}
+
+                    {!developmentBoardLoading && !developmentBoardError && !developmentBoardGroups.length ? (
+                      <div style={styles.modalText}>{lang === "zh" ? "暂无任务数据。" : "No tracker data found."}</div>
+                    ) : null}
+
+                    {developmentBoardGroups.map((group) => (
+                      <div key={group.status} style={styles.tutSectionBlock}>
+                        <div style={styles.tutSectionTitle}>{developmentBoardSectionTitle(group.status, lang)}</div>
+                        <div style={styles.boardGroupGrid}>
+                          {group.items.map((item) => {
+                            const pending = (item.reminders ?? []).filter((reminder) => reminder.status === "pending").length;
+                            const notifyStatus = item.notifyRules?.status?.join(", ") || "-";
+                            const notifyTest = item.notifyRules?.testStatus?.join(", ") || "-";
+                            return (
+                              <div key={item.id} style={styles.boardItemCard}>
+                                <div style={styles.boardItemHead}>
+                                  <span style={styles.boardItemId}>{item.id}</span>
+                                  <span style={styles.boardItemMeta}>{item.priority} · {item.type} · {item.workspace}</span>
+                                </div>
+                                <div style={styles.boardItemTitle}>{item.title}</div>
+                                <div style={styles.boardItemMetaRow}>
+                                  <span>{lang === "zh" ? "测试" : "Test"}: {item.testStatus}</span>
+                                  <span>{lang === "zh" ? "进度" : "Progress"}: {Number.isFinite(item.progress) ? item.progress : 0}%</span>
+                                  <span>{lang === "zh" ? "提醒" : "Reminders"}: {pending}</span>
+                                </div>
+                                <div style={styles.boardItemMetaRow}>
+                                  <span>{lang === "zh" ? "触发" : "Notify"}: {notifyStatus}</span>
+                                  <span>{lang === "zh" ? "测试触发" : "Test Notify"}: {notifyTest}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : null}
+
                 {helpCenterSection === "feedback" ? (
                   <>
                     <div style={styles.tutBlockTitle}>{lang === "zh" ? "反馈" : "Feedback"}</div>
@@ -2975,17 +3953,16 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     color: UI_PALETTE.text.primary,
-    background:
-      "linear-gradient(180deg, rgba(5,8,14,0.96) 0%, rgba(8,12,20,0.98) 34%, #080b12 100%)",
+    background: "#000000",
     overflow: "hidden",
     position: "relative",
     isolation: "isolate"
   },
   appQuick: {
-    background: "linear-gradient(180deg, #050505 0%, #000000 100%)"
+    background: "#000000"
   },
   appPro: {
-    background: "linear-gradient(180deg, #0a0a0a 0%, #000000 100%)"
+    background: "#000000"
   },
   appBackdrop: {
     position: "absolute",
@@ -2993,6 +3970,12 @@ const styles: Record<string, React.CSSProperties> = {
     pointerEvents: "none",
     overflow: "hidden",
     zIndex: 0
+  },
+  appBackdropPro: {
+    position: "absolute",
+    inset: 0,
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.008) 1px, transparent 1px), linear-gradient(180deg, rgba(255,255,255,0.012) 0%, rgba(0,0,0,0) 18%)"
   },
   appGlowLeft: {
     position: "absolute",
@@ -3029,15 +4012,15 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: UI_SPACE.xs,
     padding: `0 ${UI_SPACE.sm}px`,
-    borderBottom: `1px solid ${UI_PALETTE.border.soft}`,
-    background: "linear-gradient(180deg, rgba(14,14,14,0.84) 0%, rgba(6,6,6,0.8) 100%)",
-    backdropFilter: "blur(14px)",
+    borderBottom: "none",
+    background: "#000000",
+    backdropFilter: "none",
     position: "relative",
     zIndex: 30
   },
   topProjectDock: {
     position: "absolute",
-    left: "calc(12px + clamp(232px, 24vw, 320px))",
+    left: "calc(clamp(232px, 24vw, 320px) + 13px)",
     top: 13,
     zIndex: 31
   },
@@ -3189,12 +4172,270 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 0,
     display: "flex"
   },
+  proResultTab: {
+    position: "relative",
+    zIndex: 1,
+    height: 34,
+    minWidth: 54,
+    padding: "0 15px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "0 0 12px 12px",
+    border: "1px solid rgba(122,154,202,0.46)",
+    borderTopColor: "transparent",
+    background: "linear-gradient(180deg, rgba(10,15,23,0.98) 0%, rgba(20,29,42,0.95) 24%, rgba(44,60,84,0.9) 100%)",
+    color: UI_PALETTE.text.secondary,
+    fontSize: UI_TYPO.size12,
+    fontWeight: 820,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+    overflow: "visible",
+    marginTop: -1
+  },
+  proResultTabOn: {
+    border: "1px solid rgba(146,182,232,0.74)",
+    borderTopColor: "transparent",
+    background: "linear-gradient(180deg, rgba(14,24,36,0.98) 0%, rgba(42,64,94,0.98) 28%, rgba(92,126,178,0.96) 100%)",
+    color: UI_PALETTE.text.primary,
+    boxShadow: "0 6px 14px rgba(3,9,20,0.24), inset 0 1px 0 rgba(255,255,255,0.24)"
+  },
+  proActionBtnPrimary: {
+    minHeight: 34,
+    padding: "0 16px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    border: "1px solid rgba(146,182,232,0.74)",
+    background: "linear-gradient(180deg, rgba(88,132,198,0.96) 0%, rgba(56,92,146,0.98) 100%)",
+    color: UI_PALETTE.text.primary,
+    cursor: "pointer",
+    fontSize: UI_TYPO.size12,
+    fontWeight: 820,
+    whiteSpace: "nowrap",
+    boxShadow: "0 8px 16px rgba(6,14,30,0.28), inset 0 1px 0 rgba(234,245,255,0.36)"
+  },
+  proSourceSelect: {
+    width: 128,
+    minWidth: 128,
+    height: 34,
+    padding: "0 12px",
+    borderRadius: 10,
+    border: "1px solid rgba(122,154,202,0.46)",
+    background: "rgba(12,20,32,0.9)",
+    color: UI_PALETTE.text.primary,
+    fontSize: UI_TYPO.size12,
+    fontWeight: 760,
+    outline: "none"
+  },
+  proActionHint: {
+    fontSize: UI_TYPO.size12,
+    color: UI_PALETTE.text.secondary,
+    textAlign: "center",
+    maxWidth: 148,
+    lineHeight: 1.35
+  },
+  proCanvasWorkspace: {
+    position: "relative",
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    display: "flex",
+    paddingBottom: 0
+  },
+  proCanvasFooterOutside: {
+    marginTop: -2,
+    padding: "0 12px 0"
+  },
+  proCanvasFooter: {
+    position: "relative",
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    minHeight: 35,
+    pointerEvents: "auto"
+  },
+  proResultRailDock: {
+    position: "relative",
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 2,
+    minWidth: 0,
+    flex: 1,
+    maxWidth: "100%",
+    minHeight: 35,
+    padding: 0,
+    overflowX: "auto",
+    overflowY: "hidden",
+    scrollbarWidth: "none",
+    pointerEvents: "auto"
+  },
+  proResultTabShoulder: {
+    position: "absolute",
+    top: -1,
+    width: 14,
+    height: 14,
+    borderTop: `1px solid ${UI_PALETTE.border.default}`,
+    background: "rgba(9,13,24,0)",
+    pointerEvents: "none"
+  },
+  proResultTabShoulderLeft: {
+    left: -13,
+    borderLeft: `1px solid ${UI_PALETTE.border.default}`,
+    borderTopLeftRadius: 14
+  },
+  proResultTabShoulderRight: {
+    right: -13,
+    borderRight: `1px solid ${UI_PALETTE.border.default}`,
+    borderTopRightRadius: 14
+  },
+  proGenerateHandle: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    justifyContent: "flex-end",
+    flexShrink: 0,
+    minHeight: 35,
+    padding: "0",
+    pointerEvents: "auto"
+  },
+  proPromptZone: {
+    marginTop: 0
+  },
+  proAssetStage: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
+    borderRadius: UI_RADIUS.panel,
+    border: "1px solid rgba(122,154,202,0.26)",
+    background: "#000000",
+    boxShadow: "none",
+    overflow: "hidden"
+  },
+  proAssetPreviewTop: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: "12px 14px",
+    borderBottom: "1px solid rgba(122,154,202,0.18)",
+    background: "rgba(255,255,255,0.015)"
+  },
+  proAssetMeta: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    minWidth: 0,
+    flexWrap: "wrap"
+  },
+  proAssetMetaTitle: {
+    fontSize: UI_TYPO.size14,
+    fontWeight: 860,
+    color: UI_PALETTE.text.primary
+  },
+  proAssetMetaChip: {
+    height: 24,
+    padding: "0 10px",
+    display: "inline-flex",
+    alignItems: "center",
+    borderRadius: 999,
+    border: "1px solid rgba(122,154,202,0.22)",
+    background: "rgba(255,255,255,0.02)",
+    color: UI_PALETTE.text.secondary,
+    fontSize: 11,
+    fontWeight: 760
+  },
+  proAssetMenuBtn: {
+    width: 32,
+    height: 32,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    border: "1px solid rgba(122,154,202,0.22)",
+    background: "rgba(255,255,255,0.02)",
+    color: UI_PALETTE.text.primary,
+    cursor: "pointer"
+  },
+  proAssetMenu: {
+    position: "absolute",
+    top: 38,
+    right: 0,
+    zIndex: 6,
+    width: 156,
+    display: "grid",
+    gap: 4,
+    padding: 6,
+    borderRadius: 14,
+    border: "1px solid rgba(122,154,202,0.22)",
+    background: "rgba(6,8,12,0.98)",
+    boxShadow: "0 16px 32px rgba(0,0,0,0.42)"
+  },
+  proAssetMenuItem: {
+    minHeight: 34,
+    padding: "0 12px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    borderRadius: 10,
+    border: "1px solid transparent",
+    background: "transparent",
+    color: UI_PALETTE.text.primary,
+    fontSize: UI_TYPO.size12,
+    fontWeight: 760,
+    cursor: "pointer",
+    textAlign: "left"
+  },
+  proAssetMenuDanger: {
+    color: "#ff8c8c"
+  },
+  proAssetViewport: {
+    flex: 1,
+    minHeight: 0,
+    minWidth: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+    background: "#000000"
+  },
+  proAssetImage: {
+    maxWidth: "100%",
+    maxHeight: "100%",
+    objectFit: "contain",
+    borderRadius: 18,
+    boxShadow: UI_EFFECT.panelShadow
+  },
+  proAssetVideo: {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+    borderRadius: 18,
+    background: "#000"
+  },
+  proAssetEmpty: {
+    fontSize: UI_TYPO.size13,
+    color: UI_PALETTE.text.secondary
+  },
 
   // ---- dropdown menu ----
   menuMask: {
     position: "fixed",
     inset: 0,
     zIndex: 9998
+  },
+  workspaceSwitchShield: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 10020,
+    background: "transparent",
+    pointerEvents: "auto"
   },
   helpMenu: {
     position: "absolute",
@@ -3681,6 +4922,85 @@ const styles: Record<string, React.CSSProperties> = {
   tutMotionText: {
     fontSize: 11,
     lineHeight: 1.55,
+    color: UI_PALETTE.text.secondary
+  },
+  boardTopBar: {
+    marginTop: 10,
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap"
+  },
+  boardSummaryRow: {
+    marginTop: 10,
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap"
+  },
+  boardSummaryChip: {
+    minHeight: 26,
+    padding: "0 10px",
+    borderRadius: UI_RADIUS.chip,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    background: UI_PALETTE.surface.surface2,
+    fontSize: 11,
+    fontWeight: 760,
+    color: UI_PALETTE.text.secondary,
+    display: "inline-flex",
+    alignItems: "center"
+  },
+  boardError: {
+    marginTop: 10,
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_PALETTE.border.danger}`,
+    background: "rgba(255,124,124,0.12)",
+    color: UI_PALETTE.text.primary,
+    fontSize: 12,
+    lineHeight: 1.5,
+    padding: "8px 10px"
+  },
+  boardGroupGrid: {
+    display: "grid",
+    gap: 8
+  },
+  boardItemCard: {
+    borderRadius: 12,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    background: "rgba(255,255,255,0.035)",
+    padding: 10,
+    display: "grid",
+    gap: 6
+  },
+  boardItemHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    flexWrap: "wrap"
+  },
+  boardItemId: {
+    fontSize: 11,
+    fontWeight: 820,
+    color: UI_PALETTE.text.secondary
+  },
+  boardItemMeta: {
+    fontSize: 11,
+    fontWeight: 760,
+    color: UI_PALETTE.text.tertiary
+  },
+  boardItemTitle: {
+    fontSize: 13,
+    fontWeight: 860,
+    color: UI_PALETTE.text.primary,
+    lineHeight: 1.45
+  },
+  boardItemMetaRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+    fontSize: 11,
     color: UI_PALETTE.text.secondary
   },
 

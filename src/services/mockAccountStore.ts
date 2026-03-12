@@ -29,6 +29,58 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function defaultApiCredentials(): ApiCredentialState {
+  return {
+    defaultProvider: "fal",
+    fal: {
+      enabled: true,
+      mode: "platform",
+      apiKey: "",
+      baseUrl: "https://queue.fal.run",
+      preferredModel: "fal-ai/flux/dev",
+      updatedAt: null
+    },
+    runway: {
+      enabled: false,
+      mode: "platform",
+      apiKey: "",
+      baseUrl: "https://api.dev.runwayml.com",
+      preferredModel: "gen4_turbo",
+      updatedAt: null
+    },
+    updatedAt: null
+  };
+}
+
+function normalizeApiCredentials(raw: unknown): ApiCredentialState {
+  const defaults = defaultApiCredentials();
+  const parsed = raw && typeof raw === "object" ? raw as Record<string, any> : {};
+  if (typeof parsed.openaiApiKey === "string") {
+    return {
+      ...defaults,
+      fal: {
+        ...defaults.fal,
+        mode: parsed.enabled ? "personal" : "platform",
+        apiKey: parsed.openaiApiKey,
+        updatedAt: parsed.updatedAt ?? null
+      },
+      updatedAt: parsed.updatedAt ?? null
+    };
+  }
+  return {
+    defaultProvider: parsed.defaultProvider === "runway" ? "runway" : "fal",
+    fal: {
+      ...defaults.fal,
+      ...(parsed.fal ?? {})
+    },
+    runway: {
+      ...defaults.runway,
+      ...(parsed.runway ?? {})
+    },
+    updatedAt: parsed.updatedAt ?? null
+  };
+}
+
 function makeId(prefix: string) {
   const g = globalThis as typeof globalThis & { crypto?: Crypto };
   const randomPart = typeof g.crypto?.randomUUID === "function"
@@ -81,7 +133,7 @@ export function createOrGetUserByEmail(email: string): UserState {
   store.users[user.id] = user;
   store.wallets[user.id] = { creditsBalance: 0, currency: "credits" };
   store.ledgers[user.id] = [];
-  store.apiCredentials[user.id] = { openaiApiKey: "", enabled: false, updatedAt: null };
+  store.apiCredentials[user.id] = defaultApiCredentials();
   store.subscriptions[user.id] = {
     userId: user.id,
     planId: "",
@@ -188,12 +240,12 @@ export function getLedger(userId: string): CreditLedgerEntry[] {
 }
 
 export function getApiCredentials(userId: string): ApiCredentialState {
-  return readStore().apiCredentials[userId] ?? { openaiApiKey: "", enabled: false, updatedAt: null };
+  return normalizeApiCredentials(readStore().apiCredentials[userId]);
 }
 
 export function setApiCredentials(userId: string, state: ApiCredentialState) {
   const store = readStore();
-  store.apiCredentials[userId] = state;
+  store.apiCredentials[userId] = normalizeApiCredentials(state);
   writeStore(store);
 }
 

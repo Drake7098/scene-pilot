@@ -1,7 +1,11 @@
+import { corsOptions, json, rejectDisallowedOrigin } from "./_shared/http";
+
 export const onRequestPost: PagesFunction = async (context) => {
   try {
+    const originErr = rejectDisallowedOrigin(context.request, context.env);
+    if (originErr) return originErr;
     const data = await context.request.json();
-    if (!data?.event) return new Response("missing event", { status: 400 });
+    if (!data?.event) return json({ error: "missing_event" }, 400, context.request, context.env);
 
     const mode =
       (typeof data?.mode === "string" && data.mode.trim()) ||
@@ -25,28 +29,9 @@ export const onRequestPost: PagesFunction = async (context) => {
       )
       .run();
 
-    return new Response("ok", {
-  headers: {
-    "access-control-allow-origin": "*",
-  },
-});
+    return json({ ok: true }, 200, context.request, context.env);
   } catch {
-return new Response("error", {
-  status: 500,
-  headers: {
-    "access-control-allow-origin": "*",
-  },
-});
+    return json({ error: "collect_error" }, 500, context.request, context.env);
   }
 };
-export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "POST, OPTIONS",
-      "access-control-allow-headers": "content-type",
-      "access-control-max-age": "86400",
-    },
-  });
-};
+export const onRequestOptions: PagesFunction = async (context) => corsOptions("POST, OPTIONS", context.request, context.env);

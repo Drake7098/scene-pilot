@@ -18,6 +18,18 @@ export type UserState = {
   updatedAt: string;
 };
 
+export type ApiProviderId = "fal" | "runway";
+export type ApiProviderMode = "platform" | "personal";
+
+export type ProviderApiConfig = {
+  enabled: boolean;
+  mode: ApiProviderMode;
+  apiKey: string;
+  baseUrl: string;
+  preferredModel: string;
+  updatedAt: string | null;
+};
+
 export type AuthChallenge = {
   email: string;
   code: string;
@@ -26,8 +38,9 @@ export type AuthChallenge = {
 };
 
 export type ApiCredentialState = {
-  openaiApiKey: string;
-  enabled: boolean;
+  defaultProvider: ApiProviderId;
+  fal: ProviderApiConfig;
+  runway: ProviderApiConfig;
   updatedAt: string | null;
 };
 

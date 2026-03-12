@@ -10,6 +10,9 @@ export type ExportSummary = {
   target: string;
   baseProfile: string;
   strategyType: "native" | "mapped";
+  sceneStrategyLayer: string;
+  sceneStrategyClassicIds: string[];
+  sceneStrategyDirectorIds: string[];
   exportScope: "current_scene" | "continuous_sequence";
   mediaMode: "image" | "video";
   compiler: "v1" | "v2";
@@ -39,6 +42,9 @@ export function makeExportSummary(input: ExportSummaryInput): ExportSummary {
     target: preset.id,
     baseProfile: preset.baseProfile,
     strategyType: preset.nativeStrategy ? "native" : "mapped",
+    sceneStrategyLayer: promptStages.metadata.sceneStrategyLayer ?? "none",
+    sceneStrategyClassicIds: promptStages.metadata.sceneStrategyClassicIds ?? [],
+    sceneStrategyDirectorIds: promptStages.metadata.sceneStrategyDirectorIds ?? [],
     exportScope: promptStages.metadata.exportScope,
     mediaMode: promptStages.metadata.mediaMode,
     compiler: promptStages.metadata.compiler,

@@ -1,0 +1,337 @@
+{
+  "id": "quick_vid_factory_training_004",
+  "title": "工厂安全培训演示",
+  "mediaType": "video",
+  "firstInput": "制造业安全培训短片，班组长、操作员和设备三方互动，强调规范流程",
+  "secondInput": "开场看全场，随后跟拍操作步骤，最后给到合规结果，镜头稳定推进",
+  "ratio": "16:9",
+  "durationSec": 15,
+  "firstLayerSelections": {
+    "image": {
+      "frameType": "environment",
+      "compositionFocus": "environment_wrap",
+      "styleGoal": "realistic"
+    },
+    "video": {
+      "shotStructure": "multi_scene",
+      "expressionFocus": "scene_progression",
+      "styleGoal": "advertising"
+    }
+  },
+  "secondLayerSelections": {
+    "image": {
+      "subjectCount": "3",
+      "compositionPosition": "depth",
+      "backgroundComplexity": "strong_environment",
+      "subjectScale": "balanced"
+    },
+    "video": {
+      "shotCount": "5",
+      "mainScene": "complex",
+      "continuityFocus": "scene",
+      "cameraMotion": "push",
+      "sceneTransition": "location_switch",
+      "shotGrammar": "cut"
+    }
+  },
+  "structureDraft": {
+    "mediaType": "video",
+    "primaryBrief": "制造业安全培训短片，班组长、操作员和设备三方互动，强调规范流程",
+    "secondaryBrief": "开场看全场，随后跟拍操作步骤，最后给到合规结果，镜头稳定推进",
+    "structureType": "multi_scene",
+    "scene": "工厂产线与安全区",
+    "objects": [
+      {
+        "id": "obj_1",
+        "name": "班组长",
+        "type": "person",
+        "role": "primary",
+        "depth": "midground",
+        "isPrimary": true
+      },
+      {
+        "id": "obj_2",
+        "name": "操作员",
+        "type": "person",
+        "role": "secondary",
+        "depth": "midground"
+      },
+      {
+        "id": "obj_3",
+        "name": "设备产线",
+        "type": "environment",
+        "role": "environment",
+        "depth": "background"
+      },
+      {
+        "id": "obj_4",
+        "name": "安全警示牌",
+        "type": "prop",
+        "role": "support",
+        "depth": "foreground"
+      }
+    ],
+    "shotCount": 5,
+    "mainScene": "multi_scene",
+    "continuityFocus": "scene",
+    "rhythm": "push",
+    "sceneTransitions": "location_switch",
+    "cameraMotion": "push",
+    "expressionFocus": "scene_progression",
+    "styleGoal": "advertising",
+    "shots": [
+      {
+        "id": "shot_1",
+        "index": 1,
+        "title": "车间全景建立",
+        "durationSec": 3,
+        "sceneLabel": "产线全景",
+        "objectIds": [
+          "obj_1",
+          "obj_2",
+          "obj_3"
+        ],
+        "transitionFromPrev": "none",
+        "emphasis": "环境建立"
+      },
+      {
+        "id": "shot_2",
+        "index": 2,
+        "title": "班组长讲解",
+        "durationSec": 3,
+        "sceneLabel": "安全区中景",
+        "objectIds": [
+          "obj_1",
+          "obj_4"
+        ],
+        "transitionFromPrev": "location_switch",
+        "emphasis": "规范说明"
+      },
+      {
+        "id": "shot_3",
+        "index": 3,
+        "title": "操作员执行步骤",
+        "durationSec": 3,
+        "sceneLabel": "工位近中景",
+        "objectIds": [
+          "obj_2",
+          "obj_3",
+          "obj_4"
+        ],
+        "transitionFromPrev": "location_switch",
+        "emphasis": "动作流程"
+      },
+      {
+        "id": "shot_4",
+        "index": 4,
+        "title": "复核与确认",
+        "durationSec": 3,
+        "sceneLabel": "双人同框",
+        "objectIds": [
+          "obj_1",
+          "obj_2"
+        ],
+        "transitionFromPrev": "location_switch",
+        "emphasis": "关系协同"
+      },
+      {
+        "id": "shot_5",
+        "index": 5,
+        "title": "合规结果展示",
+        "durationSec": 3,
+        "sceneLabel": "合规看板",
+        "objectIds": [
+          "obj_1",
+          "obj_2",
+          "obj_4"
+        ],
+        "transitionFromPrev": "location_switch",
+        "emphasis": "结果收束"
+      }
+    ],
+    "continuity": [
+      "流程一致",
+      "设备位置稳定",
+      "人员身份不变",
+      "安全语义明确"
+    ]
+  },
+  "updatedAt": 1773309454092,
+  "canvasDraft": {
+    "mediaType": "video",
+    "primaryBrief": "制造业安全培训短片，班组长、操作员和设备三方互动，强调规范流程",
+    "secondaryBrief": "开场看全场，随后跟拍操作步骤，最后给到合规结果，镜头稳定推进",
+    "structureType": "multi_scene",
+    "shotCount": 5,
+    "shots": [
+      {
+        "id": "shot_1",
+        "index": 1,
+        "title": "车间全景建立",
+        "summary": "环境建立",
+        "transitionFromPrev": "none",
+        "emphasis": "环境建立",
+        "sceneLabel": "产线全景",
+        "objectIds": [
+          "obj_1",
+          "obj_2",
+          "obj_3"
+        ]
+      },
+      {
+        "id": "shot_2",
+        "index": 2,
+        "title": "班组长讲解",
+        "summary": "规范说明",
+        "transitionFromPrev": "location_switch",
+        "emphasis": "规范说明",
+        "sceneLabel": "安全区中景",
+        "objectIds": [
+          "obj_1",
+          "obj_4"
+        ]
+      },
+      {
+        "id": "shot_3",
+        "index": 3,
+        "title": "操作员执行步骤",
+        "summary": "动作流程",
+        "transitionFromPrev": "location_switch",
+        "emphasis": "动作流程",
+        "sceneLabel": "工位近中景",
+        "objectIds": [
+          "obj_2",
+          "obj_3",
+          "obj_4"
+        ]
+      },
+      {
+        "id": "shot_4",
+        "index": 4,
+        "title": "复核与确认",
+        "summary": "关系协同",
+        "transitionFromPrev": "location_switch",
+        "emphasis": "关系协同",
+        "sceneLabel": "双人同框",
+        "objectIds": [
+          "obj_1",
+          "obj_2"
+        ]
+      },
+      {
+        "id": "shot_5",
+        "index": 5,
+        "title": "合规结果展示",
+        "summary": "结果收束",
+        "transitionFromPrev": "location_switch",
+        "emphasis": "结果收束",
+        "sceneLabel": "合规看板",
+        "objectIds": [
+          "obj_1",
+          "obj_2",
+          "obj_4"
+        ]
+      }
+    ],
+    "keyObjects": [
+      {
+        "id": "obj_1",
+        "label": "班组长",
+        "role": "primary",
+        "appearsInShotIds": [
+          "shot_1",
+          "shot_2",
+          "shot_4",
+          "shot_5"
+        ]
+      },
+      {
+        "id": "obj_2",
+        "label": "操作员",
+        "role": "secondary",
+        "appearsInShotIds": [
+          "shot_1",
+          "shot_3",
+          "shot_4",
+          "shot_5"
+        ]
+      },
+      {
+        "id": "obj_3",
+        "label": "设备产线",
+        "role": "environment",
+        "appearsInShotIds": [
+          "shot_1",
+          "shot_3"
+        ]
+      },
+      {
+        "id": "obj_4",
+        "label": "安全警示牌",
+        "role": "support",
+        "appearsInShotIds": [
+          "shot_2",
+          "shot_3",
+          "shot_5"
+        ]
+      }
+    ],
+    "mainScene": "multi_scene",
+    "continuityFocus": "scene",
+    "rhythm": "push",
+    "sceneTransitions": "location_switch",
+    "storyboardNodes": [
+      {
+        "id": "node_shot_1",
+        "shotId": "shot_1",
+        "x": 6,
+        "y": 38,
+        "w": 18,
+        "h": 24
+      },
+      {
+        "id": "node_shot_2",
+        "shotId": "shot_2",
+        "x": 29,
+        "y": 38,
+        "w": 18,
+        "h": 24
+      },
+      {
+        "id": "node_shot_3",
+        "shotId": "shot_3",
+        "x": 52,
+        "y": 38,
+        "w": 18,
+        "h": 24
+      },
+      {
+        "id": "node_shot_4",
+        "shotId": "shot_4",
+        "x": 75,
+        "y": 38,
+        "w": 18,
+        "h": 24
+      },
+      {
+        "id": "node_shot_5",
+        "shotId": "shot_5",
+        "x": 98,
+        "y": 38,
+        "w": 18,
+        "h": 24
+      }
+    ],
+    "compileHints": [
+      "流程一致",
+      "设备位置稳定",
+      "人员身份不变",
+      "安全语义明确",
+      "scene:工厂产线与安全区",
+      "main_scene:multi_scene",
+      "camera_motion:push",
+      "rhythm:push"
+    ]
+  },
+  "prompt": "请生成一个专业级视频片段，核心任务是制造业安全培训短片，班组长、操作员和设备三方互动，强调规范流程，开场看全场，随后跟拍操作步骤，最后给到合规结果，镜头稳定推进。 画幅 16:9，镜头结构 多场景，镜头数量 5，主场景 多场景切换，连续性重点 场景空间一致，风格目标 电影感。 分镜计划 镜头1 车间全景建立；镜头2 班组长讲解；镜头3 操作员执行步骤；镜头4 复核与确认；镜头5 合规结果展示。 关键对象 班组长、操作员、设备产线、安全警示牌。 运镜 缓慢推进，镜头语法 切镜，场景衔接 地点切换。 保持人物身份、服装与空间方位一致，动作动机连贯，不新增无依据剧情。"
+}

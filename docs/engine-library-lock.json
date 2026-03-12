@@ -1,0 +1,45 @@
+{
+  "workspace": "ScenePilot",
+  "generatedAt": "2026-03-12T11:22:44.826Z",
+  "engineRegistry": {
+    "quick": {
+      "image": "IM v5",
+      "video": "VI V5"
+    },
+    "pro": {
+      "image": "IM V5P",
+      "video": "VI V5P"
+    }
+  },
+  "engineFiles": [
+    "src/utils/prompt.ts",
+    "src/utils/promptEngine.ts",
+    "src/utils/promptEngines/builtin.ts",
+    "src/utils/promptEngines/index.ts",
+    "src/utils/promptEngines/shared.ts",
+    "src/utils/promptEngines/types.ts",
+    "src/utils/promptPipeline.ts",
+    "src/utils/quickWorkspacePromptV3.ts",
+    "src/utils/sceneStrategyResolver.ts",
+    "src/utils/structureDraft.ts",
+    "src/utils/structureDraftGenerator.ts",
+    "src/utils/structureDraftRules.ts",
+    "src/utils/structureDraftToCanvas.ts"
+  ],
+  "fileHashes": {
+    "src/utils/prompt.ts": "5d6fe34fa5b73ec619ef7db0255f5fd4141f0069a593e1172126e9333225b47e",
+    "src/utils/promptEngine.ts": "d3ab1d72528c2eef1f6a8a29aa46c5fe77b15f0b8fc8d304f8c6d3ec256ad41a",
+    "src/utils/promptEngines/builtin.ts": "a8c46e923ed023c27850636cee362ad69a8493dbc2303995de50fa516331681b",
+    "src/utils/promptEngines/index.ts": "3283c0c1e081d13e09ddb2c0307e3aeb81cb35dd1898420fa0df1f65de8786b9",
+    "src/utils/promptEngines/shared.ts": "acf8d1605bb5700b12936c70f54e3bd071de2edc48858d85131349f35c28e049",
+    "src/utils/promptEngines/types.ts": "9f06eba20e3968801f92d5d33dba0b6cd48cd7226687e358af05d3ee3ae03694",
+    "src/utils/promptPipeline.ts": "f6ace9b699cc113a175b573b220c4a9b43684971da64325f2275af1ff6126b89",
+    "src/utils/quickWorkspacePromptV3.ts": "7e791aa14664af83782c1f16280d47d86e47bcc6c083a6091f3bf9fe9dbe25cd",
+    "src/utils/sceneStrategyResolver.ts": "9d23c6ee6e54a111b2e135569d2d5bb8bc5dc1f42dcdd7fa6a998fd620ef8c6f",
+    "src/utils/structureDraft.ts": "5676ba79da52e250065225573750e9934270ad17f0b14ccfc570b2ca54a87bb3",
+    "src/utils/structureDraftGenerator.ts": "780818cd78a1d2a108c08cb826284325a0fcf04d2cedc04daa692205db5728cc",
+    "src/utils/structureDraftRules.ts": "44e56fa51edc2d8ea193f9caa720f6fde7a4678bf61c101507739e1f3e87faae",
+    "src/utils/structureDraftToCanvas.ts": "e720b7d8e5301a65155d42c321728c7e0d9cdd4f1c59b880597506662cc43e9e"
+  },
+  "lockHash": "595dd3b2ed4368a26dc7b1f3902f1bdcc0d0f08d3bccc6b8242021fdc8513d24"
+}

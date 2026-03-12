@@ -1,44 +1,78 @@
 # ScenePilot Global Rules
 
-## Test Priority
+## Testing Priority
+- 测试第一目标是优化提示词生成引擎，不是单纯验证是否生成成功。
+- 评测链路必须拆分并记录：`userInputRaw -> userIntentNormalized -> generatedPrompt -> generatedImageOrVideo`。
+- 每轮测试都要先看提示词结构，再看生成结果，最后再提引擎修改方案。
 
-1. The first goal of evaluation is to improve the prompt generation engine.
-2. Compare `user input -> generated prompt -> generated image/video` as one chain.
-3. Do not treat raw generation success rate as the primary conclusion if model quality or workflow quality is the main bottleneck.
-4. When reviewing A/B results, prioritize:
-   - whether the generated prompt preserves scene structure
-   - whether the generated prompt improves video/image semantic execution
-   - whether failures come from prompt design or from the model/runtime itself
-5. Every test report should separate:
-   - prompt quality judgment
-   - generation result judgment
-   - runtime/model bottlenecks
+## Prompt Engines
+- 快捷工作台图片引擎：`IM v5`
+- 快捷工作台视频引擎：`VI V5`
+- Pro 工作台图片引擎：`IM V5P`
+- Pro 工作台视频引擎：`VI V5P`
+- 图片引擎不得输出视频骨架语言，例如 `Camera Contract`、`T1 Frame Spec`、整段镜头运动说明。
+- Quick 引擎优先短结构、强执行；Pro 引擎保留更多结构信息，但仍必须按图片/视频分流。
 
-## Prompt Evaluation Rules
+## Thread-Wide Reporting
+- 所有测试、导出、报告必须标记 `workspace`、`mediaMode`、`engineId`。
+- 汇报时必须明确指出问题出在用户输入、意图归一化、提示词引擎还是底层模型。
+- 不允许把来源标记写入真实 prompt 文本；来源追踪只能放在元数据、sidecar JSON、文件名或 DOM 属性里。
+- 不允许用零宽字符、细微字体差异、隐藏 Unicode 等方式给 prompt 做隐式标记。
 
-1. Evaluate prompts by structure clarity, brevity, conflict rate, and execution reliability.
-2. Remove repeated rules, duplicated timing clauses, and mutually conflicting camera directives.
-3. Prefer compact structure blocks over long protocol-heavy text when testing local or weaker runtimes.
-4. Preserve the user's intent, but normalize noisy or risky wording before export if it hurts execution.
+## Test Mix
+- 正式提示词稳定性测试默认配比：
+- 图片结构样本 `30%`
+- 视频结构样本 `40%`
+- 冲突/脏输入/对抗样本 `30%`
+- 冲突样本必须覆盖：字段冲突、对象冲突、镜头冲突、用户原话噪声词。
 
-## Source Attribution Rules
+## Iteration Rule
+- Pro 工作台先做至少三轮：生成、评分、修改、复测。
+- 快捷工作台在吸收 Pro 经验后，再按同样方式至少做三轮。
+- 每轮必须产出：
+- 综合评分
+- 结构问题清单
+- 修改方案
+- 与上一轮对比是否增强
 
-1. Always keep these fields separately in test data:
-   - `userInputRaw`
-   - `userIntentNormalized`
-   - `generatedPrompt`
-   - `promptSource`
-2. `promptSource` must be tracked in metadata, not by changing visible prompt text sent to the model.
-3. Do not use hidden Unicode, zero-width characters, or visually identical text tricks inside the actual model prompt. They contaminate evaluation and make debugging harder.
-4. If the UI needs invisible differentiation, do it only in local metadata, DOM attributes, filenames, or sidecar JSON, never in the prompt body itself.
+## Product UI Guardrails
+- 涉及用户可见交互时，必须先使用仓库内 skill：`/Users/dk/scene-pilot/.codex/skills/product-ui-guardrails/SKILL.md`
+- 适用范围包括：菜单、顶部栏、保存/另存/导出/导入、Quick/Pro 切换、项目库、命名、状态记忆、成功提示、帮助中心与页面文案边界。
+- 这类任务不能只做到“功能可用”，必须额外做一轮“交互一致性复核”。
+- 必须先判断：是否有重复入口、重复命名、模式边界混乱、状态未持久化、说明文案泄漏到页面、保存与导出混淆。
+- 同一用户事件只能保留一个规范名称；高频操作靠上，低频和破坏性操作靠下。
+- 页面不添加解释长句；解释类内容一律进入帮助中心。
+- Quick 与 Pro 是两种模式，除非用户明确要求，否则不要混合它们的主路径和入口优先级。
+- 同一用户事件默认只保留一个入口；如保留多个入口，必须有明确主入口和镜像入口，不允许并列重复入口。
+- 同一事件不能使用多个名字；改名时必须同步所有入口、按钮、菜单项、成功提示、帮助中心标题。
+- 首次选择后应记忆的状态必须持久化，后续不要重复询问；只有明确创建“另一个文件 / 另一个项目”时才允许重新选择。
+- 页面文案只允许短标签、短状态、短按钮文案；任何教程式、解释式、步骤式长句都必须进入帮助中心。
+- 下载、导出、复制完成后，默认只保留短 hint / toast；不要堆大块“成功教学卡片”，除非用户下一步会被真实阻塞。
+- 下拉宽度、选中态长度、坐标框宽度、按钮显示长度等基础 UI 应优先固定并可控；除非用户明确要求，否则不要做会随内容波动的长度策略。
+- 关键系统状态必须尽量可见，不要让用户靠记忆；至少要考虑：未保存状态、当前保存平台、当前导出范围、覆盖风险。
+- 需要额外输入、二次选择、文件选择器、目录选择器或确认步骤的动作，默认应使用省略号；立即执行的动作默认不用省略号。
+- 对 Pro 表面，优先优化专家效率而不是教程感；减少打断、减少重复确认、保留快捷键与稳定位置。
+- 进阶能力必须走渐进披露；不要把高级设置长期摊平在主界面。
+- 无效入口要区分“隐藏”和“禁用”：会制造混乱的入口直接移除；对理解产品有价值但当前不可用的入口，可保留但禁用。
+- 菜单过长时必须分组、下沉或拆分；不能因为实现方便就把所有动作堆在一个列表里。
+- 场景级、对象级、分镜级职责必须分开：场景调度不替代对象属性，分镜骨架不替代场景调度，对象备注不偷改全局策略。
+- 任何自动继承或自动分配都必须遵守“只继承确定项，不继承模糊自由文本”；无法确定归属时宁可不自动分配。
+- Quick 工作台用于快速试方向，Pro 工作台用于精确结构编辑；默认不要让 Quick 污染 Pro 的主路径、主状态、主命名。
+- 项目库只保存项目，不保存单分镜；单分镜不进入项目库。
+- 项目库、模板库、导出文件必须是三套不同概念；不要把单镜导出伪装成项目。
+- 项目库默认采用单文件 JSON 作为主存储格式；除非有明确技术理由，否则不要退回多目录分镜项目结构。
+- 导出逻辑必须明确区分：保存项目、复制提示词、导出项目包；不能把项目保存、单镜导出、跨平台交付包混成一个动作。
+- 复制提示词默认是纯文本动作，不负责携带参考图文件；参考图应通过项目包 / 参考包导出。
+- 限制数量属于产品质量控制，不只是性能控制；分镜、对象等上限应优先服务于结构清晰度和操作流畅度。
 
-## Optimization Direction
+## Cross-Thread Sync
+- 跨线程开发必须使用共享策略文档：`/Users/dk/scene-pilot/docs/live-development-strategy.md`
+- 涉及跨线程一致性、主流程变化、命名变化、Quick/Pro 边界、保存/导出规则变化时，必须先使用仓库内 skill：`/Users/dk/scene-pilot/.codex/skills/live-dev-sync/SKILL.md`
+- 任何涉及产品流程、主入口、命名、Quick/Pro 边界、保存/导出规则、提示词引擎策略、平台执行策略的任务，开工前必须先读这份文档。
+- 如果本次开发改变了上述任何一项，收尾时必须同步更新这份文档。
+- 当线程之间出现“这边不知道那边改了什么”的风险时，以该文档为单一事实源，不以聊天上下文为准。
 
-1. Prompt generation should aim for minimal sufficient structure.
-2. Keep the strongest execution constraints:
-   - subject identity and count
-   - relative position
-   - key motion or T0/T1 delta
-   - camera rule
-   - lighting/style
-3. Move secondary protocol text out of the final prompt whenever possible.
+## Prompt Engine Architecture
+- 涉及提示词生成、场景调度、平台适配、Quick/Pro 提示词差异、creative context 路由、provider 路由时，必须先使用仓库内 skill：`/Users/dk/scene-pilot/.codex/skills/prompt-engine-architecture/SKILL.md`
+- 这类任务必须先判断改动属于：结构层、适配层还是执行层。
+- 不允许把平台适配、provider 执行、UI 文案和 prompt 结构改动混在一起不加区分。

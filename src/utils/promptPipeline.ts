@@ -8,6 +8,8 @@ import { generatePrompts } from "./prompt";
 import { adaptPromptToPlatformDetailed } from "./platformAdapter";
 import { splitMachineNotes } from "./promptTail";
 import type { PromptExportScope, PromptPipelineMetadata, PromptPipelineStage } from "../types/export";
+import { summarizeProjectSceneStrategy } from "./sceneStrategyResolver";
+import { readProjectCreativeContext } from "./projectCreativeContext";
 
 export type PromptPipelineInput = {
   project: Project;
@@ -197,6 +199,8 @@ export function runPromptPipeline(input: PromptPipelineInput): PromptPipelineOut
   const sceneTitle = (firstScene?.name ?? "").trim() || firstScene?.id || (input.lang === "zh" ? "分镜" : "Scene");
 
   const stages: PromptPipelineStage[] = ["compile", "assemble", "append_tail", "adapt_platform", "final_cleanup"];
+  const sceneStrategy = summarizeProjectSceneStrategy(input.project);
+  const creativeContext = readProjectCreativeContext(input.project);
 
   const corePrompt = generatePrompts(input.project, input.lang, "universal");
   const adapted = adaptPromptToPlatformDetailed({
@@ -204,7 +208,17 @@ export function runPromptPipeline(input: PromptPipelineInput): PromptPipelineOut
     profile,
     platformId: preset.id,
     lang: input.lang,
-    media: mediaMode
+    media: mediaMode,
+    sceneStrategy,
+    creativeContext: creativeContext
+      ? {
+          source: creativeContext.source,
+          fileName: creativeContext.fileName || undefined,
+          hasPrimaryInput: Boolean(creativeContext.primaryInput),
+          hasSecondaryInput: Boolean(creativeContext.secondaryInput),
+          subjectLabels: creativeContext.subjectLabels ?? []
+        }
+      : undefined
   });
   const cleaned = cleanupFinalPrompt({
     input: adapted.prompt,
@@ -220,6 +234,18 @@ export function runPromptPipeline(input: PromptPipelineInput): PromptPipelineOut
     metadata: {
       platformId: preset.id,
       baseProfile: preset.baseProfile,
+      platformEngineKey: adapted.meta.engineKey,
+      platformEngineFamily: adapted.meta.engineFamily,
+      sceneStrategyLayer: adapted.meta.sceneStrategyLayer,
+      sceneStrategyClassicIds: adapted.meta.sceneStrategyClassicIds,
+      sceneStrategyDirectorIds: adapted.meta.sceneStrategyDirectorIds,
+      sceneStrategyUsesAdvancedLanguage: adapted.meta.sceneStrategyUsesAdvancedLanguage,
+      sceneStrategyUsesLightingDefaults: adapted.meta.sceneStrategyUsesLightingDefaults,
+      sceneStrategyLightingProfileIds: adapted.meta.sceneStrategyLightingProfileIds,
+      creativeContextSource: adapted.meta.creativeContextSource,
+      creativeContextHasPrimaryInput: adapted.meta.creativeContextHasPrimaryInput,
+      creativeContextHasSecondaryInput: adapted.meta.creativeContextHasSecondaryInput,
+      creativeContextSubjectLabels: adapted.meta.creativeContextSubjectLabels,
       nativeStrategy: preset.nativeStrategy,
       mappedFromProfile: preset.nativeStrategy ? null : preset.baseProfile,
       mediaMode,

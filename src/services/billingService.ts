@@ -87,9 +87,13 @@ function buildMockCheckoutResult(input: CheckoutRequest): CheckoutResult {
 
 async function postJson<T>(url: string, body: Record<string, unknown>): Promise<T | null> {
   try {
+    const userId = typeof body.userId === "string" ? body.userId : "";
     const res = await fetch(url, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        ...(userId ? { "x-sp-user-id": userId } : {})
+      },
       body: JSON.stringify(body)
     });
     if (!res.ok) return null;

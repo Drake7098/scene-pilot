@@ -26,6 +26,8 @@ type EngineTransform = {
   enginePasses: string[];
 };
 
+type PromptEngineRoute = "quick_image" | "quick_video" | "pro_image" | "pro_video";
+
 function splitMachineNotes(allText: string): { main: string; notes: string } {
   const text = allText ?? "";
   const lines = text.split("\n");
@@ -50,17 +52,6 @@ function splitMachineNotes(allText: string): { main: string; notes: string } {
     main: lines.slice(0, idx).join("\n").trimEnd(),
     notes: lines.slice(idx).join("\n").trimEnd()
   };
-}
-
-function cleanBlockLines(block: string): string[] {
-  return block
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function firstLine(block: string): string {
-  return cleanBlockLines(block)[0] ?? "";
 }
 
 function dedupeLines(lines: string[]): string[] {
@@ -134,45 +125,50 @@ function parseSections(main: string): PromptSectionSet {
     extras: []
   };
 
-  const blocks = main
-    .split(/\n{2,}/)
-    .map((block) => block.trim())
-    .filter(Boolean);
+  type SectionKey = keyof PromptSectionSet | null;
+  let current: SectionKey = null;
+  const lines = (main ?? "").split("\n");
 
-  for (const block of blocks) {
-    const lines = cleanBlockLines(block);
-    const head = firstLine(block);
-    if (!head || head === "[V2 SCENEPILOT COMPILE]" || head === "[END]") continue;
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line === "[V2 SCENEPILOT COMPILE]" || line === "[END]" || line === "---") continue;
 
-    if (isSceneLine(head)) {
-      sections.scene.push(...lines.filter((line) => !/^\[END\]$/i.test(line)));
+    if (isSceneLine(line)) {
+      current = "scene";
+      sections.scene.push(line);
       continue;
     }
-    if (isCameraHeading(head)) {
-      sections.camera.push(...lines.slice(1));
+    if (isCameraHeading(line)) {
+      current = "camera";
       continue;
     }
-    if (isLayoutHeading(head)) {
-      sections.layout.push(...lines.slice(1));
+    if (isLayoutHeading(line)) {
+      current = "layout";
       continue;
     }
-    if (isT0Heading(head)) {
-      sections.subjects.push(...lines.slice(1));
+    if (isT0Heading(line)) {
+      current = "subjects";
       continue;
     }
-    if (isT1Heading(head)) {
-      sections.motion.push(...lines.slice(1));
+    if (isT1Heading(line)) {
+      current = "motion";
       continue;
     }
-    if (isNegativeHeading(head)) {
-      sections.negative.push(...lines.slice(1));
+    if (isNegativeHeading(line)) {
+      current = "negative";
       continue;
     }
-    if (isGenerationConstraintLine(head)) {
-      sections.constraints.push(...lines.slice(1));
+    if (isGenerationConstraintLine(line)) {
+      current = "constraints";
       continue;
     }
-    sections.extras.push(...lines);
+
+    if (current) {
+      sections[current].push(line);
+      continue;
+    }
+
+    sections.extras.push(line);
   }
 
   return {
@@ -237,13 +233,50 @@ function renderSection(label: string, lines: string[]): string {
   return `${label}:\n${lines.join("\n")}`;
 }
 
+function compactQuickSubjectLines(
+  lines: string[],
+  lang: Lang,
+  mediaMode: "image" | "video"
+): string[] {
+  const out: string[] = [];
+  for (const raw of lines) {
+    let line = raw.trim();
+    if (!line) continue;
+    line = line
+      .replace(/（仅作用于[^）]+）/g, "")
+      .replace(/\(only applies to [^)]+\)/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+
+    const isCoordinateHeavy = /(起点t0|终点t1|Start t0|End\s+t1|x=|y=|w=|h=|rot=|t0\s*[->→]\s*t1)/i.test(line);
+    if (isCoordinateHeavy) continue;
+
+    const isLocalPromptTail = /(对象局部参考|Object-local pasted prompt|Reference links)/i.test(line);
+    if (isLocalPromptTail && line.length > 90) continue;
+
+    out.push(line);
+  }
+
+  const deduped = dedupeLines(out);
+  if (deduped.length) return deduped.slice(0, 4);
+
+  return [
+    mediaMode === "image"
+      ? (lang === "zh" ? "- 保持主体位置关系与画面比例稳定。" : "- Keep subject relation and frame proportions stable.")
+      : (lang === "zh" ? "- 保持主体身份与空间方位连续一致。" : "- Keep subject identity and spatial orientation continuous.")
+  ];
+}
+
 function renderImagePrompt(sections: PromptSectionSet, lang: Lang, workspace: PromptWorkspace): string {
   const layout = workspace === "quick" ? limitLines(sections.layout, 3) : sections.layout;
+  const subjects = workspace === "quick"
+    ? compactQuickSubjectLines(sections.subjects, lang, "image")
+    : sections.subjects;
   const negatives = workspace === "quick" ? limitLines([...sections.negative, ...sections.constraints], 4) : [...sections.negative, ...sections.constraints];
   const blocks = [
     sections.scene.join("\n"),
     renderSection(labelFor(lang, "layout"), layout),
-    renderSection(labelFor(lang, "subjects"), sections.subjects),
+    renderSection(labelFor(lang, "subjects"), subjects),
     renderSection(labelFor(lang, "negative"), dedupeLines(negatives))
   ].filter(Boolean);
   return blocks.join("\n\n").trim();
@@ -253,14 +286,52 @@ function renderVideoPrompt(sections: PromptSectionSet, lang: Lang, workspace: Pr
   const camera = workspace === "quick" ? limitLines(sections.camera, 3) : sections.camera;
   const motion = workspace === "quick" ? limitLines(sections.motion, 3) : sections.motion;
   const layout = workspace === "quick" ? limitLines(sections.layout, 3) : sections.layout;
+  const subjects = workspace === "quick"
+    ? compactQuickSubjectLines(sections.subjects, lang, "video")
+    : sections.subjects;
   const negatives = workspace === "quick" ? limitLines([...sections.negative, ...sections.constraints], 4) : [...sections.negative, ...sections.constraints];
   const blocks = [
     sections.scene.join("\n"),
     renderSection(labelFor(lang, "camera"), camera),
     renderSection(labelFor(lang, "layout"), layout),
-    renderSection(labelFor(lang, "subjects"), sections.subjects),
+    renderSection(labelFor(lang, "subjects"), subjects),
     renderSection(labelFor(lang, "motion"), motion),
     renderSection(labelFor(lang, "negative"), dedupeLines(negatives))
+  ].filter(Boolean);
+  return blocks.join("\n\n").trim();
+}
+
+function renderImagePromptWithLimits(
+  sections: PromptSectionSet,
+  lang: Lang,
+  limits?: { layout?: number; subjects?: number; negative?: number },
+): string {
+  const negativeLines = dedupeLines([...sections.negative, ...sections.constraints]);
+  const blocks = [
+    sections.scene.join("\n"),
+    renderSection(labelFor(lang, "layout"), limitLines(sections.layout, limits?.layout ?? sections.layout.length)),
+    renderSection(labelFor(lang, "subjects"), limitLines(sections.subjects, limits?.subjects ?? sections.subjects.length)),
+    renderSection(
+      labelFor(lang, "negative"),
+      limitLines(negativeLines, limits?.negative ?? negativeLines.length)
+    )
+  ].filter(Boolean);
+  return blocks.join("\n\n").trim();
+}
+
+function renderVideoPromptWithLimits(
+  sections: PromptSectionSet,
+  lang: Lang,
+  limits?: { camera?: number; layout?: number; subjects?: number; motion?: number; negative?: number },
+): string {
+  const negativeLines = dedupeLines([...sections.negative, ...sections.constraints]);
+  const blocks = [
+    sections.scene.join("\n"),
+    renderSection(labelFor(lang, "camera"), limitLines(sections.camera, limits?.camera ?? sections.camera.length)),
+    renderSection(labelFor(lang, "layout"), limitLines(sections.layout, limits?.layout ?? sections.layout.length)),
+    renderSection(labelFor(lang, "subjects"), limitLines(sections.subjects, limits?.subjects ?? sections.subjects.length)),
+    renderSection(labelFor(lang, "motion"), limitLines(sections.motion, limits?.motion ?? sections.motion.length)),
+    renderSection(labelFor(lang, "negative"), limitLines(negativeLines, limits?.negative ?? negativeLines.length))
   ].filter(Boolean);
   return blocks.join("\n\n").trim();
 }
@@ -271,6 +342,42 @@ function fallbackCompact(text: string): string {
     .map((line) => line.trim())
     .filter(Boolean)
     .join("\n");
+}
+
+function compactVideoBudgetLanguage(text: string, lang: Lang): string {
+  const replacements: Array<[RegExp, string]> = lang === "zh"
+    ? [
+        [/，?（仅作用于\s*[^）]+）/g, ""],
+        [/不自动推拉镜头，不自动换角度。/g, "不自动推拉，不换角度。"],
+        [/主要主体保持可识别。/g, ""],
+        [/中等背景密度：保持层次均衡，不挤压深度。/g, "保持背景层次，不挤压深度。"],
+        [/结束保持原位，距离与尺度稳定。/g, "结束保持原位。"],
+        [/保持层级关系与相对顺序。/g, "保持层级与相对顺序。"],
+        [/保持对象顺序和前中后层级，不要自动重排。/g, "保持对象顺序与层级，不自动重排。"],
+        [/用画面占比表达远近，保持大小层级。/g, "用画面占比表达远近。"]
+      ]
+    : [
+        [/\s*\(only applies to [^)]+\)/gi, ""],
+        [/Do not automatically push or change angle\./gi, "No auto push or angle change."],
+        [/Keep the primary subject readable\./gi, ""],
+        [/Keep balanced background density without flattening depth\./gi, "Keep background depth."],
+        [/End in place with stable distance and scale\./gi, "End in place."],
+        [/Keep layer relationship and relative order\./gi, "Keep layer order."],
+        [/Preserve object order and depth layering; do not relayout\./gi, "Preserve object order and depth."],
+        [/Use frame coverage to express distance and size hierarchy\./gi, "Use coverage to express depth."]
+      ];
+
+  let next = text;
+  for (const [pattern, value] of replacements) {
+    next = next.replace(pattern, value);
+  }
+  return next
+    .split("\n")
+    .map((line) => line.replace(/\s{2,}/g, " ").trimEnd())
+    .filter((line, index, list) => line.trim() || (index > 0 && list[index - 1].trim()))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function transformByEngine(
@@ -323,9 +430,164 @@ export function resolvePromptEngineId(input: {
   workspace: PromptWorkspace;
   mediaMode: "image" | "video";
 }): PromptEngineId {
+  const route = resolvePromptEngineRoute(input);
+  if (route === "quick_image") return "IM v5";
+  if (route === "quick_video") return "VI V5";
+  if (route === "pro_image") return "IM V5P";
+  return "VI V5P";
+}
+
+function resolvePromptEngineRoute(input: {
+  workspace: PromptWorkspace;
+  mediaMode: "image" | "video";
+}): PromptEngineRoute {
   const { workspace, mediaMode } = input;
-  if (workspace === "quick") return mediaMode === "image" ? "IM v5" : "VI V5";
-  return mediaMode === "image" ? "IM V5P" : "VI V5P";
+  if (workspace === "quick") return mediaMode === "image" ? "quick_image" : "quick_video";
+  return mediaMode === "image" ? "pro_image" : "pro_video";
+}
+
+function stripLines(lines: string[], patterns: RegExp[]) {
+  const out: string[] = [];
+  let removed = 0;
+  for (const line of lines) {
+    const hit = patterns.some((re) => re.test(line.trim()));
+    if (hit) {
+      removed += 1;
+      continue;
+    }
+    out.push(line);
+  }
+  return { lines: out, removed };
+}
+
+function enforceRouteContract(input: {
+  route: PromptEngineRoute;
+  prompt: string;
+  lang: Lang;
+}): { prompt: string; passes: string[] } {
+  const { route, prompt, lang } = input;
+  const { main, notes } = splitMachineNotes(prompt);
+  const passes: string[] = [];
+  let working = main;
+
+  if (route === "quick_image" || route === "pro_image") {
+    const rawLines = working.split("\n");
+    const { lines, removed } = stripLines(rawLines, [
+      /^Camera(?: Contract)?:/i,
+      /^镜头[:：]/,
+      /^Motion:/i,
+      /^T1 Frame Spec:/i,
+      /^动作[:：]/,
+      /^Transition\s+\d+/i,
+      /^衔接\s+\d+/,
+      /^End\s+t1:/i,
+      /^终点t1[:：]/,
+      /^-+\s*camera\s+continues/i,
+      /^-+\s*reverse angle/i,
+      /^-+\s*time jump/i
+    ]);
+    if (removed > 0) {
+      working = lines.join("\n").trim();
+      passes.push("image_contract_strip_video_terms");
+    }
+  }
+
+  if (route === "quick_video" || route === "pro_video") {
+    const hasCamera = /(^Camera(?: Contract)?:|^镜头[:：])/im.test(working);
+    const hasMotion = /(^Motion:|^T1 Frame Spec:|^动作[:：]|^Transition\s+\d+|^衔接\s+\d+)/im.test(working);
+    if (!hasCamera || !hasMotion) {
+      const inject = lang === "zh"
+        ? [
+            !hasCamera ? "镜头:\n- 明确景别、机位与运动方式。" : "",
+            !hasMotion ? "动作/衔接:\n- 明确主体动作、镜头切换或连续推进关系。" : ""
+          ].filter(Boolean).join("\n\n")
+        : [
+            !hasCamera ? "Camera:\n- Specify shot size, angle, and camera movement." : "",
+            !hasMotion ? "Motion/Transition:\n- Specify subject action and transition/continuity logic." : ""
+          ].filter(Boolean).join("\n\n");
+      if (inject) {
+        working = `${working.trim()}\n\n${inject}`.trim();
+        passes.push("video_contract_inject_camera_motion");
+      }
+    }
+
+    const sections = parseSections(working);
+    const joined = working;
+    const hasIntentionalMove = /跟随|follow|心理逼近|push-?in|dolly/i.test(joined);
+    const hasTransitionIntent = /时间跳切|时间变化|多场景|scene progression|time jump|scene switch|multi-scene/i.test(joined);
+
+    let nextCamera = dedupeLines(sections.camera).filter((line, index, list) => {
+      if (hasIntentionalMove && /不自动推拉镜头|do not auto push|no automatic push/i.test(line)) return false;
+      if (hasTransitionIntent && /保持静止构图|t0=t1|distance and scale stable/i.test(line)) return false;
+      if (/在\s*\d+(\.\d+)?\s*秒.*t0.?t1/i.test(line) && list.some((other) => other !== line && /按\s*T0.?T1|完成\s*t0.?t1/i.test(other))) {
+        return index === list.findIndex((candidate) => /在\s*\d+(\.\d+)?\s*秒.*t0.?t1/i.test(candidate));
+      }
+      return true;
+    });
+    if (hasIntentionalMove && !nextCamera.some((line) => /不自动换角度|no auto angle change/i.test(line))) {
+      nextCamera.push(lang === "zh" ? "- 不自动换角度，不做无关镜头切换。" : "- Avoid unrelated angle changes or gratuitous reframing.");
+    }
+
+    let nextMotion = dedupeLines(sections.motion);
+    if (hasTransitionIntent) {
+      const filteredStatic = nextMotion.filter((line) => !/保持静止构图|结束保持原位|distance and scale stable/i.test(line));
+      if (filteredStatic.length !== nextMotion.length) {
+        nextMotion = filteredStatic;
+        passes.push("video_transition_preserve_progression");
+      }
+      if (!nextMotion.some((line) => /时间跳切|多场景|scene switch|time jump|transition/i.test(line))) {
+        nextMotion.unshift(
+          lang === "zh"
+            ? "- 保留时间跳切/场景切换，主体身份与风格连续。"
+            : "- Preserve scene progression or time jump while keeping identity and style consistent."
+        );
+      }
+    }
+
+    let rebuilt = renderVideoPromptWithLimits(
+      {
+        ...sections,
+        camera: nextCamera,
+        motion: nextMotion
+      },
+      lang,
+      route === "quick_video"
+        ? { camera: 3, layout: 3, subjects: 4, motion: 3, negative: 4 }
+        : { camera: 4, layout: 4, subjects: 4, motion: 4, negative: 3 }
+    );
+
+    if (route === "pro_video" && rebuilt.length > 430) {
+      rebuilt = renderVideoPromptWithLimits(
+        {
+          ...sections,
+          camera: nextCamera,
+          motion: nextMotion
+        },
+        lang,
+        { camera: 3, layout: 3, subjects: 4, motion: 4, negative: 3 }
+      );
+      passes.push("pro_video_budget_compaction");
+      if (rebuilt.length > 430) {
+        rebuilt = compactVideoBudgetLanguage(rebuilt, lang);
+        passes.push("pro_video_budget_language_compaction");
+      }
+    }
+
+    working = rebuilt.trim();
+    if (route === "quick_video" && working.length > 320) {
+      working = compactVideoBudgetLanguage(working, lang);
+      passes.push("quick_video_budget_language_compaction");
+    }
+  }
+
+  if (route === "pro_image" && working.length > 300) {
+    const sections = normalizeImageSections(parseSections(working));
+    working = renderImagePromptWithLimits(sections, lang, { layout: 3, subjects: 4, negative: 3 }).trim();
+    passes.push("pro_image_budget_compaction");
+  }
+
+  const finalPrompt = notes ? `${working.trim()}\n\n${notes.trimEnd()}\n` : `${working.trim()}\n`;
+  return { prompt: finalPrompt, passes };
 }
 
 export type PromptEngineInput = PromptPipelineInput & {
@@ -337,12 +599,15 @@ export function runPromptEngine(input: PromptEngineInput): PromptPipelineOutput 
   const firstScene: Scene | undefined = input.project.scenes?.[0];
   const mediaMode = firstScene ? resolveSceneConfig(firstScene).mediaMode : pipeline.metadata.mediaMode;
   const workspace = input.workspace ?? parsePromptWorkspace(firstScene?.notes ?? "");
+  const route = resolvePromptEngineRoute({ workspace, mediaMode });
   const engineId = resolvePromptEngineId({ workspace, mediaMode });
   const transformed = transformByEngine(pipeline.finalCopyPrompt, input.lang, workspace, mediaMode);
+  const contracted = enforceRouteContract({ route, prompt: transformed.finalPrompt, lang: input.lang });
+  const enginePasses = [...transformed.enginePasses, ...contracted.passes];
 
   return {
     ...pipeline,
-    finalCopyPrompt: transformed.finalPrompt,
+    finalCopyPrompt: contracted.prompt,
     metadata: {
       ...pipeline.metadata,
       mediaMode,
@@ -350,7 +615,7 @@ export function runPromptEngine(input: PromptEngineInput): PromptPipelineOutput 
       engineId,
       strippedVideoScaffoldForImage: transformed.strippedVideoScaffoldForImage,
       compactedForEngine: transformed.compactedForEngine,
-      enginePasses: transformed.enginePasses
+      enginePasses
     }
   };
 }

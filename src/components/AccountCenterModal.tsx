@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { CreditCard, Crown, KeyRound, LogOut, Sparkles, UserRound, Wallet, X } from "lucide-react";
-import type { AccountCenterSection, ApiCredentialState, UserState } from "../types/account";
+import { CheckCircle2, CreditCard, Crown, KeyRound, LogOut, Sparkles, UserRound, Wallet, X } from "lucide-react";
+import type { AccountCenterSection, ApiCredentialState, ApiProviderId, ApiProviderMode, UserState } from "../types/account";
 import type { CreditLedgerEntry, CreditPackConfig, ProPlanConfig, SubscriptionState } from "../types/billing";
 import type { Lang } from "../i18n";
 import { LEGAL_DOCS, legalText, type LegalDocId } from "../content/legal";
@@ -82,9 +82,12 @@ export function AccountCenterModal(props: Props) {
     showSkipProEntry,
     onSkipProEntry
   } = props;
-  const [apiKeyDraft, setApiKeyDraft] = useState(apiCredentials?.openaiApiKey ?? "");
-  const [apiEnabled, setApiEnabled] = useState(apiCredentials?.enabled ?? false);
+  const [apiDraft, setApiDraft] = useState<ApiCredentialState>(() => normalizeApiCredentials(apiCredentials));
   const [activeLegalDoc, setActiveLegalDoc] = useState<LegalDocId | null>(null);
+
+  useEffect(() => {
+    setApiDraft(normalizeApiCredentials(apiCredentials));
+  }, [apiCredentials, open, section]);
 
   const title = useMemo(() => {
     if (!user) return t(lang, "登录 / 注册", "Sign In");
@@ -363,22 +366,63 @@ export function AccountCenterModal(props: Props) {
 
             {section === "api" && user.tier === "pro" ? (
               <div style={styles.panel}>
-                <div style={styles.blockTitle}>{t(lang, "自带 API", "Bring Your Own API")}</div>
-                <input
-                  value={apiKeyDraft}
-                  onChange={(e) => setApiKeyDraft(e.target.value)}
-                  placeholder={t(lang, "输入 OpenAI API Key", "Enter OpenAI API Key")}
-                  style={styles.input}
-                />
-                <label style={styles.checkboxRow}>
-                  <input type="checkbox" checked={apiEnabled} onChange={(e) => setApiEnabled(e.target.checked)} />
-                  <span>{t(lang, "启用自带 API", "Enable bring-your-own API")}</span>
-                </label>
+                <div style={styles.blockTitle}>{t(lang, "生成接口", "Generation APIs")}</div>
+                <div style={styles.muted}>
+                  {t(
+                    lang,
+                    "在这里管理 fal 和 Runway。平台模式使用 ScenePilot credits，自带 API 适合 Pro 用户接入自己的 key。",
+                    "Manage fal and Runway here. Platform mode uses ScenePilot credits, while personal API mode lets Pro users connect their own keys."
+                  )}
+                </div>
+                <div style={styles.apiDefaultCard}>
+                  <div>
+                    <div style={styles.packTitle}>{t(lang, "默认提供商", "Default provider")}</div>
+                    <div style={styles.apiMeta}>{t(lang, "决定 Pro 工作台优先使用哪个生成接口。", "Controls which provider Pro uses first.")}</div>
+                  </div>
+                  <select
+                    value={apiDraft.defaultProvider}
+                    onChange={(e) => setApiDraft((current) => ({ ...current, defaultProvider: e.target.value as ApiProviderId }))}
+                    style={styles.input}
+                    data-testid="account-api-default-provider"
+                  >
+                    <option value="fal">fal</option>
+                    <option value="runway">Runway</option>
+                  </select>
+                </div>
+                <div style={styles.providerGrid}>
+                  {renderProviderCard({
+                    lang,
+                    providerId: "fal",
+                    title: "fal",
+                    subtitle: t(lang, "适合平台默认图像/视频生成", "Best for platform default image and video generation"),
+                    docsMeta: "queue.fal.run / fal.run",
+                    draft: apiDraft,
+                    setDraft: setApiDraft
+                  })}
+                  {renderProviderCard({
+                    lang,
+                    providerId: "runway",
+                    title: "Runway",
+                    subtitle: t(lang, "适合高质量专业视频生成", "Best for high-end professional video generation"),
+                    docsMeta: "api.dev.runwayml.com",
+                    draft: apiDraft,
+                    setDraft: setApiDraft
+                  })}
+                </div>
                 <div style={styles.actions}>
                   <button
                     type="button"
                     style={styles.primaryBtn}
-                    onClick={() => onSaveApiCredentials({ openaiApiKey: apiKeyDraft, enabled: apiEnabled, updatedAt: new Date().toISOString() })}
+                    onClick={() => {
+                      const stamp = new Date().toISOString();
+                      onSaveApiCredentials({
+                        ...apiDraft,
+                        updatedAt: stamp,
+                        fal: { ...apiDraft.fal, updatedAt: stamp },
+                        runway: { ...apiDraft.runway, updatedAt: stamp }
+                      });
+                    }}
+                    data-testid="account-api-save"
                   >
                     {t(lang, "保存", "Save")}
                   </button>
@@ -425,6 +469,143 @@ export function AccountCenterModal(props: Props) {
       </div>
     </div>,
     document.body
+  );
+}
+
+function normalizeApiCredentials(input: ApiCredentialState | null): ApiCredentialState {
+  return input ?? {
+    defaultProvider: "fal",
+    fal: {
+      enabled: true,
+      mode: "platform",
+      apiKey: "",
+      baseUrl: "https://queue.fal.run",
+      preferredModel: "fal-ai/flux/dev",
+      updatedAt: null
+    },
+    runway: {
+      enabled: false,
+      mode: "platform",
+      apiKey: "",
+      baseUrl: "https://api.dev.runwayml.com",
+      preferredModel: "gen4_turbo",
+      updatedAt: null
+    },
+    updatedAt: null
+  };
+}
+
+function updateProviderDraft(
+  draft: ApiCredentialState,
+  providerId: ApiProviderId,
+  patch: Partial<ApiCredentialState[ApiProviderId]>
+): ApiCredentialState {
+  return {
+    ...draft,
+    [providerId]: {
+      ...draft[providerId],
+      ...patch
+    }
+  };
+}
+
+function providerModeLabel(lang: Lang, mode: ApiProviderMode) {
+  return mode === "platform" ? t(lang, "平台模式", "Platform mode") : t(lang, "我的 API", "My API");
+}
+
+function renderProviderCard(input: {
+  lang: Lang;
+  providerId: ApiProviderId;
+  title: string;
+  subtitle: string;
+  docsMeta: string;
+  draft: ApiCredentialState;
+  setDraft: React.Dispatch<React.SetStateAction<ApiCredentialState>>;
+}) {
+  const { lang, providerId, title, subtitle, docsMeta, draft, setDraft } = input;
+  const provider = draft[providerId];
+  return (
+    <article style={styles.providerCard} data-testid={`account-api-provider-${providerId}`}>
+      <div style={styles.providerHead}>
+        <div>
+          <div style={styles.providerTitleRow}>
+            <div style={styles.packTitle}>{title}</div>
+            {draft.defaultProvider === providerId ? (
+              <span style={styles.defaultBadge}><CheckCircle2 size={12} />{t(lang, "默认", "Default")}</span>
+            ) : null}
+          </div>
+          <div style={styles.apiMeta}>{subtitle}</div>
+          <div style={styles.providerMeta}>{docsMeta}</div>
+        </div>
+        <label style={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={provider.enabled}
+            onChange={(e) => setDraft((current) => updateProviderDraft(current, providerId, { enabled: e.target.checked }))}
+            data-testid={`account-api-provider-enabled-${providerId}`}
+          />
+          <span>{t(lang, "启用", "Enabled")}</span>
+        </label>
+      </div>
+
+      <div style={styles.modeRow}>
+        {(["platform", "personal"] as ApiProviderMode[]).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            style={{ ...styles.modeBtn, ...(provider.mode === mode ? styles.modeBtnOn : null) }}
+            onClick={() => setDraft((current) => updateProviderDraft(current, providerId, { mode }))}
+            data-testid={`account-api-provider-mode-${providerId}-${mode}`}
+          >
+            {providerModeLabel(lang, mode)}
+          </button>
+        ))}
+      </div>
+
+      <div style={styles.apiFieldGrid}>
+        <label style={styles.fieldStack}>
+          <span style={styles.fieldLabel}>API Base</span>
+          <input
+            value={provider.baseUrl}
+            onChange={(e) => setDraft((current) => updateProviderDraft(current, providerId, { baseUrl: e.target.value }))}
+            placeholder={providerId === "fal" ? "https://queue.fal.run" : "https://api.dev.runwayml.com"}
+            style={styles.input}
+            data-testid={`account-api-provider-base-${providerId}`}
+          />
+        </label>
+        <label style={styles.fieldStack}>
+          <span style={styles.fieldLabel}>{t(lang, "默认模型", "Preferred model")}</span>
+          <input
+            value={provider.preferredModel}
+            onChange={(e) => setDraft((current) => updateProviderDraft(current, providerId, { preferredModel: e.target.value }))}
+            placeholder={providerId === "fal" ? "fal-ai/flux/dev" : "gen4_turbo"}
+            style={styles.input}
+            data-testid={`account-api-provider-model-${providerId}`}
+          />
+        </label>
+      </div>
+
+      {provider.mode === "personal" ? (
+        <label style={styles.fieldStack}>
+          <span style={styles.fieldLabel}>API Key</span>
+          <input
+            value={provider.apiKey}
+            onChange={(e) => setDraft((current) => updateProviderDraft(current, providerId, { apiKey: e.target.value }))}
+            placeholder={providerId === "fal" ? "Key ..." : "Bearer token"}
+            style={styles.input}
+            data-testid={`account-api-provider-key-${providerId}`}
+          />
+        </label>
+      ) : (
+        <div style={styles.apiHint} data-testid={`account-api-provider-platform-${providerId}`}>
+          {t(
+            lang,
+            "平台模式下使用 ScenePilot credits 和服务端代理，不需要在这里填 key。",
+            "Platform mode uses ScenePilot credits and server-side proxying, so no key is needed here."
+          )}
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -524,6 +705,102 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 16,
     display: "grid",
     gap: 12
+  },
+  apiDefaultCard: {
+    display: "grid",
+    gap: 12,
+    padding: 14,
+    borderRadius: 18,
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(255,255,255,0.03)"
+  },
+  providerGrid: {
+    display: "grid",
+    gap: 12
+  },
+  providerCard: {
+    display: "grid",
+    gap: 12,
+    padding: 14,
+    borderRadius: 18,
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(255,255,255,0.03)"
+  },
+  providerHead: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12
+  },
+  providerTitleRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap"
+  },
+  providerMeta: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.52)",
+    marginTop: 4
+  },
+  defaultBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    padding: "2px 8px",
+    borderRadius: 999,
+    border: "1px solid rgba(63,130,255,0.34)",
+    background: "rgba(63,130,255,0.14)",
+    color: "#c9dcff",
+    fontSize: 11,
+    fontWeight: 700
+  },
+  modeRow: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap"
+  },
+  modeBtn: {
+    height: 32,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(255,255,255,0.03)",
+    color: "#dfe3f4",
+    padding: "0 12px",
+    cursor: "pointer"
+  },
+  modeBtnOn: {
+    background: "rgba(63,130,255,0.18)",
+    border: "1px solid rgba(63,130,255,0.36)",
+    color: "#ffffff"
+  },
+  apiFieldGrid: {
+    display: "grid",
+    gap: 10,
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))"
+  },
+  fieldStack: {
+    display: "grid",
+    gap: 6
+  },
+  fieldLabel: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.62)",
+    fontWeight: 700
+  },
+  apiMeta: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.66)",
+    lineHeight: 1.45
+  },
+  apiHint: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.72)",
+    lineHeight: 1.5,
+    borderRadius: 14,
+    padding: "10px 12px",
+    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(255,255,255,0.06)"
   },
   summaryCard: {
     display: "grid",

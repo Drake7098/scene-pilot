@@ -1,54 +1,58 @@
 import { expect, test } from "@playwright/test";
-import { captureArtifacts, installLocalProviderMocks, runStep } from "../support/runtime";
+import { captureArtifacts, ensureMockProAccount, installLocalProviderMocks, openQuickWorkspace, runStep } from "../support/runtime";
 
-test("quick_workspace_local_drawthings_flow_covers_generate_refine_and_structure_patch", async ({ page }) => {
+test("quick_workspace_local_generation_prefers_comfyui_when_both_local_engines_are_available", async ({ page }) => {
   const providers = await installLocalProviderMocks(page, "drawthings_ready");
+  await openQuickWorkspace(page, "en");
+  await ensureMockProAccount(page, { creditsBalance: 240 });
+  await openQuickWorkspace(page, "en");
 
-  await runStep(page, "open_quick_workspace_and_generate_real_image", async () => {
-    await page.goto("/");
+  await runStep(page, "build_quick_image_canvas", async () => {
     await page.getByTestId("result-console-brief").fill("portrait indoors, centered subject, clean background, 1:1");
     await page.getByTestId("composer-media-type").selectOption("image");
-    await page.getByTestId("composer-ratio").selectOption("1:1");
-    await page.getByTestId("composer-variants").selectOption("1");
+    await page.getByTestId("composer-primary-2").selectOption("single_subject");
+    await page.getByTestId("composer-primary-3").selectOption("subject_highlight");
+    await page.getByTestId("composer-primary-4").selectOption("realistic");
     await page.getByTestId("result-console-generate").click();
 
-    await expect.poll(() => providers.drawTxt2ImgCalls).toBe(1);
-    await expect(page.getByTestId("inspector-preview-image")).toBeVisible();
-    await expect(page.getByTestId("inspector-provider-badge")).toContainText("Draw Things");
-    await expect(page.getByTestId("runtime-draw-status")).toContainText(/connected|HTTP/i);
-    await expect(page.getByTestId("result-console-generate")).toBeEnabled();
-    expect(providers.comfyPromptCalls).toBe(0);
+    await expect(page.getByTestId("result-console-brief-secondary")).toBeVisible();
+    await page.getByTestId("result-console-brief-secondary").fill("make the subject slightly larger, eye-level framing, cleaner background");
+    await page.getByTestId("quick-second-image-subject-scale").locator("select").selectOption("tight");
+    await page.getByTestId("quick-second-image-composition-position").locator("select").selectOption("center");
+    await page.getByTestId("quick-second-image-background-complexity").locator("select").selectOption("clean");
+    await page.getByTestId("result-console-generate-secondary").click();
+
+    await expect(page.getByTestId("quick-structure-canvas-ready")).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-generate")).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toHaveValue(/portrait indoors/i);
   });
 
-  await runStep(page, "continue_generation_returns_a_second_real_result", async () => {
-    await page.getByTestId("inspector-feedback-input").fill("Make the subject slightly larger and simplify the background.");
-    await page.getByTestId("inspector-continue").click();
+  await runStep(page, "generate_first_local_preview_prefers_comfyui", async () => {
+    const beforeCalls = providers.comfyPromptCalls;
+    await page.getByTestId("quick-canvas-ratio").selectOption("1:1");
+    await page.getByTestId("quick-canvas-generate").click();
 
-    await expect.poll(() => providers.drawTxt2ImgCalls).toBe(2);
-    await expect(page.getByTestId("inspector-preview-image")).toBeVisible();
-    await expect(page.getByTestId("inspector-provider-badge")).toContainText("Draw Things");
-    await expect(page.getByTestId("result-console-generate")).toBeEnabled();
+    await expect.poll(() => providers.comfyPromptCalls).toBeGreaterThan(beforeCalls);
+    await expect(page.getByTestId("quick-preview-image").first()).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-generate")).toBeEnabled();
+    expect(providers.drawTxt2ImgCalls).toBe(0);
   });
 
-  await runStep(page, "structure_adjustment_is_reflected_in_refine_hint", async () => {
-    await page.getByTestId("inspector-toggle-structure").click();
-    await expect(page.getByTestId("result-structure-editor")).toBeVisible();
+  await runStep(page, "second_generate_keeps_comfyui_after_ratio_change", async () => {
+    const beforeCalls = providers.comfyPromptCalls;
+    await page.getByTestId("quick-canvas-ratio").selectOption("16:9");
+    await page.getByTestId("quick-canvas-generate").click();
 
-    await page.getByTestId("structure-subject-size").evaluate((node) => {
-      const input = node as HTMLInputElement;
-      input.value = "48";
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    await page.getByTestId("structure-composition-focus").selectOption("left");
-    await page.getByRole("button", { name: /Zoom Subject|放大主体/i }).click();
-    await page.getByTestId("inspector-feedback-input").fill("Push the framing tighter.");
-    await page.getByTestId("inspector-continue").click();
+    await expect.poll(() => providers.comfyPromptCalls).toBeGreaterThan(beforeCalls);
+    await expect(page.getByTestId("quick-preview-image").first()).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-generate")).toBeEnabled();
+    expect(providers.drawTxt2ImgCalls).toBe(0);
+  });
 
-    await expect.poll(() => providers.drawTxt2ImgCalls).toBe(3);
-    await expect(page.getByTestId("inspector-hint")).toContainText(/Structure updates:|结构调整：/i);
-    await expect(page.getByTestId("inspector-hint")).toContainText(/composition focus=left|构图重心=left|构图重心=左/i);
-    await expect(page.getByTestId("inspector-preview-image")).toBeVisible();
+  await runStep(page, "canvas_prompt_and_preview_stay_in_sync", async () => {
+    await expect(page.getByTestId("quick-canvas-prompt-editor")).toHaveValue(/clean/i);
+    await expect(page.getByTestId("quick-preview-pane")).toBeVisible();
+    await expect(page.getByTestId("quick-canvas-local")).toBeVisible();
   });
 
   await captureArtifacts(page, { robotId: "quick_workspace_local_drawthings", caseId: "image_refine_structure" });

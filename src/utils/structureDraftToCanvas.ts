@@ -88,6 +88,79 @@ function inferVideoTransition(draft: Extract<StructureDraft, { mediaType: "video
   return draft.sceneTransitions;
 }
 
+function defaultVideoShotCountByStructure(structureType: Extract<StructureDraft, { mediaType: "video" }>["structureType"]): 1 | 3 | 4 | 5 {
+  if (structureType === "single_shot") return 1;
+  if (structureType === "multicam") return 4;
+  if (structureType === "continuous") return 4;
+  return 5;
+}
+
+function inferMainSceneFromNarrative(
+  structureType: Extract<StructureDraft, { mediaType: "video" }>["structureType"],
+  narrative: string,
+  fallback: VideoCanvasDraft["mainScene"]
+): VideoCanvasDraft["mainScene"] {
+  if (structureType === "multi_scene") return "multi_scene";
+  const text = narrative.toLowerCase();
+  const indoorTerms = ["室内", "房间", "客厅", "卧室", "厨房", "酒吧", "咖啡馆", "indoor", "room", "interior", "living room", "kitchen", "bedroom", "bar", "cafe"];
+  const outdoorTerms = ["室外", "街道", "森林", "公园", "海边", "山", "沙漠", "雪地", "outdoor", "street", "forest", "park", "beach", "mountain", "desert", "snowfield"];
+  const indoorHit = indoorTerms.some((term) => text.includes(term));
+  const outdoorHit = outdoorTerms.some((term) => text.includes(term));
+  if (outdoorHit && !indoorHit) return "outdoor";
+  if (indoorHit && !outdoorHit) return "indoor";
+  if (indoorHit && outdoorHit) return "complex";
+  if (fallback === "multi_scene") return "complex";
+  return fallback;
+}
+
+function normalizeSceneTransition(
+  structureType: Extract<StructureDraft, { mediaType: "video" }>["structureType"],
+  transition: VideoSceneTransition
+): VideoSceneTransition {
+  if (structureType === "single_shot") return "none";
+  if (structureType === "multi_scene") return transition === "none" ? "location_switch" : transition;
+  return transition === "none" ? "same_space" : transition;
+}
+
+function normalizeVideoShotCount(
+  structureType: Extract<StructureDraft, { mediaType: "video" }>["structureType"],
+  shotCount: number
+): 1 | 3 | 4 | 5 {
+  if (structureType === "single_shot") return 1;
+  if (shotCount <= 1) return defaultVideoShotCountByStructure(structureType);
+  if (shotCount <= 3) return 3;
+  if (shotCount <= 4) return 4;
+  return 5;
+}
+
+function normalizeVideoShots(
+  draft: Extract<StructureDraft, { mediaType: "video" }>,
+  shotCount: 1 | 3 | 4 | 5,
+  transition: VideoSceneTransition
+) {
+  const base = draft.shots.map((shot) => ({ ...shot })).slice(0, shotCount);
+  while (base.length < shotCount) {
+    const nextIndex = base.length + 1;
+    base.push({
+      id: `shot_${nextIndex}`,
+      index: nextIndex,
+      title: `shot_${nextIndex}`,
+      durationSec: draft.structureType === "single_shot" ? 6 : 4,
+      sceneLabel: draft.scene,
+      objectIds: draft.objects.map((item) => item.id),
+      transitionFromPrev: nextIndex === 1 ? "none" : transition,
+      emphasis: ""
+    });
+  }
+  return base.map((shot, index) => ({
+    ...shot,
+    index: index + 1,
+    sceneLabel: shot.sceneLabel || draft.scene,
+    objectIds: shot.objectIds?.length ? shot.objectIds : draft.objects.map((item) => item.id),
+    transitionFromPrev: (index === 0 ? "none" : shot.transitionFromPrev || transition) as VideoCanvasDraft["shots"][number]["transitionFromPrev"]
+  }));
+}
+
 export function structureDraftToCanvas(draft: StructureDraft, _lang: Lang): CanvasDraft {
   if (draft.mediaType === "image") {
     return {
@@ -119,14 +192,29 @@ export function structureDraftToCanvas(draft: StructureDraft, _lang: Lang): Canv
     };
   }
 
-  const keyObjects = buildVideoKeyObjects(draft);
+  const normalizedShotCount = normalizeVideoShotCount(draft.structureType, draft.shotCount);
+  const normalizedTransition = normalizeSceneTransition(draft.structureType, inferVideoTransition(draft));
+  const normalizedShots = normalizeVideoShots(draft, normalizedShotCount, normalizedTransition);
+  const normalizedMainScene = inferMainSceneFromNarrative(
+    draft.structureType,
+    `${draft.primaryBrief} ${draft.secondaryBrief} ${draft.scene}`,
+    draft.mainScene
+  );
+  const normalizedDraft: Extract<StructureDraft, { mediaType: "video" }> = {
+    ...draft,
+    shotCount: normalizedShotCount,
+    sceneTransitions: normalizedTransition,
+    mainScene: normalizedMainScene,
+    shots: normalizedShots
+  };
+  const keyObjects = buildVideoKeyObjects(normalizedDraft);
   return {
     mediaType: "video",
-    primaryBrief: draft.primaryBrief,
-    secondaryBrief: draft.secondaryBrief,
-    structureType: draft.structureType,
-    shotCount: draft.shotCount,
-    shots: draft.shots.map((shot) => ({
+    primaryBrief: normalizedDraft.primaryBrief,
+    secondaryBrief: normalizedDraft.secondaryBrief,
+    structureType: normalizedDraft.structureType,
+    shotCount: normalizedDraft.shotCount,
+    shots: normalizedDraft.shots.map((shot) => ({
       id: shot.id,
       index: shot.index,
       title: shot.title,
@@ -137,24 +225,24 @@ export function structureDraftToCanvas(draft: StructureDraft, _lang: Lang): Canv
       objectIds: shot.objectIds
     })),
     keyObjects,
-    mainScene: draft.mainScene,
-    continuityFocus: draft.continuityFocus,
-    rhythm: inferVideoRhythm(draft),
-    sceneTransitions: inferVideoTransition(draft),
-    storyboardNodes: draft.shots.map((shot, index) => ({
+    mainScene: normalizedDraft.mainScene,
+    continuityFocus: normalizedDraft.continuityFocus,
+    rhythm: inferVideoRhythm(normalizedDraft),
+    sceneTransitions: normalizedDraft.sceneTransitions,
+    storyboardNodes: normalizedDraft.shots.map((shot, index) => ({
       id: `node_${shot.id}`,
       shotId: shot.id,
       x: 6 + index * 23,
       y: 38,
-      w: draft.shots.length === 1 ? 88 : 18,
+      w: normalizedDraft.shots.length === 1 ? 88 : 18,
       h: 24
     })),
     compileHints: [
-      ...draft.continuity,
-      `scene:${draft.scene}`,
-      `main_scene:${draft.mainScene}`,
-      `camera_motion:${draft.cameraMotion}`,
-      `rhythm:${draft.rhythm}`
+      ...normalizedDraft.continuity,
+      `scene:${normalizedDraft.scene}`,
+      `main_scene:${normalizedDraft.mainScene}`,
+      `camera_motion:${normalizedDraft.cameraMotion}`,
+      `rhythm:${normalizedDraft.rhythm}`
     ]
   };
 }

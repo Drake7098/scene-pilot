@@ -1,0 +1,203 @@
+{
+  "project": {
+    "mode": "storyboard",
+    "mediaType": "video",
+    "shotPlan": "multicam",
+    "creativeContext": {
+      "source": "imported",
+      "mediaType": "video",
+      "fileName": "pro_vid_edu_007.json",
+      "primaryInput": "教育课堂互动演示",
+      "secondaryInput": "老师授课与学生互动，镜头切换保持关系清楚。",
+      "mergedInput": "教育课堂互动演示 老师授课与学生互动，镜头切换保持关系清楚。",
+      "intentSummary": "教育课堂互动演示",
+      "locationHint": "media: video\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: standard\nbg: 课堂教学环境",
+      "styleHint": "bright trust",
+      "subjectLabels": [
+        "老师",
+        "学生A",
+        "学生B",
+        "白板与课堂背景"
+      ]
+    }
+  },
+  "scenes": [
+    {
+      "id": "S01",
+      "name": "分镜1",
+      "index": 1,
+      "transitionType": "reverse_angle",
+      "duration_s": 6,
+      "shotNote": "老师授课与学生互动，镜头切换保持关系清楚。",
+      "entryDir": "S",
+      "exitDir": "S",
+      "camera": {
+        "shot": "medium",
+        "movement": "static_cut",
+        "keyframes": [
+          {
+            "t": 0,
+            "x": 0,
+            "y": 0,
+            "zoom": 1.03,
+            "rot": 0
+          },
+          {
+            "t": 1,
+            "x": 0,
+            "y": 0,
+            "zoom": 1.06,
+            "rot": 0
+          }
+        ]
+      },
+      "lighting": {
+        "time": "day",
+        "key_dir": "window",
+        "mood": "bright trust"
+      },
+      "layers": [
+        {
+          "id": "主体1",
+          "type": "老师",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "手持平板讲解",
+          "z": 12,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 50,
+              "y": 52,
+              "w": 16,
+              "h": 30,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 50,
+              "y": 52,
+              "w": 16,
+              "h": 30,
+              "rot": 0
+            }
+          ],
+          "notes": "中景中心，主讲对象",
+          "externalPrompt": "表情亲和清晰",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "主体2",
+          "type": "学生A",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "举手互动",
+          "z": 11,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 30,
+              "y": 62,
+              "w": 14,
+              "h": 26,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 30,
+              "y": 62,
+              "w": 14,
+              "h": 26,
+              "rot": 0
+            }
+          ],
+          "notes": "左侧前景",
+          "externalPrompt": "动作自然",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "主体3",
+          "type": "学生B",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "记录笔记",
+          "z": 11,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 70,
+              "y": 62,
+              "w": 14,
+              "h": 26,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 70,
+              "y": 62,
+              "w": 14,
+              "h": 26,
+              "rot": 0
+            }
+          ],
+          "notes": "右侧前景",
+          "externalPrompt": "保持课堂状态",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "主体4",
+          "type": "白板与课堂背景",
+          "shape": "rect",
+          "shapeDesc": "",
+          "look": "白板内容和教室布景",
+          "z": 5,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 50,
+              "y": 46,
+              "w": 96,
+              "h": 90,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 50,
+              "y": 46,
+              "w": 96,
+              "h": 90,
+              "rot": 0
+            }
+          ],
+          "notes": "背景层",
+          "externalPrompt": "信息清晰不过载",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        }
+      ],
+      "config": {
+        "mediaMode": "video",
+        "compiler": "v2",
+        "sceneTier": "indoor",
+        "v2Mode": "strict",
+        "stability": "standard"
+      },
+      "notes": "media: video\n@compiler: v2\n@scene_tier: indoor\n@v2_mode: strict\nstability: standard\nbg: 课堂教学环境"
+    }
+  ]
+}

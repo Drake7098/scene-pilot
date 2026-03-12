@@ -495,16 +495,16 @@ function safeAspect(w: number, h: number) {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  outer: { flex: 1, padding: UI_SPACE.sm, display: "flex", minHeight: 0 },
+  outer: { flex: 1, padding: `0 ${UI_SPACE.sm}px 0`, display: "flex", minHeight: 0 },
   stage: {
     flex: 1,
     minHeight: 0,
     position: "relative",
     borderRadius: UI_RADIUS.panel,
-    border: `1px solid ${UI_PALETTE.border.default}`,
+    border: "1px solid rgba(255,255,255,0.08)",
     background:
       "radial-gradient(640px 380px at 50% 38%, rgba(104,171,255,0.16), transparent 60%), rgba(9,13,24,0.74)",
-    boxShadow: UI_EFFECT.panelShadow,
+    boxShadow: "none",
     overflow: "hidden"
   },
 
@@ -523,8 +523,8 @@ const styles: Record<string, React.CSSProperties> = {
     position: "absolute",
     inset: 0,
     borderRadius: UI_RADIUS.panel,
-    border: `1px solid ${UI_PALETTE.border.strong}`,
-    boxShadow: "0 0 0 1px rgba(0,0,0,0.35) inset",
+    border: "none",
+    boxShadow: "none",
     pointerEvents: "none"
   },
   backgroundRefLayer: {

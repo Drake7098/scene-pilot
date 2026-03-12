@@ -1,0 +1,213 @@
+{
+  "project": {
+    "mode": "storyboard"
+  },
+  "scenes": [
+    {
+      "id": "s4",
+      "name": "04 母舰终结",
+      "index": 4,
+      "duration_s": 6,
+      "transitionType": "match_cut",
+      "inheritFromPrevious": true,
+      "inheritBgRefFromPrevious": true,
+      "inheritObjectRefsFromPrevious": "all",
+      "cameraPreset": "",
+      "shotNote": "主角机甲跃到桥面最高点，炮艇和无人机群从两侧压出，远处敌方母舰与裂隙同框，最后一击引爆整个天际线，作为战役收尾镜头。",
+      "camera": {
+        "shot": "close",
+        "movement": "slow_push_in",
+        "keyframes": [
+          { "t": 0, "x": 0, "y": -2, "zoom": 1.02, "rot": 0 },
+          { "t": 1, "x": 1, "y": -3, "zoom": 1.12, "rot": 0 }
+        ]
+      },
+      "lighting": {
+        "time": "golden_hour",
+        "key_dir": "rim_light",
+        "mood": "bright"
+      },
+      "layers": [
+        {
+          "id": "主角机甲_曜",
+          "type": "assault mech commander",
+          "shape": "rect",
+          "shapeDesc": "hero mech on elevated strike point",
+          "look": "hero mech in premium final silhouette, blazing spear, polished damage, bright back edge highlights",
+          "z": 56,
+          "color": "#b7c3ff",
+          "opacity": 0.99,
+          "kf": [
+            { "t": 0, "x": 50, "y": 60, "w": 18, "h": 26, "rot": 0 },
+            { "t": 1, "x": 51, "y": 58, "w": 19, "h": 27, "rot": 2 }
+          ],
+          "notes": "role:hero_finisher\naction:raising spear for final strike",
+          "externalPrompt": "Final hero pose with premium readability, clean silhouette separation, and decisive focus hierarchy.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "突击兵_A",
+          "type": "shock trooper",
+          "shape": "rect",
+          "shapeDesc": "left side final formation",
+          "look": "escort trooper framed by sparks, rifle pointed upward, disciplined posture",
+          "z": 39,
+          "color": "#9dd6ff",
+          "opacity": 0.92,
+          "kf": [
+            { "t": 0, "x": 33, "y": 72, "w": 8, "h": 14, "rot": -1 },
+            { "t": 1, "x": 34, "y": 71, "w": 8, "h": 14, "rot": -1 }
+          ],
+          "notes": "role:left_formation\nstate:holding line for the finale",
+          "externalPrompt": "The left escort remains crisp and readable without competing with the hero mech.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "突击兵_B",
+          "type": "shock trooper",
+          "shape": "rect",
+          "shapeDesc": "right side final formation",
+          "look": "right escort with red tactical lights, rifle angled toward the carrier, sparks around boots",
+          "z": 39,
+          "color": "#f6b0b0",
+          "opacity": 0.92,
+          "kf": [
+            { "t": 0, "x": 66, "y": 71, "w": 8, "h": 14, "rot": 2 },
+            { "t": 1, "x": 67, "y": 70, "w": 8, "h": 14, "rot": 2 }
+          ],
+          "notes": "role:right_formation\nstate:covering the hero's strike angle",
+          "externalPrompt": "The right escort should help frame the hero, not become a second lead.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "重装兵_盾",
+          "type": "heavy infantry",
+          "shape": "rect",
+          "shapeDesc": "shield anchor at hero base",
+          "look": "heavy shield unit kneeling behind the hero, bright barrier edge, soot and dust",
+          "z": 37,
+          "color": "#ffe2a8",
+          "opacity": 0.92,
+          "kf": [
+            { "t": 0, "x": 57, "y": 76, "w": 10, "h": 15, "rot": 0 },
+            { "t": 1, "x": 58, "y": 76, "w": 10, "h": 15, "rot": 0 }
+          ],
+          "notes": "role:stabilizer\nstate:shielding the strike platform",
+          "externalPrompt": "The heavy unit functions as a grounded base element under the final attack composition.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "无人机群",
+          "type": "drone swarm",
+          "shape": "rect",
+          "shapeDesc": "mirror-like escort arc",
+          "look": "formation of attack drones creating a curved escort frame with bright engine pinpoints",
+          "z": 28,
+          "color": "#8bd6ff",
+          "opacity": 0.88,
+          "kf": [
+            { "t": 0, "x": 26, "y": 34, "w": 18, "h": 10, "rot": -8 },
+            { "t": 1, "x": 24, "y": 31, "w": 18, "h": 10, "rot": -12 }
+          ],
+          "notes": "role:escort_arc\nstate:framing the upper left composition",
+          "externalPrompt": "The drone pack should act like a compositional accent line with readable tech silhouettes.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "炮艇_晨矛",
+          "type": "gunship",
+          "shape": "arrow",
+          "shapeDesc": "cross-frame support run",
+          "look": "gunship crossing the right sky lane, engine bloom, missile racks, premium military finish",
+          "z": 29,
+          "color": "#d6e4ff",
+          "opacity": 0.9,
+          "kf": [
+            { "t": 0, "x": 77, "y": 18, "w": 19, "h": 9, "rot": -12 },
+            { "t": 1, "x": 73, "y": 16, "w": 19, "h": 9, "rot": -16 }
+          ],
+          "notes": "role:right_sky_support\nstate:converging with the hero strike",
+          "externalPrompt": "The gunship should read as a polished support element converging into the climax.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "坠落运输舰",
+          "type": "damaged dropship wreck",
+          "shape": "rect",
+          "shapeDesc": "small lower-layer debris trail",
+          "look": "wreck pieces and burning fragments drifting in the lower battlefield layer",
+          "z": 9,
+          "color": "#f0c6a8",
+          "opacity": 0.6,
+          "kf": [
+            { "t": 0, "x": 17, "y": 79, "w": 18, "h": 10, "rot": -14 },
+            { "t": 1, "x": 15, "y": 81, "w": 18, "h": 10, "rot": -18 }
+          ],
+          "notes": "role:lower_layer_debris\nstate:minor falling wreckage",
+          "externalPrompt": "Only use the wreckage as lower-layer depth and war residue.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "能量裂隙",
+          "type": "dimensional breach",
+          "shape": "ring",
+          "shapeDesc": "enormous portal behind the carrier",
+          "look": "stabilized battle breach, giant circular energy ring, blue core and molten rim, cosmic depth",
+          "z": 12,
+          "color": "#7dc8ff",
+          "opacity": 0.7,
+          "kf": [
+            { "t": 0, "x": 18, "y": 22, "w": 28, "h": 36, "rot": 6 },
+            { "t": 1, "x": 18, "y": 22, "w": 29, "h": 37, "rot": 6 }
+          ],
+          "notes": "role:mythic_backdrop\nstate:aligned with final battlefield skyline",
+          "externalPrompt": "The breach should echo the carrier shape and amplify the mythic scale of the finale.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        },
+        {
+          "id": "敌方母舰_黑穹",
+          "type": "enemy carrier",
+          "shape": "rect",
+          "shapeDesc": "massive carrier silhouette",
+          "look": "black fortress-carrier, red hull cuts, shield fracture, giant ventral engines and artillery ridge",
+          "z": 18,
+          "color": "#ffb3b3",
+          "opacity": 0.9,
+          "kf": [
+            { "t": 0, "x": 76, "y": 24, "w": 28, "h": 16, "rot": -4 },
+            { "t": 1, "x": 78, "y": 23, "w": 30, "h": 17, "rot": -2 }
+          ],
+          "notes": "role:final_target\nstate:shield breaking before detonation",
+          "externalPrompt": "The enemy carrier must feel enormous, premium, and immediately legible as the final target.",
+          "referenceLinks": "",
+          "localRefs": [],
+          "referencePolicy": "optional"
+        }
+      ],
+      "config": {
+        "mediaMode": "video",
+        "compiler": "v2",
+        "sceneTier": "open_space",
+        "v2Mode": "strict",
+        "stability": "standard"
+      },
+      "notes": "media: video\n@compiler: v2\n@scene_tier: open_space\n@v2_mode: strict\ngenmode: pro\nbg: final skyline of the bridge-city, broken anti-gravity towers, burning cloud ocean, distant carrier and breach aligned in one frame\nvideo_classic_mode: premium_commercial\ndirector_pack: commercial_spectacle\npro_plus_motion: match_cut, glass_refraction"
+    }
+  ]
+}

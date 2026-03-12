@@ -1,5 +1,6 @@
 import { ensureBillingTables, ensureUserWallet, seedDefaultProducts } from "../_shared/billing-db";
-import { corsOptions, json } from "../_shared/http";
+import { corsOptions, json, rejectDisallowedOrigin } from "../_shared/http";
+import { requireApiAuth } from "../_shared/auth";
 
 type PaddleCheckoutRequest = {
   kind?: "credits" | "pro";
@@ -14,14 +15,18 @@ function makeId(prefix: string) {
 
 export const onRequestPost: PagesFunction = async (context) => {
   try {
-    if (!context.env?.DB) return json({ error: "db_not_configured" }, 500);
+    const originErr = rejectDisallowedOrigin(context.request, context.env);
+    if (originErr) return originErr;
+    if (!context.env?.DB) return json({ error: "db_not_configured" }, 500, context.request, context.env);
     await ensureBillingTables(context.env.DB);
     await seedDefaultProducts(context.env.DB);
 
     const body = await context.request.json() as PaddleCheckoutRequest;
     if (!body.kind || !body.productId || !body.userId) {
-      return json({ error: "invalid_checkout_request" }, 400);
+      return json({ error: "invalid_checkout_request" }, 400, context.request, context.env);
     }
+    const authErr = await requireApiAuth(context, { claimedUserId: body.userId });
+    if (authErr) return authErr;
 
     await ensureUserWallet(context.env.DB, body.userId, body.userEmail || "");
 
@@ -39,10 +44,10 @@ export const onRequestPost: PagesFunction = async (context) => {
       active: number;
     }>();
     if (!product || product.active !== 1) {
-      return json({ error: "product_not_found" }, 404);
+      return json({ error: "product_not_found" }, 404, context.request, context.env);
     }
     const expectedKind = body.kind === "credits" ? "credit_pack" : "subscription";
-    if (product.kind !== expectedKind) return json({ error: "kind_mismatch" }, 400);
+    if (product.kind !== expectedKind) return json({ error: "kind_mismatch" }, 400, context.request, context.env);
 
     const checkoutId = makeId("checkout");
     const now = new Date().toISOString();
@@ -80,12 +85,12 @@ export const onRequestPost: PagesFunction = async (context) => {
       },
       successUrl: `${new URL(context.request.url).origin}/?billing=success`,
       cancelUrl: `${new URL(context.request.url).origin}/?billing=cancel`
-    });
+    }, 200, context.request, context.env);
   } catch {
-    return json({ error: "checkout_error" }, 500);
+    return json({ error: "checkout_error" }, 500, context.request, context.env);
   }
 };
 
-export const onRequestOptions: PagesFunction = async () => {
-  return corsOptions("POST, OPTIONS");
+export const onRequestOptions: PagesFunction = async (context) => {
+  return corsOptions("POST, OPTIONS", context.request, context.env);
 };

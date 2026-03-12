@@ -1,5 +1,6 @@
 import path from "node:path";
-import { mkdir, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import type { Lang } from "../../../src/i18n.js";
 import type { CanvasDraft } from "../../../src/types/canvasDraft.js";
 import type { StructureDraft } from "../../../src/types/structureDraft.js";
@@ -96,8 +97,57 @@ const FORCE_SECONDS_LINES = [
   "duration around 8s"
 ];
 
+const ENGINE_LOCK_REL_PATH = "docs/engine-library-lock.json";
+const ENGINE_FILES = [
+  "src/utils/quickWorkspacePromptV3.ts",
+  "src/utils/prompt.ts",
+  "src/utils/promptEngine.ts",
+  "src/utils/promptPipeline.ts",
+  "src/utils/sceneStrategyResolver.ts",
+  "src/utils/structureDraft.ts",
+  "src/utils/structureDraftGenerator.ts",
+  "src/utils/structureDraftRules.ts",
+  "src/utils/structureDraftToCanvas.ts",
+  "src/utils/promptEngines/builtin.ts",
+  "src/utils/promptEngines/index.ts",
+  "src/utils/promptEngines/shared.ts",
+  "src/utils/promptEngines/types.ts"
+].sort();
+
 function pick<T>(arr: readonly T[], idx: number): T {
   return arr[idx % arr.length];
+}
+
+function sha256(input: string): string {
+  return createHash("sha256").update(input).digest("hex");
+}
+
+async function computeEngineLockHash(root: string): Promise<string> {
+  const pairs: string[] = [];
+  for (const rel of ENGINE_FILES) {
+    const abs = path.join(root, rel);
+    const content = await readFile(abs, "utf8");
+    pairs.push(`${rel}:${sha256(content)}`);
+  }
+  return sha256(pairs.join("\n"));
+}
+
+async function loadAndAssertEngineLock(root: string): Promise<{ lockHash: string; lockGeneratedAt: string }> {
+  const lockPath = path.join(root, ENGINE_LOCK_REL_PATH);
+  const raw = await readFile(lockPath, "utf8");
+  const lock = JSON.parse(raw) as { lockHash?: string; generatedAt?: string };
+  const currentHash = await computeEngineLockHash(root);
+  if (!lock.lockHash || lock.lockHash !== currentHash) {
+    throw new Error(
+      `[engine-lock] stale or missing lock: ${ENGINE_LOCK_REL_PATH}. ` +
+      `expected=${currentHash} actual=${lock.lockHash ?? "missing"}. ` +
+      `run: npm run engine:lock:update`
+    );
+  }
+  return {
+    lockHash: lock.lockHash,
+    lockGeneratedAt: String(lock.generatedAt ?? "")
+  };
 }
 
 function sanitizeLine(text: string): string {
@@ -328,6 +378,7 @@ async function main() {
   const outTag = process.argv[3] || `quick-v3-benchmark-${count}`;
 
   const root = process.cwd();
+  const engineLock = await loadAndAssertEngineLock(root);
   const outDir = path.join(root, "tests/local-ab/outputs", outTag);
   await mkdir(outDir, { recursive: true });
 
@@ -362,6 +413,13 @@ async function main() {
 
   const summary = {
     generatedAt: new Date().toISOString(),
+    tracking: {
+      workspace: "quick",
+      mediaMode: "mixed",
+      engineId: "IM v5 + VI V5",
+      engineLockHash: engineLock.lockHash,
+      engineLockGeneratedAt: engineLock.lockGeneratedAt
+    },
     totalCases: results.length,
     averages: {
       v2: v2Avg,
@@ -398,6 +456,10 @@ async function main() {
     `# Quick Workspace Prompt V3 Benchmark (${count} cases)`,
     "",
     `- Generated: ${summary.generatedAt}`,
+    `- Workspace: ${summary.tracking.workspace}`,
+    `- Media Mode: ${summary.tracking.mediaMode}`,
+    `- Engine ID: ${summary.tracking.engineId}`,
+    `- Engine Lock Hash: ${summary.tracking.engineLockHash}`,
     `- Cases: ${summary.totalCases}`,
     `- Avg Score V2: ${summary.averages.v2}`,
     `- Avg Score V3: ${summary.averages.v3}`,
@@ -426,4 +488,3 @@ async function main() {
 }
 
 void main();
-

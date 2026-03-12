@@ -196,8 +196,16 @@ function textVisualUnits(text: string) {
   }, 0);
 }
 
-function selectWidthFromLabel(label: string, minEm = 7.2, maxEm = 15.2): React.CSSProperties {
-  const em = Math.min(maxEm, Math.max(minEm, textVisualUnits(label) + 2.45));
+function selectWidthFromLabel(
+  label: string,
+  minEm = 7.2,
+  maxEm = 15.2,
+  candidates: string[] = []
+): React.CSSProperties {
+  const currentUnits = textVisualUnits(label);
+  const widestUnits = [label, ...candidates].reduce((max, text) => Math.max(max, textVisualUnits(text)), 0);
+  const targetUnits = Math.max(currentUnits, Math.min(widestUnits, currentUnits + 2.8));
+  const em = Math.min(maxEm, Math.max(minEm, targetUnits + 1.7));
   return {
     ...styles.select,
     width: `${em}em`
@@ -230,7 +238,18 @@ export function QuickWorkspaceSecondaryCards(props: Props) {
               <select
                 value={imageSelections.subjectCount}
                 onChange={(e) => onImageSelectionsChange({ ...imageSelections, subjectCount: e.target.value as ImageSecondarySelections["subjectCount"] })}
-                style={selectWidthFromLabel(imageSubjectCountLabel(lang, imageSelections.subjectCount), 5.6, 9.4)}
+                style={selectWidthFromLabel(
+                  imageSubjectCountLabel(lang, imageSelections.subjectCount),
+                  5.6,
+                  9.2,
+                  [
+                    imageSubjectCountLabel(lang, "1"),
+                    imageSubjectCountLabel(lang, "2"),
+                    imageSubjectCountLabel(lang, "3"),
+                    imageSubjectCountLabel(lang, "3+"),
+                    imageSubjectCountLabel(lang, "auto")
+                  ]
+                )}
               >
                 <option value="2">{t(lang, "2 个", "2 Subjects")}</option>
                 <option value="3">{t(lang, "3 个", "3 Subjects")}</option>
@@ -245,7 +264,18 @@ export function QuickWorkspaceSecondaryCards(props: Props) {
               <select
                 value={imageSelections.subjectScale}
                 onChange={(e) => onImageSelectionsChange({ ...imageSelections, subjectScale: e.target.value as ImageSecondarySelections["subjectScale"] })}
-                style={selectWidthFromLabel(imageScaleOptionLabel(lang, imageStructure, imageSelections.subjectScale), 6.8, 12.2)}
+                style={selectWidthFromLabel(
+                  imageScaleOptionLabel(lang, imageStructure, imageSelections.subjectScale),
+                  6.8,
+                  12,
+                  [
+                    imageScaleOptionLabel(lang, imageStructure, "tight"),
+                    imageScaleOptionLabel(lang, imageStructure, "balanced"),
+                    imageScaleOptionLabel(lang, imageStructure, "wide"),
+                    imageScaleOptionLabel(lang, imageStructure, "detail"),
+                    imageScaleOptionLabel(lang, imageStructure, "auto")
+                  ]
+                )}
               >
                 <option value="tight">{imageScaleOptionLabel(lang, imageStructure, "tight")}</option>
                 <option value="balanced">{imageScaleOptionLabel(lang, imageStructure, "balanced")}</option>
@@ -261,7 +291,18 @@ export function QuickWorkspaceSecondaryCards(props: Props) {
             <select
               value={imageSelections.compositionPosition}
               onChange={(e) => onImageSelectionsChange({ ...imageSelections, compositionPosition: e.target.value as ImageSecondarySelections["compositionPosition"] })}
-              style={selectWidthFromLabel(imageCompositionPositionLabel(lang, imageSelections.compositionPosition), 5.6, 9.4)}
+              style={selectWidthFromLabel(
+                imageCompositionPositionLabel(lang, imageSelections.compositionPosition),
+                5.6,
+                9.2,
+                [
+                  imageCompositionPositionLabel(lang, "center"),
+                  imageCompositionPositionLabel(lang, "left"),
+                  imageCompositionPositionLabel(lang, "right"),
+                  imageCompositionPositionLabel(lang, "depth"),
+                  imageCompositionPositionLabel(lang, "auto")
+                ]
+              )}
             >
               <option value="center">{t(lang, "居中", "Center")}</option>
               <option value="left">{t(lang, "偏左", "Left")}</option>
@@ -276,7 +317,18 @@ export function QuickWorkspaceSecondaryCards(props: Props) {
             <select
               value={imageSelections.backgroundComplexity}
               onChange={(e) => onImageSelectionsChange({ ...imageSelections, backgroundComplexity: e.target.value as ImageSecondarySelections["backgroundComplexity"] })}
-              style={selectWidthFromLabel(imageBackgroundComplexityLabel(lang, imageSelections.backgroundComplexity), 6.8, 12.2)}
+              style={selectWidthFromLabel(
+                imageBackgroundComplexityLabel(lang, imageSelections.backgroundComplexity),
+                6.8,
+                12,
+                [
+                  imageBackgroundComplexityLabel(lang, "clean"),
+                  imageBackgroundComplexityLabel(lang, "normal"),
+                  imageBackgroundComplexityLabel(lang, "rich"),
+                  imageBackgroundComplexityLabel(lang, "strong_environment"),
+                  imageBackgroundComplexityLabel(lang, "auto")
+                ]
+              )}
             >
               <option value="clean">{t(lang, "干净", "Clean")}</option>
               <option value="normal">{t(lang, "正常", "Normal")}</option>
@@ -294,7 +346,18 @@ export function QuickWorkspaceSecondaryCards(props: Props) {
               <select
                 value={videoSelections.shotCount}
                 onChange={(e) => onVideoSelectionsChange({ ...videoSelections, shotCount: e.target.value as VideoSecondarySelections["shotCount"] })}
-                style={selectWidthFromLabel(videoShotCountOptionLabel(lang, videoSelections.shotCount), 5.8, 9.4)}
+                style={selectWidthFromLabel(
+                  videoShotCountOptionLabel(lang, videoSelections.shotCount),
+                  5.8,
+                  9.2,
+                  [
+                    videoShotCountOptionLabel(lang, "1"),
+                    videoShotCountOptionLabel(lang, "3"),
+                    videoShotCountOptionLabel(lang, "4"),
+                    videoShotCountOptionLabel(lang, "5"),
+                    videoShotCountOptionLabel(lang, "auto")
+                  ]
+                )}
               >
                 <option value="3">{t(lang, "3 段", "3 Beats")}</option>
                 <option value="4">{t(lang, "4 段", "4 Beats")}</option>
@@ -309,7 +372,18 @@ export function QuickWorkspaceSecondaryCards(props: Props) {
               <select
                 value={videoSelections.cameraMotion}
                 onChange={(e) => onVideoSelectionsChange({ ...videoSelections, cameraMotion: e.target.value as VideoSecondarySelections["cameraMotion"] })}
-                style={selectWidthFromLabel(videoCameraMotionOptionLabel(lang, videoSelections.cameraMotion), 6.8, 12.2)}
+                style={selectWidthFromLabel(
+                  videoCameraMotionOptionLabel(lang, videoSelections.cameraMotion),
+                  6.8,
+                  12,
+                  [
+                    videoCameraMotionOptionLabel(lang, "static"),
+                    videoCameraMotionOptionLabel(lang, "follow"),
+                    videoCameraMotionOptionLabel(lang, "push"),
+                    videoCameraMotionOptionLabel(lang, "orbit"),
+                    videoCameraMotionOptionLabel(lang, "auto")
+                  ]
+                )}
               >
                 <option value="follow">{t(lang, "跟随主体", "Follow Subject")}</option>
                 <option value="push">{t(lang, "缓慢推进", "Slow Push")}</option>
@@ -326,7 +400,18 @@ export function QuickWorkspaceSecondaryCards(props: Props) {
               <select
                 value={videoSelections.sceneTransition}
                 onChange={(e) => onVideoSelectionsChange({ ...videoSelections, sceneTransition: e.target.value as VideoSecondarySelections["sceneTransition"] })}
-                style={selectWidthFromLabel(videoSceneTransitionOptionLabel(lang, videoSelections.sceneTransition), 8.2, 13.2)}
+                style={selectWidthFromLabel(
+                  videoSceneTransitionOptionLabel(lang, videoSelections.sceneTransition),
+                  8.2,
+                  13,
+                  [
+                    videoSceneTransitionOptionLabel(lang, "same_space"),
+                    videoSceneTransitionOptionLabel(lang, "indoor_outdoor"),
+                    videoSceneTransitionOptionLabel(lang, "location_switch"),
+                    videoSceneTransitionOptionLabel(lang, "time_jump"),
+                    videoSceneTransitionOptionLabel(lang, "auto")
+                  ]
+                )}
               >
                 <option value="location_switch">{t(lang, "地点直接切换", "Location Switch")}</option>
                 <option value="indoor_outdoor">{t(lang, "室内到室外", "Indoor to Outdoor")}</option>
@@ -341,7 +426,17 @@ export function QuickWorkspaceSecondaryCards(props: Props) {
               <select
                 value={videoSelections.mainScene}
                 onChange={(e) => onVideoSelectionsChange({ ...videoSelections, mainScene: e.target.value as VideoSecondarySelections["mainScene"] })}
-                style={selectWidthFromLabel(videoMainSceneLabel(lang, videoSelections.mainScene), 5.8, 10.2)}
+                style={selectWidthFromLabel(
+                  videoMainSceneLabel(lang, videoSelections.mainScene),
+                  5.8,
+                  10,
+                  [
+                    videoMainSceneLabel(lang, "indoor"),
+                    videoMainSceneLabel(lang, "outdoor"),
+                    videoMainSceneLabel(lang, "complex"),
+                    videoMainSceneLabel(lang, "auto")
+                  ]
+                )}
               >
                 <option value="indoor">{t(lang, "室内", "Indoor")}</option>
                 <option value="outdoor">{t(lang, "室外", "Outdoor")}</option>
@@ -356,7 +451,18 @@ export function QuickWorkspaceSecondaryCards(props: Props) {
             <select
               value={videoSelections.continuityFocus}
               onChange={(e) => onVideoSelectionsChange({ ...videoSelections, continuityFocus: e.target.value as VideoSecondarySelections["continuityFocus"] })}
-              style={selectWidthFromLabel(videoContinuityFocusOptionLabel(lang, videoSelections.continuityFocus), 6.2, 10.2)}
+              style={selectWidthFromLabel(
+                videoContinuityFocusOptionLabel(lang, videoSelections.continuityFocus),
+                6.2,
+                10,
+                [
+                  videoContinuityFocusOptionLabel(lang, "identity"),
+                  videoContinuityFocusOptionLabel(lang, "scene"),
+                  videoContinuityFocusOptionLabel(lang, "lighting"),
+                  videoContinuityFocusOptionLabel(lang, "style"),
+                  videoContinuityFocusOptionLabel(lang, "auto")
+                ]
+              )}
             >
               <option value="identity">{t(lang, "人物一致", "Identity")}</option>
               <option value="scene">{t(lang, "场景一致", "Scene")}</option>
@@ -371,7 +477,20 @@ export function QuickWorkspaceSecondaryCards(props: Props) {
             <select
               value={videoSelections.shotGrammar}
               onChange={(e) => onVideoSelectionsChange({ ...videoSelections, shotGrammar: e.target.value as VideoSecondarySelections["shotGrammar"] })}
-              style={selectWidthFromLabel(videoShotGrammarOptionLabel(lang, videoSelections.shotGrammar), 6.2, 13.2)}
+              style={selectWidthFromLabel(
+                videoShotGrammarOptionLabel(lang, videoSelections.shotGrammar),
+                6.2,
+                12.6,
+                [
+                  videoShotGrammarOptionLabel(lang, "cut"),
+                  videoShotGrammarOptionLabel(lang, "reverse_angle"),
+                  videoShotGrammarOptionLabel(lang, "over_shoulder"),
+                  videoShotGrammarOptionLabel(lang, "pov"),
+                  videoShotGrammarOptionLabel(lang, "insert_closeup"),
+                  videoShotGrammarOptionLabel(lang, "establishing"),
+                  videoShotGrammarOptionLabel(lang, "auto")
+                ]
+              )}
             >
               <option value="cut">{t(lang, "切镜", "Cut")}</option>
               <option value="reverse_angle">{t(lang, "反打", "Reverse Angle")}</option>
@@ -408,26 +527,26 @@ const styles: Record<string, React.CSSProperties> = {
     display: "inline-flex",
     alignItems: "center",
     gap: 5,
-    minHeight: 25,
+    minHeight: 24,
     width: "fit-content",
     flex: "0 0 auto",
     whiteSpace: "nowrap",
     borderRadius: 999,
     border: "1px solid rgba(255,255,255,0.16)",
     background: "#000000",
-    padding: "0 7px",
+    padding: "0 6px",
     color: "rgba(255,255,255,0.9)"
   },
-  label: { fontSize: 10, lineHeight: 1.14, color: "rgba(255,255,255,0.62)", letterSpacing: 0.08 },
+  label: { fontSize: 10, lineHeight: 1.08, color: "rgba(255,255,255,0.62)", letterSpacing: 0.06 },
   select: {
-    minHeight: 18,
+    minHeight: 17,
     minWidth: 0,
     maxWidth: "100%",
     border: "none",
     background: "transparent",
     color: "#ffffff",
     fontSize: 11.5,
-    lineHeight: 1.24,
+    lineHeight: 1.2,
     outline: "none",
     cursor: "pointer",
     padding: "0 6px 0 0",

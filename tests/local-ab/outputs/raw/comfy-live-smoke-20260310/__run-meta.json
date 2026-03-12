@@ -1,8 +1,0 @@
-{
-  "comfyUiBaseUrl": "http://127.0.0.1:8000",
-  "comfyUiCheckpoint": "v1-5-pruned-emaonly-fp16.safetensors",
-  "seeds": [
-    101
-  ],
-  "createdAt": "2026-03-10T01:07:48.727Z"
-}

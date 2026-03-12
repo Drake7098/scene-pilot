@@ -1,5 +1,7 @@
 import type { Lang } from "../i18n";
 import type { Layer, Scene } from "../model";
+import { resolveSceneConfig } from "../model";
+import { resolveSceneStrategy } from "./sceneStrategyResolver";
 
 export type ConflictSeverity = "warning" | "high";
 export type ConflictField = "notes" | "externalPrompt" | "scene";
@@ -17,6 +19,7 @@ export type PromptConflict = {
 type RulePack = {
   staticWords: RegExp;
   motionWords: RegExp;
+  lightingWords: RegExp;
   noTextWords: RegExp;
   textOverlayWords: RegExp;
   noOverlayWords: RegExp;
@@ -31,6 +34,7 @@ type RulePack = {
 const RULES: RulePack = {
   staticWords: /\b(static|still|freeze|no movement|stays stable|keep still)\b|保持静止|保持原位|不移动|静止构图/i,
   motionWords: /\b(run|walk|move|moving|rush|dash|pan|zoom|rotate|turn)\b|跑|走|移动|位移|推进|拉远|旋转|转身/i,
+  lightingWords: /\b(light|lighting|backlight|rim light|key light|soft light|sunlight|shadow|glow|neon)\b|光照|灯光|主光|背光|轮廓光|柔光|阳光|阴影|辉光|霓虹/i,
   noTextWords: /\b(no text|no subtitles|no numbers)\b|无文字|不要文字|无字幕|无数字/i,
   textOverlayWords: /\b(add text|title card|text overlay|subtitle)\b|添加文字|标题字|字幕/i,
   noOverlayWords: /\b(no overlays|no ui overlay)\b|无叠加|无界面叠加/i,
@@ -41,6 +45,13 @@ const RULES: RulePack = {
   centerHeroWords: /\b(center the hero|hero shot|main subject in center)\b|主角居中|中心主角/i,
   globalWords: /\b(all subjects|whole scene|global|camera|composition)\b|全场景|全局|镜头|构图/i
 };
+
+function parseBg(notes: string): string {
+  const hit = (notes ?? "")
+    .split("\n")
+    .find((line) => line.trim().toLowerCase().startsWith("bg:"));
+  return hit ? hit.trim().slice(3).trim() : "";
+}
 
 function getKF(layer: Layer, t: 0 | 1) {
   const hit = (layer.kf ?? []).find((k) => k.t === t);
@@ -71,6 +82,10 @@ function zhOrEn(lang: Lang, zh: string, en: string): string {
 export function detectSceneConflicts(scene: Scene, lang: Lang): PromptConflict[] {
   const out: PromptConflict[] = [];
   const layers = scene.layers ?? [];
+  const mediaMode = resolveSceneConfig(scene).mediaMode;
+  const sceneStrategy = resolveSceneStrategy(scene, lang, mediaMode);
+  const strategyOwnsGlobalLanguage = Boolean(sceneStrategy.classicModeId || sceneStrategy.directorPackId);
+  const bgText = parseBg(scene.notes ?? "");
 
   for (const layer of layers) {
     const all = layerText(layer);
@@ -154,6 +169,21 @@ export function detectSceneConflicts(scene: Scene, lang: Lang): PromptConflict[]
         detail: zhOrEn(lang, `对象 ${layer.id} 的备注和局部提示词都在改全局。`, `Both notes and object-local prompt of ${layer.id} attempt global overrides.`)
       });
     }
+    if (strategyOwnsGlobalLanguage && (has(RULES.globalWords, all) || has(RULES.lightingWords, all))) {
+      out.push({
+        id: `layer_strategy_scope_${layer.id}`,
+        severity: "warning",
+        scope: "layer",
+        layerId: layer.id,
+        field: has(RULES.globalWords, ext) ? "externalPrompt" : "notes",
+        title: zhOrEn(lang, "对象级输入正在改写场景策略", "Object-level Input Overrides Scene Strategy"),
+        detail: zhOrEn(
+          lang,
+          `对象 ${layer.id} 的局部描述出现了镜头/构图/光照等场景级词，但当前分镜已经启用了经典模式或导演包。建议把全局电影语言放回左栏。`,
+          `Layer ${layer.id} uses camera/composition/lighting wording while the scene already has a Classic Mode or Directing Pack. Keep global cinematic language on the left panel.`
+        )
+      });
+    }
   }
 
   const staticScene = isStaticScene(scene);
@@ -199,6 +229,22 @@ export function detectSceneConflicts(scene: Scene, lang: Lang): PromptConflict[]
         lang,
         "不同对象都在写全局规则，且同时存在“全局静止”和“全局运动”要求。",
         "Different layers contain global rules with both global-static and global-motion instructions."
+      )
+    });
+  }
+
+  if (strategyOwnsGlobalLanguage && bgText && has(RULES.lightingWords, bgText) && sceneStrategy.defaults.time + sceneStrategy.defaults.keyDir + sceneStrategy.defaults.mood) {
+    out.push({
+      id: "scene_bg_lighting_conflict",
+      severity: "warning",
+      scope: "scene",
+      layerId: null,
+      field: "scene",
+      title: zhOrEn(lang, "背景描述和场景光照策略重复", "Background Text Duplicates Scene Lighting Strategy"),
+      detail: zhOrEn(
+        lang,
+        "右栏背景描述里包含了光照词，但当前场景策略已经在左栏控制光照。建议背景只写空间和环境，不再重复写灯光。",
+        "Scene background text contains lighting wording while the current scene strategy already controls lighting. Keep the background focused on place and environment."
       )
     });
   }

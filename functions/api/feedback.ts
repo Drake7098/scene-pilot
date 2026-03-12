@@ -1,9 +1,13 @@
+import { corsOptions, json, rejectDisallowedOrigin } from "./_shared/http";
+
 export const onRequestPost: PagesFunction = async (context) => {
   try {
+    const originErr = rejectDisallowedOrigin(context.request, context.env);
+    if (originErr) return originErr;
     const data = await context.request.json();
 
     const message = String(data?.message || "").trim();
-    if (!message) return new Response("missing message", { status: 400 });
+    if (!message) return json({ error: "missing_message" }, 400, context.request, context.env);
 
     // 建一张 feedback 表（如果没有就自动创建）
     await context.env.DB.prepare(
@@ -30,8 +34,10 @@ export const onRequestPost: PagesFunction = async (context) => {
       )
       .run();
 
-    return new Response("ok");
+    return json({ ok: true }, 200, context.request, context.env);
   } catch {
-    return new Response("error", { status: 500 });
+    return json({ error: "feedback_error" }, 500, context.request, context.env);
   }
 };
+
+export const onRequestOptions: PagesFunction = async (context) => corsOptions("POST, OPTIONS", context.request, context.env);

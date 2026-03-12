@@ -1,0 +1,4 @@
+interface:
+  display_name: "Security Payment Check"
+  short_description: "Validate webhook, idempotency, and ledger safety."
+  default_prompt: "Run payment security checks and return blocking risks."

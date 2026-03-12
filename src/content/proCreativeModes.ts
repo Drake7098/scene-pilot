@@ -1,4 +1,5 @@
 import type { Lang } from "../i18n";
+import type { LightingProfileId } from "./lightingProfiles";
 import {
   applyProMotionSelection,
   getProCameraPreset,
@@ -18,6 +19,11 @@ export type VideoClassicMode = {
   shot: string;
   movement: string;
   proPlusIds: string[];
+  transitionType?: string;
+  time?: string;
+  keyDir?: string;
+  mood?: string;
+  lightingProfileIds?: LightingProfileId[];
 };
 
 export type ImageClassicMode = {
@@ -28,6 +34,10 @@ export type ImageClassicMode = {
   effectEn: string;
   shot: string;
   imageEffectIds: string[];
+  time?: string;
+  keyDir?: string;
+  mood?: string;
+  lightingProfileIds?: LightingProfileId[];
 };
 
 export type ImageProCategory = "composition" | "relation" | "space" | "material" | "mood";
@@ -57,27 +67,27 @@ export const IMAGE_PRO_CATEGORIES: Array<{ id: ImageProCategory; labelZh: string
 ];
 
 export const VIDEO_CLASSIC_MODES: VideoClassicMode[] = [
-  { id: "steady_dialogue", nameZh: "平稳对话", nameEn: "Steady Dialogue", effectZh: "稳定、自然，适合双人交流和剧情对白。", effectEn: "Stable and natural for two-person dialogue scenes.", shot: "over_shoulder", movement: "static", proPlusIds: ["reverse_angle"] },
-  { id: "emotion_push", nameZh: "情绪逼近", nameEn: "Emotion Push", effectZh: "情绪越来越近，适合人物内心变化。", effectEn: "Gradually intensifies emotion and inner focus.", shot: "close", movement: "slow_push_in", proPlusIds: ["sudden_realization"] },
-  { id: "suspense_watch", nameZh: "悬疑窥视", nameEn: "Suspense Watch", effectZh: "像有人在暗处观察，紧张感更强。", effectEn: "Feels like hidden surveillance with stronger tension.", shot: "medium", movement: "static", proPlusIds: ["paranoia_peek", "reveal_pan"] },
-  { id: "hero_entry", nameZh: "英雄出场", nameEn: "Hero Entry", effectZh: "人物气场更强，适合登场和压迫感。", effectEn: "Boosts character presence for entrances and dominance.", shot: "medium", movement: "slow_push_in", proPlusIds: ["freeze_then_push"] },
-  { id: "dream_memory", nameZh: "梦境回忆", nameEn: "Dream Memory", effectZh: "漂浮、不稳定，适合回忆和心理片段。", effectEn: "Floating and unstable for memory fragments.", shot: "wide", movement: "slow_pull_out", proPlusIds: ["dream_drift", "memory_palace"] },
-  { id: "truth_reveal", nameZh: "顿悟真相", nameEn: "Truth Reveal", effectZh: "真相成立瞬间更有心理冲击。", effectEn: "Adds psychological shock to the realization moment.", shot: "close", movement: "slow_push_in", proPlusIds: ["dolly_zoom"] },
-  { id: "premium_commercial", nameZh: "高级广告质感", nameEn: "Premium Commercial", effectZh: "更精致、更高级，适合品牌和产品展示。", effectEn: "Refined premium feel for brand and product films.", shot: "insert_closeup", movement: "orbit", proPlusIds: ["glass_refraction"] },
-  { id: "character_trail", nameZh: "人物尾随", nameEn: "Character Trail", effectZh: "代入感强，适合进入、探索、跟人物走。", effectEn: "Immersive following shot for movement through space.", shot: "medium", movement: "handheld", proPlusIds: ["third_person_tail"] },
-  { id: "rhythm_transition", nameZh: "节奏转场", nameEn: "Rhythm Transition", effectZh: "节奏明显，适合短视频推进和信息点切换。", effectEn: "Strong pacing for short-form momentum and transitions.", shot: "medium", movement: "pan_right", proPlusIds: ["whip_pan", "match_cut"] },
-  { id: "relationship_standoff", nameZh: "关系对峙", nameEn: "Relationship Standoff", effectZh: "人物关系紧张，压迫感更低更重。", effectEn: "Builds pressure and tension between characters.", shot: "over_shoulder", movement: "static", proPlusIds: ["reaction_push"] },
-  { id: "first_person_impact", nameZh: "第一人称冲击", nameEn: "First-Person Impact", effectZh: "代入强、速度快，适合冲刺和惊险片段。", effectEn: "Strong immersion and speed for chase or danger beats.", shot: "pov", movement: "handheld", proPlusIds: ["first_person_rush"] },
-  { id: "mystery_reveal", nameZh: "神秘揭示", nameEn: "Mystery Reveal", effectZh: "信息一点点露出来，适合剧情揭晓。", effectEn: "Gradually reveals information for mystery beats.", shot: "medium", movement: "pan_right", proPlusIds: ["smoke_manifest"] }
+  { id: "steady_dialogue", nameZh: "平稳对话", nameEn: "Steady Dialogue", effectZh: "稳定、自然，适合双人交流和剧情对白。", effectEn: "Stable and natural for two-person dialogue scenes.", shot: "over_shoulder", movement: "static", proPlusIds: ["reverse_angle"], transitionType: "reverse_angle", time: "day", keyDir: "top_left", mood: "warm", lightingProfileIds: ["natural_skin_readability"] },
+  { id: "emotion_push", nameZh: "情绪逼近", nameEn: "Emotion Push", effectZh: "情绪越来越近，适合人物内心变化。", effectEn: "Gradually intensifies emotion and inner focus.", shot: "close", movement: "slow_push_in", proPlusIds: ["sudden_realization"], transitionType: "cut", time: "blue_hour", keyDir: "top_left", mood: "cinematic", lightingProfileIds: ["natural_skin_readability"] },
+  { id: "suspense_watch", nameZh: "悬疑窥视", nameEn: "Suspense Watch", effectZh: "像有人在暗处观察，紧张感更强。", effectEn: "Feels like hidden surveillance with stronger tension.", shot: "medium", movement: "static", proPlusIds: ["paranoia_peek", "reveal_pan"], transitionType: "same_space_shift", time: "night", keyDir: "backlight", mood: "mysterious", lightingProfileIds: ["low_key_edge_separation"] },
+  { id: "hero_entry", nameZh: "英雄出场", nameEn: "Hero Entry", effectZh: "人物气场更强，适合登场和压迫感。", effectEn: "Boosts character presence for entrances and dominance.", shot: "medium", movement: "slow_push_in", proPlusIds: ["freeze_then_push"], transitionType: "cut", time: "sunset", keyDir: "rim_light", mood: "cinematic", lightingProfileIds: ["rim_scale_separation"] },
+  { id: "dream_memory", nameZh: "梦境回忆", nameEn: "Dream Memory", effectZh: "漂浮、不稳定，适合回忆和心理片段。", effectEn: "Floating and unstable for memory fragments.", shot: "wide", movement: "slow_pull_out", proPlusIds: ["dream_drift", "memory_palace"], transitionType: "dissolve", time: "blue_hour", keyDir: "backlight", mood: "cold", lightingProfileIds: ["soft_layered_breathing"] },
+  { id: "truth_reveal", nameZh: "顿悟真相", nameEn: "Truth Reveal", effectZh: "真相成立瞬间更有心理冲击。", effectEn: "Adds psychological shock to the realization moment.", shot: "close", movement: "slow_push_in", proPlusIds: ["dolly_zoom"], transitionType: "match_cut", time: "night", keyDir: "top_left", mood: "mysterious", lightingProfileIds: ["low_key_edge_separation"] },
+  { id: "premium_commercial", nameZh: "高级广告质感", nameEn: "Premium Commercial", effectZh: "更精致、更高级，适合品牌和产品展示。", effectEn: "Refined premium feel for brand and product films.", shot: "insert_closeup", movement: "orbit", proPlusIds: ["glass_refraction"], transitionType: "dissolve", time: "golden_hour", keyDir: "rim_light", mood: "bright", lightingProfileIds: ["premium_focal_highlights"] },
+  { id: "character_trail", nameZh: "人物尾随", nameEn: "Character Trail", effectZh: "代入感强，适合进入、探索、跟人物走。", effectEn: "Immersive following shot for movement through space.", shot: "medium", movement: "handheld", proPlusIds: ["third_person_tail"], transitionType: "camera_continues", time: "day", keyDir: "top_right", mood: "cinematic", lightingProfileIds: ["action_path_readability"] },
+  { id: "rhythm_transition", nameZh: "节奏转场", nameEn: "Rhythm Transition", effectZh: "节奏明显，适合短视频推进和信息点切换。", effectEn: "Strong pacing for short-form momentum and transitions.", shot: "medium", movement: "pan_right", proPlusIds: ["whip_pan", "match_cut"], transitionType: "match_cut", time: "night", keyDir: "rim_light", mood: "cinematic", lightingProfileIds: ["premium_focal_highlights"] },
+  { id: "relationship_standoff", nameZh: "关系对峙", nameEn: "Relationship Standoff", effectZh: "人物关系紧张，压迫感更低更重。", effectEn: "Builds pressure and tension between characters.", shot: "over_shoulder", movement: "static", proPlusIds: ["reaction_push"], transitionType: "reverse_angle", time: "night", keyDir: "backlight", mood: "mysterious", lightingProfileIds: ["low_key_edge_separation"] },
+  { id: "first_person_impact", nameZh: "第一人称冲击", nameEn: "First-Person Impact", effectZh: "代入强、速度快，适合冲刺和惊险片段。", effectEn: "Strong immersion and speed for chase or danger beats.", shot: "pov", movement: "handheld", proPlusIds: ["first_person_rush"], transitionType: "cut", time: "day", keyDir: "top_right", mood: "bright", lightingProfileIds: ["action_path_readability"] },
+  { id: "mystery_reveal", nameZh: "神秘揭示", nameEn: "Mystery Reveal", effectZh: "信息一点点露出来，适合剧情揭晓。", effectEn: "Gradually reveals information for mystery beats.", shot: "medium", movement: "pan_right", proPlusIds: ["smoke_manifest"], transitionType: "same_space_shift", time: "night", keyDir: "backlight", mood: "mysterious", lightingProfileIds: ["low_key_edge_separation"] }
 ];
 
 export const IMAGE_CLASSIC_MODES: ImageClassicMode[] = [
-  { id: "poster_center", nameZh: "海报式中心主体", nameEn: "Poster Center", effectZh: "主体明确，视觉中心稳定，适合海报和主视觉。", effectEn: "Stable center-weighted hero framing for poster-like visuals.", shot: "medium", imageEffectIds: ["center_pressure", "clean_layering"] },
-  { id: "premium_product", nameZh: "高级产品质感", nameEn: "Premium Product", effectZh: "产品更精致、更高级，适合商业展示。", effectEn: "Refined premium look for product and commercial stills.", shot: "insert_closeup", imageEffectIds: ["material_focus", "glass_glow"] },
-  { id: "duo_tension", nameZh: "双人关系张力", nameEn: "Duo Tension", effectZh: "两个人物关系更紧，适合对峙和情绪戏。", effectEn: "Builds visible tension between two subjects.", shot: "medium", imageEffectIds: ["left_right_standoff", "eyeline_tension"] },
-  { id: "lonely_env", nameZh: "孤独环境感", nameEn: "Lonely Environment", effectZh: "人物被环境包围，氛围感更强。", effectEn: "Lets environment surround the character for stronger atmosphere.", shot: "wide", imageEffectIds: ["environment_wrap", "deep_space"] },
-  { id: "cinematic_still", nameZh: "电影剧照感", nameEn: "Cinematic Still", effectZh: "像电影定格，层次更完整。", effectEn: "Feels like a cinematic still with stronger layering.", shot: "medium", imageEffectIds: ["foreground_occlusion", "depth_split", "cinematic_air"] },
-  { id: "dream_portrait", nameZh: "梦境肖像", nameEn: "Dream Portrait", effectZh: "更漂浮、更轻梦境感，适合人物海报。", effectEn: "Dreamlike portrait mood with softer surreal emphasis.", shot: "close", imageEffectIds: ["dream_haze", "silhouette_rim"] }
+  { id: "poster_center", nameZh: "海报式中心主体", nameEn: "Poster Center", effectZh: "主体明确，视觉中心稳定，适合海报和主视觉。", effectEn: "Stable center-weighted hero framing for poster-like visuals.", shot: "medium", imageEffectIds: ["center_pressure", "clean_layering"], time: "day", keyDir: "top_left", mood: "bright", lightingProfileIds: ["natural_skin_readability"] },
+  { id: "premium_product", nameZh: "高级产品质感", nameEn: "Premium Product", effectZh: "产品更精致、更高级，适合商业展示。", effectEn: "Refined premium look for product and commercial stills.", shot: "insert_closeup", imageEffectIds: ["material_focus", "glass_glow"], time: "golden_hour", keyDir: "rim_light", mood: "bright", lightingProfileIds: ["premium_focal_highlights"] },
+  { id: "duo_tension", nameZh: "双人关系张力", nameEn: "Duo Tension", effectZh: "两个人物关系更紧，适合对峙和情绪戏。", effectEn: "Builds visible tension between two subjects.", shot: "medium", imageEffectIds: ["left_right_standoff", "eyeline_tension"], time: "night", keyDir: "backlight", mood: "mysterious", lightingProfileIds: ["low_key_edge_separation"] },
+  { id: "lonely_env", nameZh: "孤独环境感", nameEn: "Lonely Environment", effectZh: "人物被环境包围，氛围感更强。", effectEn: "Lets environment surround the character for stronger atmosphere.", shot: "wide", imageEffectIds: ["environment_wrap", "depth_split"], time: "blue_hour", keyDir: "top_right", mood: "cold", lightingProfileIds: ["soft_layered_breathing"] },
+  { id: "cinematic_still", nameZh: "电影剧照感", nameEn: "Cinematic Still", effectZh: "像电影定格，层次更完整。", effectEn: "Feels like a cinematic still with stronger layering.", shot: "medium", imageEffectIds: ["foreground_occlusion", "depth_split", "cinematic_air"], time: "sunset", keyDir: "rim_light", mood: "cinematic", lightingProfileIds: ["rim_scale_separation"] },
+  { id: "dream_portrait", nameZh: "梦境肖像", nameEn: "Dream Portrait", effectZh: "更漂浮、更轻梦境感，适合人物海报。", effectEn: "Dreamlike portrait mood with softer surreal emphasis.", shot: "close", imageEffectIds: ["dream_haze", "silhouette_rim"], time: "blue_hour", keyDir: "backlight", mood: "cold", lightingProfileIds: ["soft_layered_breathing"] }
 ];
 
 export const IMAGE_PRO_EFFECTS: ImageProEffect[] = [
@@ -113,6 +123,10 @@ function writeMarker(notes: string, mark: string, value: string) {
   const next = lines.filter((line) => !line.trim().toLowerCase().startsWith(mark));
   if (value.trim()) next.push(`${mark} ${value.trim()}`);
   return next.join("\n");
+}
+
+function normalizeClassicModeId(map: Map<string, unknown>, modeId: string) {
+  return map.has(modeId) ? modeId : "";
 }
 
 function filterValidImageEffects(ids: string[]) {
@@ -192,6 +206,16 @@ export function getImageProEffect(id: string) {
   return IMAGE_EFFECT_MAP.get(id) ?? null;
 }
 
+export function getVideoClassicMode(id: string | null | undefined) {
+  if (!id) return null;
+  return VIDEO_CLASSIC_MAP.get(id) ?? null;
+}
+
+export function getImageClassicMode(id: string | null | undefined) {
+  if (!id) return null;
+  return IMAGE_CLASSIC_MAP.get(id) ?? null;
+}
+
 export function parseVideoClassicModeId(notes: string) {
   const id = readMarker(notes, VIDEO_CLASSIC_MARK);
   return VIDEO_CLASSIC_MAP.has(id) ? id : null;
@@ -217,6 +241,10 @@ export function applyVideoClassicMode(notes: string, shot: string, movement: str
   return next;
 }
 
+export function setVideoClassicModeMarker(notes: string, modeId: string) {
+  return writeMarker(notes, VIDEO_CLASSIC_MARK, normalizeClassicModeId(VIDEO_CLASSIC_MAP, modeId));
+}
+
 export function syncVideoClassicMode(notes: string, shot: string, movement: string, proPlusIds: string[]) {
   const normalized = normalizeVideoProPlus(shot, movement, proPlusIds);
   let next = applyProMotionSelection(notes, { basicId: null, proPlusIds: normalized });
@@ -229,6 +257,10 @@ export function applyImageClassicMode(notes: string, shot: string, modeId: strin
   let next = applyImageProEffects(notes, mode?.imageEffectIds ?? []);
   next = writeMarker(next, IMAGE_CLASSIC_MARK, mode?.id ?? "");
   return next;
+}
+
+export function setImageClassicModeMarker(notes: string, modeId: string) {
+  return writeMarker(notes, IMAGE_CLASSIC_MARK, normalizeClassicModeId(IMAGE_CLASSIC_MAP, modeId));
 }
 
 export function syncImageClassicMode(notes: string, shot: string, effectIds: string[]) {
@@ -295,6 +327,12 @@ export function beginnerCreativeTutorialBlocks(lang: Lang) {
       body: lang === "zh"
         ? "视频先定景别和运动，再补 PRO+；图片先定主体构图，再补专业图片效果。这样更快、更不容易冲突。"
         : "For video, set shot size and movement first, then add PRO+. For image, set framing first, then add professional image effects."
+    },
+    {
+      title: lang === "zh" ? "创作输入放哪里" : "Where Creative Input Lives",
+      body: lang === "zh"
+        ? "Quick 工作台的两段原始文字会进入 Pro 左栏的“创作输入”。它们保留原始意图，给对象命名和提示词编译做参考，但不会直接覆盖分镜结构。"
+        : "The two raw lines from Quick Workspace are carried into Pro under Creative Input. They preserve upstream intent for object naming and prompt compilation without overriding storyboard structure."
     }
   ];
 }
@@ -306,6 +344,12 @@ export function advancedCreativeTutorialBlocks(lang: Lang) {
       body: lang === "zh"
         ? "像推进、拉远、平移、摇镜、跟拍、环绕这些都属于基础层。PRO+ 只负责叙事语法、心理效果、转场和超现实视觉。"
         : "Push, pull, pan, tilt, follow, and orbit belong to the base layer. PRO+ is reserved for grammar, psychology, transitions, and surreal effects."
+    },
+    {
+      title: lang === "zh" ? "导演包和镜头语言怎么分工" : "Director Packs vs Shot Language",
+      body: lang === "zh"
+        ? "导演级风格包负责整体镜头、光照、转场和节奏偏向；镜头语言和专业图片效果负责局部语法。先定导演包，再补局部语言，系统会更稳定。"
+        : "Directing Packs shape the overall camera, lighting, transition, and rhythm bias. Shot Language and professional image effects handle local grammar. Pick the pack first, then add local language."
     },
     {
       title: lang === "zh" ? "冲突项不隐藏，只变灰" : "Conflicts stay visible but dimmed",

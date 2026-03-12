@@ -1,0 +1,4 @@
+interface:
+  display_name: "Security API Hardening"
+  short_description: "Audit auth, schema, CORS and rate-limit on APIs."
+  default_prompt: "Run API hardening checks and return concrete fixes."

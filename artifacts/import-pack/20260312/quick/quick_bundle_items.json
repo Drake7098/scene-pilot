@@ -1,0 +1,1099 @@
+[
+  {
+    "id": "quick_img_brand_team_001",
+    "title": "品牌海报-团队合影",
+    "mediaType": "image",
+    "firstInput": "科技品牌发布会海报，三位团队成员站台，主视觉要干净有质感",
+    "secondInput": "主讲人居中更大，左右两人形成关系，背景保留品牌灯牌和发布会舞台层次",
+    "ratio": "16:9",
+    "durationSec": 6,
+    "firstLayerSelections": {
+      "image": {
+        "frameType": "multi_subject",
+        "compositionFocus": "relation_expression",
+        "styleGoal": "commercial"
+      },
+      "video": {
+        "shotStructure": "single_shot",
+        "expressionFocus": "character_action",
+        "styleGoal": "cinematic"
+      }
+    },
+    "secondLayerSelections": {
+      "image": {
+        "subjectCount": "3",
+        "compositionPosition": "center",
+        "backgroundComplexity": "normal",
+        "subjectScale": "balanced"
+      },
+      "video": {
+        "shotCount": "1",
+        "mainScene": "indoor",
+        "continuityFocus": "identity",
+        "cameraMotion": "follow",
+        "sceneTransition": "same_space",
+        "shotGrammar": "cut"
+      }
+    },
+    "structureDraft": {
+      "mediaType": "image",
+      "primaryBrief": "科技品牌发布会海报，三位团队成员站台，主视觉要干净有质感",
+      "secondaryBrief": "主讲人居中更大，左右两人形成关系，背景保留品牌灯牌和发布会舞台层次",
+      "structureType": "multi_subject",
+      "objects": [
+        {
+          "id": "obj_1",
+          "name": "主讲人",
+          "type": "person",
+          "role": "primary",
+          "depth": "foreground",
+          "isPrimary": true
+        },
+        {
+          "id": "obj_2",
+          "name": "左侧团队成员",
+          "type": "person",
+          "role": "secondary",
+          "depth": "midground"
+        },
+        {
+          "id": "obj_3",
+          "name": "右侧团队成员",
+          "type": "person",
+          "role": "secondary",
+          "depth": "midground"
+        },
+        {
+          "id": "obj_4",
+          "name": "品牌灯牌与舞台屏",
+          "type": "environment",
+          "role": "environment",
+          "depth": "background"
+        }
+      ],
+      "scene": "品牌发布会舞台",
+      "sceneType": "indoor",
+      "spatialRelations": [
+        "主讲人居中且更大",
+        "两名成员分居左右形成三角关系",
+        "背景保留品牌灯牌与舞台层次"
+      ],
+      "focus": "团队关系清晰，品牌感强",
+      "relationMode": "left_right",
+      "emphasis": "三人关系 / 商业海报",
+      "compositionFocus": "relation_expression",
+      "styleGoal": "commercial",
+      "subjectScale": "balanced",
+      "composition": {
+        "subjectCount": 3,
+        "focusMode": "relation",
+        "framing": "center",
+        "backgroundDensity": "normal"
+      }
+    },
+    "updatedAt": 1773309454090,
+    "canvasDraft": {
+      "mediaType": "image",
+      "primaryBrief": "科技品牌发布会海报，三位团队成员站台，主视觉要干净有质感",
+      "secondaryBrief": "主讲人居中更大，左右两人形成关系，背景保留品牌灯牌和发布会舞台层次",
+      "structureType": "multi_subject",
+      "objects": [
+        {
+          "id": "obj_1",
+          "label": "主讲人",
+          "role": "primary",
+          "kind": "subject"
+        },
+        {
+          "id": "obj_2",
+          "label": "左侧团队成员",
+          "role": "secondary",
+          "kind": "subject"
+        },
+        {
+          "id": "obj_3",
+          "label": "右侧团队成员",
+          "role": "secondary",
+          "kind": "subject"
+        },
+        {
+          "id": "obj_4",
+          "label": "品牌灯牌与舞台屏",
+          "role": "environment",
+          "kind": "environment"
+        }
+      ],
+      "sceneType": "indoor",
+      "compositionFocus": "left_right",
+      "subjectCount": "3",
+      "backgroundDensity": "normal",
+      "relationMode": "left_right",
+      "emphasis": "三人关系 / 商业海报",
+      "draggableNodes": [
+        {
+          "id": "obj_1",
+          "label": "主讲人",
+          "role": "primary",
+          "kind": "subject",
+          "layer": 4,
+          "depth": "foreground",
+          "emphasis": "high",
+          "x": 50,
+          "y": 50,
+          "w": 28,
+          "h": 18
+        },
+        {
+          "id": "obj_2",
+          "label": "左侧团队成员",
+          "role": "secondary",
+          "kind": "subject",
+          "layer": 3,
+          "depth": "midground",
+          "emphasis": "medium",
+          "x": 24,
+          "y": 54,
+          "w": 18,
+          "h": 14
+        },
+        {
+          "id": "obj_3",
+          "label": "右侧团队成员",
+          "role": "secondary",
+          "kind": "subject",
+          "layer": 3,
+          "depth": "midground",
+          "emphasis": "medium",
+          "x": 76,
+          "y": 54,
+          "w": 18,
+          "h": 14
+        },
+        {
+          "id": "obj_4",
+          "label": "品牌灯牌与舞台屏",
+          "role": "environment",
+          "kind": "environment",
+          "layer": 2,
+          "depth": "background",
+          "emphasis": "low",
+          "x": 24,
+          "y": 54,
+          "w": 18,
+          "h": 14
+        }
+      ],
+      "sceneZones": [
+        {
+          "id": "bg",
+          "label": "后景",
+          "depth": "background",
+          "x": 4,
+          "y": 6,
+          "w": 92,
+          "h": 24,
+          "tone": "subject"
+        },
+        {
+          "id": "mid",
+          "label": "中景",
+          "depth": "midground",
+          "x": 4,
+          "y": 31,
+          "w": 92,
+          "h": 32,
+          "tone": "subject"
+        },
+        {
+          "id": "fg",
+          "label": "前景",
+          "depth": "foreground",
+          "x": 4,
+          "y": 64,
+          "w": 92,
+          "h": 24,
+          "tone": "subject"
+        }
+      ],
+      "compileHints": [
+        "团队关系清晰，品牌感强",
+        "主讲人居中且更大",
+        "两名成员分居左右形成三角关系",
+        "背景保留品牌灯牌与舞台层次",
+        "scene:品牌发布会舞台",
+        "background:normal",
+        "relation:left_right"
+      ]
+    },
+    "prompt": "请生成一张专业级静帧，画面任务是科技品牌发布会海报，三位团队成员站台，主视觉要干净有质感，主讲人居中更大，左右两人形成关系，背景保留品牌灯牌和发布会舞台层次。 画幅 16:9，结构 多主体关系构图，场景 室内场景，构图重点 左右关系表达，关系表达 左右分布关系，背景密度 正常，风格目标 电影感。 关键对象 主讲人、左侧团队成员、右侧团队成员，环境元素: 品牌灯牌与舞台屏。 中景主视角，主体清晰、关系明确，保持主体与空间层次清晰，避免新增无关元素与错误解剖。"
+  },
+  {
+    "id": "quick_img_ecom_beauty_002",
+    "title": "电商美妆组合图",
+    "mediaType": "image",
+    "firstInput": "电商首页美妆主图，护肤瓶、礼盒和模特手部同框，强调高级感",
+    "secondInput": "产品在中前景更突出，手部作为辅助动作，礼盒在后侧补层次，背景简洁但不空",
+    "ratio": "1:1",
+    "durationSec": 6,
+    "firstLayerSelections": {
+      "image": {
+        "frameType": "product_object",
+        "compositionFocus": "product_showcase",
+        "styleGoal": "commercial"
+      },
+      "video": {
+        "shotStructure": "single_shot",
+        "expressionFocus": "character_action",
+        "styleGoal": "advertising"
+      }
+    },
+    "secondLayerSelections": {
+      "image": {
+        "subjectCount": "3",
+        "compositionPosition": "center",
+        "backgroundComplexity": "clean",
+        "subjectScale": "tight"
+      },
+      "video": {
+        "shotCount": "1",
+        "mainScene": "indoor",
+        "continuityFocus": "style",
+        "cameraMotion": "static",
+        "sceneTransition": "same_space",
+        "shotGrammar": "insert_closeup"
+      }
+    },
+    "structureDraft": {
+      "mediaType": "image",
+      "primaryBrief": "电商首页美妆主图，护肤瓶、礼盒和模特手部同框，强调高级感",
+      "secondaryBrief": "产品在中前景更突出，手部作为辅助动作，礼盒在后侧补层次，背景简洁但不空",
+      "structureType": "product_object",
+      "objects": [
+        {
+          "id": "obj_1",
+          "name": "护肤瓶主体",
+          "type": "prop",
+          "role": "primary",
+          "depth": "foreground",
+          "isPrimary": true
+        },
+        {
+          "id": "obj_2",
+          "name": "模特手部",
+          "type": "person",
+          "role": "support",
+          "depth": "midground"
+        },
+        {
+          "id": "obj_3",
+          "name": "礼盒",
+          "type": "prop",
+          "role": "secondary",
+          "depth": "midground"
+        },
+        {
+          "id": "obj_4",
+          "name": "品牌背景板",
+          "type": "environment",
+          "role": "environment",
+          "depth": "background"
+        }
+      ],
+      "scene": "电商影棚产品台",
+      "sceneType": "product_display",
+      "spatialRelations": [
+        "护肤瓶居中偏前",
+        "手部从侧边进入形成动作辅助",
+        "礼盒位于后侧形成体块层次"
+      ],
+      "focus": "产品高级质感与购买转化",
+      "relationMode": "subject_environment",
+      "emphasis": "产品展示 / 细节质感",
+      "compositionFocus": "product_showcase",
+      "styleGoal": "commercial",
+      "subjectScale": "tight",
+      "composition": {
+        "subjectCount": 3,
+        "focusMode": "subject",
+        "framing": "center",
+        "backgroundDensity": "clean"
+      }
+    },
+    "updatedAt": 1773309454091,
+    "canvasDraft": {
+      "mediaType": "image",
+      "primaryBrief": "电商首页美妆主图，护肤瓶、礼盒和模特手部同框，强调高级感",
+      "secondaryBrief": "产品在中前景更突出，手部作为辅助动作，礼盒在后侧补层次，背景简洁但不空",
+      "structureType": "product_object",
+      "objects": [
+        {
+          "id": "obj_1",
+          "label": "护肤瓶主体",
+          "role": "primary",
+          "kind": "subject"
+        },
+        {
+          "id": "obj_2",
+          "label": "模特手部",
+          "role": "support",
+          "kind": "support"
+        },
+        {
+          "id": "obj_3",
+          "label": "礼盒",
+          "role": "secondary",
+          "kind": "subject"
+        },
+        {
+          "id": "obj_4",
+          "label": "品牌背景板",
+          "role": "environment",
+          "kind": "environment"
+        }
+      ],
+      "sceneType": "product_display",
+      "compositionFocus": "center",
+      "subjectCount": "3",
+      "backgroundDensity": "clean",
+      "relationMode": "subject_environment",
+      "emphasis": "产品展示 / 细节质感",
+      "draggableNodes": [
+        {
+          "id": "obj_1",
+          "label": "护肤瓶主体",
+          "role": "primary",
+          "kind": "subject",
+          "layer": 4,
+          "depth": "foreground",
+          "emphasis": "high",
+          "x": 50,
+          "y": 54,
+          "w": 28,
+          "h": 18
+        },
+        {
+          "id": "obj_2",
+          "label": "模特手部",
+          "role": "support",
+          "kind": "support",
+          "layer": 3,
+          "depth": "midground",
+          "emphasis": "low",
+          "x": 78,
+          "y": 38,
+          "w": 18,
+          "h": 12
+        },
+        {
+          "id": "obj_3",
+          "label": "礼盒",
+          "role": "secondary",
+          "kind": "subject",
+          "layer": 3,
+          "depth": "midground",
+          "emphasis": "medium",
+          "x": 78,
+          "y": 48,
+          "w": 18,
+          "h": 12
+        },
+        {
+          "id": "obj_4",
+          "label": "品牌背景板",
+          "role": "environment",
+          "kind": "environment",
+          "layer": 2,
+          "depth": "background",
+          "emphasis": "low",
+          "x": 78,
+          "y": 58,
+          "w": 18,
+          "h": 12
+        }
+      ],
+      "sceneZones": [
+        {
+          "id": "bg",
+          "label": "后景",
+          "depth": "background",
+          "x": 4,
+          "y": 6,
+          "w": 92,
+          "h": 24,
+          "tone": "product"
+        },
+        {
+          "id": "mid",
+          "label": "中景",
+          "depth": "midground",
+          "x": 4,
+          "y": 31,
+          "w": 92,
+          "h": 32,
+          "tone": "product"
+        },
+        {
+          "id": "fg",
+          "label": "前景",
+          "depth": "foreground",
+          "x": 4,
+          "y": 64,
+          "w": 92,
+          "h": 24,
+          "tone": "product"
+        }
+      ],
+      "compileHints": [
+        "产品高级质感与购买转化",
+        "护肤瓶居中偏前",
+        "手部从侧边进入形成动作辅助",
+        "礼盒位于后侧形成体块层次",
+        "scene:电商影棚产品台",
+        "background:clean",
+        "relation:subject_environment"
+      ]
+    },
+    "prompt": "请生成一张专业级静帧，画面任务是电商首页美妆主图，护肤瓶、礼盒和模特手部同框，强调高级感，产品在中前景更突出，手部作为辅助动作，礼盒在后侧补层次，背景简洁但不空。 画幅 1:1，结构 产品展示构图，场景 产品展示场景，构图重点 主体集中表达，关系表达 主体与环境关系，背景密度 干净，风格目标 电影感。 关键对象 护肤瓶主体、礼盒，环境元素: 品牌背景板。 中近景静态机位，重点强化材质与轮廓细节，保持主体与空间层次清晰，避免新增无关元素与错误解剖。"
+  },
+  {
+    "id": "quick_vid_clinic_consult_003",
+    "title": "医疗门诊咨询流程",
+    "mediaType": "video",
+    "firstInput": "门诊咨询短视频，医生、患者和家属三方沟通，过程要连贯可信",
+    "secondInput": "先全景建立关系，再到医生解释，最后患者点头确认，保持身份和光线一致",
+    "ratio": "16:9",
+    "durationSec": 15,
+    "firstLayerSelections": {
+      "image": {
+        "frameType": "multi_subject",
+        "compositionFocus": "relation_expression",
+        "styleGoal": "realistic"
+      },
+      "video": {
+        "shotStructure": "continuous",
+        "expressionFocus": "relation_change",
+        "styleGoal": "realistic"
+      }
+    },
+    "secondLayerSelections": {
+      "image": {
+        "subjectCount": "3",
+        "compositionPosition": "depth",
+        "backgroundComplexity": "normal",
+        "subjectScale": "balanced"
+      },
+      "video": {
+        "shotCount": "4",
+        "mainScene": "indoor",
+        "continuityFocus": "identity",
+        "cameraMotion": "follow",
+        "sceneTransition": "same_space",
+        "shotGrammar": "over_shoulder"
+      }
+    },
+    "structureDraft": {
+      "mediaType": "video",
+      "primaryBrief": "门诊咨询短视频，医生、患者和家属三方沟通，过程要连贯可信",
+      "secondaryBrief": "先全景建立关系，再到医生解释，最后患者点头确认，保持身份和光线一致",
+      "structureType": "continuous",
+      "scene": "门诊诊室",
+      "objects": [
+        {
+          "id": "obj_1",
+          "name": "医生",
+          "type": "person",
+          "role": "primary",
+          "depth": "midground",
+          "isPrimary": true
+        },
+        {
+          "id": "obj_2",
+          "name": "患者",
+          "type": "person",
+          "role": "secondary",
+          "depth": "midground"
+        },
+        {
+          "id": "obj_3",
+          "name": "家属",
+          "type": "person",
+          "role": "support",
+          "depth": "midground"
+        },
+        {
+          "id": "obj_4",
+          "name": "诊疗桌与病历",
+          "type": "prop",
+          "role": "environment",
+          "depth": "foreground"
+        }
+      ],
+      "shotCount": 4,
+      "mainScene": "indoor",
+      "continuityFocus": "identity",
+      "rhythm": "switch",
+      "sceneTransitions": "same_space",
+      "cameraMotion": "follow",
+      "expressionFocus": "relation_change",
+      "styleGoal": "realistic",
+      "shots": [
+        {
+          "id": "shot_1",
+          "index": 1,
+          "title": "诊室全景建立",
+          "durationSec": 4,
+          "sceneLabel": "门诊诊室",
+          "objectIds": [
+            "obj_1",
+            "obj_2",
+            "obj_3",
+            "obj_4"
+          ],
+          "transitionFromPrev": "none",
+          "emphasis": "建立三方关系"
+        },
+        {
+          "id": "shot_2",
+          "index": 2,
+          "title": "医生解释方案",
+          "durationSec": 4,
+          "sceneLabel": "诊疗桌近中景",
+          "objectIds": [
+            "obj_1",
+            "obj_2",
+            "obj_4"
+          ],
+          "transitionFromPrev": "same_space",
+          "emphasis": "信息沟通清晰"
+        },
+        {
+          "id": "shot_3",
+          "index": 3,
+          "title": "家属提问与确认",
+          "durationSec": 3,
+          "sceneLabel": "侧向过肩",
+          "objectIds": [
+            "obj_1",
+            "obj_2",
+            "obj_3"
+          ],
+          "transitionFromPrev": "same_space",
+          "emphasis": "关系变化"
+        },
+        {
+          "id": "shot_4",
+          "index": 4,
+          "title": "患者点头结束",
+          "durationSec": 4,
+          "sceneLabel": "中近景收束",
+          "objectIds": [
+            "obj_2",
+            "obj_1"
+          ],
+          "transitionFromPrev": "same_space",
+          "emphasis": "结论确认"
+        }
+      ],
+      "continuity": [
+        "身份一致",
+        "光线一致",
+        "动作与对话连贯",
+        "医疗场景真实可信"
+      ]
+    },
+    "updatedAt": 1773309454092,
+    "canvasDraft": {
+      "mediaType": "video",
+      "primaryBrief": "门诊咨询短视频，医生、患者和家属三方沟通，过程要连贯可信",
+      "secondaryBrief": "先全景建立关系，再到医生解释，最后患者点头确认，保持身份和光线一致",
+      "structureType": "continuous",
+      "shotCount": 4,
+      "shots": [
+        {
+          "id": "shot_1",
+          "index": 1,
+          "title": "诊室全景建立",
+          "summary": "建立三方关系",
+          "transitionFromPrev": "none",
+          "emphasis": "建立三方关系",
+          "sceneLabel": "门诊诊室",
+          "objectIds": [
+            "obj_1",
+            "obj_2",
+            "obj_3",
+            "obj_4"
+          ]
+        },
+        {
+          "id": "shot_2",
+          "index": 2,
+          "title": "医生解释方案",
+          "summary": "信息沟通清晰",
+          "transitionFromPrev": "same_space",
+          "emphasis": "信息沟通清晰",
+          "sceneLabel": "诊疗桌近中景",
+          "objectIds": [
+            "obj_1",
+            "obj_2",
+            "obj_4"
+          ]
+        },
+        {
+          "id": "shot_3",
+          "index": 3,
+          "title": "家属提问与确认",
+          "summary": "关系变化",
+          "transitionFromPrev": "same_space",
+          "emphasis": "关系变化",
+          "sceneLabel": "侧向过肩",
+          "objectIds": [
+            "obj_1",
+            "obj_2",
+            "obj_3"
+          ]
+        },
+        {
+          "id": "shot_4",
+          "index": 4,
+          "title": "患者点头结束",
+          "summary": "结论确认",
+          "transitionFromPrev": "same_space",
+          "emphasis": "结论确认",
+          "sceneLabel": "中近景收束",
+          "objectIds": [
+            "obj_2",
+            "obj_1"
+          ]
+        }
+      ],
+      "keyObjects": [
+        {
+          "id": "obj_1",
+          "label": "医生",
+          "role": "primary",
+          "appearsInShotIds": [
+            "shot_1",
+            "shot_2",
+            "shot_3",
+            "shot_4"
+          ]
+        },
+        {
+          "id": "obj_2",
+          "label": "患者",
+          "role": "secondary",
+          "appearsInShotIds": [
+            "shot_1",
+            "shot_2",
+            "shot_3",
+            "shot_4"
+          ]
+        },
+        {
+          "id": "obj_3",
+          "label": "家属",
+          "role": "support",
+          "appearsInShotIds": [
+            "shot_1",
+            "shot_3"
+          ]
+        },
+        {
+          "id": "obj_4",
+          "label": "诊疗桌与病历",
+          "role": "environment",
+          "appearsInShotIds": [
+            "shot_1",
+            "shot_2"
+          ]
+        }
+      ],
+      "mainScene": "indoor",
+      "continuityFocus": "identity",
+      "rhythm": "switch",
+      "sceneTransitions": "same_space",
+      "storyboardNodes": [
+        {
+          "id": "node_shot_1",
+          "shotId": "shot_1",
+          "x": 6,
+          "y": 38,
+          "w": 18,
+          "h": 24
+        },
+        {
+          "id": "node_shot_2",
+          "shotId": "shot_2",
+          "x": 29,
+          "y": 38,
+          "w": 18,
+          "h": 24
+        },
+        {
+          "id": "node_shot_3",
+          "shotId": "shot_3",
+          "x": 52,
+          "y": 38,
+          "w": 18,
+          "h": 24
+        },
+        {
+          "id": "node_shot_4",
+          "shotId": "shot_4",
+          "x": 75,
+          "y": 38,
+          "w": 18,
+          "h": 24
+        }
+      ],
+      "compileHints": [
+        "身份一致",
+        "光线一致",
+        "动作与对话连贯",
+        "医疗场景真实可信",
+        "scene:门诊诊室",
+        "main_scene:indoor",
+        "camera_motion:follow",
+        "rhythm:switch"
+      ]
+    },
+    "prompt": "请生成一个专业级视频片段，核心任务是门诊咨询短视频，医生、患者和家属三方沟通，过程要连贯可信，先全景建立关系，再到医生解释，最后患者点头确认，保持身份和光线一致。 画幅 16:9，镜头结构 连续镜头，镜头数量 4，主场景 室内，连续性重点 人物身份一致，风格目标 电影感。 分镜计划 镜头1 诊室全景建立；镜头2 医生解释方案；镜头3 家属提问与确认；镜头4 患者点头结束。 关键对象 医生、患者、家属、诊疗桌与病历。 运镜 跟随主体，镜头语法 切镜，场景衔接 同空间衔接。 保持人物身份、服装与空间方位一致，动作动机连贯，不新增无依据剧情。"
+  },
+  {
+    "id": "quick_vid_factory_training_004",
+    "title": "工厂安全培训演示",
+    "mediaType": "video",
+    "firstInput": "制造业安全培训短片，班组长、操作员和设备三方互动，强调规范流程",
+    "secondInput": "开场看全场，随后跟拍操作步骤，最后给到合规结果，镜头稳定推进",
+    "ratio": "16:9",
+    "durationSec": 15,
+    "firstLayerSelections": {
+      "image": {
+        "frameType": "environment",
+        "compositionFocus": "environment_wrap",
+        "styleGoal": "realistic"
+      },
+      "video": {
+        "shotStructure": "multi_scene",
+        "expressionFocus": "scene_progression",
+        "styleGoal": "advertising"
+      }
+    },
+    "secondLayerSelections": {
+      "image": {
+        "subjectCount": "3",
+        "compositionPosition": "depth",
+        "backgroundComplexity": "strong_environment",
+        "subjectScale": "balanced"
+      },
+      "video": {
+        "shotCount": "5",
+        "mainScene": "complex",
+        "continuityFocus": "scene",
+        "cameraMotion": "push",
+        "sceneTransition": "location_switch",
+        "shotGrammar": "cut"
+      }
+    },
+    "structureDraft": {
+      "mediaType": "video",
+      "primaryBrief": "制造业安全培训短片，班组长、操作员和设备三方互动，强调规范流程",
+      "secondaryBrief": "开场看全场，随后跟拍操作步骤，最后给到合规结果，镜头稳定推进",
+      "structureType": "multi_scene",
+      "scene": "工厂产线与安全区",
+      "objects": [
+        {
+          "id": "obj_1",
+          "name": "班组长",
+          "type": "person",
+          "role": "primary",
+          "depth": "midground",
+          "isPrimary": true
+        },
+        {
+          "id": "obj_2",
+          "name": "操作员",
+          "type": "person",
+          "role": "secondary",
+          "depth": "midground"
+        },
+        {
+          "id": "obj_3",
+          "name": "设备产线",
+          "type": "environment",
+          "role": "environment",
+          "depth": "background"
+        },
+        {
+          "id": "obj_4",
+          "name": "安全警示牌",
+          "type": "prop",
+          "role": "support",
+          "depth": "foreground"
+        }
+      ],
+      "shotCount": 5,
+      "mainScene": "multi_scene",
+      "continuityFocus": "scene",
+      "rhythm": "push",
+      "sceneTransitions": "location_switch",
+      "cameraMotion": "push",
+      "expressionFocus": "scene_progression",
+      "styleGoal": "advertising",
+      "shots": [
+        {
+          "id": "shot_1",
+          "index": 1,
+          "title": "车间全景建立",
+          "durationSec": 3,
+          "sceneLabel": "产线全景",
+          "objectIds": [
+            "obj_1",
+            "obj_2",
+            "obj_3"
+          ],
+          "transitionFromPrev": "none",
+          "emphasis": "环境建立"
+        },
+        {
+          "id": "shot_2",
+          "index": 2,
+          "title": "班组长讲解",
+          "durationSec": 3,
+          "sceneLabel": "安全区中景",
+          "objectIds": [
+            "obj_1",
+            "obj_4"
+          ],
+          "transitionFromPrev": "location_switch",
+          "emphasis": "规范说明"
+        },
+        {
+          "id": "shot_3",
+          "index": 3,
+          "title": "操作员执行步骤",
+          "durationSec": 3,
+          "sceneLabel": "工位近中景",
+          "objectIds": [
+            "obj_2",
+            "obj_3",
+            "obj_4"
+          ],
+          "transitionFromPrev": "location_switch",
+          "emphasis": "动作流程"
+        },
+        {
+          "id": "shot_4",
+          "index": 4,
+          "title": "复核与确认",
+          "durationSec": 3,
+          "sceneLabel": "双人同框",
+          "objectIds": [
+            "obj_1",
+            "obj_2"
+          ],
+          "transitionFromPrev": "location_switch",
+          "emphasis": "关系协同"
+        },
+        {
+          "id": "shot_5",
+          "index": 5,
+          "title": "合规结果展示",
+          "durationSec": 3,
+          "sceneLabel": "合规看板",
+          "objectIds": [
+            "obj_1",
+            "obj_2",
+            "obj_4"
+          ],
+          "transitionFromPrev": "location_switch",
+          "emphasis": "结果收束"
+        }
+      ],
+      "continuity": [
+        "流程一致",
+        "设备位置稳定",
+        "人员身份不变",
+        "安全语义明确"
+      ]
+    },
+    "updatedAt": 1773309454092,
+    "canvasDraft": {
+      "mediaType": "video",
+      "primaryBrief": "制造业安全培训短片，班组长、操作员和设备三方互动，强调规范流程",
+      "secondaryBrief": "开场看全场，随后跟拍操作步骤，最后给到合规结果，镜头稳定推进",
+      "structureType": "multi_scene",
+      "shotCount": 5,
+      "shots": [
+        {
+          "id": "shot_1",
+          "index": 1,
+          "title": "车间全景建立",
+          "summary": "环境建立",
+          "transitionFromPrev": "none",
+          "emphasis": "环境建立",
+          "sceneLabel": "产线全景",
+          "objectIds": [
+            "obj_1",
+            "obj_2",
+            "obj_3"
+          ]
+        },
+        {
+          "id": "shot_2",
+          "index": 2,
+          "title": "班组长讲解",
+          "summary": "规范说明",
+          "transitionFromPrev": "location_switch",
+          "emphasis": "规范说明",
+          "sceneLabel": "安全区中景",
+          "objectIds": [
+            "obj_1",
+            "obj_4"
+          ]
+        },
+        {
+          "id": "shot_3",
+          "index": 3,
+          "title": "操作员执行步骤",
+          "summary": "动作流程",
+          "transitionFromPrev": "location_switch",
+          "emphasis": "动作流程",
+          "sceneLabel": "工位近中景",
+          "objectIds": [
+            "obj_2",
+            "obj_3",
+            "obj_4"
+          ]
+        },
+        {
+          "id": "shot_4",
+          "index": 4,
+          "title": "复核与确认",
+          "summary": "关系协同",
+          "transitionFromPrev": "location_switch",
+          "emphasis": "关系协同",
+          "sceneLabel": "双人同框",
+          "objectIds": [
+            "obj_1",
+            "obj_2"
+          ]
+        },
+        {
+          "id": "shot_5",
+          "index": 5,
+          "title": "合规结果展示",
+          "summary": "结果收束",
+          "transitionFromPrev": "location_switch",
+          "emphasis": "结果收束",
+          "sceneLabel": "合规看板",
+          "objectIds": [
+            "obj_1",
+            "obj_2",
+            "obj_4"
+          ]
+        }
+      ],
+      "keyObjects": [
+        {
+          "id": "obj_1",
+          "label": "班组长",
+          "role": "primary",
+          "appearsInShotIds": [
+            "shot_1",
+            "shot_2",
+            "shot_4",
+            "shot_5"
+          ]
+        },
+        {
+          "id": "obj_2",
+          "label": "操作员",
+          "role": "secondary",
+          "appearsInShotIds": [
+            "shot_1",
+            "shot_3",
+            "shot_4",
+            "shot_5"
+          ]
+        },
+        {
+          "id": "obj_3",
+          "label": "设备产线",
+          "role": "environment",
+          "appearsInShotIds": [
+            "shot_1",
+            "shot_3"
+          ]
+        },
+        {
+          "id": "obj_4",
+          "label": "安全警示牌",
+          "role": "support",
+          "appearsInShotIds": [
+            "shot_2",
+            "shot_3",
+            "shot_5"
+          ]
+        }
+      ],
+      "mainScene": "multi_scene",
+      "continuityFocus": "scene",
+      "rhythm": "push",
+      "sceneTransitions": "location_switch",
+      "storyboardNodes": [
+        {
+          "id": "node_shot_1",
+          "shotId": "shot_1",
+          "x": 6,
+          "y": 38,
+          "w": 18,
+          "h": 24
+        },
+        {
+          "id": "node_shot_2",
+          "shotId": "shot_2",
+          "x": 29,
+          "y": 38,
+          "w": 18,
+          "h": 24
+        },
+        {
+          "id": "node_shot_3",
+          "shotId": "shot_3",
+          "x": 52,
+          "y": 38,
+          "w": 18,
+          "h": 24
+        },
+        {
+          "id": "node_shot_4",
+          "shotId": "shot_4",
+          "x": 75,
+          "y": 38,
+          "w": 18,
+          "h": 24
+        },
+        {
+          "id": "node_shot_5",
+          "shotId": "shot_5",
+          "x": 98,
+          "y": 38,
+          "w": 18,
+          "h": 24
+        }
+      ],
+      "compileHints": [
+        "流程一致",
+        "设备位置稳定",
+        "人员身份不变",
+        "安全语义明确",
+        "scene:工厂产线与安全区",
+        "main_scene:multi_scene",
+        "camera_motion:push",
+        "rhythm:push"
+      ]
+    },
+    "prompt": "请生成一个专业级视频片段，核心任务是制造业安全培训短片，班组长、操作员和设备三方互动，强调规范流程，开场看全场，随后跟拍操作步骤，最后给到合规结果，镜头稳定推进。 画幅 16:9，镜头结构 多场景，镜头数量 5，主场景 多场景切换，连续性重点 场景空间一致，风格目标 电影感。 分镜计划 镜头1 车间全景建立；镜头2 班组长讲解；镜头3 操作员执行步骤；镜头4 复核与确认；镜头5 合规结果展示。 关键对象 班组长、操作员、设备产线、安全警示牌。 运镜 缓慢推进，镜头语法 切镜，场景衔接 地点切换。 保持人物身份、服装与空间方位一致，动作动机连贯，不新增无依据剧情。"
+  }
+]
