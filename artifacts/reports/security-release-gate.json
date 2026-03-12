@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-12T12:41:47.234Z",
+  "generatedAt": "2026-03-12T12:47:54.809Z",
   "root": "/Users/dk/scene-pilot",
   "decision": "GO_WITH_RISKS",
   "blockers": [],
@@ -9,7 +9,7 @@
   "threatModelPath": "/Users/dk/scene-pilot/artifacts/reports/security-threat-model.md",
   "checks": {
     "api": {
-      "generatedAt": "2026-03-12T12:41:47.169Z",
+      "generatedAt": "2026-03-12T12:47:54.745Z",
       "root": "/Users/dk/scene-pilot",
       "pass": true,
       "summary": {
@@ -166,7 +166,7 @@
       ]
     },
     "payment": {
-      "generatedAt": "2026-03-12T12:41:47.200Z",
+      "generatedAt": "2026-03-12T12:47:54.776Z",
       "root": "/Users/dk/scene-pilot",
       "pass": true,
       "checks": [
