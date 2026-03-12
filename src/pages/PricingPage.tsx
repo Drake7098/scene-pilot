@@ -19,6 +19,11 @@ export default function PricingPage() {
     <div style={{ minHeight: "100%", color: "var(--spx-text-1)" }}>
       <div style={SURFACE}>
         <header style={{ marginBottom: 26 }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+            <a href="/" style={closeBtn} aria-label="Close and back to home">
+              Close
+            </a>
+          </div>
           <div
             style={{
               display: "inline-flex",
@@ -97,7 +102,7 @@ export default function PricingPage() {
           <ul style={{ margin: "10px 0 0", paddingLeft: 18, color: "var(--spx-text-2)", lineHeight: 1.6 }}>
             <li>Pro is auto-renewing until canceled.</li>
             <li>First-time Pro subscription supports a 7-day refund window.</li>
-            <li>Purchased credit packs are refundable when the purchased pack remains fully unused.</li>
+            <li>Used credits are non-refundable. Purchased credit packs are refundable only when fully unused.</li>
             <li>Applicable local consumer protection laws prevail.</li>
           </ul>
         </section>
@@ -156,4 +161,19 @@ const secondaryCta: CSSProperties = {
   background: "rgba(255,255,255,0.03)",
   color: "var(--spx-text-1)",
   fontWeight: 600
+};
+
+const closeBtn: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: 90,
+  padding: "8px 12px",
+  borderRadius: 10,
+  textDecoration: "none",
+  border: "1px solid var(--spx-border)",
+  background: "rgba(255,255,255,0.03)",
+  color: "var(--spx-text-2)",
+  fontWeight: 600,
+  fontSize: 13
 };
