@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { Check, CreditCard, Crown, X } from "lucide-react";
+import { Check, CreditCard, Crown, UserRound, X } from "lucide-react";
 import type { Lang } from "../../i18n";
 import type { UserState } from "../../types/account";
 import type { CreditPackConfig, ProPlanConfig } from "../../types/billing";
@@ -167,15 +167,28 @@ export function BillingOverlay(props: Props) {
                   <li>Prompt optimization</li>
                   <li>+ {proPlan?.monthlyCredits ?? 500} AI credits monthly</li>
                 </ul>
-                <button
-                  type="button"
-                  style={styles.primaryBtn}
-                  onClick={user ? onUpgrade : onRequireAuth}
-                  disabled={!billingEnabled || billingBusy || user?.tier === "pro" || Boolean(user && !billingLegalAccepted)}
-                  data-testid="upgrade-pro-cta"
-                >
-                  {user?.tier === "pro" ? "Current plan" : user ? "Upgrade to Pro" : "Sign in to continue"}
-                </button>
+                {!user ? (
+                  <button
+                    type="button"
+                    style={styles.signInBtn}
+                    onClick={onRequireAuth}
+                    disabled={!billingEnabled || billingBusy}
+                    data-testid="upgrade-pro-cta"
+                  >
+                    <span style={styles.signInAvatar}><UserRound size={14} /></span>
+                    <span>{lang === "zh" ? "登录以继续" : "Sign in to continue"}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    style={styles.primaryBtn}
+                    onClick={onUpgrade}
+                    disabled={!billingEnabled || billingBusy || user?.tier === "pro" || !billingLegalAccepted}
+                    data-testid="upgrade-pro-cta"
+                  >
+                    {user.tier === "pro" ? "Current plan" : "Upgrade to Pro"}
+                  </button>
+                )}
               </article>
             </div>
 
@@ -300,15 +313,28 @@ export function BillingOverlay(props: Props) {
                   <div style={styles.priceTier}><CreditCard size={16} />{pack.credits} credits</div>
                   <div style={styles.priceValue}>${pack.usdPrice}</div>
                   <div style={styles.priceMeta}>One-time purchase</div>
-                  <button
-                    type="button"
-                    style={styles.primaryBtn}
-                    onClick={user ? () => onBuyCredits(pack.id) : onRequireAuth}
-                    disabled={!billingEnabled || billingBusy || Boolean(user && !billingLegalAccepted)}
-                    data-testid={`credits-buy-${pack.id}`}
-                  >
-                    {user ? "Buy" : "Sign in to continue"}
-                  </button>
+                  {!user ? (
+                    <button
+                      type="button"
+                      style={styles.signInBtn}
+                      onClick={onRequireAuth}
+                      disabled={!billingEnabled || billingBusy}
+                      data-testid={`credits-buy-${pack.id}`}
+                    >
+                      <span style={styles.signInAvatar}><UserRound size={14} /></span>
+                      <span>{lang === "zh" ? "登录以继续" : "Sign in to continue"}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      style={styles.primaryBtn}
+                      onClick={() => onBuyCredits(pack.id)}
+                      disabled={!billingEnabled || billingBusy || !billingLegalAccepted}
+                      data-testid={`credits-buy-${pack.id}`}
+                    >
+                      Buy
+                    </button>
+                  )}
                 </article>
               ))}
             </div>
@@ -566,6 +592,30 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#090b10",
     fontWeight: 700,
     cursor: "pointer"
+  },
+  signInBtn: {
+    marginTop: 6,
+    height: 42,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    border: "none",
+    background: "transparent",
+    color: "#f4fbff",
+    fontSize: 14,
+    fontWeight: 720,
+    cursor: "pointer"
+  },
+  signInAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: "50%",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "linear-gradient(145deg, rgba(108,168,245,0.82), rgba(84,203,169,0.78))",
+    color: "#f4fbff"
   },
   noteCard: {
     borderRadius: 20,

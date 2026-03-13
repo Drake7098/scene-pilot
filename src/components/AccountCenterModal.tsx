@@ -184,11 +184,25 @@ export function AccountCenterModal(props: Props) {
               <div style={styles.authHeroTitle}>{t(lang, "Welcome to ScenePilotix", "Welcome to ScenePilotix")}</div>
               <div style={styles.authHeroSub}>
                 {t(lang, "还没有账号？", "Don't have an account?")}
-                <button type="button" style={styles.authHeroLink} onClick={() => void onGoogleSignIn()} disabled={authBusy || !googleSignInEnabled}>
+                <button
+                  type="button"
+                  style={styles.authHeroLink}
+                  onClick={() => void onGoogleSignIn()}
+                  disabled={authBusy || !googleSignInEnabled}
+                  title={!googleSignInEnabled ? (lang === "zh" ? "认证服务未配置" : "Auth not configured") : undefined}
+                >
                   {t(lang, "免费注册", "Sign up for free")}
                 </button>
               </div>
             </div>
+
+            {!googleSignInEnabled ? (
+              <div style={styles.authEnvHint} data-testid="account-auth-env-hint">
+                {lang === "zh"
+                  ? "认证未配置：本地需设置 VITE_SUPABASE_URL、VITE_SUPABASE_ANON_KEY；部署环境需配置对应 Pages 变量。"
+                  : "Auth not configured: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY locally; configure Pages env for deployment."}
+              </div>
+            ) : null}
 
             <input
               value={authEmail}
@@ -211,6 +225,13 @@ export function AccountCenterModal(props: Props) {
               style={styles.authPrimaryBtn}
               onClick={onPasswordSignIn}
               disabled={authBusy || !authLegalAccepted || !authEmail.trim() || !authPassword.trim()}
+              title={
+                !authLegalAccepted
+                  ? (lang === "zh" ? "请先勾选下方协议" : "Check the agreement below first")
+                  : (!authEmail.trim() || !authPassword.trim())
+                    ? (lang === "zh" ? "请输入邮箱和密码" : "Enter email and password")
+                    : undefined
+              }
               data-testid="account-auth-send-code"
             >
               {authBusy ? t(lang, "处理中...", "Processing...") : t(lang, "登录 / 注册", "Log in / Sign up")}
@@ -227,6 +248,13 @@ export function AccountCenterModal(props: Props) {
               style={styles.authGoogleBtn}
               onClick={onGoogleSignIn}
               disabled={authBusy || !googleSignInEnabled || !authLegalAccepted}
+              title={
+                !googleSignInEnabled
+                  ? (lang === "zh" ? "认证服务未配置" : "Auth not configured")
+                  : !authLegalAccepted
+                    ? (lang === "zh" ? "请先勾选下方协议" : "Check the agreement below first")
+                    : undefined
+              }
               data-testid="account-auth-google"
             >
               <span style={styles.authGoogleGlyph}>G</span>
@@ -235,8 +263,8 @@ export function AccountCenterModal(props: Props) {
 
             {authHint ? <div style={styles.authHint}>{authHint}</div> : null}
 
-            <div style={styles.authConsentBlock}>
-              <label style={styles.authCheckboxRow}>
+            <div style={{ ...styles.authConsentBlock, ...(lang === "zh" ? styles.authConsentBlockZh : null) }}>
+              <label style={{ ...styles.authCheckboxRow, ...(lang === "zh" ? styles.authCheckboxRowZh : null) }}>
                 <input
                   type="checkbox"
                   style={{
@@ -907,6 +935,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     fontSize: 13
   },
+  authSkipBtn: {
+    width: "100%",
+    maxWidth: 400,
+    justifySelf: "center",
+    marginTop: 4,
+    padding: "8px 12px",
+    border: "none",
+    background: "transparent",
+    color: "rgba(20,24,32,0.56)",
+    fontSize: 12,
+    fontWeight: 560,
+    cursor: "pointer"
+  },
   authLegalInline: {
     display: "inline-flex",
     width: "100%",
@@ -924,6 +965,22 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 8
   },
+  authEnvHint: {
+    width: "100%",
+    maxWidth: 400,
+    justifySelf: "center",
+    padding: "10px 14px",
+    borderRadius: 10,
+    background: "rgba(255,180,80,0.12)",
+    border: "1px solid rgba(255,180,80,0.35)",
+    color: "rgba(40,28,10,0.9)",
+    fontSize: 12,
+    lineHeight: 1.5
+  },
+  authConsentBlockZh: {
+    alignItems: "center",
+    textAlign: "center"
+  },
   authCheckboxRow: {
     display: "flex",
     alignItems: "flex-start",
@@ -931,6 +988,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 11.5,
     lineHeight: 1.45,
     color: "rgba(17,23,35,0.78)"
+  },
+  authCheckboxRowZh: {
+    justifyContent: "center"
   },
   authCheckboxInput: {
     marginTop: 1,

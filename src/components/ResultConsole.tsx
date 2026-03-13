@@ -1822,6 +1822,8 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 12
   },
   left: {
+    position: "relative",
+    zIndex: 200,
     borderRadius: 14,
     border: "none",
     background: "#000000",

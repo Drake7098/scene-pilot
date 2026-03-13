@@ -301,7 +301,10 @@ export default function UserManagementPage() {
             <div style={cardTitle}>{t(lang, "未登录", "Not signed in")}</div>
             <div style={mutedText}>{t(lang, "请先登录后查看用户资料、订阅和点数。", "Sign in to manage profile, subscription, and credits.")}</div>
             <div style={buttonRow}>
-              <a href={ACCOUNT_SIGN_IN_HREF} style={primaryLink} data-testid="user-management-sign-in">{t(lang, "去登录", "Sign in")}</a>
+              <a href={ACCOUNT_SIGN_IN_HREF} style={signInLink} data-testid="user-management-sign-in">
+                <span style={signInAvatarDot}><UserRound size={14} /></span>
+                <span>{t(lang, "去登录", "Sign in")}</span>
+              </a>
               <a href="/app" style={secondaryLink}>{t(lang, "打开工作台", "Open workspace")}</a>
             </div>
           </section>
@@ -632,6 +635,31 @@ const primaryLink: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   textDecoration: "none"
+};
+
+const signInAvatarDot: CSSProperties = {
+  width: 22,
+  height: 22,
+  borderRadius: "50%",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "linear-gradient(145deg, rgba(108,168,245,0.82), rgba(84,203,169,0.78))",
+  color: "#f4fbff"
+};
+
+const signInLink: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  textDecoration: "none",
+  border: "none",
+  background: "transparent",
+  color: "#f4fbff",
+  fontSize: 14,
+  fontWeight: 720,
+  cursor: "pointer",
+  minHeight: 36
 };
 
 const secondaryLink: CSSProperties = {

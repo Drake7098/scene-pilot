@@ -1,5 +1,4 @@
-import { useMemo, useRef, useState, type CSSProperties } from "react";
-import { ChevronDown } from "lucide-react";
+import { useMemo, type CSSProperties } from "react";
 import PublicFooter from "../components/PublicFooter";
 
 type Locale = "zh" | "en";
@@ -10,140 +9,144 @@ function detectLocale(): Locale {
     const saved = localStorage.getItem(LANDING_LANG_KEY);
     if (saved === "zh" || saved === "en") return saved;
   } catch {
-    // ignore localStorage failures
+    /* ignore */
   }
   if (typeof navigator === "undefined") return "en";
   return /^zh(?:-|$)/i.test(navigator.language || "") ? "zh" : "en";
 }
 
-const COPY = {
-  zh: {
-    back: "返回首页",
-    title: "ScenePilotix 产品介绍",
-    lead: "结构化提示词工作台，用更少试错获得更稳定输出。",
-    menuLabel: "下拉查看章节",
-    menu: [
-      { key: "overview", label: "产品定位" },
-      { key: "method", label: "工作方法" },
-      { key: "fit", label: "适合任务" }
-    ],
-    sections: [
-      {
-        key: "overview",
-        title: "产品定位",
-        bullets: [
-          "Quick：快试方向。",
-          "Pro：稳做交付。",
-          "模式边界清晰。"
-        ]
-      },
-      {
-        key: "method",
-        title: "核心方法",
-        bullets: [
-          "先结构，后生成。",
-          "先关系，后细节。",
-          "先定方向，再放大。"
-        ]
-      },
-      {
-        key: "fit",
-        title: "适合的团队",
-        bullets: [
-          "创作者与小团队。",
-          "营销与品牌内容组。",
-          "商业交付项目。"
-        ]
-      }
-    ]
-  },
-  en: {
-    back: "Back to Home",
-    title: "ScenePilotix Product Overview",
-    lead: "A structured prompt workspace for faster direction and steadier delivery.",
-    menuLabel: "Jump to section",
-    menu: [
-      { key: "overview", label: "Positioning" },
-      { key: "method", label: "Method" },
-      { key: "fit", label: "Task Fit" }
-    ],
-    sections: [
-      {
-        key: "overview",
-        title: "Positioning",
-        bullets: [
-          "Quick for direction.",
-          "Pro for delivery.",
-          "Clear mode boundaries."
-        ]
-      },
-      {
-        key: "method",
-        title: "Core Method",
-        bullets: [
-          "Structure first.",
-          "Relationships before details.",
-          "Direction before scale."
-        ]
-      },
-      {
-        key: "fit",
-        title: "Best For",
-        bullets: [
-          "Creators and small teams.",
-          "Marketing and brand workflows.",
-          "Commercial delivery projects."
-        ]
-      }
-    ]
-  }
+type Module = {
+  id: string;
+  title: string;
+  bullets: string[];
+};
+
+const MODULES = {
+  zh: [
+    {
+      id: "overview",
+      title: "产品定位",
+      bullets: [
+        "Quick：快试方向，适合试方向与快速迭代",
+        "Pro：稳做交付，适合商业交付与协作复用",
+        "模式边界清晰，按需切换"
+      ]
+    },
+    {
+      id: "quick_start",
+      title: "快速开始",
+      bullets: [
+        "1) 创建项目：先选图片或视频，确定单张结构还是逐镜编辑",
+        "2) 搭结构：确定分镜数量、时长、镜头关系，提示词节奏与连续性提前锁定",
+        "3) 编对象：逐镜调整对象位置、大小、层级、参考图，先对齐结构再补风格",
+        "4) 导出验证：先看提示词，再复制或导出到目标模型平台，快速判断方向是否达标"
+      ]
+    },
+    {
+      id: "method",
+      title: "核心方法",
+      bullets: [
+        "先结构，后生成",
+        "先关系，后细节",
+        "先定方向，再放大"
+      ]
+    },
+    {
+      id: "export",
+      title: "导出能力",
+      bullets: [
+        "快速导出：当前提示词送大模型，先测方向与构图",
+        "交付包：提示词 + 参考图 + 说明，适合交接与复用",
+        "当前分镜 / 连续序列：按需选择导出范围"
+      ]
+    },
+    {
+      id: "fit",
+      title: "适合谁",
+      bullets: [
+        "创作者与小团队",
+        "营销与品牌内容组",
+        "商业交付项目"
+      ]
+    }
+  ] as Module[],
+  en: [
+    {
+      id: "overview",
+      title: "Positioning",
+      bullets: [
+        "Quick: fast direction testing and iteration",
+        "Pro: stable delivery, commercial handoff, reuse",
+        "Clear mode boundaries, switch as needed"
+      ]
+    },
+    {
+      id: "quick_start",
+      title: "Quick Start",
+      bullets: [
+        "1) Create Project: choose Image or Video; lock single-image or shot-by-shot flow",
+        "2) Build Structure: set shot count, duration, relationships; define pacing and continuity",
+        "3) Edit Objects: tune position, size, layer, references; structure first, style second",
+        "4) Export & Validate: review prompt, copy/export to model platform; verify direction"
+      ]
+    },
+    {
+      id: "method",
+      title: "Core Method",
+      bullets: [
+        "Structure first, then generate",
+        "Relationships before details",
+        "Direction before scale"
+      ]
+    },
+    {
+      id: "export",
+      title: "Export",
+      bullets: [
+        "Quick Export: send prompt to model platform, test direction and composition",
+        "Package: prompt + refs + readme, for handoff and reuse",
+        "Current Scene / Continuity Sequence: choose export scope"
+      ]
+    },
+    {
+      id: "fit",
+      title: "Best For",
+      bullets: [
+        "Creators and small teams",
+        "Marketing and brand workflows",
+        "Commercial delivery projects"
+      ]
+    }
+  ] as Module[]
 } as const;
 
 export default function ProductIntroPage() {
   const locale = useMemo(() => detectLocale(), []);
-  const [current, setCurrent] = useState("overview");
-  const refs = useRef<Record<string, HTMLElement | null>>({});
-  const t = COPY[locale];
-  const onJump = (key: string) => {
-    setCurrent(key);
-    const el = refs.current[key];
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const t = MODULES[locale];
+  const copy = useMemo(
+    () => (locale === "zh"
+      ? { back: "返回首页", title: "产品介绍", lead: "结构化提示词工作台，用更少试错获得更稳定输出。" }
+      : { back: "Back to Home", title: "Product Overview", lead: "A structured prompt workspace for faster direction and steadier delivery." }),
+    [locale]
+  );
   return (
     <div style={page}>
       <div style={shell}>
         <header style={head}>
-          <a href="/" style={backLink}>{t.back}</a>
-          <h1 style={title}>{t.title}</h1>
-          <p style={lead}>{t.lead}</p>
-          <label style={menuLabel}>
-            <span>{t.menuLabel}</span>
-            <div style={menuSelectWrap}>
-              <select value={current} onChange={(e) => onJump(e.target.value)} style={menuSelect}>
-                {t.menu.map((item) => (
-                  <option key={item.key} value={item.key}>{item.label}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} style={menuIcon} />
-            </div>
-          </label>
+          <a href="/" style={backLink}>{copy.back}</a>
+          <h1 style={title}>{copy.title}</h1>
+          <p style={lead}>{copy.lead}</p>
         </header>
 
         <main style={main}>
-          {t.sections.map((section) => (
-            <section
-              key={section.title}
-              id={section.key}
-              ref={(el) => { refs.current[section.key] = el; }}
-              style={sectionStyle}
-            >
-              <h2 style={sectionTitle}>{section.title}</h2>
-              <div style={list}>
-                {section.bullets.map((item) => (
-                  <p key={item} style={itemStyle}>{item}</p>
+          {t.map((mod) => (
+            <section key={mod.id} id={mod.id} style={sectionStyle}>
+              <h2 style={sectionTitle}>{mod.title}</h2>
+              <ul style={list}>
+                {mod.bullets.map((b) => (
+                  <li key={b} style={itemStyle}>{b}</li>
                 ))}
-              </div>
+              </ul>
             </section>
           ))}
         </main>
@@ -195,66 +198,33 @@ const lead: CSSProperties = {
   maxWidth: 820
 };
 
-const menuLabel: CSSProperties = {
-  display: "grid",
-  gap: 6,
-  width: "fit-content",
-  color: "var(--spx-text-3)",
-  fontSize: 12.5,
-  fontWeight: 600
-};
-
-const menuSelectWrap: CSSProperties = {
-  position: "relative",
-  width: 220
-};
-
-const menuSelect: CSSProperties = {
-  width: "100%",
-  minHeight: 36,
-  borderRadius: 10,
-  border: "1px solid rgba(167,203,240,0.26)",
-  background: "rgba(14,22,34,0.86)",
-  color: "var(--spx-text-1)",
-  padding: "0 32px 0 10px",
-  fontSize: 13,
-  fontWeight: 620,
-  appearance: "none"
-};
-
-const menuIcon: CSSProperties = {
-  position: "absolute",
-  right: 10,
-  top: 11,
-  color: "var(--spx-text-3)",
-  pointerEvents: "none"
-};
-
 const main: CSSProperties = {
-  marginTop: 20,
+  marginTop: 28,
   display: "grid",
-  gap: 16
+  gap: 20
 };
 
 const sectionStyle: CSSProperties = {
-  paddingTop: 14,
+  paddingTop: 18,
   borderTop: "1px solid rgba(188,214,242,0.14)",
   display: "grid",
-  gap: 8
+  gap: 10
 };
 
 const sectionTitle: CSSProperties = {
   margin: 0,
-  fontSize: 20
+  fontSize: 20,
+  fontWeight: 760
 };
 
 const list: CSSProperties = {
+  margin: 0,
+  paddingLeft: 20,
   display: "grid",
-  gap: 6
+  gap: 8
 };
 
 const itemStyle: CSSProperties = {
-  margin: 0,
   color: "var(--spx-text-2)",
   fontSize: 14.5,
   lineHeight: 1.62

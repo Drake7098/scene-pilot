@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { ChevronDown, UserRound, X } from "lucide-react";
+import { UserRound, X } from "lucide-react";
 import { PUBLIC_CONTACT_CHANNELS } from "../config/contactChannels";
-import { getCurrentUser, logout } from "../services/authService";
+import { getCurrentUser } from "../services/authService";
 import type { UserState } from "../types/account";
 
 const WORKSPACE_MODE_KEY = "sp_workspace_mode";
@@ -45,11 +45,6 @@ function routeToSignIn(mode?: WorkspaceMode) {
 const COPY = {
   zh: {
     intro: "产品介绍",
-    introMenu: [
-      { href: "/product-intro#overview", label: "产品定位" },
-      { href: "/product-intro#method", label: "工作方法" },
-      { href: "/product-intro#fit", label: "适合任务" }
-    ],
     pricing: "Pricing",
     lang: "EN",
     signIn: "登录",
@@ -74,11 +69,6 @@ const COPY = {
   },
   en: {
     intro: "Product",
-    introMenu: [
-      { href: "/product-intro#overview", label: "Positioning" },
-      { href: "/product-intro#method", label: "Method" },
-      { href: "/product-intro#fit", label: "Task Fit" }
-    ],
     pricing: "Pricing",
     lang: "中文",
     signIn: "Sign in",
@@ -106,13 +96,11 @@ const COPY = {
 
 export default function LandingPage() {
   const [locale, setLocale] = useState<LandingLocale>(() => detectLocale());
-  const [introOpen, setIntroOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [accountUser, setAccountUser] = useState<UserState | null>(null);
   const t = useMemo(() => COPY[locale], [locale]);
   const isZh = locale === "zh";
-  const userEntryLabel = accountUser ? t.account : t.signIn;
+  const userEntryLabel = accountUser ? t.account : t.signInUp;
 
   useEffect(() => {
     let alive = true;
@@ -130,30 +118,11 @@ export default function LandingPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!userMenuOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setUserMenuOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [userMenuOpen]);
-
   const toggleLang = () => {
     const next = locale === "zh" ? "en" : "zh";
     setLocale(next);
     saveLocale(next);
   };
-  async function handleLandingLogout() {
-    try {
-      await logout();
-    } catch {
-      // ignore
-    }
-    setAccountUser(null);
-    setUserMenuOpen(false);
-  }
-
   return (
     <div style={page}>
       <div style={glowLeft} />
@@ -165,63 +134,38 @@ export default function LandingPage() {
             <span style={{ ...logoText, ...(isZh ? logoTextZh : null) }}>ScenePilotix</span>
           </div>
           <div style={topActions}>
-            <div style={introWrap}>
-              <button type="button" style={{ ...textBtn, ...(isZh ? textBtnZh : null) }} onClick={() => setIntroOpen((v) => !v)}>
-                <span>{t.intro}</span>
-                <ChevronDown size={13} />
-              </button>
-              {introOpen ? (
-                <div style={menu}>
-                  {t.introMenu.map((item) => (
-                    <a key={item.href} href={item.href} style={menuItem}>{item.label}</a>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+            <a href="/product-intro" style={{ ...textLink, ...(isZh ? textLinkZh : null) }}>{t.intro}</a>
             <a href="/pricing" style={{ ...textLink, ...(isZh ? textLinkZh : null) }}>{t.pricing}</a>
             <button type="button" style={{ ...textBtn, ...(isZh ? textBtnZh : null) }} onClick={toggleLang}>{t.lang}</button>
             <div style={userEntryWrap}>
-              <button
-                type="button"
-                style={{ ...signBtn, ...(isZh ? signBtnZh : null) }}
-                onClick={() => setUserMenuOpen((v) => !v)}
-                data-testid="landing-user-entry"
-              >
-                <span style={avatarDot}>
-                  {accountUser?.avatarUrl ? (
-                    <img src={accountUser.avatarUrl} alt="" style={userAvatarImage} />
-                  ) : (
-                    <UserRound size={12} />
-                  )}
-                </span>
-                <span>{userEntryLabel}</span>
-              </button>
-              {userMenuOpen ? (
-                <div style={userMenu} data-testid="landing-user-menu">
-                  {accountUser ? (
-                    <>
-                      <button type="button" style={userMenuItem} onClick={() => { setUserMenuOpen(false); window.location.href = "/app"; }}>
-                        {t.openWorkspace}
-                      </button>
-                      <button type="button" style={userMenuItem} onClick={() => { setUserMenuOpen(false); window.location.href = "/account"; }}>
-                        {t.accountPage}
-                      </button>
-                      <button type="button" style={userMenuItem} onClick={() => void handleLandingLogout()}>
-                        {t.logOut}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button type="button" style={userMenuItem} onClick={() => { setUserMenuOpen(false); routeToSignIn(); }}>
-                        {t.signInUp}
-                      </button>
-                      <button type="button" style={userMenuItem} onClick={() => { setUserMenuOpen(false); window.location.href = "/pricing"; }}>
-                        {t.pricing}
-                      </button>
-                    </>
-                  )}
-                </div>
-              ) : null}
+              {accountUser ? (
+                <a
+                  href="/app"
+                  style={{ ...signBtn, ...(isZh ? signBtnZh : null), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}
+                  data-testid="landing-user-entry"
+                >
+                  <span style={avatarDot}>
+                    {accountUser.avatarUrl ? (
+                      <img src={accountUser.avatarUrl} alt="" style={userAvatarImage} />
+                    ) : (
+                      <UserRound size={14} />
+                    )}
+                  </span>
+                  <span>{t.openWorkspace}</span>
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  style={{ ...signBtn, ...(isZh ? signBtnZh : null) }}
+                  onClick={() => routeToSignIn()}
+                  data-testid="landing-user-entry"
+                >
+                  <span style={avatarDot}>
+                    <UserRound size={14} />
+                  </span>
+                  <span>{t.signInUp}</span>
+                </button>
+              )}
             </div>
           </div>
         </header>
@@ -310,14 +254,6 @@ export default function LandingPage() {
         </div>
       ) : null}
 
-      {userMenuOpen ? (
-        <div
-          style={userMenuMask}
-          onMouseDown={() => setUserMenuOpen(false)}
-          role="presentation"
-          data-testid="landing-user-menu-mask"
-        />
-      ) : null}
     </div>
   );
 }
@@ -399,10 +335,6 @@ const topActions: CSSProperties = {
   flexWrap: "wrap"
 };
 
-const introWrap: CSSProperties = {
-  position: "relative"
-};
-
 const textBtn: CSSProperties = {
   border: "none",
   background: "transparent",
@@ -432,17 +364,19 @@ const textLinkZh: CSSProperties = {
 const signBtn: CSSProperties = {
   border: "none",
   background: "transparent",
-  color: "var(--spx-text-1)",
-  fontSize: 13,
-  fontWeight: 640,
+  color: "#f4fbff",
+  fontSize: 14,
+  fontWeight: 720,
   padding: 0,
+  minHeight: 36,
   display: "inline-flex",
   alignItems: "center",
-  gap: 6,
-  cursor: "pointer"
+  gap: 8,
+  cursor: "pointer",
+  outline: "none"
 };
 const signBtnZh: CSSProperties = {
-  fontSize: 14.5
+  fontSize: 15
 };
 
 const userEntryWrap: CSSProperties = {
@@ -466,63 +400,6 @@ const userAvatarImage: CSSProperties = {
   height: "100%",
   objectFit: "cover",
   borderRadius: "50%"
-};
-
-const menu: CSSProperties = {
-  position: "absolute",
-  top: 22,
-  left: 0,
-  minWidth: 150,
-  borderRadius: 10,
-  background: "rgba(11,17,28,0.97)",
-  boxShadow: "0 14px 30px rgba(0,0,0,0.42)",
-  padding: 6,
-  display: "grid",
-  gap: 2,
-  zIndex: 8
-};
-
-const menuItem: CSSProperties = {
-  color: "var(--spx-text-2)",
-  textDecoration: "none",
-  fontSize: 12.5,
-  fontWeight: 620,
-  padding: "7px 8px",
-  borderRadius: 7
-};
-
-const userMenuMask: CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 7,
-  background: "transparent"
-};
-
-const userMenu: CSSProperties = {
-  position: "absolute",
-  top: 30,
-  right: 0,
-  minWidth: 178,
-  borderRadius: 12,
-  background: "rgba(11,17,28,0.98)",
-  boxShadow: "0 14px 30px rgba(0,0,0,0.42)",
-  padding: 6,
-  display: "grid",
-  gap: 2,
-  zIndex: 9
-};
-
-const userMenuItem: CSSProperties = {
-  minHeight: 34,
-  borderRadius: 8,
-  border: "1px solid transparent",
-  background: "transparent",
-  color: "var(--spx-text-2)",
-  fontSize: 12.5,
-  fontWeight: 620,
-  textAlign: "left",
-  padding: "0 10px",
-  cursor: "pointer"
 };
 
 const main: CSSProperties = {

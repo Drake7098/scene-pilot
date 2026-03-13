@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import type { Lang } from "./i18n";
 import { defaultProject, resolveSceneConfig, sanitizeProject } from "./model";
 import type { Project, Scene, ShotPlan, TransitionType } from "./model";
@@ -301,6 +301,8 @@ function defaultRefInheritByPlan(shotPlan: ShotPlan, isFirst: boolean) {
   return { inheritBgRefFromPrevious: false, inheritObjectRefsFromPrevious: "identity_only" as const };
 }
 
+const LOGIN_AVATAR_GRADIENT = "linear-gradient(145deg, rgba(108,168,245,0.82), rgba(84,203,169,0.78))";
+
 const AVATAR_COLOR_PALETTE = [
   "#4F46E5",
   "#0EA5E9",
@@ -393,7 +395,7 @@ export default function App() {
   const [postAuthRedirect, setPostAuthRedirect] = useState("");
   const [lastSentCode, setLastSentCode] = useState("");
   const activeWorkspaceMode: ResultConsoleMode =
-    workspaceMode === "pro" && canUseProConsole(accountUser) ? "pro" : "results";
+    workspaceMode === "pro" ? "pro" : "results";
   const [authLegalAccepted, setAuthLegalAccepted] = useState<boolean>(() => {
     try {
       return localStorage.getItem(AUTH_LEGAL_CONSENT_KEY) === "1";
@@ -445,6 +447,8 @@ export default function App() {
   const [proAssetsBySceneId, setProAssetsBySceneId] = useState<Record<string, ProGeneratedAsset[]>>({});
   const [proActiveAssetBySceneId, setProActiveAssetBySceneId] = useState<Record<string, string>>({});
   const [proAssetMenuId, setProAssetMenuId] = useState<string | null>(null);
+  const [proCanvasTabMenuOpen, setProCanvasTabMenuOpen] = useState(false);
+  const proCanvasTabTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const [, setFileHandle] = useState<any | null>(null);
   const [fileLabel, setFileLabel] = useState<string>(() => {
@@ -508,7 +512,6 @@ export default function App() {
   });
   const [renameProjectOpen, setRenameProjectOpen] = useState(false);
   const [renameProjectDraft, setRenameProjectDraft] = useState("");
-  const [helpMenuOpen, setHelpMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [openExportNonce, setOpenExportNonce] = useState(0);
   const [openExportAction, setOpenExportAction] = useState<ExportPanelOpenAction>("open");
@@ -552,7 +555,7 @@ export default function App() {
   }, [accountUser]);
   const accountEntryLabel = accountUser
     ? (lang === "zh" ? "账户" : "Account")
-    : (lang === "zh" ? "登录" : "Sign in");
+    : (lang === "zh" ? "登录 / 注册" : "Sign In / Sign Up");
 
   function syncSavePlatform(id: SavePlatformId) {
     setSavePlatformId(id);
@@ -589,18 +592,15 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (!helpMenuOpen && !accountMenuOpen) return;
+    if (!accountMenuOpen) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setHelpMenuOpen(false);
-        setAccountMenuOpen(false);
-      }
+      if (e.key === "Escape") setAccountMenuOpen(false);
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [helpMenuOpen, accountMenuOpen]);
+  }, [accountMenuOpen]);
   useEffect(() => {
     try {
       localStorage.setItem(WORKSPACE_MODE_KEY, workspaceMode);
@@ -864,6 +864,17 @@ export default function App() {
     window.addEventListener("pointerdown", onPointerDown);
     return () => window.removeEventListener("pointerdown", onPointerDown);
   }, [proAssetMenuId]);
+
+  useEffect(() => {
+    if (!proCanvasTabMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const el = e.target as Node;
+      if (proCanvasTabTriggerRef.current?.contains(el)) return;
+      setProCanvasTabMenuOpen(false);
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [proCanvasTabMenuOpen]);
 
   useEffect(() => {
     proAssetsRef.current = proAssetsBySceneId;
@@ -1328,13 +1339,11 @@ export default function App() {
   }
 
   function chooseWorkspaceEntry(mode: ResultConsoleMode) {
-    if (mode === "pro") {
-      requestProAccess("pro");
-    } else {
-      setWorkspaceMode(mode);
-    }
     markWorkspaceEntryGuideDone();
     setWorkspaceEntryGuideOpen(false);
+    setWorkspaceSwitchShield(true);
+    setWorkspaceMode(mode);
+    window.setTimeout(() => setWorkspaceSwitchShield(false), 180);
   }
 
   useEffect(() => {
@@ -1749,14 +1758,6 @@ export default function App() {
     setPostAuthRedirect("");
     window.location.assign(normalized);
   }, [accountUser, postAuthRedirect]);
-
-  useEffect(() => {
-    // Guard persisted "pro" mode: only Pro entitlement can stay in Pro workspace.
-    if (workspaceMode !== "pro") return;
-    if (!accountUser) return;
-    if (canUseProConsole(accountUser)) return;
-    setWorkspaceMode("results");
-  }, [accountUser, workspaceMode]);
 
   useEffect(() => {
     if (!accountUser?.id) return;
@@ -2257,7 +2258,16 @@ export default function App() {
   }
 
   function openProFromQuickWorkspace() {
-    requestProAccess("pro");
+    try {
+      localStorage.setItem(WORKSPACE_MODE_KEY, "pro");
+    } catch {
+      /* ignore */
+    }
+    setWorkspaceSwitchShield(true);
+    flushSync(() => {
+      setWorkspaceMode("pro");
+    });
+    window.setTimeout(() => setWorkspaceSwitchShield(false), 180);
   }
 
   async function generateResultPlan() {
@@ -3046,16 +3056,33 @@ export default function App() {
       label: accountUser ? (lang === "zh" ? "账户与会员" : "Account & Plan") : (lang === "zh" ? "登录 / 注册" : "Sign In"),
       icon: <UserRound size={UI_MENU.item.iconSize} />,
       onClick: () => {
-        setHelpMenuOpen(false);
+        setAccountMenuOpen(false);
         openAccountCenter(accountUser ? "overview" : "auth");
       }
     },
+    ...(!accountUser ? [{
+      key: "pricing",
+      label: lang === "zh" ? "价格" : "Pricing",
+      icon: <CreditCard size={UI_MENU.item.iconSize} />,
+      onClick: () => {
+        setAccountMenuOpen(false);
+        window.location.assign("/pricing");
+      }
+    }] : [{
+      key: "user_management",
+      label: lang === "zh" ? "用户管理页面" : "User Management",
+      icon: <UserRound size={UI_MENU.item.iconSize} />,
+      onClick: () => {
+        setAccountMenuOpen(false);
+        window.location.assign("/account");
+      }
+    }]),
     {
       key: "credits",
       label: lang === "zh" ? "充值 Credits" : "Buy Credits",
       icon: <Wallet size={UI_MENU.item.iconSize} />,
       onClick: () => {
-        setHelpMenuOpen(false);
+        setAccountMenuOpen(false);
         openBillingPage("credits");
       }
     },
@@ -3064,7 +3091,7 @@ export default function App() {
       label: lang === "zh" ? "升级会员" : "Upgrade",
       icon: <Crown size={UI_MENU.item.iconSize} />,
       onClick: () => {
-        setHelpMenuOpen(false);
+        setAccountMenuOpen(false);
         openBillingPage("upgrade");
       }
     }] : []),
@@ -3073,7 +3100,7 @@ export default function App() {
       label: lang === "zh" ? "管理订阅" : "Manage Billing",
       icon: <CreditCard size={UI_MENU.item.iconSize} />,
       onClick: () => {
-        setHelpMenuOpen(false);
+        setAccountMenuOpen(false);
         if (!accountUser) {
           openAccountCenter("auth");
           return;
@@ -3086,7 +3113,7 @@ export default function App() {
       label: lang === "zh" ? "自带 API" : "Bring Your Own API",
       icon: <KeyRound size={UI_MENU.item.iconSize} />,
       onClick: () => {
-        setHelpMenuOpen(false);
+        setAccountMenuOpen(false);
         openAccountCenter("api");
       }
     }] : []),
@@ -3095,7 +3122,7 @@ export default function App() {
       label: lang === "zh" ? "帮助中心" : "Help Center",
       icon: <CircleHelp size={UI_MENU.item.iconSize} />,
       onClick: () => {
-        setHelpMenuOpen(false);
+        setAccountMenuOpen(false);
         setFeedbackSent("");
         setHelpCenterSection("quick_start");
         setHelpCenterOpen(true);
@@ -3106,7 +3133,7 @@ export default function App() {
       label: lang === "zh" ? "返回快捷工作台" : "Back to Quick Workspace",
       icon: <FolderOpen size={UI_MENU.item.iconSize} />,
       onClick: () => {
-        setHelpMenuOpen(false);
+        setAccountMenuOpen(false);
         setWorkspaceMode("results");
       }
     }] : []),
@@ -3115,12 +3142,12 @@ export default function App() {
       label: lang === "zh" ? "退出登录" : "Log Out",
       icon: <LogOut size={UI_MENU.item.iconSize} />,
       onClick: () => {
-        setHelpMenuOpen(false);
+        setAccountMenuOpen(false);
         void handleLogout();
       }
     }] : [])
   ];
-  const accountMenuItems = accountUser
+  const _accountMenuItems = accountUser
     ? [
       {
         key: "account_center",
@@ -3228,47 +3255,44 @@ export default function App() {
 
         <div style={{ flex: 1, minWidth: 0 }} />
 
-        {/* ✅ 保留中英文切换按钮 */}
+        {/* Quick / Pro 切换，放在 EN 左边 */}
+        <div style={styles.topModeSwitch}>
+          <button
+            type="button"
+            style={{ ...styles.topModeBtn, ...(activeWorkspaceMode === "results" ? styles.topModeBtnOn : null) }}
+            onClick={() => setWorkspaceMode("results")}
+            data-testid="top-mode-quick"
+          >
+            {lang === "zh" ? "快捷" : "Quick"}
+          </button>
+          <button
+            type="button"
+            style={{ ...styles.topModeBtn, ...(activeWorkspaceMode === "pro" ? styles.topModeBtnOn : null) }}
+            onClick={() => openProFromQuickWorkspace()}
+            data-testid="top-mode-pro"
+          >
+            Pro
+          </button>
+        </div>
+
         <button style={styles.topBtn} onClick={toggleLang} type="button">
           <Languages size={16} />
           <span style={styles.topBtnText}>{lang === "zh" ? "EN" : "中文"}</span>
         </button>
 
         <button
-          data-testid="top-help-trigger"
-          style={styles.topIconBtn}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => {
-            setHelpMenuOpen((v) => {
-              const next = !v;
-              if (next) setAccountMenuOpen(false);
-              return next;
-            });
-          }}
-          type="button"
-        >
-          <MoreHorizontal size={16} />
-        </button>
-
-        <button
           data-testid="top-account-trigger"
           style={styles.topAccountBtn}
-          onClick={() => {
-            setAccountMenuOpen((v) => {
-              const next = !v;
-              if (next) setHelpMenuOpen(false);
-              return next;
-            });
-          }}
+          onClick={() => setAccountMenuOpen((v) => !v)}
           type="button"
           aria-label={accountUser ? (lang === "zh" ? "账户中心" : "Account Center") : (lang === "zh" ? "登录 / 注册" : "Sign In")}
           title={accountUser ? (lang === "zh" ? "账户中心" : "Account Center") : (lang === "zh" ? "登录 / 注册" : "Sign In")}
         >
-          <span style={{ ...styles.topAccountAvatar, background: accountAvatarColor }}>
+          <span style={{ ...styles.topAccountAvatar, background: accountUser ? accountAvatarColor : LOGIN_AVATAR_GRADIENT }}>
             {accountUser?.avatarUrl ? (
               <img src={accountUser.avatarUrl} alt="" style={styles.topAvatarImage} />
             ) : (
-              <span style={styles.topAvatarDot} />
+              <UserRound size={14} style={{ color: "#f4fbff" }} />
             )}
           </span>
           <span style={styles.topBtnText}>{accountEntryLabel}</span>
@@ -3343,43 +3367,21 @@ export default function App() {
         </div>
       ) : null}
 
-      {helpMenuOpen || accountMenuOpen ? (
+      {accountMenuOpen ? (
         <div
           style={styles.menuMask}
-          onMouseDown={() => {
-            setHelpMenuOpen(false);
-            setAccountMenuOpen(false);
-          }}
+          onMouseDown={() => setAccountMenuOpen(false)}
           role="presentation"
         />
       ) : null}
 
-      {helpMenuOpen ? (
-        <div style={styles.helpMenu}>
+      {accountMenuOpen ? (
+        <div style={styles.helpMenu} data-testid="top-account-menu">
           {helpMenuItems.map((item) => (
             <button
               key={item.key}
               data-testid={`top-help-item-${item.key}`}
               style={styles.helpMenuItem}
-              type="button"
-              onClick={item.onClick}
-            >
-              <span style={styles.helpMenuItemLabel}>
-                {item.icon}
-                <span>{item.label}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {accountMenuOpen ? (
-        <div style={styles.accountMenu} data-testid="top-account-menu">
-          {accountMenuItems.map((item) => (
-            <button
-              key={item.key}
-              data-testid={`top-account-item-${item.key}`}
-              style={styles.accountMenuItem}
               type="button"
               onClick={item.onClick}
             >
@@ -3835,40 +3837,81 @@ export default function App() {
               {proGenerateHint ? <div style={styles.proGenerateToast}>{proGenerateHint}</div> : null}
               <div style={styles.proCanvasFooter}>
                 <div className="spx-pro-result-rail" style={styles.proResultRailDock}>
-                  <button
-                    type="button"
-                    style={{
-                      ...styles.proResultTab,
-                      ...(currentSceneActiveAssetId === "canvas" ? styles.proResultTabOn : null)
-                    }}
-                    onClick={() => {
-                      setActiveProAsset(sceneAssetKey, "canvas");
-                      setProAssetMenuId(null);
-                    }}
-                  >
-                    {lang === "zh" ? "画布" : "Canvas"}
-                  </button>
-
-                  {currentSceneAssets.map((asset, index) => {
-                    const tabLabel = asset.title?.trim() || proAssetLabel(asset.kind, index + 1);
-                    return (
+                  <div style={{ position: "relative", display: "inline-flex" }}>
                     <button
-                      key={asset.id}
+                      ref={proCanvasTabTriggerRef}
                       type="button"
-                      title={tabLabel}
                       style={{
                         ...styles.proResultTab,
-                        ...(currentSceneActiveAssetId === asset.id ? styles.proResultTabOn : null)
+                        ...styles.proResultTabTrigger,
+                        ...(currentSceneActiveAssetId === "canvas"
+                          ? styles.proResultTabOn
+                          : currentSceneAssets.some((a) => a.id === currentSceneActiveAssetId)
+                            ? styles.proResultTabOn
+                            : null)
                       }}
-                      onClick={() => {
-                        setActiveProAsset(sceneAssetKey, asset.id);
-                        setProAssetMenuId(null);
-                      }}
+                      onClick={() => setProCanvasTabMenuOpen((o) => !o)}
+                      title={lang === "zh" ? "切换画布 / 分镜" : "Switch canvas / asset"}
                     >
-                      {tabLabel}
+                      {currentSceneActiveAssetId === "canvas"
+                        ? (lang === "zh" ? "画布" : "Canvas")
+                        : (() => {
+                            const a = currentSceneAssets.find((x) => x.id === currentSceneActiveAssetId);
+                            return a ? (a.title?.trim() || proAssetLabel(a.kind, currentSceneAssets.indexOf(a) + 1)) : (lang === "zh" ? "画布" : "Canvas");
+                          })()}
+                      <span style={{ marginLeft: 6, opacity: 0.8 }}>▾</span>
                     </button>
-                    );
-                  })}
+                    {proCanvasTabMenuOpen ? (
+                      <div
+                        role="menu"
+                        style={{
+                          ...styles.proCanvasTabMenu,
+                          bottom: "100%",
+                          left: 0,
+                          marginBottom: 4
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          role="menuitem"
+                          type="button"
+                          style={{
+                            ...styles.proCanvasTabMenuItem,
+                            ...(currentSceneActiveAssetId === "canvas" ? styles.proCanvasTabMenuItemOn : null)
+                          }}
+                          onClick={() => {
+                            setActiveProAsset(sceneAssetKey, "canvas");
+                            setProAssetMenuId(null);
+                            setProCanvasTabMenuOpen(false);
+                          }}
+                        >
+                          {lang === "zh" ? "画布" : "Canvas"}
+                        </button>
+                        {currentSceneAssets.map((asset, index) => {
+                          const tabLabel = asset.title?.trim() || proAssetLabel(asset.kind, index + 1);
+                          return (
+                            <button
+                              key={asset.id}
+                              role="menuitem"
+                              type="button"
+                              title={tabLabel}
+                              style={{
+                                ...styles.proCanvasTabMenuItem,
+                                ...(currentSceneActiveAssetId === asset.id ? styles.proCanvasTabMenuItemOn : null)
+                              }}
+                              onClick={() => {
+                                setActiveProAsset(sceneAssetKey, asset.id);
+                                setProAssetMenuId(null);
+                                setProCanvasTabMenuOpen(false);
+                              }}
+                            >
+                              {tabLabel}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
                 <div style={styles.proGenerateHandle}>
                   {canUseBringYourOwnApi(accountUser) ? (
@@ -3905,7 +3948,7 @@ export default function App() {
                 platformId={savePlatformId}
                 openExportNonce={openExportNonce}
                 openExportAction={openExportAction}
-                promptExportNote={promptExportNote}
+                promptExportNote=""
                 onPreparePromptExport={preparePromptExport}
                 onSettlePromptExport={settlePromptExport}
                 onPlatformChange={(id) => syncSavePlatform(id as SavePlatformId)}
@@ -4435,7 +4478,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#000000",
     backdropFilter: "none",
     position: "relative",
-    zIndex: 30
+    zIndex: 1300
   },
   topProjectDock: {
     position: "absolute",
@@ -4446,29 +4489,27 @@ const styles: Record<string, React.CSSProperties> = {
   topModeSwitch: {
     display: "inline-flex",
     alignItems: "center",
-    gap: 6,
-    padding: 4,
-    borderRadius: 14,
-    border: `1px solid ${UI_PALETTE.border.soft}`,
-    background: "rgba(255,255,255,0.03)",
-    marginLeft: 10
+    gap: 4,
+    padding: 2,
+    borderRadius: 10,
+    background: "rgba(255,255,255,0.04)",
+    marginRight: 8
   },
   topModeBtn: {
-    minHeight: 32,
-    padding: "0 10px",
-    borderRadius: 10,
-    border: "1px solid transparent",
+    minHeight: 30,
+    padding: "0 12px",
+    borderRadius: 8,
+    border: "none",
     background: "transparent",
     color: UI_PALETTE.text.secondary,
     cursor: "pointer",
     fontSize: UI_TYPO.size12,
-    fontWeight: 900
+    fontWeight: 720,
+    outline: "none"
   },
   topModeBtnOn: {
-    border: `1px solid ${UI_COMMAND.border.accent}`,
-    background: UI_COMMAND.surface.accent,
-    color: UI_PALETTE.text.primary,
-    boxShadow: UI_COMMAND.shadow.soft
+    background: "rgba(255,255,255,0.12)",
+    color: UI_PALETTE.text.primary
   },
   commandDock: {
     display: "flex",
@@ -4545,15 +4586,17 @@ const styles: Record<string, React.CSSProperties> = {
   topAccountBtn: {
     border: "none",
     background: "transparent",
-    color: UI_PALETTE.text.primary,
-    fontSize: 13,
-    fontWeight: 640,
+    color: "#f4fbff",
+    fontSize: 14,
+    fontWeight: 720,
     padding: 0,
+    minHeight: 36,
     display: "inline-flex",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
     cursor: "pointer",
-    flexShrink: 0
+    flexShrink: 0,
+    outline: "none"
   },
   topAccountAvatar: {
     width: 22,
@@ -4736,6 +4779,43 @@ const styles: Record<string, React.CSSProperties> = {
     background: "linear-gradient(180deg, rgba(70,102,148,0.94) 0%, rgba(33,50,77,0.98) 60%, rgba(12,20,31,0.98) 100%)",
     color: UI_PALETTE.text.primary,
     boxShadow: "0 4px 10px rgba(2,8,18,0.22), inset 0 1px 0 rgba(238,246,255,0.24)"
+  },
+  proResultTabTrigger: {
+    paddingRight: 10
+  },
+  proCanvasTabMenu: {
+    position: "absolute",
+    zIndex: 50,
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+    minWidth: 160,
+    maxHeight: 280,
+    overflowY: "auto",
+    padding: 6,
+    borderRadius: "10px 10px 0 0",
+    border: "1px solid rgba(112,144,196,0.5)",
+    borderBottom: "none",
+    background: "linear-gradient(180deg, rgba(21,33,51,0.98) 0%, rgba(12,20,31,0.99) 100%)",
+    boxShadow: "0 -6px 16px rgba(0,0,0,0.35)"
+  },
+  proCanvasTabMenuItem: {
+    padding: "8px 14px",
+    textAlign: "left",
+    borderRadius: 8,
+    border: "none",
+    background: "transparent",
+    color: UI_PALETTE.text.secondary,
+    fontSize: UI_TYPO.size12,
+    fontWeight: 760,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis"
+  },
+  proCanvasTabMenuItemOn: {
+    background: "rgba(70,102,148,0.4)",
+    color: UI_PALETTE.text.primary
   },
   proActionBtnPrimary: {
     minHeight: 40,
