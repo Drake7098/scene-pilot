@@ -184,6 +184,8 @@ Last updated: 2026-03-13
 - `/Users/dk/scene-pilot/db/supabase/0001_public_rpc_bridge.sql`
 - Functions 鉴权已进入 Supabase 双栈：
 - `requireApiAuth` 支持 Supabase access token（Bearer）校验，并校验 `claimedUserId` 一致性。
+- `requireApiAuth` 新增“非本地默认 fail-closed”策略：当 `API_AUTH_STRICT` 未显式配置时，非 localhost 请求默认按严格模式执行。
+- `requireApiAuth` 新增 D1 cookie 会话鉴权：可直接校验 `sp_session -> auth_sessions`，支持登录态用户访问受保护接口（并继续校验 `claimedUserId` 一致性）。
 - 扣点接口新增并统一到服务端：
 - `GET /api/billing/me`
 - `GET /api/billing/credits/ledger`
@@ -195,6 +197,10 @@ Last updated: 2026-03-13
 ## Known Gaps
 - 2026-03-13 收口完成：`scene-pilot-test/pages.dev` 与 `scene-pilot-prod/pages.dev` 的 smoke 已通过，严格鉴权与 billing-off 行为正确（`401/401/503`）。
 - 2026-03-13 收口完成：`SUPABASE_SERVICE_ROLE_KEY` 已注入 test/prod；正式域名 `www.scenepilotix.com` 已绑定并通过最终 smoke（`200/401/503`）。
+- 2026-03-13 最新测试服核验：`/api/generation/providers`、`/api/billing/me` 匿名访问已返回 `401`；登录 cookie 下可访问 `billing/me`，跨用户查询返回 `403 user_id_mismatch`。
+- 测试服邮件验证码当前仍未打通真实发信：`/api/auth/email/send-code` 返回 `delivery=not_sent`、`deliveryReason=email_provider_not_configured`。
+- 测试服 Google 登录后端当前未配置：`/api/auth/google` 返回 `500 google_not_configured`。
+- 测试服支付保护当前处于 `billing_live_blocked`（`/api/paddle/checkout` 返回 `503`）；仍需明确测试环境最终策略应为 `billing_disabled` 还是 `sandbox`。
 - Quick 草稿跨刷新场景仍不能完整恢复 blob 媒体结果（第二阶段：结果资产持久化）。
 - Pro 的 `hosted / BYO` 交互已存在，但底层真实 `fal / Runway` provider adapter 尚未 fully landed。
 - Paddle checkout / customer-portal / webhook 已支持 Supabase 优先、D1 回退；下一步需要在测试服完成真实 Paddle 回调联调与事件重放验证。
