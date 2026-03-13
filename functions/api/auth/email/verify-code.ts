@@ -1,6 +1,7 @@
 import { createAuthSession, ensureAuthTables, isValidEmail, makeId, normalizeEmail, sha256Hex } from "../../_shared/auth-email";
 import { ensureBillingTables, ensureUserWallet } from "../../_shared/billing-db";
 import { corsOptions, json, rejectDisallowedOrigin } from "../../_shared/http";
+import { buildRequestRateLimitKey, enforceRateLimit } from "../../_shared/rate-limit";
 
 type VerifyCodeBody = {
   email?: string;
@@ -9,6 +10,12 @@ type VerifyCodeBody = {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function envInt(env: any, key: string, fallback: number, min: number, max: number) {
+  const raw = Number(env?.[key] || fallback);
+  if (!Number.isFinite(raw)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(raw)));
 }
 
 export const onRequestPost: PagesFunction = async (context) => {
@@ -24,6 +31,32 @@ export const onRequestPost: PagesFunction = async (context) => {
     const code = String(body?.code || "").trim();
     if (!isValidEmail(email)) return json({ ok: false, error: "invalid_email" }, 400, context.request, context.env);
     if (!/^\d{6}$/.test(code)) return json({ ok: false, error: "code_invalid" }, 400, context.request, context.env);
+
+    const ipRate = await enforceRateLimit(context.env.DB, {
+      key: await buildRequestRateLimitKey(context.request, "auth_verify_code_ip"),
+      limit: envInt(context.env, "AUTH_VERIFY_CODE_IP_LIMIT_PER_10M", 40, 1, 1000),
+      windowSeconds: 600
+    });
+    if (!ipRate.ok) {
+      return json({
+        ok: false,
+        error: "too_many_requests",
+        retryAfterSeconds: ipRate.retryAfterSeconds
+      }, 429, context.request, context.env);
+    }
+
+    const emailRate = await enforceRateLimit(context.env.DB, {
+      key: await buildRequestRateLimitKey(context.request, "auth_verify_code_email", [email]),
+      limit: envInt(context.env, "AUTH_VERIFY_CODE_EMAIL_LIMIT_PER_10M", 12, 1, 200),
+      windowSeconds: 600
+    });
+    if (!emailRate.ok) {
+      return json({
+        ok: false,
+        error: "too_many_requests",
+        retryAfterSeconds: emailRate.retryAfterSeconds
+      }, 429, context.request, context.env);
+    }
 
     const otp = await context.env.DB.prepare(`
       SELECT id, code_hash, expires_at, consumed_at, attempts, max_attempts

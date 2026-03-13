@@ -1,3 +1,9 @@
+type PaddleSignatureVerifyOptions = {
+  maxAgeSeconds?: number;
+  maxFutureSkewSeconds?: number;
+  nowMs?: number;
+};
+
 function parseSignatureHeader(header: string) {
   const map = new Map<string, string[]>();
   const parts = header.split(/[;,]/).map((item) => item.trim()).filter(Boolean);
@@ -40,7 +46,12 @@ async function hmacSha256(secret: string, payload: string) {
   return hex(signature);
 }
 
-export async function verifyPaddleWebhookSignature(request: Request, rawBody: string, secret: string) {
+export async function verifyPaddleWebhookSignatureWithOptions(
+  request: Request,
+  rawBody: string,
+  secret: string,
+  options: PaddleSignatureVerifyOptions = {}
+) {
   const signatureHeader = request.headers.get("paddle-signature") || request.headers.get("Paddle-Signature") || "";
   if (!signatureHeader.trim()) return false;
   const parsed = parseSignatureHeader(signatureHeader);
@@ -48,7 +59,21 @@ export async function verifyPaddleWebhookSignature(request: Request, rawBody: st
   const hashes = [...(parsed.get("h1") ?? []), ...(parsed.get("v1") ?? [])].map((value) => value.toLowerCase());
   if (!ts || !hashes.length) return false;
 
+  const tsSeconds = Number(ts);
+  if (!Number.isFinite(tsSeconds) || tsSeconds <= 0) return false;
+  const nowSeconds = Math.floor((Number.isFinite(options.nowMs) ? Number(options.nowMs) : Date.now()) / 1000);
+  const maxAgeSeconds = Number.isFinite(options.maxAgeSeconds) ? Math.max(30, Math.floor(Number(options.maxAgeSeconds))) : 300;
+  const maxFutureSkewSeconds = Number.isFinite(options.maxFutureSkewSeconds)
+    ? Math.max(0, Math.floor(Number(options.maxFutureSkewSeconds)))
+    : 60;
+  if (tsSeconds < nowSeconds - maxAgeSeconds) return false;
+  if (tsSeconds > nowSeconds + maxFutureSkewSeconds) return false;
+
   const signedPayload = `${ts}:${rawBody}`;
   const computed = await hmacSha256(secret, signedPayload);
   return hashes.some((candidate) => timingSafeEqual(candidate, computed));
+}
+
+export async function verifyPaddleWebhookSignature(request: Request, rawBody: string, secret: string) {
+  return verifyPaddleWebhookSignatureWithOptions(request, rawBody, secret);
 }

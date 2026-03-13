@@ -1,6 +1,6 @@
 import { activatePro, ensureBillingTables, ensureUserWallet, grantCredits, seedDefaultProducts } from "../_shared/billing-db";
 import { corsOptions, json, rejectDisallowedOrigin } from "../_shared/http";
-import { verifyPaddleWebhookSignature } from "../_shared/paddle-signature";
+import { verifyPaddleWebhookSignatureWithOptions } from "../_shared/paddle-signature";
 import { hasSupabaseAdmin, parseRpcRow, supabaseAdminRequest } from "../_shared/supabase-admin";
 import { isBillingEnabled, isLiveBillingBlocked } from "../_shared/billing-feature";
 
@@ -12,6 +12,12 @@ type PaddleWebhookBody = {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function envInt(env: any, key: string, fallback: number, min: number, max: number) {
+  const raw = Number(env?.[key] || fallback);
+  if (!Number.isFinite(raw)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(raw)));
 }
 
 function makeId(prefix: string) {
@@ -427,7 +433,15 @@ export const onRequestPost: PagesFunction = async (context) => {
     if (!webhookSecret) return json({ error: "webhook_secret_not_configured" }, 500, context.request, context.env);
 
     const rawBody = await context.request.text();
-    const signatureValid = await verifyPaddleWebhookSignature(context.request, rawBody, webhookSecret);
+    const signatureValid = await verifyPaddleWebhookSignatureWithOptions(
+      context.request,
+      rawBody,
+      webhookSecret,
+      {
+        maxAgeSeconds: envInt(context.env, "PADDLE_WEBHOOK_MAX_AGE_SECONDS", 300, 60, 3600),
+        maxFutureSkewSeconds: envInt(context.env, "PADDLE_WEBHOOK_MAX_FUTURE_SKEW_SECONDS", 60, 0, 300)
+      }
+    );
     if (!signatureValid) return json({ error: "invalid_webhook_signature" }, 401, context.request, context.env);
 
     const body = JSON.parse(rawBody || "{}") as PaddleWebhookBody;

@@ -4,6 +4,7 @@ import { corsOptions, isOriginAllowed, rejectDisallowedOrigin } from "../../../f
 import { verifyPaddleWebhookSignature } from "../../../functions/api/_shared/paddle-signature";
 import { submitGeneration } from "../../../functions/api/_shared/provider-gateway";
 import { onRequestGet as generationProvidersGet } from "../../../functions/api/generation/providers";
+import { onRequestPost as legalConsentPost } from "../../../functions/api/legal/consent";
 import { onRequestPost as paddleCheckoutPost } from "../../../functions/api/paddle/checkout";
 import { onRequestPost as paddleWebhookPost } from "../../../functions/api/paddle/webhook";
 
@@ -93,8 +94,10 @@ async function hmacSha256Hex(secret: string, payload: string) {
 test("webhook signature verification passes/fails correctly", async () => {
   const secret = "whsec_test";
   const rawBody = JSON.stringify({ event_type: "transaction.completed", data: { id: "tx_1" } });
-  const ts = "1700000000";
+  const ts = String(Math.floor(Date.now() / 1000));
   const validSig = await hmacSha256Hex(secret, `${ts}:${rawBody}`);
+  const staleTs = String(Math.floor(Date.now() / 1000) - 7200);
+  const staleSig = await hmacSha256Hex(secret, `${staleTs}:${rawBody}`);
 
   const validReq = new Request("https://example.com/api/paddle/webhook", {
     method: "POST",
@@ -106,9 +109,15 @@ test("webhook signature verification passes/fails correctly", async () => {
     headers: { "paddle-signature": `ts=${ts};h1=deadbeef` },
     body: rawBody
   });
+  const staleReq = new Request("https://example.com/api/paddle/webhook", {
+    method: "POST",
+    headers: { "paddle-signature": `ts=${staleTs};h1=${staleSig}` },
+    body: rawBody
+  });
 
   await expect(verifyPaddleWebhookSignature(validReq, rawBody, secret)).resolves.toBeTruthy();
   await expect(verifyPaddleWebhookSignature(invalidReq, rawBody, secret)).resolves.toBeFalsy();
+  await expect(verifyPaddleWebhookSignature(staleReq, rawBody, secret)).resolves.toBeFalsy();
 });
 
 test("auth middleware enforces token and claimed user consistency", async () => {
@@ -191,6 +200,47 @@ test("generation and checkout routes enforce auth", async () => {
   expect(checkoutAllowed.status).toBe(200);
 });
 
+test("legal consent route enforces auth and accepts valid payload", async () => {
+  const tokenEnv = { API_AUTH_TOKEN: "test-token", DB: createMockDb() };
+  const payload = {
+    userId: "user_1",
+    context: "auth_signup_signin",
+    docs: ["terms", "privacy"],
+    documentVersions: { terms: "v1.2", privacy: "v1.2" },
+    locale: "en-US",
+    source: "account_center_auth",
+    acceptedAt: "2026-03-13T00:00:00.000Z"
+  };
+
+  const denied = await legalConsentPost(
+    makeContext(
+      new Request("https://example.com/api/legal/consent", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload)
+      }),
+      tokenEnv
+    )
+  );
+  expect(denied.status).toBe(401);
+
+  const allowed = await legalConsentPost(
+    makeContext(
+      new Request("https://example.com/api/legal/consent", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer test-token",
+          "content-type": "application/json",
+          "x-sp-user-id": "user_1"
+        },
+        body: JSON.stringify(payload)
+      }),
+      tokenEnv
+    )
+  );
+  expect(allowed.status).toBe(200);
+});
+
 test("cors uses allowlist instead of wildcard", async () => {
   const env = { CORS_ALLOW_ORIGINS: "https://app.example.com,https://studio.example.com" };
   const allowReq = new Request("https://example.com/api/test", {
@@ -233,7 +283,7 @@ test("provider baseUrl allowlist and ssrf guard block unsafe personal endpoints"
 
 test("paddle webhook dedupes repeated event id", async () => {
   const webhookSecret = "whsec_test";
-  const ts = "1700000000";
+  const ts = String(Math.floor(Date.now() / 1000));
   const body = JSON.stringify({
     event_id: "evt_dedup_1",
     event_type: "transaction.completed",

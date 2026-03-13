@@ -1,4 +1,5 @@
 import { corsOptions, json, rejectDisallowedOrigin } from "./_shared/http";
+import { buildRequestRateLimitKey, enforceRateLimit } from "./_shared/rate-limit";
 
 const SENSITIVE_KEY_RE = /(pass(word)?|token|secret|authorization|cookie|api[-_]?key|email|phone|mobile|id[_-]?number|身份证)/i;
 const MAX_OBJECT_KEYS = 40;
@@ -50,6 +51,12 @@ function safeJson(value: unknown, maxBytes = 16_000, sanitize = true) {
   } catch {
     return JSON.stringify({ serialize_error: true });
   }
+}
+
+function envInt(env: any, key: string, fallback: number, min: number, max: number) {
+  const raw = Number(env?.[key] || fallback);
+  if (!Number.isFinite(raw)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(raw)));
 }
 
 function normalizeForFingerprint(input: unknown) {
@@ -162,6 +169,19 @@ export const onRequestPost: PagesFunction = async (context) => {
   try {
     const originErr = rejectDisallowedOrigin(context.request, context.env);
     if (originErr) return originErr;
+    const limitState = await enforceRateLimit(context.env?.DB, {
+      key: await buildRequestRateLimitKey(context.request, "collect"),
+      limit: envInt(context.env, "COLLECT_RATE_LIMIT_PER_MIN", 240, 20, 3000),
+      windowSeconds: 60
+    });
+    if (!limitState.ok) {
+      return json({
+        ok: false,
+        error: "too_many_requests",
+        retryAfterSeconds: limitState.retryAfterSeconds
+      }, 429, context.request, context.env);
+    }
+
     const data = await context.request.json();
     if (!data?.event) return json({ error: "missing_event" }, 400, context.request, context.env);
 

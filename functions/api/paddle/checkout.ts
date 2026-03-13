@@ -1,6 +1,7 @@
 import { ensureBillingTables, ensureUserWallet, seedDefaultProducts } from "../_shared/billing-db";
 import { corsOptions, json, rejectDisallowedOrigin } from "../_shared/http";
 import { requireApiAuth } from "../_shared/auth";
+import { buildRequestRateLimitKey, enforceRateLimit } from "../_shared/rate-limit";
 import { hasSupabaseAdmin, supabaseAdminRequest } from "../_shared/supabase-admin";
 import { isBillingEnabled, isLiveBillingBlocked } from "../_shared/billing-feature";
 
@@ -17,6 +18,12 @@ function makeId(prefix: string) {
 
 function isUuidLike(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.trim());
+}
+
+function envInt(env: any, key: string, fallback: number, min: number, max: number) {
+  const raw = Number(env?.[key] || fallback);
+  if (!Number.isFinite(raw)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(raw)));
 }
 
 export const onRequestPost: PagesFunction = async (context) => {
@@ -36,6 +43,17 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
     const authErr = await requireApiAuth(context, { claimedUserId: body.userId });
     if (authErr) return authErr;
+    const limiter = await enforceRateLimit(context.env?.DB, {
+      key: await buildRequestRateLimitKey(context.request, "billing_checkout", [body.userId, body.kind, body.productId]),
+      limit: envInt(context.env, "CHECKOUT_LIMIT_PER_10M", 20, 1, 200),
+      windowSeconds: 600
+    });
+    if (!limiter.ok) {
+      return json({
+        error: "too_many_requests",
+        retryAfterSeconds: limiter.retryAfterSeconds
+      }, 429, context.request, context.env);
+    }
 
     if (hasSupabaseAdmin(context.env)) {
       if (!isUuidLike(body.userId)) {
