@@ -30,6 +30,13 @@ export type LocalProviderMockState = {
   comfyPromptPayloads: Array<Record<string, unknown>>;
 };
 
+type MockSessionSeedOptions = {
+  email?: string;
+  creditsBalance?: number;
+  tier?: "free" | "pro";
+  preserveExistingSession?: boolean;
+};
+
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WnR4V8AAAAASUVORK5CYII=";
 
@@ -94,31 +101,150 @@ async function isVisible(locator: Locator): Promise<boolean> {
   }
 }
 
+export async function dismissAccountCenterIfPresent(page: Page): Promise<void> {
+  const authPanel = page.getByTestId("account-auth-panel");
+  const closeBtn = page.getByTestId("account-center-close");
+  const hasAuthPanel = await authPanel.count();
+  if (!hasAuthPanel) return;
+  if (await closeBtn.count()) {
+    await closeBtn.click({ force: true });
+    await expect(authPanel).toHaveCount(0);
+  }
+}
+
 async function openTopMenu(page: Page): Promise<void> {
+  const guideMask = page.getByTestId("workspace-entry-guide-mask");
+  if (await guideMask.count()) {
+    const skip = page.getByTestId("workspace-entry-guide-skip");
+    if (await skip.count()) {
+      await skip.click();
+    } else {
+      await guideMask.first().click({ position: { x: 6, y: 6 } });
+    }
+  }
   await page.getByTestId("top-help-trigger").click();
 }
 
-async function signIn(page: Page, email: string): Promise<void> {
-  await openTopMenu(page);
-  await page.getByTestId("top-help-item-account").click();
-  await page.getByPlaceholder(/邮箱地址|Email/i).fill(email);
-  await page.getByTestId("account-auth-legal-consent").check();
-  await page.getByTestId("account-auth-send-code").click();
-  const devCodeText = await page.locator("text=/开发验证码：|Dev code:/").textContent();
-  const code = devCodeText?.match(/(\d{6})/)?.[1] ?? "";
-  await page.getByPlaceholder(/6 位验证码|6-digit code/i).fill(code);
-  await page.getByTestId("account-auth-verify").click();
-  await page.mouse.click(10, 10);
-}
-
 export async function openQuickWorkspace(page: Page, lang: "zh" | "en" = "en"): Promise<void> {
-  await page.goto("/");
+  await installMockSessionBeforeLoad(page, { tier: "free", creditsBalance: 120 });
+  await page.goto("/app");
   await page.evaluate((nextLang) => {
     localStorage.setItem("sp_workspace_mode", "results");
+    localStorage.setItem("sp_workspace_entry_guide_done_v1", "1");
     localStorage.setItem("scenepilot_lang", nextLang);
   }, lang);
   await page.reload();
   await expect(page.getByTestId("media-studio-root")).toBeVisible();
+}
+
+export async function installMockSessionBeforeLoad(
+  page: Page,
+  options: MockSessionSeedOptions = {}
+): Promise<void> {
+  const {
+    email = "robot-user@example.com",
+    creditsBalance = 120,
+    tier = "free",
+    preserveExistingSession = true,
+  } = options;
+  await page.addInitScript(({ nextEmail, nextCreditsBalance, nextTier, keepExistingSession }) => {
+    const now = new Date().toISOString();
+    const storeKey = "scenepilot_mock_account_store_v1";
+    let store: Record<string, any>;
+    try {
+      store = JSON.parse(localStorage.getItem(storeKey) || "{}");
+    } catch {
+      store = {};
+    }
+    store.users = store.users ?? {};
+    store.wallets = store.wallets ?? {};
+    store.ledgers = store.ledgers ?? {};
+    store.apiCredentials = store.apiCredentials ?? {};
+    store.subscriptions = store.subscriptions ?? {};
+    store.challenges = store.challenges ?? {};
+
+    if (
+      keepExistingSession
+      && typeof store.session?.userId === "string"
+      && !!store.users?.[store.session.userId]
+    ) {
+      return;
+    }
+
+    const normalizedEmail = String(nextEmail).trim().toLowerCase();
+    const normalizedTier = nextTier === "pro" ? "pro" : "free";
+    const normalizedUserId = `user_robot_${normalizedEmail.replace(/[^a-z0-9]/g, "_")}`;
+
+    store.users[normalizedUserId] = {
+      id: normalizedUserId,
+      email: normalizedEmail,
+      displayName: store.users[normalizedUserId]?.displayName ?? null,
+      avatarUrl: store.users[normalizedUserId]?.avatarUrl ?? null,
+      tier: normalizedTier,
+      proConsoleEnabled: normalizedTier === "pro",
+      bringYourOwnApiEnabled: normalizedTier === "pro",
+      creditsBalance: nextCreditsBalance,
+      createdAt: store.users[normalizedUserId]?.createdAt ?? now,
+      updatedAt: now
+    };
+    store.wallets[normalizedUserId] = { creditsBalance: nextCreditsBalance, currency: "credits" };
+    store.ledgers[normalizedUserId] = store.ledgers[normalizedUserId] ?? [];
+    store.apiCredentials[normalizedUserId] = store.apiCredentials[normalizedUserId] ?? {
+      defaultProvider: "fal",
+      fal: {
+        enabled: true,
+        mode: "platform",
+        apiKey: "",
+        baseUrl: "https://queue.fal.run",
+        preferredModel: "fal-ai/flux/dev",
+        updatedAt: now
+      },
+      runway: {
+        enabled: false,
+        mode: "platform",
+        apiKey: "",
+        baseUrl: "https://api.dev.runwayml.com",
+        preferredModel: "gen4_turbo",
+        updatedAt: now
+      },
+      updatedAt: now
+    };
+    store.subscriptions[normalizedUserId] = normalizedTier === "pro"
+      ? {
+          userId: normalizedUserId,
+          planId: "pro_monthly",
+          status: "active",
+          currentPeriodStart: now,
+          currentPeriodEnd: new Date(Date.now() + 86400000).toISOString(),
+          lastCreditGrantAt: now,
+          provider: "mock",
+          customerPortalUrl: "/mock/paddle/customer-portal"
+        }
+      : {
+          userId: normalizedUserId,
+          planId: "",
+          status: "inactive",
+          currentPeriodStart: null,
+          currentPeriodEnd: null,
+          lastCreditGrantAt: null,
+          provider: "mock",
+          customerPortalUrl: null
+        };
+    store.session = {
+      token: `session_${normalizedUserId}`,
+      userId: normalizedUserId,
+      email: normalizedEmail,
+      provider: "password",
+      providerSubject: null,
+      createdAt: now
+    };
+    localStorage.setItem(storeKey, JSON.stringify(store));
+  }, {
+    nextEmail: email,
+    nextCreditsBalance: creditsBalance,
+    nextTier: tier,
+    keepExistingSession: preserveExistingSession
+  });
 }
 
 export async function ensureMockProAccount(
@@ -126,46 +252,95 @@ export async function ensureMockProAccount(
   options: { email?: string; creditsBalance?: number } = {},
 ): Promise<void> {
   const { email = "robot-pro@example.com", creditsBalance = 200 } = options;
-  const hasSession = await page.evaluate(() => {
-    const raw = localStorage.getItem("scenepilot_mock_account_store_v1");
-    if (!raw) return false;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      return Boolean(JSON.parse(raw)?.session?.userId);
-    } catch {
-      return false;
+      await page.evaluate(({ nextEmail, nextCreditsBalance }) => {
+        const now = new Date().toISOString();
+        const storeKey = "scenepilot_mock_account_store_v1";
+        let store: Record<string, any>;
+        try {
+          store = JSON.parse(localStorage.getItem(storeKey) || "{}");
+        } catch {
+          store = {};
+        }
+        store.users = store.users ?? {};
+        store.wallets = store.wallets ?? {};
+        store.ledgers = store.ledgers ?? {};
+        store.apiCredentials = store.apiCredentials ?? {};
+        store.subscriptions = store.subscriptions ?? {};
+        store.challenges = store.challenges ?? {};
+
+        const normalizedEmail = String(nextEmail).trim().toLowerCase();
+        let userId = typeof store.session?.userId === "string" ? store.session.userId : "";
+        if (!userId || !store.users[userId]) {
+          const byEmail = Object.values(store.users).find((item: any) => item?.email === normalizedEmail) as { id?: string } | undefined;
+          userId = byEmail?.id || `user_robot_${Date.now()}`;
+        }
+
+        store.users[userId] = {
+          id: userId,
+          email: normalizedEmail,
+          displayName: store.users[userId]?.displayName ?? null,
+          avatarUrl: store.users[userId]?.avatarUrl ?? null,
+          tier: "pro",
+          proConsoleEnabled: true,
+          bringYourOwnApiEnabled: true,
+          creditsBalance: nextCreditsBalance,
+          createdAt: store.users[userId]?.createdAt ?? now,
+          updatedAt: now
+        };
+        store.wallets[userId] = { creditsBalance: nextCreditsBalance, currency: "credits" };
+        store.ledgers[userId] = store.ledgers[userId] ?? [];
+        store.apiCredentials[userId] = store.apiCredentials[userId] ?? {
+          defaultProvider: "fal",
+          fal: {
+            enabled: true,
+            mode: "platform",
+            apiKey: "",
+            baseUrl: "https://queue.fal.run",
+            preferredModel: "fal-ai/flux/dev",
+            updatedAt: now
+          },
+          runway: {
+            enabled: false,
+            mode: "platform",
+            apiKey: "",
+            baseUrl: "https://api.dev.runwayml.com",
+            preferredModel: "gen4_turbo",
+            updatedAt: now
+          },
+          updatedAt: now
+        };
+        store.subscriptions[userId] = {
+          userId,
+          planId: "pro_monthly",
+          status: "active",
+          currentPeriodStart: new Date().toISOString(),
+          currentPeriodEnd: new Date(Date.now() + 86400000).toISOString(),
+          lastCreditGrantAt: new Date().toISOString(),
+          provider: "mock",
+          customerPortalUrl: "/mock/paddle/customer-portal"
+        };
+        store.session = {
+          token: `session_${userId}`,
+          userId,
+          email: normalizedEmail,
+          provider: "password",
+          providerSubject: null,
+          createdAt: now
+        };
+        localStorage.setItem(storeKey, JSON.stringify(store));
+        localStorage.setItem("sp_workspace_entry_guide_done_v1", "1");
+      }, { nextEmail: email, nextCreditsBalance: creditsBalance });
+      break;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (attempt === 2 || !message.includes("Execution context was destroyed")) {
+        throw error;
+      }
+      await page.waitForLoadState("domcontentloaded");
     }
-  });
-
-  if (!hasSession) {
-    await signIn(page, email);
   }
-
-  await page.evaluate((nextCreditsBalance) => {
-    const raw = localStorage.getItem("scenepilot_mock_account_store_v1");
-    if (!raw) throw new Error("Mock account store is missing");
-    const store = JSON.parse(raw);
-    const userId = store.session?.userId;
-    if (!userId) throw new Error("Mock account session is missing");
-    store.users[userId] = {
-      ...store.users[userId],
-      tier: "pro",
-      proConsoleEnabled: true,
-      bringYourOwnApiEnabled: true,
-      creditsBalance: nextCreditsBalance
-    };
-    store.wallets[userId] = { creditsBalance: nextCreditsBalance, currency: "credits" };
-    store.subscriptions[userId] = {
-      userId,
-      planId: "pro_monthly",
-      status: "active",
-      currentPeriodStart: new Date().toISOString(),
-      currentPeriodEnd: new Date(Date.now() + 86400000).toISOString(),
-      lastCreditGrantAt: new Date().toISOString(),
-      provider: "mock",
-      customerPortalUrl: "/mock/paddle/customer-portal"
-    };
-    localStorage.setItem("scenepilot_mock_account_store_v1", JSON.stringify(store));
-  }, creditsBalance);
 
   await page.reload();
 }
@@ -211,16 +386,41 @@ export async function openWizard(page: Page): Promise<void> {
   }
 
   const projectMenuTrigger = page.getByTestId("project-menu-trigger");
+  if (!(await projectMenuTrigger.count())) {
+    try {
+      await expect(projectMenuTrigger).toHaveCount(1, { timeout: 4_000 });
+    } catch {
+      // fallback below if project control bar is not shown in this mode
+    }
+  }
+  if (await projectMenuTrigger.count()) {
+    try {
+      await expect(projectMenuTrigger).toBeVisible({ timeout: 2_000 });
+    } catch {
+      // still try force click when present in DOM but partially covered by transitions
+    }
+  }
+
   if (await isVisible(projectMenuTrigger)) {
-    await projectMenuTrigger.click();
+    await projectMenuTrigger.click({ force: true });
     const projectMenuNew = page.getByTestId("project-menu-new");
     if (await isVisible(projectMenuNew)) {
       await projectMenuNew.click();
     } else {
-      await page.getByRole("button", { name: TXT.newProject }).first().click();
+      const altNew = page.getByRole("button", { name: /新建|New/i }).first();
+      if (await isVisible(altNew)) {
+        await altNew.click();
+      } else {
+        await page.getByRole("button", { name: TXT.newProject }).first().click();
+      }
     }
   } else {
-    await page.getByRole("button", { name: TXT.newProject }).first().click();
+    const altNew = page.getByRole("button", { name: /新建|New/i }).first();
+    if (await isVisible(altNew)) {
+      await altNew.click();
+    } else {
+      await page.getByRole("button", { name: TXT.newProject }).first().click();
+    }
   }
 
   const newWithoutSavingBtn = page.getByRole("button", { name: TXT.newWithoutSaving });

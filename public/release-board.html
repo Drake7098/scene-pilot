@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ScenePilot 发布看板</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --card: #ffffff;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --line: #d9e0ea;
+        --accent: #0f766e;
+        --done: #9ca3af;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "SF Pro Text", "PingFang SC", "Noto Sans SC", "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 15% 0%, #e6f7f5 0%, transparent 30%),
+          radial-gradient(circle at 100% 10%, #eaf2ff 0%, transparent 25%),
+          var(--bg);
+      }
+
+      .wrap {
+        width: min(980px, 100%);
+        margin: 0 auto;
+        padding: 20px 16px 36px;
+      }
+
+      .header {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--card);
+        padding: 16px;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .sub {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .toolbar {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      .btn:hover {
+        border-color: #c4d0df;
+      }
+
+      .section {
+        margin-top: 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--card);
+        overflow: hidden;
+      }
+
+      .section-head {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .section-title {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      .section-meta {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .list {
+        list-style: none;
+        margin: 0;
+        padding: 10px 12px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .item {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        padding: 10px 12px;
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        align-items: start;
+        gap: 10px;
+      }
+
+      .item.done {
+        background: #fafafa;
+        border-color: #ececec;
+      }
+
+      .item.done .text {
+        color: var(--done);
+        text-decoration: line-through;
+      }
+
+      input[type="checkbox"] {
+        margin-top: 2px;
+        accent-color: var(--accent);
+      }
+
+      .text {
+        line-height: 1.6;
+        font-size: 14px;
+      }
+
+      .footer {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="header">
+        <h1 class="title">ScenePilot 发布看板（本地）</h1>
+        <p class="sub">
+          上半部分是你的清单，下半部分是我给你的发布清单。<br />
+          勾选后会自动变灰，并保存到本地浏览器。
+        </p>
+        <div class="toolbar">
+          <button class="btn" id="checkAll">全部勾选</button>
+          <button class="btn" id="uncheckAll">全部取消</button>
+          <button class="btn" id="reset">重置状态</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <h2 class="section-title">你的发布清单</h2>
+          <span class="section-meta" id="userMeta">0 / 0</span>
+        </div>
+        <ul class="list" id="userList"></ul>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <h2 class="section-title">我的发布清单</h2>
+          <span class="section-meta" id="assistantMeta">0 / 0</span>
+        </div>
+        <ul class="list" id="assistantList"></ul>
+      </section>
+
+      <p class="footer">文件路径：`/Users/dk/scene-pilot/public/release-board.html`</p>
+    </main>
+
+    <script>
+      const STORAGE_KEY = "sp_release_board_checks_v1";
+      const USER_ITEMS = [
+        "确保提示词引擎没问题，可以面向需求生成稳定的结构化提示词",
+        "确保 UI 不崩",
+        "确保会员系统、基础操作、PRO 工作台都没问题",
+        "确保两个付费接口（视频/图片）没问题，用户可接自己的 API 生成，会员专属功能可用",
+        "确保 Paddle 开通、Google 登录开通",
+        "埋点、错误反馈、客服自动化可用",
+        "旧域名到新域名迁移完成"
+      ];
+
+      const ASSISTANT_ITEMS = [
+        "生产环境禁用 mock 认证与 mock 支付回退路径",
+        "生产环境强制 API_AUTH_STRICT=1，并完成用户身份与请求绑定",
+        "对 generation / billing / webhook / portal 接口加速率限制与滥用告警",
+        "Threat Model 从模板补全为可审计版本（资产、威胁、缓解、责任人、到期日）",
+        "法务文案去占位符并上线正式 Terms / Privacy / Billing / Refund",
+        "Paddle 提审硬性信息补齐：法定主体名称、注册地址、客服联系方式在站点与结账链路可见",
+        "机器人发布门禁改为 0 skipped（不允许跳过用例发布）",
+        "补齐数据库备份与恢复演练（D1 恢复演练有记录）",
+        "建立发布回滚机制（分阶段放量 + 自动回滚阈值）",
+        "建立核心 SLO 与告警（登录、支付、生成成功率、API 可用性）",
+        "前端拆包与性能优化，降低首屏与弱网加载压力"
+      ];
+
+      const userList = document.getElementById("userList");
+      const assistantList = document.getElementById("assistantList");
+      const userMeta = document.getElementById("userMeta");
+      const assistantMeta = document.getElementById("assistantMeta");
+
+      const state = readState();
+
+      function readState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          return raw ? JSON.parse(raw) : {};
+        } catch {
+          return {};
+        }
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function makeKey(group, index) {
+        return `${group}_${index}`;
+      }
+
+      function renderList(target, group, items) {
+        target.innerHTML = "";
+        items.forEach((text, index) => {
+          const key = makeKey(group, index);
+          const checked = Boolean(state[key]);
+          const li = document.createElement("li");
+          li.className = `item${checked ? " done" : ""}`;
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = checked;
+          checkbox.addEventListener("change", () => {
+            state[key] = checkbox.checked;
+            saveState();
+            render();
+          });
+
+          const span = document.createElement("span");
+          span.className = "text";
+          span.textContent = text;
+
+          li.appendChild(checkbox);
+          li.appendChild(span);
+          target.appendChild(li);
+        });
+      }
+
+      function updateMeta(items, group, metaNode) {
+        const done = items.filter((_, index) => state[makeKey(group, index)]).length;
+        metaNode.textContent = `${done} / ${items.length}`;
+      }
+
+      function render() {
+        renderList(userList, "user", USER_ITEMS);
+        renderList(assistantList, "assistant", ASSISTANT_ITEMS);
+        updateMeta(USER_ITEMS, "user", userMeta);
+        updateMeta(ASSISTANT_ITEMS, "assistant", assistantMeta);
+      }
+
+      document.getElementById("checkAll").addEventListener("click", () => {
+        USER_ITEMS.forEach((_, i) => (state[makeKey("user", i)] = true));
+        ASSISTANT_ITEMS.forEach((_, i) => (state[makeKey("assistant", i)] = true));
+        saveState();
+        render();
+      });
+
+      document.getElementById("uncheckAll").addEventListener("click", () => {
+        USER_ITEMS.forEach((_, i) => (state[makeKey("user", i)] = false));
+        ASSISTANT_ITEMS.forEach((_, i) => (state[makeKey("assistant", i)] = false));
+        saveState();
+        render();
+      });
+
+      document.getElementById("reset").addEventListener("click", () => {
+        localStorage.removeItem(STORAGE_KEY);
+        Object.keys(state).forEach((key) => delete state[key]);
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>

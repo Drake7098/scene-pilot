@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 import { CREDIT_PACKS, HOSTED_ACTIONS, PRO_PLAN } from "../services/billingService";
+import { PUBLIC_CONTACT_CHANNELS } from "../config/contactChannels";
+import PublicFooter from "../components/PublicFooter";
 
 const SURFACE: CSSProperties = {
   maxWidth: 1120,
@@ -40,9 +42,37 @@ export default function PricingPage() {
           </div>
           <h1 style={{ margin: "14px 0 8px", fontSize: 34, lineHeight: 1.15, letterSpacing: 0.2 }}>Plans & Credits</h1>
           <p style={{ margin: 0, color: "var(--spx-text-2)", fontSize: 15 }}>
-            Public pricing page for checkout review and payment integration testing.
+            Transparent SaaS subscription pricing for ScenePilotix.
           </p>
         </header>
+
+        <section style={{ ...cardBase, padding: 20, marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: "var(--spx-text-3)" }}>Plans</div>
+          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginTop: 12 }}>
+            <article style={miniCard}>
+              <div style={{ fontSize: 14, color: "var(--spx-text-2)" }}>Free</div>
+              <div style={{ fontSize: 30, fontWeight: 700, marginTop: 4 }}>$0</div>
+              <div style={{ color: "var(--spx-text-2)", fontSize: 13 }}>/ month</div>
+              <div style={{ marginTop: 10, color: "var(--spx-text-2)", fontSize: 13.5 }}>
+                Core scene-structure workspace for quick prompt drafting.
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <a href="/app" style={secondaryCta}>Start Free</a>
+              </div>
+            </article>
+            <article style={{ ...miniCard, border: "1px solid rgba(123, 181, 255, 0.58)" }}>
+              <div style={{ fontSize: 14, color: "var(--spx-text-2)" }}>Pro</div>
+              <div style={{ fontSize: 30, fontWeight: 700, marginTop: 4 }}>${PRO_PLAN.monthlyUsdPrice}</div>
+              <div style={{ color: "var(--spx-text-2)", fontSize: 13 }}>/ month</div>
+              <div style={{ marginTop: 10, color: "var(--spx-text-2)", fontSize: 13.5 }}>
+                Subscription with Pro workspace and {PRO_PLAN.monthlyCredits} monthly credits.
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <a href="/app" style={primaryCta}>Upgrade to Pro</a>
+              </div>
+            </article>
+          </div>
+        </section>
 
         <section style={{ ...cardBase, padding: 20, marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -61,7 +91,7 @@ export default function PricingPage() {
             <Badge text="BYO API mode available" />
           </div>
           <div style={{ marginTop: 16 }}>
-            <a href="/" style={primaryCta}>
+            <a href="/app" style={primaryCta}>
               Upgrade to Pro
             </a>
           </div>
@@ -75,7 +105,7 @@ export default function PricingPage() {
                 <div style={{ fontSize: 14, color: "var(--spx-text-2)" }}>{pack.credits} credits</div>
                 <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>${pack.usdPrice}</div>
                 <div style={{ marginTop: 10 }}>
-                  <a href="/" style={secondaryCta}>Buy Credits</a>
+                  <a href="/app" style={secondaryCta}>Buy Credits</a>
                 </div>
               </article>
             ))}
@@ -100,12 +130,24 @@ export default function PricingPage() {
         <section style={{ ...cardBase, padding: 20 }}>
           <div style={{ fontSize: 13, color: "var(--spx-text-3)" }}>Billing Notes</div>
           <ul style={{ margin: "10px 0 0", paddingLeft: 18, color: "var(--spx-text-2)", lineHeight: 1.6 }}>
+            <li>Checkout, tax calculation, invoices, and receipts are processed by Paddle.</li>
             <li>Pro is auto-renewing until canceled.</li>
             <li>First-time Pro subscription supports a 7-day refund window.</li>
             <li>Used credits are non-refundable. Purchased credit packs are refundable only when fully unused.</li>
             <li>Applicable local consumer protection laws prevail.</li>
           </ul>
+          <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <a href="/terms" style={policyLink}>Terms of Service</a>
+            <a href="/privacy" style={policyLink}>Privacy Notice</a>
+            <a href="/billing-terms" style={policyLink}>Billing Terms</a>
+            <a href="/refund-policy" style={policyLink}>Refund Policy</a>
+          </div>
+          <div style={{ marginTop: 10, color: "var(--spx-text-2)", fontSize: 13, lineHeight: 1.6 }}>
+            Support: {PUBLIC_CONTACT_CHANNELS.support} | Business: {PUBLIC_CONTACT_CHANNELS.business}
+          </div>
         </section>
+
+        <PublicFooter />
       </div>
     </div>
   );
@@ -176,4 +218,19 @@ const closeBtn: CSSProperties = {
   color: "var(--spx-text-2)",
   fontWeight: 600,
   fontSize: 13
+};
+
+const policyLink: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: 30,
+  padding: "0 10px",
+  borderRadius: 999,
+  textDecoration: "none",
+  border: "1px solid var(--spx-border)",
+  background: "rgba(255,255,255,0.03)",
+  color: "var(--spx-text-1)",
+  fontSize: 12.5,
+  fontWeight: 600
 };

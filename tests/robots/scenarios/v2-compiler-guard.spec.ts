@@ -14,7 +14,7 @@ test("v2_compiler_guard_scene_tier_and_mode", async ({ page }) => {
   requireLiveMode();
 
   await runStep(page, "open_app", async () => {
-    await page.goto("/");
+    await page.goto("/app");
     await expect(page).toHaveTitle(/Scene|Pilot|Vite/i);
   });
 

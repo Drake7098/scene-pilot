@@ -1,21 +1,25 @@
 import { expect, test, type Page } from "@playwright/test";
-import { captureArtifacts, runStep } from "../support/runtime";
+import { captureArtifacts, dismissAccountCenterIfPresent, installMockSessionBeforeLoad, runStep } from "../support/runtime";
 import {
   assertNoVerticalOverlap,
   verifySelectRepresentativeOptions,
 } from "../support/uiGuards";
 
 async function openQuickWorkspace(page: Page, lang: "zh" | "en") {
-  await page.goto("/");
+  await installMockSessionBeforeLoad(page, { tier: "free", creditsBalance: 180 });
+  await page.goto("/app");
   await page.evaluate((nextLang) => {
     localStorage.setItem("sp_workspace_mode", "results");
+    localStorage.setItem("sp_workspace_entry_guide_done_v1", "1");
     localStorage.setItem("scenepilot_lang", nextLang);
     localStorage.removeItem("sp_quick_media_type");
   }, lang);
   await page.reload();
+  await dismissAccountCenterIfPresent(page);
 }
 
 async function enterSecondStep(page: Page, primary: string) {
+  await dismissAccountCenterIfPresent(page);
   await page.getByTestId("result-console-brief").fill(primary);
   await page.getByTestId("result-console-generate").click();
   await expect(page.getByTestId("result-console-brief-secondary")).toBeVisible({ timeout: 2000 });

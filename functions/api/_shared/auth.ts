@@ -1,4 +1,5 @@
 import { json } from "./http";
+import { verifySupabaseBearerToken } from "./supabase-admin";
 
 type AuthOptions = {
   claimedUserId?: string;
@@ -24,7 +25,8 @@ function parseTokens(env: any) {
 function authConfigured(env: any) {
   const hasBearerPool = parseTokens(env).size > 0;
   const hasAccessPair = Boolean(String(env?.CF_ACCESS_CLIENT_ID || "").trim() && String(env?.CF_ACCESS_CLIENT_SECRET || "").trim());
-  return hasBearerPool || hasAccessPair;
+  const hasSupabase = Boolean(String(env?.SUPABASE_URL || "").trim() && String(env?.SUPABASE_SERVICE_ROLE_KEY || "").trim());
+  return hasBearerPool || hasAccessPair || hasSupabase;
 }
 
 function validateAccessServiceToken(request: Request, env: any) {
@@ -51,14 +53,26 @@ export async function requireApiAuth(context: EventContext<any, any, any>, optio
     return json({ error: "auth_not_configured" }, 500, context.request, context.env);
   }
 
-  const ok = validateBearerToken(context.request, context.env) || validateAccessServiceToken(context.request, context.env);
-  if (!ok) {
+  const bearerToken = parseBearer(context.request);
+  const okStatic = validateBearerToken(context.request, context.env) || validateAccessServiceToken(context.request, context.env);
+  let supabaseUserId = "";
+  if (!okStatic && bearerToken) {
+    const verified = await verifySupabaseBearerToken(context.env, bearerToken);
+    if (verified.ok && verified.userId) {
+      supabaseUserId = verified.userId;
+    }
+  }
+
+  if (!okStatic && !supabaseUserId) {
     return json({ error: "unauthorized" }, 401, context.request, context.env);
   }
 
   if (options.claimedUserId) {
     const headerUserId = (context.request.headers.get("x-sp-user-id") || "").trim();
     if (headerUserId && headerUserId !== options.claimedUserId) {
+      return json({ error: "user_id_mismatch" }, 403, context.request, context.env);
+    }
+    if (supabaseUserId && supabaseUserId !== options.claimedUserId) {
       return json({ error: "user_id_mismatch" }, 403, context.request, context.env);
     }
   }

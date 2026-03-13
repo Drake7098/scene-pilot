@@ -8,7 +8,7 @@ test("help_center_guard_top_menu_and_modal_controls", async ({ page }) => {
   });
 
   await runStep(page, "open_home_no_legacy_tutorial_modal", async () => {
-    await page.goto("/");
+    await page.goto("/app");
     await expect(page).toHaveTitle(/Scene|Pilot|Vite/i);
     await expect(page.getByText(/新手教程|Beginner Tutorial/i)).toHaveCount(0);
 

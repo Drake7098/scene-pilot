@@ -1,4 +1,4 @@
-import type { ApiCredentialState, AuthChallenge, UserSession, UserState } from "../types/account";
+import type { ApiCredentialState, AuthChallenge, AuthProvider, UserSession, UserState } from "../types/account";
 import type { CreditLedgerEntry, SubscriptionState, WalletState } from "../types/billing";
 
 const STORE_KEY = "scenepilot_mock_account_store_v1";
@@ -23,6 +23,55 @@ function createEmptyStore(): MockStoreShape {
     challenges: {},
     session: null
   };
+}
+
+function normalizeSession(raw: unknown): UserSession | null {
+  if (!raw || typeof raw !== "object") return null;
+  const value = raw as Record<string, unknown>;
+  const token = String(value.token || "").trim();
+  const userId = String(value.userId || "").trim();
+  const email = String(value.email || "").trim();
+  const createdAt = String(value.createdAt || "").trim();
+  if (!token || !userId || !email || !createdAt) return null;
+  return {
+    token,
+    userId,
+    email,
+    provider: value.provider === "google" ? "google" : value.provider === "password" ? "password" : "email_code",
+    providerSubject: typeof value.providerSubject === "string" ? value.providerSubject : null,
+    createdAt
+  };
+}
+
+function normalizeUsers(raw: unknown): Record<string, UserState> {
+  if (!raw || typeof raw !== "object") return {};
+  const source = raw as Record<string, unknown>;
+  const entries: Array<[string, UserState]> = [];
+  for (const [id, value] of Object.entries(source)) {
+    if (!value || typeof value !== "object") continue;
+    const row = value as Record<string, unknown>;
+    const email = String(row.email || "").trim().toLowerCase();
+    const createdAt = String(row.createdAt || "").trim();
+    const updatedAt = String(row.updatedAt || createdAt).trim();
+    const creditsValue = Number(row.creditsBalance || 0);
+    if (!id || !email || !createdAt || !updatedAt) continue;
+    entries.push([
+      id,
+      {
+        id,
+        email,
+        displayName: typeof row.displayName === "string" ? row.displayName : null,
+        avatarUrl: typeof row.avatarUrl === "string" ? row.avatarUrl : null,
+        tier: row.tier === "pro" || row.tier === "member" ? row.tier : "free",
+        creditsBalance: Number.isFinite(creditsValue) ? creditsValue : 0,
+        proConsoleEnabled: Boolean(row.proConsoleEnabled),
+        bringYourOwnApiEnabled: Boolean(row.bringYourOwnApiEnabled),
+        createdAt,
+        updatedAt
+      }
+    ]);
+  }
+  return Object.fromEntries(entries);
 }
 
 function nowIso() {
@@ -97,13 +146,13 @@ function readStore(): MockStoreShape {
     return {
       ...createEmptyStore(),
       ...parsed,
-      users: parsed.users ?? {},
+      users: normalizeUsers(parsed.users),
       wallets: parsed.wallets ?? {},
       ledgers: parsed.ledgers ?? {},
       apiCredentials: parsed.apiCredentials ?? {},
       subscriptions: parsed.subscriptions ?? {},
       challenges: parsed.challenges ?? {},
-      session: parsed.session ?? null
+      session: normalizeSession(parsed.session)
     };
   } catch {
     return createEmptyStore();
@@ -114,15 +163,37 @@ function writeStore(store: MockStoreShape) {
   localStorage.setItem(STORE_KEY, JSON.stringify(store));
 }
 
-export function createOrGetUserByEmail(email: string): UserState {
+type UserIdentityOptions = {
+  displayName?: string | null;
+  avatarUrl?: string | null;
+};
+
+export function createOrGetUserByEmail(email: string, options: UserIdentityOptions = {}): UserState {
   const normalized = email.trim().toLowerCase();
   const store = readStore();
   const existing = Object.values(store.users).find((item) => item.email === normalized);
-  if (existing) return existing;
+  if (existing) {
+    const nextDisplayName = typeof options.displayName === "string" ? options.displayName.trim() : existing.displayName;
+    const nextAvatarUrl = typeof options.avatarUrl === "string" ? options.avatarUrl.trim() : existing.avatarUrl;
+    if (nextDisplayName !== existing.displayName || nextAvatarUrl !== existing.avatarUrl) {
+      const updated: UserState = {
+        ...existing,
+        displayName: nextDisplayName || null,
+        avatarUrl: nextAvatarUrl || null,
+        updatedAt: nowIso()
+      };
+      store.users[existing.id] = updated;
+      writeStore(store);
+      return updated;
+    }
+    return existing;
+  }
   const createdAt = nowIso();
   const user: UserState = {
     id: makeId("user"),
     email: normalized,
+    displayName: (options.displayName || "").trim() || null,
+    avatarUrl: (options.avatarUrl || "").trim() || null,
     tier: "free",
     creditsBalance: 0,
     proConsoleEnabled: false,
@@ -268,11 +339,18 @@ export function setSubscription(userId: string, subscription: SubscriptionState)
   writeStore(store);
 }
 
-export function createSessionForUser(user: UserState): UserSession {
+type CreateSessionOptions = {
+  provider?: AuthProvider;
+  providerSubject?: string | null;
+};
+
+export function createSessionForUser(user: UserState, options: CreateSessionOptions = {}): UserSession {
   return {
     token: makeId("session"),
     userId: user.id,
     email: user.email,
+    provider: options.provider || "email_code",
+    providerSubject: options.providerSubject || null,
     createdAt: nowIso()
   };
 }

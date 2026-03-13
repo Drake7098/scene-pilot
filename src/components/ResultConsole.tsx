@@ -3,6 +3,7 @@ import { ArrowUp, Download, FolderOpen, MoreHorizontal, Plus, Save } from "lucid
 import type { Lang } from "../i18n";
 import type { CanvasDraft } from "../types/canvasDraft";
 import type { IntentPlan } from "../types/intentPlan";
+import type { PromptExportAction, PromptExportTicket } from "../types/promptExport";
 import type { StructureDraft } from "../types/structureDraft";
 import { generateStructureDraft } from "../utils/structureDraft";
 import { canvasDraftToIntentPlan } from "../utils/canvasDraftToIntentPlan";
@@ -110,6 +111,9 @@ type Props = {
   onGenerate: () => void;
   onOpenUpgrade: () => void;
   onOpenCredits: () => void;
+  promptExportNote?: string;
+  onPreparePromptExport?: (action: PromptExportAction) => Promise<PromptExportTicket>;
+  onSettlePromptExport?: (reservationId: string | undefined, committed: boolean) => Promise<void>;
   onRefine: () => void;
   onApplyToPro: () => void;
   onOpenWizard: () => void;
@@ -532,6 +536,9 @@ export function ResultConsole(props: Props) {
     onGenerate,
     onOpenUpgrade,
     onOpenCredits,
+    promptExportNote = "",
+    onPreparePromptExport,
+    onSettlePromptExport,
     runtime,
     onDownloadDrawPack,
     previews,
@@ -756,12 +763,23 @@ export function ResultConsole(props: Props) {
 
   async function handleCopyPrompt() {
     const payload = (editablePrompt || structureSummaryText(lang, canvasTitle, canvasDraft)).trim();
+    let ticket: PromptExportTicket = { allowed: true };
+    if (onPreparePromptExport) {
+      ticket = await onPreparePromptExport("quick_copy");
+      if (!ticket.allowed) return;
+    }
+    let committed = false;
     try {
       await navigator.clipboard.writeText(payload);
+      committed = true;
       setCopyPromptDone(true);
       window.setTimeout(() => setCopyPromptDone(false), 1200);
     } catch {
       setCopyPromptDone(false);
+    } finally {
+      if (onSettlePromptExport) {
+        await onSettlePromptExport(ticket.reservationId, committed);
+      }
     }
   }
 
@@ -894,16 +912,29 @@ export function ResultConsole(props: Props) {
     resetQuickWorkspace();
   }
 
-  function handleDownloadStructure() {
+  async function handleDownloadStructure() {
+    let ticket: PromptExportTicket = { allowed: true };
+    if (onPreparePromptExport) {
+      ticket = await onPreparePromptExport("quick_download");
+      if (!ticket.allowed) return;
+    }
+    let committed = false;
     const payload = (editablePrompt || structureSummaryText(lang, canvasTitle, canvasDraft)).trim();
-    const blob = new Blob([payload], { type: "text/plain;charset=utf-8" });
-    const href = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = href;
-    a.download = `${canvasTitle.replace(/[\\/:*?"<>|]+/g, "_") || "prompt"}.txt`;
-    a.click();
-    URL.revokeObjectURL(href);
-    setCanvasMenuOpen(false);
+    try {
+      const blob = new Blob([payload], { type: "text/plain;charset=utf-8" });
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = `${canvasTitle.replace(/[\\/:*?"<>|]+/g, "_") || "prompt"}.txt`;
+      a.click();
+      URL.revokeObjectURL(href);
+      committed = true;
+      setCanvasMenuOpen(false);
+    } finally {
+      if (onSettlePromptExport) {
+        await onSettlePromptExport(ticket.reservationId, committed);
+      }
+    }
   }
 
   function handleDeleteStructure() {
@@ -1467,7 +1498,7 @@ export function ResultConsole(props: Props) {
                               {t(lang, "改名", "Rename")}
                             </button>
                           )}
-                          <button type="button" style={styles.canvasMenuItem} onClick={handleDownloadStructure}>
+                          <button type="button" style={styles.canvasMenuItem} onClick={() => void handleDownloadStructure()}>
                             {t(lang, "下载", "Download")}
                           </button>
                           <button type="button" style={{ ...styles.canvasMenuItem, ...styles.canvasMenuDanger }} onClick={handleDeleteStructure}>
@@ -1526,6 +1557,11 @@ export function ResultConsole(props: Props) {
                       >
                         {copyPromptDone ? t(lang, "已复制", "Copied") : t(lang, "复制", "Copy")}
                       </button>
+                      {promptExportNote ? (
+                        <div style={styles.canvasExportMeta} data-testid="quick-canvas-export-note">
+                          {promptExportNote}
+                        </div>
+                      ) : null}
                     </div>
                     <div style={styles.canvasActionGroupRight}>
                       {canGenerate ? (
@@ -2260,6 +2296,19 @@ const styles: Record<string, React.CSSProperties> = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center"
+  },
+  canvasExportMeta: {
+    minHeight: 32,
+    borderRadius: 12,
+    border: "1px solid rgba(122,154,202,0.24)",
+    background: "linear-gradient(180deg, rgba(14,22,34,0.74), rgba(8,12,20,0.82))",
+    color: "rgba(234,240,252,0.76)",
+    fontSize: 11,
+    padding: "0 10px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    whiteSpace: "nowrap"
   },
   canvasActionPrimary: {
     minHeight: 32,

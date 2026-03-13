@@ -1,4 +1,5 @@
 import type { CheckoutResult } from "../types/billing";
+import { BILLING_LIVE_BLOCKED, BILLING_MODE } from "../config/billingFlags";
 
 declare global {
   interface Window {
@@ -24,8 +25,8 @@ function paddleToken() {
 }
 
 function paddleEnv() {
-  const value = ((import.meta.env.VITE_PADDLE_ENV as string | undefined)?.trim().toLowerCase() || "sandbox");
-  return value === "production" ? "production" : "sandbox";
+  if (BILLING_LIVE_BLOCKED) return "sandbox";
+  return BILLING_MODE === "live" ? "production" : "sandbox";
 }
 
 function loadScript() {
@@ -71,6 +72,7 @@ export async function initializePaddleClient() {
 }
 
 export function canUsePaddleClient() {
+  if (BILLING_LIVE_BLOCKED) return false;
   return Boolean(paddleToken() || (typeof window !== "undefined" && window.Paddle));
 }
 

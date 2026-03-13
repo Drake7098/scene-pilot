@@ -15,7 +15,7 @@ test("export_platform_switch_and_policy_hint", async ({ page }) => {
   const projectName = `robot-export-${Date.now()}`;
 
   await runStep(page, "open_and_create_video_project", async () => {
-    await page.goto("/");
+    await page.goto("/app");
     await ensureMockProAccount(page, { creditsBalance: 240 });
     await page.evaluate(() => {
       localStorage.setItem("sp_workspace_mode", "pro");

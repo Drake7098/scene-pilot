@@ -72,6 +72,15 @@
 - 如果本次开发改变了上述任何一项，收尾时必须同步更新这份文档。
 - 当线程之间出现“这边不知道那边改了什么”的风险时，以该文档为单一事实源，不以聊天上下文为准。
 
+## Release + Billing Sync
+- 涉及登录/注册、会员、扣点、Paddle、发布流程、测试服/正式服环境变量、PR gate、分支策略时，必须先使用仓库内 skill：`/Users/dk/scene-pilot/.codex/skills/release-billing-sync/SKILL.md`
+- 这类任务必须先对齐三份文档：`live-development-strategy.md`、`supabase-env-matrix.md`、`supabase-cloudflare-stage1-runbook.md`
+- 这类任务收尾必须至少执行并通过：
+- `npm run engine:lock:check`
+- `npm run build`
+- 若改动了支付边界，必须保证前后端双端策略一致（禁止只改一端）。
+- 测试服与正式服支付配置必须隔离；不允许测试服 live 扣费链路。
+
 ## Prompt Engine Architecture
 - 涉及提示词生成、场景调度、平台适配、Quick/Pro 提示词差异、creative context 路由、provider 路由时，必须先使用仓库内 skill：`/Users/dk/scene-pilot/.codex/skills/prompt-engine-architecture/SKILL.md`
 - 这类任务必须先判断改动属于：结构层、适配层还是执行层。

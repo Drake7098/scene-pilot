@@ -3,57 +3,46 @@ import type { Lang } from "../i18n";
 import { LEGAL_DOCS, type LegalDocId, legalText } from "../content/legal";
 
 type Props = {
-  docId: "terms" | "privacy";
+  docId: LegalDocId;
 };
 
 export default function LegalPolicyPage({ docId }: Props) {
   const [lang, setLang] = useLocalLang();
   const doc = LEGAL_DOCS[docId];
-  const siblingPath = docId === "terms" ? "/privacy" : "/terms";
-  const siblingLabel = docId === "terms"
-    ? (lang === "zh" ? "查看隐私说明" : "View Privacy Notice")
-    : (lang === "zh" ? "查看服务条款" : "View Terms");
 
   return (
-    <div style={{ minHeight: "100%", color: "var(--spx-text-1)" }}>
-      <div style={surface}>
-        <header style={{ marginBottom: 20 }}>
-          <div style={topActions}>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button type="button" style={{ ...langBtn, ...(lang === "zh" ? langBtnOn : null) }} onClick={() => setLang("zh")}>
-                中文
-              </button>
-              <button type="button" style={{ ...langBtn, ...(lang === "en" ? langBtnOn : null) }} onClick={() => setLang("en")}>
-                EN
-              </button>
-            </div>
-            <a href="/" style={closeBtn} aria-label="Close and back to home">
-              Close
-            </a>
+    <div style={page}>
+      <div style={shell}>
+        <header style={topRow}>
+          <div style={langSwitch}>
+            <button type="button" style={{ ...langBtn, ...(lang === "zh" ? langBtnOn : null) }} onClick={() => setLang("zh")}>
+              中文
+            </button>
+            <button type="button" style={{ ...langBtn, ...(lang === "en" ? langBtnOn : null) }} onClick={() => setLang("en")}>
+              EN
+            </button>
           </div>
-          <div style={eyebrow}>ScenePilotix Legal</div>
-          <h1 style={{ margin: "10px 0 6px", fontSize: 34, lineHeight: 1.15 }}>{legalText(lang, doc.title)}</h1>
-          <div style={{ color: "var(--spx-text-2)", fontSize: 14 }}>
-            {doc.version} · {doc.updatedAt}
-          </div>
-          <p style={{ marginTop: 10, color: "var(--spx-text-2)", lineHeight: 1.6 }}>{legalText(lang, doc.summary)}</p>
-          <div style={{ marginTop: 10 }}>
-            <a href={siblingPath} style={crossLink}>{siblingLabel}</a>
-          </div>
+          <a href="/" style={closeBtn} aria-label="Close">Close</a>
         </header>
 
-        <section style={contentBox}>
-          {doc.sections.map((section, sectionIndex) => (
-            <article key={`${doc.id}_section_${sectionIndex}`} style={sectionBox}>
-              <h2 style={sectionTitle}>{legalText(lang, section.heading)}</h2>
-              {section.body.map((paragraph, paragraphIndex) => (
-                <p key={`${doc.id}_section_${sectionIndex}_paragraph_${paragraphIndex}`} style={paragraphStyle}>
-                  {legalText(lang, paragraph)}
-                </p>
-              ))}
-            </article>
-          ))}
-        </section>
+        <main style={main}>
+          <h1 style={title}>{legalText(lang, doc.title)}</h1>
+          <p style={meta}>{doc.version} · {doc.updatedAt}</p>
+          <p style={summary}>{legalText(lang, doc.summary)}</p>
+
+          <section style={content}>
+            {doc.sections.map((section, sectionIndex) => (
+              <article key={`${doc.id}_section_${sectionIndex}`} style={article}>
+                <h2 style={sectionTitle}>{legalText(lang, section.heading)}</h2>
+                {section.body.map((paragraph, paragraphIndex) => (
+                  <p key={`${doc.id}_${sectionIndex}_${paragraphIndex}`} style={paragraphStyle}>
+                    {legalText(lang, paragraph)}
+                  </p>
+                ))}
+              </article>
+            ))}
+          </section>
+        </main>
       </div>
     </div>
   );
@@ -83,92 +72,98 @@ function useLocalLang(): [Lang, (next: Lang) => void] {
   return [lang, setLang];
 }
 
-const surface: CSSProperties = {
-  maxWidth: 1120,
+const page: CSSProperties = {
+  minHeight: "100%",
+  color: "var(--spx-text-1)",
+  background:
+    "radial-gradient(820px 460px at -10% -18%, rgba(88,143,230,0.16), transparent 62%), radial-gradient(680px 420px at 110% -20%, rgba(72,188,210,0.1), transparent 64%), #090d15"
+};
+
+const shell: CSSProperties = {
+  maxWidth: 920,
   margin: "0 auto",
-  padding: "42px 20px 56px"
+  padding: "26px 20px 40px"
 };
 
-const topActions: CSSProperties = {
+const topRow: CSSProperties = {
   display: "flex",
-  justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: 10
+  justifyContent: "space-between",
+  marginBottom: 16
 };
 
-const eyebrow: CSSProperties = {
+const langSwitch: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  border: "1px solid var(--spx-border)",
-  borderRadius: 999,
-  padding: "6px 12px",
-  fontSize: 12,
-  color: "var(--spx-text-2)",
-  background: "rgba(255,255,255,0.04)"
-};
-
-const contentBox: CSSProperties = {
-  border: "1px solid var(--spx-border)",
-  borderRadius: 16,
-  background: "linear-gradient(180deg, rgba(18,24,38,0.92), rgba(12,17,28,0.94))",
-  boxShadow: "var(--spx-shadow-panel)",
-  padding: 20
-};
-
-const sectionBox: CSSProperties = {
-  borderBottom: "1px solid var(--spx-border-soft)",
-  paddingBottom: 14,
-  marginBottom: 14
-};
-
-const sectionTitle: CSSProperties = {
-  margin: "0 0 10px",
-  fontSize: 18,
-  color: "var(--spx-text-1)"
-};
-
-const paragraphStyle: CSSProperties = {
-  margin: "0 0 8px",
-  color: "var(--spx-text-2)",
-  lineHeight: 1.7,
-  fontSize: 14
+  gap: 10
 };
 
 const langBtn: CSSProperties = {
-  minWidth: 58,
-  padding: "6px 10px",
-  borderRadius: 10,
-  border: "1px solid var(--spx-border)",
-  background: "rgba(255,255,255,0.03)",
-  color: "var(--spx-text-2)",
-  fontSize: 12,
-  fontWeight: 600
+  border: "none",
+  background: "transparent",
+  color: "var(--spx-text-3)",
+  fontSize: 13,
+  fontWeight: 620,
+  padding: 0,
+  cursor: "pointer"
 };
 
 const langBtnOn: CSSProperties = {
-  border: "1px solid rgba(123, 181, 255, 0.84)",
-  color: "#eaf2ff",
-  background: "rgba(84,144,232,0.35)"
+  color: "var(--spx-text-1)"
 };
 
 const closeBtn: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minWidth: 90,
-  padding: "8px 12px",
-  borderRadius: 10,
   textDecoration: "none",
-  border: "1px solid var(--spx-border)",
-  background: "rgba(255,255,255,0.03)",
   color: "var(--spx-text-2)",
-  fontWeight: 600,
-  fontSize: 13
+  fontSize: 13,
+  fontWeight: 620
 };
 
-const crossLink: CSSProperties = {
-  color: "var(--spx-accent)",
-  textDecoration: "none",
-  fontSize: 13,
-  fontWeight: 600
+const main: CSSProperties = {
+  display: "grid",
+  gap: 10
+};
+
+const title: CSSProperties = {
+  margin: 0,
+  fontSize: "clamp(32px, 5vw, 52px)",
+  lineHeight: 1.1,
+  letterSpacing: "-0.02em"
+};
+
+const meta: CSSProperties = {
+  margin: 0,
+  color: "var(--spx-text-3)",
+  fontSize: 12.5
+};
+
+const summary: CSSProperties = {
+  margin: "2px 0 0",
+  color: "var(--spx-text-2)",
+  fontSize: 15,
+  lineHeight: 1.72
+};
+
+const content: CSSProperties = {
+  marginTop: 8,
+  display: "grid",
+  gap: 16
+};
+
+const article: CSSProperties = {
+  display: "grid",
+  gap: 8
+};
+
+const sectionTitle: CSSProperties = {
+  margin: 0,
+  fontSize: 20,
+  lineHeight: 1.3
+};
+
+const paragraphStyle: CSSProperties = {
+  margin: 0,
+  color: "var(--spx-text-2)",
+  lineHeight: 1.74,
+  fontSize: 14.5
 };

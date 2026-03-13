@@ -37,7 +37,10 @@ function applyCorsHeaders(headers: Headers, request?: Request, env?: any, method
   headers.set("vary", "origin");
   if (methods) {
     headers.set("access-control-allow-methods", methods);
-    headers.set("access-control-allow-headers", "content-type, authorization, x-sp-user-id");
+    headers.set(
+      "access-control-allow-headers",
+      "content-type, authorization, x-sp-user-id, x-stats-token, x-maintenance-token"
+    );
     headers.set("access-control-max-age", "86400");
   }
 }

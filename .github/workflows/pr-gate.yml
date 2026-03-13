@@ -1,0 +1,75 @@
+name: PR Gate
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  workflow_dispatch:
+
+concurrency:
+  group: pr-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-gate:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Engine lock check
+        run: npm run engine:lock:check
+
+      - name: Build
+        run: npm run build
+
+  auth-billing-smoke:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Engine lock check
+        run: npm run engine:lock:check
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run auth and billing smoke tests
+        run: npx playwright test -c tests/robots/playwright.config.ts tests/robots/scenarios/account-legal-consent.spec.ts tests/robots/scenarios/billing-pages.spec.ts
+
+      - name: Upload robot artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-gate-robots-artifacts-${{ github.run_id }}
+          path: tests/robots/artifacts
+          retention-days: 14

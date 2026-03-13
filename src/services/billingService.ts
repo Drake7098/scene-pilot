@@ -7,11 +7,14 @@ import type {
   HostedActionConfig,
   HostedMediaType,
   HostedQualityTier,
-  ProPlanConfig
+  ProPlanConfig,
+  SubscriptionState
 } from "../types/billing";
 import { canUsePaddleClient, openPaddleCheckout } from "./paddleClient";
 import { grantCredits } from "./creditService";
+import { getApiAuthHeaders } from "./authService";
 import { getSubscription, getUser, setSubscription, updateUser } from "./mockAccountStore";
+import { BILLING_ALLOW_MOCK_FALLBACK, BILLING_ENABLED, BILLING_LIVE_BLOCKED } from "../config/billingFlags";
 
 export const CREDIT_PACKS: CreditPackConfig[] = [
   { id: "credit_100", name: "100 credits / $3", usdPrice: 3, credits: 100, priceId: (import.meta.env.VITE_PADDLE_PRICE_CREDIT_100 as string | undefined)?.trim(), enabled: true },
@@ -85,22 +88,42 @@ function buildMockCheckoutResult(input: CheckoutRequest): CheckoutResult {
   };
 }
 
-async function postJson<T>(url: string, body: Record<string, unknown>): Promise<T | null> {
+type ApiPostResult<T> = {
+  ok: boolean;
+  status: number;
+  data: T | null;
+  errorCode: string;
+};
+
+async function postJson<T>(url: string, body: Record<string, unknown>): Promise<ApiPostResult<T>> {
   try {
     const userId = typeof body.userId === "string" ? body.userId : "";
+    const authHeaders = await getApiAuthHeaders(userId || undefined);
     const res = await fetch(url, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        ...(userId ? { "x-sp-user-id": userId } : {})
+        ...authHeaders
       },
       body: JSON.stringify(body)
     });
-    if (!res.ok) return null;
-    return await res.json() as T;
+    const payload = await res.json().catch(() => null) as (T & { error?: string }) | null;
+    if (!res.ok) {
+      return {
+        ok: false,
+        status: res.status,
+        data: null,
+        errorCode: String(payload?.error || "").trim().toLowerCase() || "request_failed"
+      };
+    }
+    return { ok: true, status: res.status, data: payload as T, errorCode: "" };
   } catch {
-    return null;
+    return { ok: false, status: 0, data: null, errorCode: "network_error" };
   }
+}
+
+export function isBillingEnabled() {
+  return BILLING_ENABLED && !BILLING_LIVE_BLOCKED;
 }
 
 export function creditCostFor(mediaType: HostedMediaType, qualityTier: HostedQualityTier, outputs = 1) {
@@ -110,13 +133,25 @@ export function creditCostFor(mediaType: HostedMediaType, qualityTier: HostedQua
 }
 
 export async function createCheckoutSession(input: CheckoutRequest): Promise<CheckoutResult> {
+  if (!BILLING_ENABLED) {
+    throw new Error("billing_disabled");
+  }
+  if (BILLING_LIVE_BLOCKED) {
+    throw new Error("billing_live_blocked");
+  }
   const apiResult = await postJson<CheckoutResult>("/api/paddle/checkout", {
     kind: input.kind,
     productId: input.productId,
     userId: input.userId,
     userEmail: input.userEmail
   });
-  if (apiResult) return apiResult;
+  if (apiResult.ok && apiResult.data) return apiResult.data;
+  if (["billing_disabled", "billing_live_blocked"].includes(apiResult.errorCode)) {
+    throw new Error(apiResult.errorCode);
+  }
+  if (!BILLING_ALLOW_MOCK_FALLBACK) {
+    throw new Error(apiResult.errorCode || "checkout_unavailable");
+  }
   return buildMockCheckoutResult(input);
 }
 
@@ -155,6 +190,12 @@ export async function completeMockCheckout(sessionId: string) {
 }
 
 export async function launchCheckout(input: CheckoutRequest) {
+  if (!BILLING_ENABLED) {
+    throw new Error("billing_disabled");
+  }
+  if (BILLING_LIVE_BLOCKED) {
+    throw new Error("billing_live_blocked");
+  }
   const session = await createCheckoutSession(input);
   if (!session.mock && canUsePaddleClient()) {
     const opened = await openPaddleCheckout(session);
@@ -168,8 +209,20 @@ export async function launchCheckout(input: CheckoutRequest) {
 }
 
 export async function openCustomerPortal(userId: string) {
+  if (!BILLING_ENABLED) {
+    throw new Error("billing_disabled");
+  }
+  if (BILLING_LIVE_BLOCKED) {
+    throw new Error("billing_live_blocked");
+  }
   const apiResult = await postJson<{ url: string }>("/api/paddle/customer-portal", { userId });
-  if (apiResult?.url) return apiResult;
+  if (apiResult.ok && apiResult.data?.url) return apiResult.data;
+  if (["billing_disabled", "billing_live_blocked"].includes(apiResult.errorCode)) {
+    throw new Error(apiResult.errorCode);
+  }
+  if (!BILLING_ALLOW_MOCK_FALLBACK) {
+    throw new Error(apiResult.errorCode || "customer_portal_unavailable");
+  }
   const subscription = getSubscription(userId);
   return {
     url: subscription.customerPortalUrl || `/mock/paddle/customer-portal?subscription=${subscription.planId || "none"}`
@@ -177,6 +230,65 @@ export async function openCustomerPortal(userId: string) {
 }
 
 export async function getBillingSnapshot(userId: string) {
+  const authHeaders = await getApiAuthHeaders(userId);
+  try {
+    const res = await fetch(`/api/billing/me?userId=${encodeURIComponent(userId)}`, {
+      headers: authHeaders
+    });
+    if (res.ok) {
+      const payload = await res.json() as {
+        tier?: string;
+        credits?: number;
+        subscription?: {
+          status?: "inactive" | "active" | "past_due";
+          planId?: string;
+          periodStart?: string | null;
+          periodEnd?: string | null;
+        };
+        packs?: Array<{
+          code?: string;
+          name?: string;
+          price_amount?: number;
+          credits_amount?: number;
+        }>;
+      };
+      const packs = Array.isArray(payload.packs)
+        ? payload.packs
+          .map((item) => {
+            const id = String(item.code || "").trim();
+            if (!id) return null;
+            return {
+              id,
+              name: String(item.name || id),
+              usdPrice: Number(item.price_amount || 0),
+              credits: Math.max(0, Math.round(Number(item.credits_amount || 0))),
+              enabled: true
+            } as CreditPackConfig;
+          })
+          .filter((item): item is CreditPackConfig => Boolean(item))
+        : [];
+      const subscription: SubscriptionState | null = payload.subscription
+        ? {
+          userId,
+          planId: payload.subscription.planId || PRO_PLAN.id,
+          status: payload.subscription.status || "inactive",
+          currentPeriodStart: payload.subscription.periodStart || null,
+          currentPeriodEnd: payload.subscription.periodEnd || null,
+          lastCreditGrantAt: null,
+          provider: "paddle"
+        }
+        : getSubscription(userId);
+      return {
+        packs: packs.length ? packs : CREDIT_PACKS.filter((item) => item.enabled),
+        proPlan: PRO_PLAN.enabled ? PRO_PLAN : null,
+        subscription,
+        hostedActions: HOSTED_ACTIONS.filter((item) => item.enabled)
+      };
+    }
+  } catch {
+    // fallback below
+  }
+
   return {
     packs: CREDIT_PACKS.filter((item) => item.enabled),
     proPlan: PRO_PLAN.enabled ? PRO_PLAN : null,

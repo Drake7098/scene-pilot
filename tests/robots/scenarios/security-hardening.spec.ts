@@ -5,29 +5,57 @@ import { verifyPaddleWebhookSignature } from "../../../functions/api/_shared/pad
 import { submitGeneration } from "../../../functions/api/_shared/provider-gateway";
 import { onRequestGet as generationProvidersGet } from "../../../functions/api/generation/providers";
 import { onRequestPost as paddleCheckoutPost } from "../../../functions/api/paddle/checkout";
+import { onRequestPost as paddleWebhookPost } from "../../../functions/api/paddle/webhook";
 
 function makeContext(request: Request, env: Record<string, unknown>) {
   return { request, env } as unknown as EventContext<any, any, any>;
 }
 
 function createMockDb() {
+  const paymentEvents = new Map<string, { id: string; status: string }>();
   const db = {
     prepare(sql: string) {
       return {
-        bind(..._args: unknown[]) {
+        bind(...args: unknown[]) {
+          void args;
           return {
             async run() {
+              if (sql.includes("INSERT INTO payment_events")) {
+                const [id, providerEventId] = args as [string, string];
+                paymentEvents.set(providerEventId, { id, status: "received" });
+              }
+              if (sql.includes("UPDATE payment_events SET status = 'processed'")) {
+                const [, storeId] = args as [string, string];
+                for (const [eventId, value] of paymentEvents.entries()) {
+                  if (value.id === storeId) {
+                    paymentEvents.set(eventId, { ...value, status: "processed" });
+                    break;
+                  }
+                }
+              }
               return { success: true };
             },
             async first() {
+              if (sql.includes("SELECT id, status FROM payment_events")) {
+                const [providerEventId] = args as [string];
+                return paymentEvents.get(providerEventId) || null;
+              }
               if (sql.includes("FROM products")) {
+                if (sql.includes("provider_price_id")) {
+                  return {
+                    code: "pro_monthly",
+                    kind: "subscription",
+                    provider_price_id: "pri_pro_monthly",
+                    price_amount: 12,
+                    currency: "USD",
+                    active: 1
+                  };
+                }
                 return {
                   code: "pro_monthly",
                   kind: "subscription",
-                  provider_price_id: "pri_pro_monthly",
-                  price_amount: 12,
-                  currency: "USD",
-                  active: 1
+                  credits_amount: null,
+                  monthly_credit_grant: 500
                 };
               }
               return null;
@@ -39,7 +67,8 @@ function createMockDb() {
         }
       };
     },
-    async batch(_statements: unknown[]) {
+    async batch(statements: unknown[]) {
+      void statements;
       return [];
     }
   };
@@ -200,4 +229,53 @@ test("provider baseUrl allowlist and ssrf guard block unsafe personal endpoints"
   const notAllowlisted = await submitGeneration({}, { ...base, baseUrl: "https://evil.example.com" });
   expect(notAllowlisted.ok).toBeFalsy();
   expect(notAllowlisted.error).toBe("base_host_not_allowlisted");
+});
+
+test("paddle webhook dedupes repeated event id", async () => {
+  const webhookSecret = "whsec_test";
+  const ts = "1700000000";
+  const body = JSON.stringify({
+    event_id: "evt_dedup_1",
+    event_type: "transaction.completed",
+    data: {
+      id: "txn_1",
+      custom_data: {
+        userId: "user_1",
+        productId: "pro_monthly"
+      },
+      details: {
+        totals: {
+          grand_total: 1200
+        }
+      },
+      currency_code: "USD"
+    }
+  });
+  const signature = await hmacSha256Hex(webhookSecret, `${ts}:${body}`);
+  const requestFactory = () =>
+    new Request("https://example.com/api/paddle/webhook", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "paddle-signature": `ts=${ts};h1=${signature}`
+      },
+      body
+    });
+
+  const env = {
+    DB: createMockDb(),
+    PADDLE_WEBHOOK_SECRET: webhookSecret
+  };
+
+  const first = await paddleWebhookPost(makeContext(requestFactory(), env));
+  const firstPayload = await first.json() as { ok?: boolean; dedup?: boolean };
+  expect(first.status).toBe(200);
+  expect(firstPayload.ok).toBeTruthy();
+  expect(firstPayload.dedup).toBeFalsy();
+
+  const second = await paddleWebhookPost(makeContext(requestFactory(), env));
+  const secondPayload = await second.json() as { ok?: boolean; dedup?: boolean };
+  expect(second.status).toBe(200);
+  expect(secondPayload.ok).toBeTruthy();
+  expect(secondPayload.dedup).toBeTruthy();
 });

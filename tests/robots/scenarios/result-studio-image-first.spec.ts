@@ -1,13 +1,16 @@
 import { expect, test } from "@playwright/test";
-import { runStep } from "../support/runtime";
+import { dismissAccountCenterIfPresent, installMockSessionBeforeLoad, runStep } from "../support/runtime";
 
 async function openQuickWorkspace(page: import("@playwright/test").Page) {
-  await page.goto("/");
+  await installMockSessionBeforeLoad(page, { tier: "free", creditsBalance: 180 });
+  await page.goto("/app");
   await page.evaluate(() => {
     localStorage.setItem("sp_workspace_mode", "results");
+    localStorage.setItem("sp_workspace_entry_guide_done_v1", "1");
     localStorage.removeItem("sp_quick_media_type");
   });
   await page.reload();
+  await dismissAccountCenterIfPresent(page);
 }
 
 test("quick_workspace_two_layer_input_flow_image", async ({ page }) => {
@@ -46,6 +49,7 @@ test("quick_workspace_two_layer_input_flow_image", async ({ page }) => {
   });
 
   await runStep(page, "second_layer_only_appears_after_first_confirm", async () => {
+    await dismissAccountCenterIfPresent(page);
     await page.getByTestId("result-console-brief").fill("三个人站在酒吧里，中间是主角");
     await expect(page.getByTestId("quick-secondary-layer")).toHaveCount(0);
     await page.getByTestId("result-console-generate").click();
@@ -113,6 +117,7 @@ test("quick_workspace_two_layer_input_flow_video", async ({ page }) => {
   });
 
   await runStep(page, "video_second_layer_only_after_first_confirm", async () => {
+    await dismissAccountCenterIfPresent(page);
     await page.getByTestId("result-console-brief").fill("先看到门外风雪，然后开门进入屋内");
     await expect(page.getByTestId("quick-secondary-layer")).toHaveCount(0);
     await page.getByTestId("result-console-generate").click();

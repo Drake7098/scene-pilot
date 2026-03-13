@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-03-12T11:33:58.408Z",
+  "updatedAt": "2026-03-12T20:27:41.573Z",
   "alerts": [],
   "items": [
     {
@@ -121,6 +121,123 @@
         {
           "at": "2026-03-12T00:00:00.000Z",
           "text": "背景：round1 审计显示 engine_length_over_budget 为高频问题。"
+        }
+      ],
+      "reminders": [],
+      "notifyRules": {
+        "status": [
+          "done"
+        ],
+        "testStatus": []
+      }
+    },
+    {
+      "id": "TK-20260313-001",
+      "title": "Cloudflare 环境变量生产收口（strict auth + billing off）",
+      "status": "active",
+      "type": "api",
+      "priority": "p0",
+      "workspace": "global",
+      "owner": "dk",
+      "testStatus": "running",
+      "progress": 30,
+      "tags": [
+        "release",
+        "infra",
+        "auth"
+      ],
+      "createdAt": "2026-03-12T20:06:43.509Z",
+      "updatedAt": "2026-03-12T20:25:58.582Z",
+      "notes": [
+        {
+          "at": "2026-03-12T20:06:43.509Z",
+          "text": "smoke:release on test shows generation/providers and billing/me still 200; checkout still 200 not 503"
+        },
+        {
+          "at": "2026-03-12T20:08:09.541Z",
+          "text": "已跑 smoke:release，确认测试服 strict auth / billing off 未生效"
+        },
+        {
+          "at": "2026-03-12T20:25:58.581Z",
+          "text": "新增 Cloudflare Pages 环境变量审计脚本 release:cloudflare:audit；当前等待 CF_API_TOKEN/CF_ACCOUNT_ID 后执行线上校验。"
+        }
+      ],
+      "reminders": [],
+      "notifyRules": {
+        "status": [
+          "done"
+        ],
+        "testStatus": []
+      }
+    },
+    {
+      "id": "TK-20260313-002",
+      "title": "正式域名 DNS 切换并通过 smoke",
+      "status": "active",
+      "type": "test",
+      "priority": "p0",
+      "workspace": "global",
+      "owner": "dk",
+      "testStatus": "failed",
+      "progress": 20,
+      "tags": [
+        "release",
+        "dns",
+        "prod"
+      ],
+      "createdAt": "2026-03-12T20:07:07.135Z",
+      "updatedAt": "2026-03-12T20:08:09.603Z",
+      "notes": [
+        {
+          "at": "2026-03-12T20:07:07.135Z",
+          "text": "www.scenepilotix.com currently NXDOMAIN from local smoke/curl"
+        },
+        {
+          "at": "2026-03-12T20:08:09.602Z",
+          "text": "已跑 smoke/curl，www.scenepilotix.com DNS 仍未解析"
+        }
+      ],
+      "reminders": [],
+      "notifyRules": {
+        "status": [
+          "done"
+        ],
+        "testStatus": []
+      }
+    },
+    {
+      "id": "TK-20260313-003",
+      "title": "发布并行污染守门（release:readiness）",
+      "status": "active",
+      "type": "ops",
+      "priority": "p0",
+      "workspace": "global",
+      "owner": "dk",
+      "testStatus": "running",
+      "progress": 0,
+      "tags": [
+        "release",
+        "infra",
+        "guard"
+      ],
+      "createdAt": "2026-03-12T20:16:50.256Z",
+      "updatedAt": "2026-03-12T20:27:41.573Z",
+      "notes": [
+        {
+          "at": "2026-03-12T20:16:50.256Z",
+          "text": "新增 release:readiness；当前 test/prod 均被 dirty_worktree + parallel_active_tasks 阻断"
+        },
+        {
+          "at": "2026-03-12T20:22:05.842Z",
+          "text": "已新增 release:readiness 脚本，并完成独立发布快照分支 codex/release-snapshot-20260313（/tmp/scene-pilot-release）。"
+        },
+        {
+          "at": "2026-03-12T20:26:23.749Z",
+          "text": "release:readiness 持续阻断并行污染有效；当前阻断原因仍为 dirty_worktree + parallel_active_tasks。"
+        },
+        {
+          "at": "2026-03-12T20:27:41.572Z",
+          "text": "已新增 release:orchestrate 一键编排（readiness/env/smoke），用于发布线程标准化执行。"
         }
       ],
       "reminders": [],

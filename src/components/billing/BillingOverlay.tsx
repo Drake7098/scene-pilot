@@ -6,6 +6,7 @@ import type { UserState } from "../../types/account";
 import type { CreditPackConfig, ProPlanConfig } from "../../types/billing";
 import { LEGAL_DOCS, legalText, type LegalDocId } from "../../content/legal";
 import type { LocalProviderStatus } from "../../utils/localGeneration";
+import { PUBLIC_CONTACT_CHANNELS, SYSTEM_NOTIFICATION_MAILBOX } from "../../config/contactChannels";
 
 type BillingPage = "upgrade" | "credits";
 type LocalTestProvider = "comfyui" | "drawthings";
@@ -15,6 +16,8 @@ type Props = {
   page: BillingPage | null;
   lang: Lang;
   user: UserState | null;
+  billingEnabled: boolean;
+  billingNotice: string;
   creditsBalance: number;
   creditPacks: CreditPackConfig[];
   proPlan: ProPlanConfig | null;
@@ -52,6 +55,8 @@ export function BillingOverlay(props: Props) {
     page,
     lang,
     user,
+    billingEnabled,
+    billingNotice,
     creditsBalance,
     creditPacks,
     proPlan,
@@ -110,7 +115,7 @@ export function BillingOverlay(props: Props) {
             <button type="button" style={{ ...styles.tab, ...(page === "credits" ? styles.tabOn : null) }} onClick={onOpenCredits} data-testid="billing-tab-credits">
               Credits
             </button>
-            <button type="button" style={styles.tab} onClick={onManageBilling} data-testid="billing-manage">
+            <button type="button" style={styles.tab} onClick={onManageBilling} disabled={!billingEnabled || billingBusy} data-testid="billing-manage">
               Manage billing
             </button>
             <button type="button" style={styles.iconBtn} onClick={onClose} data-testid="billing-close">
@@ -118,6 +123,12 @@ export function BillingOverlay(props: Props) {
             </button>
           </div>
         </div>
+
+        {billingNotice ? (
+          <div style={styles.unavailableBanner} data-testid="billing-notice">
+            {billingNotice}
+          </div>
+        ) : null}
 
         {page === "upgrade" ? (
           <section style={styles.content} data-testid="billing-upgrade-page">
@@ -131,7 +142,7 @@ export function BillingOverlay(props: Props) {
                   <li>Scene structure editor</li>
                   <li>Basic storyboard</li>
                   <li>Object placement</li>
-                  <li>Prompt export</li>
+                  <li>Prompt export (free for first 7 days)</li>
                 </ul>
                 <div style={styles.blockTitle}>Limits</div>
                 <ul style={styles.listMuted}>
@@ -157,7 +168,7 @@ export function BillingOverlay(props: Props) {
                   type="button"
                   style={styles.primaryBtn}
                   onClick={user ? onUpgrade : onRequireAuth}
-                  disabled={billingBusy || user?.tier === "pro" || Boolean(user && !billingLegalAccepted)}
+                  disabled={!billingEnabled || billingBusy || user?.tier === "pro" || Boolean(user && !billingLegalAccepted)}
                   data-testid="upgrade-pro-cta"
                 >
                   {user?.tier === "pro" ? "Current plan" : user ? "Upgrade to Pro" : "Sign in to continue"}
@@ -168,6 +179,7 @@ export function BillingOverlay(props: Props) {
             <div style={styles.noteCard} data-testid="upgrade-credits-note">
               <div>AI image and video generation uses credits.</div>
               <div>Credits are included with Pro and can be purchased separately.</div>
+              <div>Prompt export is free for the first 7 days after registration, then 2 credits per export.</div>
             </div>
 
             <div style={styles.localTestCard} data-testid="billing-local-test-card">
@@ -245,6 +257,15 @@ export function BillingOverlay(props: Props) {
                   {legalText("en", LEGAL_DOCS.refund.title)}
                 </button>
               </div>
+              <div style={styles.legalRouteLinks}>
+                <a href="/terms" style={styles.legalRouteLink}>Terms</a>
+                <a href="/privacy" style={styles.legalRouteLink}>Privacy</a>
+                <a href="/billing-terms" style={styles.legalRouteLink}>Billing Terms</a>
+                <a href="/refund-policy" style={styles.legalRouteLink}>Refund Policy</a>
+              </div>
+              <div style={styles.legalContact}>
+                Checkout and tax handling are processed by Paddle. Support: {PUBLIC_CONTACT_CHANNELS.support} | Business: {PUBLIC_CONTACT_CHANNELS.business} | Notifications: {SYSTEM_NOTIFICATION_MAILBOX} (no reply)
+              </div>
             </div>
 
             <div style={styles.compareCard}>
@@ -280,7 +301,7 @@ export function BillingOverlay(props: Props) {
                     type="button"
                     style={styles.primaryBtn}
                     onClick={user ? () => onBuyCredits(pack.id) : onRequireAuth}
-                    disabled={billingBusy || Boolean(user && !billingLegalAccepted)}
+                    disabled={!billingEnabled || billingBusy || Boolean(user && !billingLegalAccepted)}
                     data-testid={`credits-buy-${pack.id}`}
                   >
                     {user ? "Buy" : "Sign in to continue"}
@@ -295,6 +316,7 @@ export function BillingOverlay(props: Props) {
                 <li>1 image = 1 credit</li>
                 <li>HD image = 3 credits</li>
                 <li>Video = 20 credits</li>
+                <li>Prompt export after day 7 = 2 credits</li>
               </ul>
             </div>
 
@@ -315,6 +337,15 @@ export function BillingOverlay(props: Props) {
                 <button type="button" style={styles.legalLinkBtn} onClick={() => setActiveLegalDoc("refund")} data-testid="billing-open-refund-policy">
                   {legalText("en", LEGAL_DOCS.refund.title)}
                 </button>
+              </div>
+              <div style={styles.legalRouteLinks}>
+                <a href="/terms" style={styles.legalRouteLink}>Terms</a>
+                <a href="/privacy" style={styles.legalRouteLink}>Privacy</a>
+                <a href="/billing-terms" style={styles.legalRouteLink}>Billing Terms</a>
+                <a href="/refund-policy" style={styles.legalRouteLink}>Refund Policy</a>
+              </div>
+              <div style={styles.legalContact}>
+                Checkout and tax handling are processed by Paddle. Support: {PUBLIC_CONTACT_CHANNELS.support} | Business: {PUBLIC_CONTACT_CHANNELS.business} | Notifications: {SYSTEM_NOTIFICATION_MAILBOX} (no reply)
               </div>
             </div>
 
@@ -418,6 +449,15 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8,
     flexWrap: "wrap",
     justifyContent: "flex-end"
+  },
+  unavailableBanner: {
+    borderRadius: 14,
+    border: "1px solid rgba(255,200,160,0.3)",
+    background: "rgba(255,160,90,0.12)",
+    color: "rgba(255,235,216,0.95)",
+    padding: "10px 12px",
+    fontSize: 13,
+    lineHeight: 1.5
   },
   tab: {
     height: 34,
@@ -626,6 +666,29 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     gap: 8,
     flexWrap: "wrap"
+  },
+  legalRouteLinks: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap"
+  },
+  legalRouteLink: {
+    minHeight: 30,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.02)",
+    color: "rgba(245,247,251,0.9)",
+    padding: "0 12px",
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    fontSize: 12.5,
+    fontWeight: 600
+  },
+  legalContact: {
+    color: "rgba(195,205,228,0.86)",
+    fontSize: 12.5,
+    lineHeight: 1.6
   },
   legalLinkBtn: {
     minHeight: 30,

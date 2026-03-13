@@ -7,7 +7,7 @@ test("novice_user_create_first_storyboard", async ({ page }) => {
   const projectName = `robot-novice-${Date.now()}`;
 
   await runStep(page, "open_home", async () => {
-    await page.goto("/");
+    await page.goto("/app");
     await expect(page).toHaveTitle(/Scene|Pilot|Vite/i);
   });
 

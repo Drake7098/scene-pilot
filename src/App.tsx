@@ -47,15 +47,24 @@ import {
   type LocalProviderStatus
 } from "./utils/localGeneration";
 
-import { CircleHelp, FolderOpen, Languages, ListChecks, MoreHorizontal, X } from "lucide-react";
+import { CircleHelp, FolderOpen, Languages, MoreHorizontal, X } from "lucide-react";
 import { CreditCard, Crown, KeyRound, LogOut, UserRound, Wallet } from "lucide-react";
 import { AccountCenterModal } from "./components/AccountCenterModal";
 import { BillingOverlay } from "./components/billing/BillingOverlay";
 import type { AccountCenterSection, ApiCredentialState, UserState } from "./types/account";
 import type { CreditLedgerEntry, CreditPackConfig, ProPlanConfig, SubscriptionState } from "./types/billing";
-import { sendCode, verifyCode, getCurrentUser, logout } from "./services/authService";
+import {
+  getCurrentUser,
+  isGoogleSignInEnabled,
+  logout,
+  sendCode,
+  signInWithPassword,
+  signInWithGoogle,
+  verifyCode
+} from "./services/authService";
 import { CREDIT_PACKS, creditCostFor, getBillingSnapshot, launchCheckout, openCustomerPortal, PRO_PLAN } from "./services/billingService";
 import { finalizeReservedCredits, getCreditLedger, getWalletState, reserveCredits, rollbackReservedCredits } from "./services/creditService";
+import { getPromptExportPolicy, PROMPT_EXPORT_CREDITS_COST } from "./services/promptExportPolicy";
 import { getApiCredentials, setApiCredentials } from "./services/mockAccountStore";
 import { canOpenCustomerPortal, canUseBringYourOwnApi, canUseHostedGeneration, canUseProConsole } from "./utils/entitlement";
 import { PRO_PLUS_MOTION_CATEGORIES } from "./content/proCameraPresets";
@@ -68,6 +77,9 @@ import {
   getVisibleVideoProPlusPresets,
   IMAGE_PRO_CATEGORIES
 } from "./content/proCreativeModes";
+import type { PromptExportAction, PromptExportTicket } from "./types/promptExport";
+import { PUBLIC_CONTACT_CHANNELS, SYSTEM_NOTIFICATION_MAILBOX } from "./config/contactChannels";
+import { BILLING_ENABLED, BILLING_LIVE_BLOCKED } from "./config/billingFlags";
 
 // ✅ telemetry (需要你已添加 ./utils/analytics.ts)
 import {
@@ -100,6 +112,7 @@ const LIB_INIT_KEY = "spx_library_initialized";
 const AUTH_LEGAL_CONSENT_KEY = "sp_auth_legal_consent_v1";
 const BILLING_LEGAL_CONSENT_KEY = "sp_billing_legal_consent_v1";
 const PROJECT_SAVE_PLATFORM_LOCK_KEY = "sp_project_save_platform_locked";
+const GUEST_AVATAR_COLOR_KEY = "sp_guest_avatar_color_v1";
 type SerializedLibraryRefAsset = {
   id: string;
   name: string;
@@ -191,45 +204,58 @@ type HelpCenterSection =
   | "pro_motion_advanced"
   | "export"
   | "troubleshoot"
-  | "development_board"
   | "feedback"
   | "about";
 const ONBOARDING_KEY = "sp_onboarding_done";
 const SAVE_PLATFORM_KEY = "sp_save_prompt_platform";
 const WORKSPACE_MODE_KEY = "sp_workspace_mode";
-const DEVELOPMENT_TRACKER_ASSET_URL = new URL("../docs/development-tracker.json", import.meta.url).href;
-const DEVELOPMENT_BOARD_ASSET_URL = new URL("../docs/development-board.md", import.meta.url).href;
-const DEVELOPMENT_BOARD_STATUS_ORDER = ["active", "testing", "blocked", "backlog", "done", "archived"] as const;
+const WORKSPACE_ENTRY_GUIDE_KEY = "sp_workspace_entry_guide_done_v1";
+const SIGNIN_QUERY_KEY = "signin";
+const REDIRECT_QUERY_KEY = "redirect";
+const AUTH_POST_LOGIN_REDIRECT_KEY = "sp_auth_post_login_redirect_v1";
 
-type DevelopmentBoardStatus = (typeof DEVELOPMENT_BOARD_STATUS_ORDER)[number];
-type DevelopmentBoardReminder = {
-  status?: string;
-};
-type DevelopmentBoardNotifyRules = {
-  status?: string[];
-  testStatus?: string[];
-};
-type DevelopmentBoardItem = {
-  id: string;
-  title: string;
-  status: string;
-  type: string;
-  priority: string;
-  workspace: string;
-  testStatus: string;
-  progress: number;
-  tags?: string[];
-  reminders?: DevelopmentBoardReminder[];
-  notifyRules?: DevelopmentBoardNotifyRules;
-};
-type DevelopmentBoardAlert = {
-  read?: boolean;
-};
-type DevelopmentBoardData = {
-  updatedAt?: string;
-  alerts?: DevelopmentBoardAlert[];
-  items: DevelopmentBoardItem[];
-};
+function normalizePostAuthRedirect(input: string | null | undefined): string {
+  const raw = String(input || "").trim();
+  if (!raw) return "";
+  if (typeof window === "undefined") return "";
+  try {
+    const parsed = new URL(raw, window.location.origin);
+    if (parsed.origin !== window.location.origin) return "";
+    const target = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    if (!target.startsWith("/")) return "";
+    if (target === "/app" || target.startsWith("/app?")) return "";
+    return target;
+  } catch {
+    return "";
+  }
+}
+
+function savePostAuthRedirect(pathname: string) {
+  try {
+    if (!pathname) return;
+    window.sessionStorage.setItem(AUTH_POST_LOGIN_REDIRECT_KEY, pathname);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function readPostAuthRedirect() {
+  try {
+    return window.sessionStorage.getItem(AUTH_POST_LOGIN_REDIRECT_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function consumePostAuthRedirect() {
+  const next = readPostAuthRedirect();
+  try {
+    window.sessionStorage.removeItem(AUTH_POST_LOGIN_REDIRECT_KEY);
+  } catch {
+    // ignore storage failures
+  }
+  return next;
+}
 
 function savePlatformLabel(id: SavePlatformId, lang: Lang) {
   return getPlatformLabel(id, lang === "zh" ? "zh" : "en");
@@ -274,6 +300,32 @@ function defaultRefInheritByPlan(shotPlan: ShotPlan, isFirst: boolean) {
   return { inheritBgRefFromPrevious: false, inheritObjectRefsFromPrevious: "identity_only" as const };
 }
 
+const AVATAR_COLOR_PALETTE = [
+  "#4F46E5",
+  "#0EA5E9",
+  "#06B6D4",
+  "#10B981",
+  "#84CC16",
+  "#F59E0B",
+  "#F97316",
+  "#EF4444",
+  "#EC4899"
+] as const;
+
+function hashStringToInt(input: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function pickAvatarColor(seed: string): string {
+  const idx = hashStringToInt(seed) % AVATAR_COLOR_PALETTE.length;
+  return AVATAR_COLOR_PALETTE[idx] ?? AVATAR_COLOR_PALETTE[0];
+}
+
 function buildDefaultObjectLayer(lang: Lang, index: number) {
   return {
     id: defaultObjectName(lang, index),
@@ -296,45 +348,6 @@ function buildDefaultObjectLayer(lang: Lang, index: number) {
   };
 }
 
-function developmentBoardSectionTitle(status: DevelopmentBoardStatus, lang: Lang) {
-  if (status === "active") return lang === "zh" ? "进行中" : "Active";
-  if (status === "testing") return lang === "zh" ? "测试中" : "Testing";
-  if (status === "blocked") return lang === "zh" ? "阻塞" : "Blocked";
-  if (status === "backlog") return lang === "zh" ? "待开发" : "Backlog";
-  if (status === "done") return lang === "zh" ? "已完成" : "Done";
-  return lang === "zh" ? "归档" : "Archived";
-}
-
-function toDevelopmentBoardData(raw: unknown): DevelopmentBoardData | null {
-  if (!raw || typeof raw !== "object") return null;
-  const value = raw as { items?: unknown; updatedAt?: unknown; alerts?: unknown };
-  if (!Array.isArray(value.items)) return null;
-  const items: DevelopmentBoardItem[] = value.items
-    .filter((entry) => !!entry && typeof entry === "object")
-    .map((entry) => {
-      const item = entry as Record<string, unknown>;
-      return {
-        id: String(item.id ?? ""),
-        title: String(item.title ?? ""),
-        status: String(item.status ?? "backlog"),
-        type: String(item.type ?? "feature"),
-        priority: String(item.priority ?? "p1"),
-        workspace: String(item.workspace ?? "global"),
-        testStatus: String(item.testStatus ?? "none"),
-        progress: Number(item.progress ?? 0),
-        tags: Array.isArray(item.tags) ? item.tags.map((tag) => String(tag)) : [],
-        reminders: Array.isArray(item.reminders) ? item.reminders.map((reminder) => reminder as DevelopmentBoardReminder) : [],
-        notifyRules: (item.notifyRules as DevelopmentBoardNotifyRules | undefined) ?? { status: [], testStatus: [] }
-      };
-    })
-    .filter((item) => item.id && item.title);
-  return {
-    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : "",
-    alerts: Array.isArray(value.alerts) ? (value.alerts as DevelopmentBoardAlert[]) : [],
-    items
-  };
-}
-
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => loadLang());
   const [project, setProject] = useState<Project>(() => loadProject() ?? defaultProject());
@@ -344,6 +357,15 @@ export default function App() {
       return saved === "pro" || saved === "results" ? saved : "results";
     } catch {
       return "results";
+    }
+  });
+  const [workspaceEntryGuideOpen, setWorkspaceEntryGuideOpen] = useState<boolean>(() => {
+    try {
+      const guideDone = localStorage.getItem(WORKSPACE_ENTRY_GUIDE_KEY) === "1";
+      const hasModeSelection = Boolean(localStorage.getItem(WORKSPACE_MODE_KEY));
+      return !guideDone && !hasModeSelection;
+    } catch {
+      return false;
     }
   });
   const [sceneIdx, setSceneIdx] = useState<number>(0);
@@ -364,7 +386,10 @@ export default function App() {
   const [billingBusy, setBillingBusy] = useState(false);
   const [authStep, setAuthStep] = useState<"email" | "code">("email");
   const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
   const [authCode, setAuthCode] = useState("");
+  const [authHint, setAuthHint] = useState("");
+  const [postAuthRedirect, setPostAuthRedirect] = useState("");
   const [allowProSkip, setAllowProSkip] = useState(false);
   const [lastSentCode, setLastSentCode] = useState("");
   const [authLegalAccepted, setAuthLegalAccepted] = useState<boolean>(() => {
@@ -446,9 +471,6 @@ export default function App() {
   // ✅ Help Center
   const [helpCenterOpen, setHelpCenterOpen] = useState(false);
   const [helpCenterSection, setHelpCenterSection] = useState<HelpCenterSection>("quick_start");
-  const [developmentBoardData, setDevelopmentBoardData] = useState<DevelopmentBoardData | null>(null);
-  const [developmentBoardLoading, setDevelopmentBoardLoading] = useState(false);
-  const [developmentBoardError, setDevelopmentBoardError] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
 
   // ✅ 反馈发送状态
@@ -509,6 +531,22 @@ export default function App() {
   const useDesktopFixedLayout = viewportWidth >= 1400;
   const showBrandZh = viewportWidth >= 980;
   const isMac = useMemo(() => isApplePlatform(), []);
+  const googleSignInEnabled = useMemo(() => isGoogleSignInEnabled(), []);
+  const accountAvatarColor = useMemo(() => {
+    if (accountUser?.id) {
+      return pickAvatarColor(`${accountUser.id}:${accountUser.email}`);
+    }
+    try {
+      const cached = localStorage.getItem(GUEST_AVATAR_COLOR_KEY);
+      if (cached) return cached;
+      const randomSeed = `${Date.now()}-${Math.random()}`;
+      const color = pickAvatarColor(randomSeed);
+      localStorage.setItem(GUEST_AVATAR_COLOR_KEY, color);
+      return color;
+    } catch {
+      return AVATAR_COLOR_PALETTE[0];
+    }
+  }, [accountUser]);
 
   function syncSavePlatform(id: SavePlatformId) {
     setSavePlatformId(id);
@@ -532,32 +570,6 @@ export default function App() {
     setOpenExportAction(action);
     setOpenExportNonce((v) => v + 1);
   }
-
-  const loadDevelopmentBoard = useCallback(async () => {
-    setDevelopmentBoardLoading(true);
-    setDevelopmentBoardError("");
-    try {
-      const response = await fetch(DEVELOPMENT_TRACKER_ASSET_URL, { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const raw = await response.json();
-      const parsed = toDevelopmentBoardData(raw);
-      if (!parsed) {
-        throw new Error("invalid_data");
-      }
-      setDevelopmentBoardData(parsed);
-    } catch {
-      setDevelopmentBoardData(null);
-      setDevelopmentBoardError(
-        lang === "zh"
-          ? "看板数据读取失败。先执行 npm run tracker:board，然后重试。"
-          : "Failed to load board data. Run `npm run tracker:board`, then retry."
-      );
-    } finally {
-      setDevelopmentBoardLoading(false);
-    }
-  }, [lang]);
 
   function enterProWorkspace() {
     setWorkspaceSwitchShield(true);
@@ -778,11 +790,6 @@ export default function App() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [helpCenterOpen]);
-
-  useEffect(() => {
-    if (!helpCenterOpen || helpCenterSection !== "development_board") return;
-    void loadDevelopmentBoard();
-  }, [helpCenterOpen, helpCenterSection, loadDevelopmentBoard]);
 
   const refreshLocalProviders = useCallback(async () => {
     setComfyStatus({ provider: "comfyui", state: "checking", detail: lang === "zh" ? "探测中..." : "checking..." });
@@ -1275,6 +1282,8 @@ export default function App() {
     if (!accountUser) {
       setAuthStep("email");
       setAuthCode("");
+      setAuthPassword("");
+      setAuthHint("");
     }
     setAllowProSkip(Boolean(options?.allowProSkip && section === "pro" && !accountUser));
     setAccountCenterSection(section);
@@ -1292,6 +1301,57 @@ export default function App() {
     setBillingPage(null);
   }
 
+  function markWorkspaceEntryGuideDone() {
+    try {
+      localStorage.setItem(WORKSPACE_ENTRY_GUIDE_KEY, "1");
+    } catch {
+      // ignore localStorage failures
+    }
+  }
+
+  function closeWorkspaceEntryGuide() {
+    markWorkspaceEntryGuideDone();
+    setWorkspaceEntryGuideOpen(false);
+  }
+
+  function chooseWorkspaceEntry(mode: ResultConsoleMode) {
+    setWorkspaceMode(mode);
+    markWorkspaceEntryGuideDone();
+    setWorkspaceEntryGuideOpen(false);
+  }
+
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      const signin = String(url.searchParams.get(SIGNIN_QUERY_KEY) || "").trim().toLowerCase();
+      const requestedRedirect = normalizePostAuthRedirect(url.searchParams.get(REDIRECT_QUERY_KEY));
+      const signinRequested = ["1", "true", "yes"].includes(signin);
+
+      if (requestedRedirect) {
+        savePostAuthRedirect(requestedRedirect);
+        setPostAuthRedirect(requestedRedirect);
+      }
+      if (!signinRequested && !requestedRedirect) return;
+
+      if (signinRequested) {
+        setAuthStep("email");
+        setAuthCode("");
+        setAuthHint("");
+        setAllowProSkip(false);
+        setAccountCenterSection("auth");
+        setAccountCenterOpen(true);
+        url.searchParams.delete(SIGNIN_QUERY_KEY);
+      }
+      if (requestedRedirect) {
+        url.searchParams.delete(REDIRECT_QUERY_KEY);
+      }
+      const nextUrl = `${url.pathname}${url.search ? url.search : ""}${url.hash}`;
+      window.history.replaceState({}, "", nextUrl);
+    } catch {
+      // ignore query parse failures
+    }
+  }, []);
+
   function providerReadyText(provider: LocalTestImageProvider, status: LocalProviderStatus) {
     const providerLabel = provider === "comfyui" ? "ComfyUI" : "Draw Things";
     if (status.state === "ready") {
@@ -1305,6 +1365,78 @@ export default function App() {
       : `${providerLabel} unavailable: ${detail}`;
   }
 
+  function authErrorText(error: unknown) {
+    const code = String(error instanceof Error ? error.message : error || "")
+      .trim()
+      .toLowerCase();
+    if (code.includes("invalid_email")) {
+      return lang === "zh" ? "邮箱格式无效。" : "Invalid email format.";
+    }
+    if (code.includes("missing_challenge")) {
+      return lang === "zh" ? "请先发送验证码。" : "Send code first.";
+    }
+    if (code.includes("code_expired")) {
+      return lang === "zh" ? "验证码已过期，请重新发送。" : "Code expired. Request a new one.";
+    }
+    if (code.includes("code_invalid")) {
+      return lang === "zh" ? "验证码错误，请重试。" : "Invalid code. Try again.";
+    }
+    if (code.includes("too_many_requests")) {
+      return lang === "zh" ? "请求过于频繁，请稍后再试。" : "Too many requests. Please try again later.";
+    }
+    if (code.includes("auth_redirect_started")) {
+      return "";
+    }
+    if (code.includes("supabase_not_configured")) {
+      return lang === "zh" ? "登录服务未配置完成。" : "Auth service is not configured.";
+    }
+    if (code.includes("invalid_grant") || code.includes("otp_expired")) {
+      return lang === "zh" ? "验证码错误或已过期，请重新发送。" : "Code is invalid or expired. Request a new one.";
+    }
+    if (code.includes("supabase_network_error")) {
+      return lang === "zh" ? "登录网络异常，请稍后重试。" : "Auth network error. Please try again.";
+    }
+    if (code.includes("auth_backend_unavailable")) {
+      return lang === "zh" ? "登录服务暂不可用，请稍后重试。" : "Auth service is unavailable right now. Please retry.";
+    }
+    if (code.includes("password_too_short")) {
+      return lang === "zh" ? "密码至少 6 位。" : "Password must be at least 6 characters.";
+    }
+    if (code.includes("invalid_login_credentials") || code.includes("invalid_grant")) {
+      return lang === "zh" ? "邮箱或密码错误。" : "Invalid email or password.";
+    }
+    if (code.includes("email_not_confirmed")) {
+      return lang === "zh" ? "邮箱未验证，请先完成邮箱验证。" : "Email is not confirmed yet.";
+    }
+    if (code.includes("user_already_registered")) {
+      return lang === "zh" ? "账号已存在，请直接登录。" : "Account already exists. Please sign in.";
+    }
+    if (code.includes("code_locked")) {
+      return lang === "zh" ? "验证码尝试次数过多，请重新发送。" : "Too many invalid attempts. Request a new code.";
+    }
+    if (code.includes("google_not_configured") || code.includes("google_client_id_missing")) {
+      return lang === "zh" ? "Google 登录未配置完成。" : "Google sign-in is not configured.";
+    }
+    if (code.includes("google_prompt_")) {
+      return lang === "zh" ? "Google 登录窗口未完成，请重试。" : "Google prompt was not completed. Please retry.";
+    }
+    if (code.includes("google_verify")) {
+      return lang === "zh" ? "Google 身份校验失败，请重试。" : "Google verification failed. Please retry.";
+    }
+    return lang === "zh" ? "登录失败，请重试。" : "Sign-in failed. Please retry.";
+  }
+
+  const billingRuntimeEnabled = BILLING_ENABLED && !BILLING_LIVE_BLOCKED;
+  const billingNotice = useMemo(() => {
+    if (!BILLING_ENABLED) {
+      return lang === "zh" ? "支付通道即将上线，暂不可购买或开通。" : "Billing is coming soon. Purchases are temporarily unavailable.";
+    }
+    if (BILLING_LIVE_BLOCKED) {
+      return lang === "zh" ? "当前环境已启用支付保护：禁止 live 扣费，请使用 sandbox。" : "Live billing is blocked in this environment. Use sandbox billing only.";
+    }
+    return "";
+  }, [lang]);
+
   function requestProAccess(section: AccountCenterSection = "pro") {
     if (canUseProConsole(accountUser)) {
       setWorkspaceMode("pro");
@@ -1317,10 +1449,18 @@ export default function App() {
   async function handleSendAuthCode() {
     if (authBusy || !authLegalAccepted) return;
     setAuthBusy(true);
+    setAuthHint("");
     try {
       const result = await sendCode(authEmail);
       setLastSentCode(result.devCode);
       setAuthStep("code");
+      setAuthHint(
+        lang === "zh"
+          ? "验证码已发送，请输入验证码。"
+          : "Code sent. Enter the verification code."
+      );
+    } catch (error) {
+      setAuthHint(authErrorText(error));
     } finally {
       setAuthBusy(false);
     }
@@ -1329,13 +1469,55 @@ export default function App() {
   async function handleVerifyAuthCode() {
     if (authBusy || !authLegalAccepted) return;
     setAuthBusy(true);
+    setAuthHint("");
     try {
       await verifyCode(authEmail, authCode);
       setAuthCode("");
       setLastSentCode("");
       setAuthStep("email");
+      setAuthHint("");
       await refreshAccountState();
       setAccountCenterSection("overview");
+    } catch (error) {
+      setAuthHint(authErrorText(error));
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    if (authBusy) return;
+    setAuthBusy(true);
+    setAuthHint("");
+    try {
+      await signInWithGoogle();
+      setAuthPassword("");
+      setAuthCode("");
+      setLastSentCode("");
+      setAuthStep("email");
+      await refreshAccountState();
+      setAccountCenterSection("overview");
+    } catch (error) {
+      setAuthHint(authErrorText(error));
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handlePasswordSignIn() {
+    if (authBusy || !authLegalAccepted) return;
+    setAuthBusy(true);
+    setAuthHint("");
+    try {
+      await signInWithPassword(authEmail, authPassword);
+      setAuthPassword("");
+      setAuthCode("");
+      setLastSentCode("");
+      setAuthStep("email");
+      await refreshAccountState();
+      setAccountCenterSection("overview");
+    } catch (error) {
+      setAuthHint(authErrorText(error));
     } finally {
       setAuthBusy(false);
     }
@@ -1345,7 +1527,9 @@ export default function App() {
     await logout();
     setAccountCenterSection("auth");
     setAuthStep("email");
+    setAuthPassword("");
     setAuthCode("");
+    setAuthHint("");
     setLastSentCode("");
     await refreshAccountState();
   }
@@ -1353,6 +1537,10 @@ export default function App() {
   async function handlePurchaseCredits(packId: string) {
     if (!accountUser || billingBusy) {
       openAccountCenter("auth");
+      return;
+    }
+    if (!billingRuntimeEnabled) {
+      openBillingPage("credits");
       return;
     }
     if (!billingLegalAccepted) {
@@ -1364,6 +1552,8 @@ export default function App() {
       await launchCheckout({ userId: accountUser.id, userEmail: accountUser.email, kind: "credits", productId: packId });
       await refreshAccountState();
       setBillingPage("credits");
+    } catch {
+      openBillingPage("credits");
     } finally {
       setBillingBusy(false);
     }
@@ -1372,6 +1562,10 @@ export default function App() {
   async function handleUpgradePro() {
     if (!accountUser || billingBusy) {
       openAccountCenter("auth");
+      return;
+    }
+    if (!billingRuntimeEnabled) {
+      openBillingPage("upgrade");
       return;
     }
     if (!billingLegalAccepted) {
@@ -1383,6 +1577,8 @@ export default function App() {
       await launchCheckout({ userId: accountUser.id, userEmail: accountUser.email, kind: "pro", productId: PRO_PLAN.id });
       await refreshAccountState();
       setBillingPage("upgrade");
+    } catch {
+      openBillingPage("upgrade");
     } finally {
       setBillingBusy(false);
     }
@@ -1397,10 +1593,16 @@ export default function App() {
       openBillingPage("upgrade");
       return;
     }
+    if (!billingRuntimeEnabled) {
+      openBillingPage("upgrade");
+      return;
+    }
     setBillingBusy(true);
     try {
       const portal = await openCustomerPortal(accountUser.id);
       window.open(portal.url, "_blank", "noopener,noreferrer");
+    } catch {
+      openBillingPage("upgrade");
     } finally {
       setBillingBusy(false);
     }
@@ -1417,9 +1619,88 @@ export default function App() {
     setInsufficientCreditsOpen(true);
   }
 
+  const promptExportPolicy = useMemo(
+    () => getPromptExportPolicy(accountUser?.createdAt),
+    [accountUser?.createdAt]
+  );
+
+  const promptExportNote = useMemo(() => {
+    if (!accountUser) {
+      return lang === "zh"
+        ? `登录后享 7 天免费导出，后续每次 ${PROMPT_EXPORT_CREDITS_COST} credits`
+        : `Sign in for 7 days of free prompt export, then ${PROMPT_EXPORT_CREDITS_COST} credits each`;
+    }
+    if (promptExportPolicy.trialActive) {
+      return lang === "zh"
+        ? `导出提示词免费试用中 · 剩余 ${promptExportPolicy.remainingTrialDays} 天`
+        : `Prompt export trial active · ${promptExportPolicy.remainingTrialDays} day(s) left`;
+    }
+    return lang === "zh"
+      ? `导出提示词每次 ${PROMPT_EXPORT_CREDITS_COST} credits`
+      : `Prompt export costs ${PROMPT_EXPORT_CREDITS_COST} credits each`;
+  }, [accountUser, lang, promptExportPolicy.remainingTrialDays, promptExportPolicy.trialActive]);
+
+  const preparePromptExport = useCallback(async (action: PromptExportAction): Promise<PromptExportTicket> => {
+    if (!accountUser) {
+      openAccountCenter("auth");
+      return { allowed: false };
+    }
+
+    const policy = getPromptExportPolicy(accountUser.createdAt);
+    if (policy.trialActive) {
+      return { allowed: true };
+    }
+
+    try {
+      const reserved = await reserveCredits(
+        accountUser.id,
+        PROMPT_EXPORT_CREDITS_COST,
+        `prompt_export_${action}`
+      );
+      return { allowed: true, reservationId: reserved.id };
+    } catch (error) {
+      const code = error instanceof Error ? error.message : String(error);
+      if (code === "insufficient_credits") {
+        openNotEnoughCredits(
+          lang === "zh"
+            ? `提示词导出每次需要 ${PROMPT_EXPORT_CREDITS_COST} credits，当前余额不足。`
+            : `Prompt export needs ${PROMPT_EXPORT_CREDITS_COST} credits each, but your balance is too low.`
+        );
+        openBillingPage("credits");
+      } else {
+        openNotEnoughCredits(
+          lang === "zh"
+            ? "提示词导出失败，请稍后重试。"
+            : "Prompt export failed. Please try again."
+        );
+      }
+      return { allowed: false };
+    }
+  }, [accountUser, lang]);
+
+  const settlePromptExport = useCallback(async (reservationId: string | undefined, committed: boolean) => {
+    if (!accountUser || !reservationId) return;
+    try {
+      if (committed) await finalizeReservedCredits(accountUser.id, reservationId);
+      else await rollbackReservedCredits(accountUser.id, reservationId);
+    } finally {
+      await refreshAccountState();
+    }
+  }, [accountUser, refreshAccountState]);
+
   useEffect(() => {
     void refreshAccountState();
   }, [refreshAccountState]);
+
+  useEffect(() => {
+    if (!accountUser) return;
+    const target = postAuthRedirect || readPostAuthRedirect();
+    const normalized = normalizePostAuthRedirect(target);
+    if (!normalized) return;
+    consumePostAuthRedirect();
+    setPostAuthRedirect("");
+    window.location.assign(normalized);
+  }, [accountUser, postAuthRedirect]);
 
   useEffect(() => {
     try {
@@ -2682,7 +2963,7 @@ export default function App() {
     setFeedbackSent("");
 
     try {
-      // 备注：sendFeedback 只在 telemetry on 时才会发；你已默认开启
+      // sendFeedback 不依赖 telemetry 开关：用户主动提交时始终尝试发送
       const ok = await sendFeedback(msg, { app: "ScenePilotix", ver: "1.05", sceneIdx }, lang);
       setFeedbackSent(ok ? "ok" : "fail");
       if (ok) {
@@ -2698,35 +2979,6 @@ export default function App() {
       setFeedbackSending(false);
     }
   }
-
-  const developmentBoardSummary = useMemo(() => {
-    if (!developmentBoardData) return null;
-    const unreadAlerts = (developmentBoardData.alerts ?? []).filter((alert) => !alert.read).length;
-    const pendingReminders = developmentBoardData.items.reduce((count, item) => (
-      count + (item.reminders ?? []).filter((reminder) => reminder.status === "pending").length
-    ), 0);
-    return {
-      updatedAt: developmentBoardData.updatedAt ?? "",
-      unreadAlerts,
-      pendingReminders
-    };
-  }, [developmentBoardData]);
-
-  const developmentBoardGroups = useMemo(() => {
-    if (!developmentBoardData) return [] as Array<{ status: DevelopmentBoardStatus; items: DevelopmentBoardItem[] }>;
-    const byStatus = new Map<DevelopmentBoardStatus, DevelopmentBoardItem[]>();
-    for (const status of DEVELOPMENT_BOARD_STATUS_ORDER) {
-      byStatus.set(status, []);
-    }
-    for (const item of developmentBoardData.items) {
-      const status = item.status as DevelopmentBoardStatus;
-      if (!byStatus.has(status)) continue;
-      byStatus.get(status)?.push(item);
-    }
-    return DEVELOPMENT_BOARD_STATUS_ORDER
-      .map((status) => ({ status, items: byStatus.get(status) ?? [] }))
-      .filter((entry) => entry.items.length > 0);
-  }, [developmentBoardData]);
 
   const helpMenuItems = [
     {
@@ -2789,16 +3041,6 @@ export default function App() {
         setHelpCenterOpen(true);
       }
     },
-    {
-      key: "development_board",
-      label: lang === "zh" ? "开发看板" : "Development Board",
-      icon: <ListChecks size={UI_MENU.item.iconSize} />,
-      onClick: () => {
-        setHelpMenuOpen(false);
-        setHelpCenterSection("development_board");
-        setHelpCenterOpen(true);
-      }
-    },
     ...(workspaceMode === "pro" ? [{
       key: "quick_workspace",
       label: lang === "zh" ? "返回快捷工作台" : "Back to Quick Workspace",
@@ -2825,7 +3067,6 @@ export default function App() {
     { id: "pro_motion_advanced", label: lang === "zh" ? "进阶专业教程" : "Advanced Motion" },
     { id: "export", label: lang === "zh" ? "导出说明" : "Export Guide" },
     { id: "troubleshoot", label: lang === "zh" ? "排错" : "Troubleshooting" },
-    { id: "development_board", label: lang === "zh" ? "开发看板" : "Development Board" },
     { id: "feedback", label: lang === "zh" ? "反馈" : "Feedback" },
     { id: "about", label: lang === "zh" ? "关于" : "About" }
   ];
@@ -2893,6 +3134,21 @@ export default function App() {
           <MoreHorizontal size={16} />
         </button>
 
+        <button
+          data-testid="top-account-trigger"
+          style={{ ...styles.topAvatarBtn, background: accountAvatarColor }}
+          onClick={() => openAccountCenter(accountUser ? "overview" : "auth")}
+          type="button"
+          aria-label={accountUser ? (lang === "zh" ? "账户中心" : "Account Center") : (lang === "zh" ? "登录 / 注册" : "Sign In")}
+          title={accountUser ? (lang === "zh" ? "账户中心" : "Account Center") : (lang === "zh" ? "登录 / 注册" : "Sign In")}
+        >
+          {accountUser?.avatarUrl ? (
+            <img src={accountUser.avatarUrl} alt="" style={styles.topAvatarImage} />
+          ) : (
+            <span style={styles.topAvatarDot} />
+          )}
+        </button>
+
         {/* hidden file input for no FS access */}
         <input
           ref={fileInputRef}
@@ -2902,6 +3158,65 @@ export default function App() {
           onChange={onUploadFile}
         />
       </div>
+
+      {workspaceEntryGuideOpen ? (
+        <div style={styles.entryGuideMask} onMouseDown={closeWorkspaceEntryGuide} data-testid="workspace-entry-guide-mask" role="presentation">
+          <div
+            style={styles.entryGuideCard}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            data-testid="workspace-entry-guide"
+          >
+            <div style={styles.entryGuideHead}>
+              <div style={styles.entryGuideTitle}>
+                {lang === "zh" ? "选择你的开始方式" : "Choose how you want to start"}
+              </div>
+              <button
+                type="button"
+                style={styles.entryGuideClose}
+                onClick={closeWorkspaceEntryGuide}
+                data-testid="workspace-entry-guide-close"
+                aria-label={lang === "zh" ? "关闭" : "Close"}
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div style={styles.entryGuideDesc}>
+              {lang === "zh"
+                ? "非商业快速创作推荐快捷工作台；商业交付与专业控制推荐 Pro 工作台。"
+                : "Quick Workspace is best for non-commercial fast creation. Pro Workspace is best for commercial delivery and advanced control."}
+            </div>
+            <div style={styles.entryGuideActions}>
+              <button
+                type="button"
+                style={styles.entryGuideBtn}
+                onClick={() => chooseWorkspaceEntry("results")}
+                data-testid="workspace-entry-guide-quick"
+              >
+                {lang === "zh" ? "快捷工作台（推荐新手）" : "Quick Workspace (Recommended)"}
+              </button>
+              <button
+                type="button"
+                style={{ ...styles.entryGuideBtn, ...styles.entryGuideBtnPrimary }}
+                onClick={() => chooseWorkspaceEntry("pro")}
+                data-testid="workspace-entry-guide-pro"
+              >
+                {lang === "zh" ? "Pro 工作台（商业/专业）" : "Pro Workspace (Commercial/Pro)"}
+              </button>
+            </div>
+            <button
+              type="button"
+              style={styles.entryGuideSkip}
+              onClick={closeWorkspaceEntryGuide}
+              data-testid="workspace-entry-guide-skip"
+            >
+              {lang === "zh" ? "稍后再选" : "Decide later"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {helpMenuOpen ? (
         <>
@@ -3180,6 +3495,9 @@ export default function App() {
             onGenerate={() => void generateResultPlan()}
             onOpenUpgrade={() => openBillingPage("upgrade")}
             onOpenCredits={() => openBillingPage("credits")}
+            promptExportNote={promptExportNote}
+            onPreparePromptExport={preparePromptExport}
+            onSettlePromptExport={settlePromptExport}
             onRefine={() => void refineResultPlan()}
             onApplyToPro={openProFromQuickWorkspace}
             onOpenWizard={openProWizardFromResults}
@@ -3432,6 +3750,9 @@ export default function App() {
                 platformId={savePlatformId}
                 openExportNonce={openExportNonce}
                 openExportAction={openExportAction}
+                promptExportNote={promptExportNote}
+                onPreparePromptExport={preparePromptExport}
+                onSettlePromptExport={settlePromptExport}
                 onPlatformChange={(id) => syncSavePlatform(id as SavePlatformId)}
                 selectedLayerId={selectedLayerId}
                 onJumpToConflict={(layerId) => {
@@ -3484,6 +3805,8 @@ export default function App() {
         page={billingPage}
         lang={lang}
         user={accountUser}
+        billingEnabled={billingRuntimeEnabled}
+        billingNotice={billingNotice}
         creditsBalance={accountCredits}
         creditPacks={creditPacks}
         proPlan={proPlan}
@@ -3558,6 +3881,7 @@ export default function App() {
                   setInsufficientCreditsOpen(false);
                   openBillingPage("credits");
                 }}
+                disabled={!billingRuntimeEnabled}
                 data-testid="insufficient-credits-buy"
               >
                 Buy credits
@@ -3581,26 +3905,47 @@ export default function App() {
         apiCredentials={accountApiCredentials}
         authBusy={authBusy}
         billingBusy={billingBusy}
+        billingEnabled={billingRuntimeEnabled}
+        billingNotice={billingNotice}
         authStep={authStep}
         authEmail={authEmail}
+        authPassword={authPassword}
         authCode={authCode}
+        authHint={authHint}
         lastSentCode={lastSentCode}
+        googleSignInEnabled={googleSignInEnabled}
         authLegalAccepted={authLegalAccepted}
         billingLegalAccepted={billingLegalAccepted}
         onClose={() => {
           setAccountCenterOpen(false);
           setAllowProSkip(false);
+          setAuthHint("");
         }}
         onSectionChange={(nextSection) => {
           setAccountCenterSection(nextSection);
+          if (nextSection === "auth") {
+            setAuthHint("");
+          }
           if (nextSection !== "pro") {
             setAllowProSkip(false);
           }
         }}
-        onAuthEmailChange={setAuthEmail}
-        onAuthCodeChange={setAuthCode}
+        onAuthEmailChange={(value) => {
+          setAuthEmail(value);
+          if (authHint) setAuthHint("");
+        }}
+        onAuthPasswordChange={(value) => {
+          setAuthPassword(value);
+          if (authHint) setAuthHint("");
+        }}
+        onAuthCodeChange={(value) => {
+          setAuthCode(value);
+          if (authHint) setAuthHint("");
+        }}
         onAuthLegalAcceptedChange={setAuthLegalAccepted}
         onBillingLegalAcceptedChange={setBillingLegalAccepted}
+        onGoogleSignIn={() => void handleGoogleSignIn()}
+        onPasswordSignIn={() => void handlePasswordSignIn()}
         onSendCode={() => void handleSendAuthCode()}
         onVerifyCode={() => void handleVerifyAuthCode()}
         onLogout={() => void handleLogout()}
@@ -3776,87 +4121,6 @@ export default function App() {
                   </>
                 ) : null}
 
-                {helpCenterSection === "development_board" ? (
-                  <>
-                    <div style={styles.tutBlockTitle}>{lang === "zh" ? "开发看板" : "Development Board"}</div>
-                    <div style={styles.boardTopBar}>
-                      <button
-                        style={styles.modalBtnGhost}
-                        type="button"
-                        onClick={() => {
-                          void loadDevelopmentBoard();
-                        }}
-                      >
-                        {developmentBoardLoading ? (lang === "zh" ? "刷新中…" : "Refreshing...") : (lang === "zh" ? "刷新" : "Refresh")}
-                      </button>
-                      <button
-                        style={styles.modalBtnGhost}
-                        type="button"
-                        onClick={() => {
-                          window.open(DEVELOPMENT_BOARD_ASSET_URL, "_blank", "noopener,noreferrer");
-                        }}
-                      >
-                        {lang === "zh" ? "打开 Markdown" : "Open Markdown"}
-                      </button>
-                    </div>
-
-                    {developmentBoardSummary ? (
-                      <div style={styles.boardSummaryRow}>
-                        <div style={styles.boardSummaryChip}>
-                          {lang === "zh" ? "更新时间" : "Updated"}: {developmentBoardSummary.updatedAt || "-"}
-                        </div>
-                        <div style={styles.boardSummaryChip}>
-                          {lang === "zh" ? "未读提醒" : "Unread Alerts"}: {developmentBoardSummary.unreadAlerts}
-                        </div>
-                        <div style={styles.boardSummaryChip}>
-                          {lang === "zh" ? "待处理提醒" : "Pending Reminders"}: {developmentBoardSummary.pendingReminders}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {developmentBoardLoading ? (
-                      <div style={styles.modalText}>{lang === "zh" ? "正在加载看板..." : "Loading board..."}</div>
-                    ) : null}
-
-                    {developmentBoardError ? <div style={styles.boardError}>{developmentBoardError}</div> : null}
-
-                    {!developmentBoardLoading && !developmentBoardError && !developmentBoardGroups.length ? (
-                      <div style={styles.modalText}>{lang === "zh" ? "暂无任务数据。" : "No tracker data found."}</div>
-                    ) : null}
-
-                    {developmentBoardGroups.map((group) => (
-                      <div key={group.status} style={styles.tutSectionBlock}>
-                        <div style={styles.tutSectionTitle}>{developmentBoardSectionTitle(group.status, lang)}</div>
-                        <div style={styles.boardGroupGrid}>
-                          {group.items.map((item) => {
-                            const pending = (item.reminders ?? []).filter((reminder) => reminder.status === "pending").length;
-                            const notifyStatus = item.notifyRules?.status?.join(", ") || "-";
-                            const notifyTest = item.notifyRules?.testStatus?.join(", ") || "-";
-                            return (
-                              <div key={item.id} style={styles.boardItemCard}>
-                                <div style={styles.boardItemHead}>
-                                  <span style={styles.boardItemId}>{item.id}</span>
-                                  <span style={styles.boardItemMeta}>{item.priority} · {item.type} · {item.workspace}</span>
-                                </div>
-                                <div style={styles.boardItemTitle}>{item.title}</div>
-                                <div style={styles.boardItemMetaRow}>
-                                  <span>{lang === "zh" ? "测试" : "Test"}: {item.testStatus}</span>
-                                  <span>{lang === "zh" ? "进度" : "Progress"}: {Number.isFinite(item.progress) ? item.progress : 0}%</span>
-                                  <span>{lang === "zh" ? "提醒" : "Reminders"}: {pending}</span>
-                                </div>
-                                <div style={styles.boardItemMetaRow}>
-                                  <span>{lang === "zh" ? "触发" : "Notify"}: {notifyStatus}</span>
-                                  <span>{lang === "zh" ? "测试触发" : "Test Notify"}: {notifyTest}</span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </>
-                ) : null}
-
                 {helpCenterSection === "feedback" ? (
                   <>
                     <div style={styles.tutBlockTitle}>{lang === "zh" ? "反馈" : "Feedback"}</div>
@@ -3864,6 +4128,11 @@ export default function App() {
                       {lang === "zh"
                         ? "你可以直接发送反馈，也可以复制模板提交。"
                         : "You can send feedback directly, or copy the template."}
+                      <div style={{ marginTop: 8, opacity: 0.76 }}>
+                        {lang === "zh"
+                          ? `客服支持：${PUBLIC_CONTACT_CHANNELS.support} ｜ 商务合作：${PUBLIC_CONTACT_CHANNELS.business}`
+                          : `Support: ${PUBLIC_CONTACT_CHANNELS.support} | Business: ${PUBLIC_CONTACT_CHANNELS.business}`}
+                      </div>
                     </div>
                     <div style={styles.feedbackTpl}>
                       <div style={styles.feedbackTplLine}>{lang === "zh" ? "【问题】" : "[Issue]"}</div>
@@ -3928,6 +4197,11 @@ export default function App() {
                       </div>
                       <div style={{ marginTop: 10, opacity: 0.7 }}>
                         {lang === "zh" ? "Version: 1.05 (Universal)" : "Version: 1.05 (Universal)"}
+                      </div>
+                      <div style={{ marginTop: 10, opacity: 0.82, lineHeight: 1.55 }}>
+                        <div>{lang === "zh" ? `客服支持：${PUBLIC_CONTACT_CHANNELS.support}` : `Support: ${PUBLIC_CONTACT_CHANNELS.support}`}</div>
+                        <div>{lang === "zh" ? `商务合作：${PUBLIC_CONTACT_CHANNELS.business}` : `Business: ${PUBLIC_CONTACT_CHANNELS.business}`}</div>
+                        <div>{lang === "zh" ? `系统通知：${SYSTEM_NOTIFICATION_MAILBOX}（请勿直接回复）` : `System notifications: ${SYSTEM_NOTIFICATION_MAILBOX} (do not reply)`}</div>
                       </div>
                     </div>
                   </>
@@ -4123,11 +4397,117 @@ const styles: Record<string, React.CSSProperties> = {
     ["--spx-btn-shadow-hover" as any]: UI_COMMAND.shadow.hover,
     ["--spx-btn-shadow-active" as any]: UI_COMMAND.shadow.active
   },
+  topAvatarBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: "50%",
+    border: "1px solid rgba(255,255,255,0.18)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#fff",
+    cursor: "pointer",
+    outline: "none",
+    boxShadow: "0 6px 16px rgba(0,0,0,0.28)",
+    overflow: "hidden",
+    flexShrink: 0
+  },
+  topAvatarImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover"
+  },
+  topAvatarDot: {
+    width: 8,
+    height: 8,
+    borderRadius: "50%",
+    background: "rgba(255,255,255,0.9)",
+    boxShadow: "0 0 0 2px rgba(0,0,0,0.16)"
+  },
   topBtnText: {
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
     maxWidth: 118
+  },
+  entryGuideMask: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 1200,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(0,0,0,0.54)",
+    backdropFilter: "blur(6px)"
+  },
+  entryGuideCard: {
+    width: "min(520px, calc(100vw - 40px))",
+    borderRadius: 16,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    background: "linear-gradient(160deg, rgba(12,20,34,0.98), rgba(8,12,20,0.98))",
+    boxShadow: "0 18px 42px rgba(0,0,0,0.44)",
+    padding: 16,
+    display: "flex",
+    flexDirection: "column",
+    gap: 12
+  },
+  entryGuideHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8
+  },
+  entryGuideTitle: {
+    fontSize: UI_TYPO.size16,
+    fontWeight: 860,
+    color: UI_PALETTE.text.primary
+  },
+  entryGuideClose: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    border: `1px solid ${UI_COMMAND.border.default}`,
+    background: UI_COMMAND.surface.default,
+    color: UI_PALETTE.text.secondary,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer"
+  },
+  entryGuideDesc: {
+    fontSize: UI_TYPO.size13,
+    color: UI_PALETTE.text.secondary,
+    lineHeight: 1.55
+  },
+  entryGuideActions: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10
+  },
+  entryGuideBtn: {
+    minHeight: 44,
+    borderRadius: 12,
+    border: `1px solid ${UI_COMMAND.border.default}`,
+    background: UI_COMMAND.surface.default,
+    color: UI_PALETTE.text.primary,
+    fontSize: UI_TYPO.size13,
+    fontWeight: 760,
+    cursor: "pointer",
+    padding: "0 10px"
+  },
+  entryGuideBtnPrimary: {
+    border: `1px solid ${UI_COMMAND.border.accent}`,
+    background: UI_COMMAND.surface.accent
+  },
+  entryGuideSkip: {
+    minHeight: 30,
+    borderRadius: 10,
+    border: "none",
+    background: "transparent",
+    color: UI_PALETTE.text.secondary,
+    fontSize: UI_TYPO.size12,
+    cursor: "pointer",
+    justifySelf: "center"
   },
 
   main: {
@@ -4924,86 +5304,6 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.55,
     color: UI_PALETTE.text.secondary
   },
-  boardTopBar: {
-    marginTop: 10,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap"
-  },
-  boardSummaryRow: {
-    marginTop: 10,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap"
-  },
-  boardSummaryChip: {
-    minHeight: 26,
-    padding: "0 10px",
-    borderRadius: UI_RADIUS.chip,
-    border: `1px solid ${UI_PALETTE.border.soft}`,
-    background: UI_PALETTE.surface.surface2,
-    fontSize: 11,
-    fontWeight: 760,
-    color: UI_PALETTE.text.secondary,
-    display: "inline-flex",
-    alignItems: "center"
-  },
-  boardError: {
-    marginTop: 10,
-    borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.danger}`,
-    background: "rgba(255,124,124,0.12)",
-    color: UI_PALETTE.text.primary,
-    fontSize: 12,
-    lineHeight: 1.5,
-    padding: "8px 10px"
-  },
-  boardGroupGrid: {
-    display: "grid",
-    gap: 8
-  },
-  boardItemCard: {
-    borderRadius: 12,
-    border: `1px solid ${UI_PALETTE.border.soft}`,
-    background: "rgba(255,255,255,0.035)",
-    padding: 10,
-    display: "grid",
-    gap: 6
-  },
-  boardItemHead: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-    flexWrap: "wrap"
-  },
-  boardItemId: {
-    fontSize: 11,
-    fontWeight: 820,
-    color: UI_PALETTE.text.secondary
-  },
-  boardItemMeta: {
-    fontSize: 11,
-    fontWeight: 760,
-    color: UI_PALETTE.text.tertiary
-  },
-  boardItemTitle: {
-    fontSize: 13,
-    fontWeight: 860,
-    color: UI_PALETTE.text.primary,
-    lineHeight: 1.45
-  },
-  boardItemMetaRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
-    fontSize: 11,
-    color: UI_PALETTE.text.secondary
-  },
-
   // ---- feedback ----
   feedbackTpl: {
     marginTop: 10,

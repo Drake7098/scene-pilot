@@ -19,6 +19,8 @@ async function signIn(page: import("@playwright/test").Page, email: string) {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
+    localStorage.setItem("sp_workspace_mode", "results");
+    localStorage.setItem("sp_workspace_entry_guide_done_v1", "1");
     window.Paddle = {
       Environment: { set: () => undefined },
       Initialize: () => undefined,
@@ -29,7 +31,7 @@ test.beforeEach(async ({ page }) => {
       }
     };
   });
-  await page.goto("/");
+  await page.goto("/app");
 });
 
 test("upgrade_page_and_credits_page_open_from_top_menu", async ({ page }) => {

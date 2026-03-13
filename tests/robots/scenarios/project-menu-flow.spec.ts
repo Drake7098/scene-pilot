@@ -16,7 +16,7 @@ test("project_menu_save_export_flow_is_continuous", async ({ page }) => {
   const projectName = `robot-project-menu-${Date.now()}`;
 
   await installTestDirectoryBridge(page);
-  await page.goto("/");
+  await page.goto("/app");
   await ensureMockProAccount(page, { creditsBalance: 240 });
   await page.evaluate(() => {
     localStorage.setItem("sp_workspace_mode", "pro");

@@ -103,15 +103,13 @@ export function setTelemetryApiBase(base: string) {
 function apiBases(): string[] {
   const fromOverride = readApiBaseOverride();
   const fromEnv = normalizeBase(String((import.meta as any).env?.VITE_TELEMETRY_BASE_URL || ""));
-  const legacyDev = "https://scene-pilot-12y.pages.dev";
   const sameOrigin = "";
 
   // 优先级：
   // 1) 本地 override
   // 2) 构建环境变量
   // 3) 同源
-  // 4) 旧开发域名兜底（避免历史环境彻底断链）
-  const seq = [fromOverride, fromEnv, sameOrigin, legacyDev];
+  const seq = [fromOverride, fromEnv, sameOrigin];
   const out: string[] = [];
   for (const b of seq) {
     if (out.includes(b)) continue;
@@ -206,15 +204,13 @@ export async function flush() {
 }
 
 export async function sendFeedback(message: string, meta: Props = {}, lang?: Lang) {
-  if (!getOptIn()) return false;
-
   const { device_id, session_id } = getTelemetryIds();
   const payload = {
     ts: Date.now(),
     device_id,
     session_id,
     message,
-    meta: { ...meta, lang: lang || "" }
+    meta: { ...meta, lang: lang || "", telemetry_opt_in: getOptIn() }
   };
 
   try {

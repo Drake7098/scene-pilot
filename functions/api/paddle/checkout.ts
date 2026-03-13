@@ -1,6 +1,8 @@
 import { ensureBillingTables, ensureUserWallet, seedDefaultProducts } from "../_shared/billing-db";
 import { corsOptions, json, rejectDisallowedOrigin } from "../_shared/http";
 import { requireApiAuth } from "../_shared/auth";
+import { hasSupabaseAdmin, supabaseAdminRequest } from "../_shared/supabase-admin";
+import { isBillingEnabled, isLiveBillingBlocked } from "../_shared/billing-feature";
 
 type PaddleCheckoutRequest = {
   kind?: "credits" | "pro";
@@ -13,13 +15,20 @@ function makeId(prefix: string) {
   return `${prefix}_${crypto.randomUUID()}`;
 }
 
+function isUuidLike(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.trim());
+}
+
 export const onRequestPost: PagesFunction = async (context) => {
   try {
     const originErr = rejectDisallowedOrigin(context.request, context.env);
     if (originErr) return originErr;
-    if (!context.env?.DB) return json({ error: "db_not_configured" }, 500, context.request, context.env);
-    await ensureBillingTables(context.env.DB);
-    await seedDefaultProducts(context.env.DB);
+    if (!isBillingEnabled(context.env)) {
+      return json({ error: "billing_disabled" }, 503, context.request, context.env);
+    }
+    if (isLiveBillingBlocked(context.env)) {
+      return json({ error: "billing_live_blocked" }, 503, context.request, context.env);
+    }
 
     const body = await context.request.json() as PaddleCheckoutRequest;
     if (!body.kind || !body.productId || !body.userId) {
@@ -28,6 +37,78 @@ export const onRequestPost: PagesFunction = async (context) => {
     const authErr = await requireApiAuth(context, { claimedUserId: body.userId });
     if (authErr) return authErr;
 
+    if (hasSupabaseAdmin(context.env)) {
+      if (!isUuidLike(body.userId)) {
+        return json({ error: "invalid_user_id" }, 400, context.request, context.env);
+      }
+      const productRes = await supabaseAdminRequest<Array<{
+        code: string;
+        kind: "credit_pack" | "subscription";
+        provider_price_id: string | null;
+        price_amount: number;
+        currency: string;
+        active: boolean;
+      }>>(
+        context.env,
+        `/rest/v1/products?code=eq.${encodeURIComponent(body.productId)}&select=code,kind,provider_price_id,price_amount,currency,active&limit=1`
+      );
+      if (!productRes.ok || !Array.isArray(productRes.data) || !productRes.data[0]) {
+        return json({ error: "product_not_found" }, 404, context.request, context.env);
+      }
+      const product = productRes.data[0];
+      if (!product.active) {
+        return json({ error: "product_not_active" }, 400, context.request, context.env);
+      }
+      const expectedKind = body.kind === "credits" ? "credit_pack" : "subscription";
+      if (product.kind !== expectedKind) return json({ error: "kind_mismatch" }, 400, context.request, context.env);
+
+      const checkoutId = crypto.randomUUID();
+      const createSession = await supabaseAdminRequest(
+        context.env,
+        "/rest/v1/checkout_sessions",
+        {
+          method: "POST",
+          headers: { prefer: "return=minimal" },
+          body: {
+            id: checkoutId,
+            user_id: body.userId,
+            kind: body.kind,
+            product_code: product.code,
+            provider: "paddle",
+            status: "created",
+            payload: {
+              userEmail: body.userEmail || "",
+              amount: product.price_amount,
+              currency: product.currency
+            }
+          }
+        }
+      );
+      if (!createSession.ok) {
+        return json({ error: createSession.errorCode || "checkout_session_create_failed" }, 500, context.request, context.env);
+      }
+
+      return json({
+        provider: "paddle",
+        mock: false,
+        kind: body.kind,
+        productId: body.productId,
+        sessionId: checkoutId,
+        items: [{ priceId: product.provider_price_id || body.productId, quantity: 1 }],
+        customer: body.userEmail ? { email: body.userEmail } : undefined,
+        customData: {
+          userId: body.userId,
+          productId: body.productId,
+          kind: body.kind
+        },
+        successUrl: `${new URL(context.request.url).origin}/?billing=success`,
+        cancelUrl: `${new URL(context.request.url).origin}/?billing=cancel`
+      }, 200, context.request, context.env);
+    }
+
+    if (!context.env?.DB) return json({ error: "db_not_configured" }, 500, context.request, context.env);
+    await ensureBillingTables(context.env.DB);
+    await seedDefaultProducts(context.env.DB);
     await ensureUserWallet(context.env.DB, body.userId, body.userEmail || "");
 
     const product = await context.env.DB.prepare(`

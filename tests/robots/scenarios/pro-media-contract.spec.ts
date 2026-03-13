@@ -103,7 +103,7 @@ function videoProjectFixture() {
 }
 
 test("pro_media_contract_image_vs_video_controls", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/app");
   await page.evaluate((payload) => {
     localStorage.setItem("sp_workspace_mode", "pro");
     localStorage.setItem("scenepilot_project", JSON.stringify(payload));

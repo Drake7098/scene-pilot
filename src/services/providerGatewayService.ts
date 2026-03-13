@@ -1,4 +1,5 @@
 import type { ApiCredentialState, ApiProviderId, ApiProviderMode } from "../types/account";
+import { getApiAuthHeaders } from "./authService";
 
 export type GenerationGatewayPayload = {
   userId?: string;
@@ -58,7 +59,9 @@ export function buildProviderPayload(
 
 export async function fetchProviderSnapshot(): Promise<ProviderSnapshot | null> {
   try {
-    const res = await fetch("/api/generation/providers");
+    const res = await fetch("/api/generation/providers", {
+      headers: await getApiAuthHeaders()
+    });
     if (!res.ok) return null;
     return await res.json() as ProviderSnapshot;
   } catch {
@@ -69,11 +72,12 @@ export async function fetchProviderSnapshot(): Promise<ProviderSnapshot | null> 
 export async function submitHostedGeneration(payload: GenerationGatewayPayload): Promise<GenerationGatewayResult | null> {
   try {
     const userId = payload.userId?.trim() || "";
+    const authHeaders = await getApiAuthHeaders(userId || undefined);
     const res = await fetch("/api/generation/submit", {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        ...(userId ? { "x-sp-user-id": userId } : {})
+        ...authHeaders
       },
       body: JSON.stringify(payload)
     });
@@ -88,11 +92,12 @@ export async function fetchHostedGenerationStatus(
 ): Promise<GenerationGatewayResult | null> {
   try {
     const userId = payload.userId?.trim() || "";
+    const authHeaders = await getApiAuthHeaders(userId || undefined);
     const res = await fetch("/api/generation/status", {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        ...(userId ? { "x-sp-user-id": userId } : {})
+        ...authHeaders
       },
       body: JSON.stringify(payload)
     });

@@ -16,7 +16,7 @@ test("modal_interaction_guard_save_model_and_export_overlay", async ({ page }) =
   const projectName = `robot-modal-${Date.now()}`;
 
   await runStep(page, "open_and_create_project", async () => {
-    await page.goto("/");
+    await page.goto("/app");
     await ensureMockProAccount(page, { creditsBalance: 240 });
     await page.evaluate(() => {
       localStorage.setItem("sp_workspace_mode", "pro");

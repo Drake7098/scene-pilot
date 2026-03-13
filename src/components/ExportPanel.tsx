@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import type { Lang } from "../i18n";
 import type { Project } from "../model";
 import type { PromptProfile } from "../utils/prompt";
+import type { PromptExportAction, PromptExportTicket } from "../types/promptExport";
 import { getRefBlob } from "../utils/localRefs";
 import { detectSceneConflicts, type PromptConflict } from "../utils/conflictRules";
 import { getPlatformPreset, PLATFORM_PRESETS } from "../config/platformPresets";
@@ -22,6 +23,9 @@ type Props = {
   platformId?: PlatformPresetId;
   openExportNonce?: number;
   openExportAction?: "open" | "copy" | "package";
+  promptExportNote?: string;
+  onPreparePromptExport?: (action: PromptExportAction) => Promise<PromptExportTicket>;
+  onSettlePromptExport?: (reservationId: string | undefined, committed: boolean) => Promise<void>;
   onPlatformChange?: (id: PlatformPresetId) => void;
   selectedLayerId: string | null;
   onJumpToConflict?: (layerId: string | null) => void;
@@ -210,6 +214,9 @@ export function ExportPanel({
   platformId = "universal",
   openExportNonce = 0,
   openExportAction = "open",
+  promptExportNote = "",
+  onPreparePromptExport,
+  onSettlePromptExport,
   onPlatformChange,
   selectedLayerId,
   onJumpToConflict
@@ -373,9 +380,22 @@ export function ExportPanel({
   }
 
   async function confirmCopyPrompt() {
-    await copy(quickCopyPrompt);
-    setCopyDone(true);
-    setActionHint(lang === "zh" ? "已复制当前提示词" : "Current prompt copied");
+    let ticket: PromptExportTicket = { allowed: true };
+    if (onPreparePromptExport) {
+      ticket = await onPreparePromptExport("pro_copy");
+      if (!ticket.allowed) return;
+    }
+    let committed = false;
+    try {
+      await copy(quickCopyPrompt);
+      committed = true;
+      setCopyDone(true);
+      setActionHint(lang === "zh" ? "已复制当前提示词" : "Current prompt copied");
+    } finally {
+      if (onSettlePromptExport) {
+        await onSettlePromptExport(ticket.reservationId, committed);
+      }
+    }
   }
 
   function runOpenSaveModal(mode?: ExportMode) {
@@ -679,6 +699,11 @@ export function ExportPanel({
             {lang === "zh" ? `冲突 ${sceneConflicts.length}` : `Conflicts ${sceneConflicts.length}`}
           </button>
         ) : null}
+        {promptExportNote ? (
+          <div style={styles.modeHint} data-testid="export-prompt-note">
+            {promptExportNote}
+          </div>
+        ) : null}
       </div>
       {actionHint ? <div style={styles.actionHint}>{actionHint}</div> : null}
 
@@ -812,17 +837,34 @@ export function ExportPanel({
               data-testid="export-submit"
               style={styles.btnPrimary}
               onClick={async () => {
-                setExporting(true);
                 if (exportMode === "quick") {
-                  const res = await downloadQuickPromptFile();
-                  setExporting(false);
-                  if (res.ok) {
-                    setActionHint(lang === "zh" ? "prompt.txt 下载成功" : "prompt.txt downloaded");
-                    setShowExportModal(false);
-                  } else {
-                    setActionHint(res.fileLabel || (lang === "zh" ? "导出失败" : "Export failed"));
+                  let ticket: PromptExportTicket = { allowed: true };
+                  if (onPreparePromptExport) {
+                    ticket = await onPreparePromptExport("pro_export_prompt");
+                    if (!ticket.allowed) return;
                   }
-                } else if (canSaveDirectory) {
+                  setExporting(true);
+                  let committed = false;
+                  try {
+                    const res = await downloadQuickPromptFile();
+                    committed = res.ok;
+                    if (res.ok) {
+                      setActionHint(lang === "zh" ? "prompt.txt 下载成功" : "prompt.txt downloaded");
+                      setShowExportModal(false);
+                    } else {
+                      setActionHint(res.fileLabel || (lang === "zh" ? "导出失败" : "Export failed"));
+                    }
+                  } finally {
+                    setExporting(false);
+                    if (onSettlePromptExport) {
+                      await onSettlePromptExport(ticket.reservationId, committed);
+                    }
+                  }
+                  return;
+                }
+
+                setExporting(true);
+                if (canSaveDirectory) {
                   const res = await exportFlowPackage();
                   setExporting(false);
                   if (res.ok) {

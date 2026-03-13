@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { dismissAccountCenterIfPresent, installMockSessionBeforeLoad } from "../support/runtime";
 
 type SampleCase = {
   id: string;
@@ -182,12 +183,15 @@ const samples: SampleCase[] = [
 ];
 
 async function openQuickWorkspace(page: import("@playwright/test").Page) {
-  await page.goto("/");
+  await installMockSessionBeforeLoad(page, { tier: "free", creditsBalance: 180 });
+  await page.goto("/app");
   await page.evaluate(() => {
     localStorage.setItem("sp_workspace_mode", "results");
+    localStorage.setItem("sp_workspace_entry_guide_done_v1", "1");
     localStorage.removeItem("sp_quick_media_type");
   });
   await page.reload();
+  await dismissAccountCenterIfPresent(page);
 }
 
 function evaluatePrompt(sample: SampleCase, prompt: string): SampleResult {
@@ -244,6 +248,7 @@ test("quick_workspace_prompt_effectiveness_on_10_samples", async ({ page }) => {
       }
 
       await page.getByTestId("result-console-brief").fill(sample.primary);
+      await dismissAccountCenterIfPresent(page);
       await page.getByTestId("result-console-generate").click();
       await page.getByTestId("result-console-brief-secondary").fill(sample.secondary);
 

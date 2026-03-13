@@ -5,6 +5,7 @@ import type { AccountCenterSection, ApiCredentialState, ApiProviderId, ApiProvid
 import type { CreditLedgerEntry, CreditPackConfig, ProPlanConfig, SubscriptionState } from "../types/billing";
 import type { Lang } from "../i18n";
 import { LEGAL_DOCS, legalText, type LegalDocId } from "../content/legal";
+import { PUBLIC_CONTACT_CHANNELS, SYSTEM_NOTIFICATION_MAILBOX } from "../config/contactChannels";
 
 function t(lang: Lang, zh: string, en: string) {
   return lang === "zh" ? zh : en;
@@ -23,18 +24,26 @@ type Props = {
   apiCredentials: ApiCredentialState | null;
   authBusy: boolean;
   billingBusy: boolean;
+  billingEnabled: boolean;
+  billingNotice: string;
   authStep: "email" | "code";
   authEmail: string;
+  authPassword: string;
   authCode: string;
+  authHint: string;
   lastSentCode: string;
+  googleSignInEnabled: boolean;
   authLegalAccepted: boolean;
   billingLegalAccepted: boolean;
   onClose: () => void;
   onSectionChange: (section: AccountCenterSection) => void;
   onAuthEmailChange: (value: string) => void;
+  onAuthPasswordChange: (value: string) => void;
   onAuthCodeChange: (value: string) => void;
   onAuthLegalAcceptedChange: (value: boolean) => void;
   onBillingLegalAcceptedChange: (value: boolean) => void;
+  onGoogleSignIn: () => void;
+  onPasswordSignIn: () => void;
   onSendCode: () => void;
   onVerifyCode: () => void;
   onLogout: () => void;
@@ -60,18 +69,26 @@ export function AccountCenterModal(props: Props) {
     apiCredentials,
     authBusy,
     billingBusy,
+    billingEnabled,
+    billingNotice,
     authStep,
     authEmail,
+    authPassword,
     authCode,
+    authHint,
     lastSentCode,
+    googleSignInEnabled,
     authLegalAccepted,
     billingLegalAccepted,
     onClose,
     onSectionChange,
     onAuthEmailChange,
+    onAuthPasswordChange,
     onAuthCodeChange,
     onAuthLegalAcceptedChange,
     onBillingLegalAcceptedChange,
+    onGoogleSignIn,
+    onPasswordSignIn,
     onSendCode,
     onVerifyCode,
     onLogout,
@@ -90,7 +107,7 @@ export function AccountCenterModal(props: Props) {
   }, [apiCredentials, open, section]);
 
   const title = useMemo(() => {
-    if (!user) return t(lang, "登录 / 注册", "Sign In");
+    if (!user) return t(lang, "注册 / 登录", "Sign Up / Sign In");
     if (section === "credits") return t(lang, "点数与充值", "Credits");
     if (section === "pro") return "Pro";
     if (section === "api") return t(lang, "自带 API", "Bring Your Own API");
@@ -106,6 +123,11 @@ export function AccountCenterModal(props: Props) {
     "支付前请确认：首购订阅 7 天可退；单独购买的点数整包未使用可退；当地强制性消费者权利优先。",
     "Before payment: first-time subscriptions are refundable within 7 days; separately purchased credits are refundable if the purchased pack remains unused; mandatory local consumer rights prevail."
   );
+  const contactHint = t(
+    lang,
+    `客服：${PUBLIC_CONTACT_CHANNELS.support} ｜ 商务：${PUBLIC_CONTACT_CHANNELS.business} ｜ 系统通知：${SYSTEM_NOTIFICATION_MAILBOX}（不接收回复）`,
+    `Support: ${PUBLIC_CONTACT_CHANNELS.support} | Business: ${PUBLIC_CONTACT_CHANNELS.business} | Notifications: ${SYSTEM_NOTIFICATION_MAILBOX} (no reply)`
+  );
   const legalDoc = activeLegalDoc ? LEGAL_DOCS[activeLegalDoc] : null;
 
   if (!open) return null;
@@ -113,115 +135,122 @@ export function AccountCenterModal(props: Props) {
   return createPortal(
     <div style={styles.mask} onMouseDown={onClose} role="presentation">
       <div
-        style={styles.modal}
+        style={{ ...styles.modal, ...(!user ? styles.modalAuth : null) }}
         onMouseDown={(e) => {
           e.preventDefault();
           e.stopPropagation();
         }}
       >
-        <div style={styles.head}>
-          <div>
-            <div style={styles.eyebrow}>{t(lang, "账户中心", "Account Center")}</div>
-            <div style={styles.title}>{title}</div>
-          </div>
-          <button type="button" style={styles.iconBtn} onClick={onClose}>
+        <div style={{ ...styles.head, ...(!user ? styles.headAuth : null) }}>
+          {user ? (
+            <div>
+              <div style={styles.eyebrow}>{t(lang, "账户中心", "Account Center")}</div>
+              <div style={styles.title}>{title}</div>
+            </div>
+          ) : <div style={styles.headAuthSpacer} />}
+          <button
+            type="button"
+            style={{ ...styles.iconBtn, ...(!user ? styles.iconBtnAuth : null) }}
+            onClick={onClose}
+            data-testid="account-center-close"
+          >
             <X size={16} />
           </button>
         </div>
 
-        <div style={styles.tabs}>
-          <button type="button" style={{ ...styles.tab, ...(section === "overview" ? styles.tabOn : null) }} onClick={() => onSectionChange("overview")}>
-            <UserRound size={14} />{t(lang, "账户", "Account")}
-          </button>
-          <button type="button" style={{ ...styles.tab, ...(section === "credits" ? styles.tabOn : null) }} onClick={() => onSectionChange("credits")}>
-            <Wallet size={14} />{t(lang, "点数", "Credits")}
-          </button>
-          <button type="button" style={{ ...styles.tab, ...(section === "pro" ? styles.tabOn : null) }} onClick={() => onSectionChange("pro")}>
-            <Crown size={14} />Pro
-          </button>
-          {user?.tier === "pro" ? (
-            <button type="button" style={{ ...styles.tab, ...(section === "api" ? styles.tabOn : null) }} onClick={() => onSectionChange("api")}>
-              <KeyRound size={14} />API
+        {user ? (
+          <div style={styles.tabs}>
+            <button type="button" style={{ ...styles.tab, ...(section === "overview" ? styles.tabOn : null) }} onClick={() => onSectionChange("overview")}>
+              <UserRound size={14} />{t(lang, "账户", "Account")}
             </button>
-          ) : null}
-        </div>
+            <button type="button" style={{ ...styles.tab, ...(section === "credits" ? styles.tabOn : null) }} onClick={() => onSectionChange("credits")}>
+              <Wallet size={14} />{t(lang, "点数", "Credits")}
+            </button>
+            <button type="button" style={{ ...styles.tab, ...(section === "pro" ? styles.tabOn : null) }} onClick={() => onSectionChange("pro")}>
+              <Crown size={14} />Pro
+            </button>
+            {user?.tier === "pro" ? (
+              <button type="button" style={{ ...styles.tab, ...(section === "api" ? styles.tabOn : null) }} onClick={() => onSectionChange("api")}>
+                <KeyRound size={14} />API
+              </button>
+            ) : null}
+          </div>
+        ) : null}
 
         {!user ? (
-          <div style={styles.panel}>
-            <div style={styles.blockTitle}>{t(lang, "邮箱验证码登录", "Email Code Sign In")}</div>
-            <div style={styles.muted}>{t(lang, "输入邮箱后发送验证码，验证成功即注册并登录。", "Enter your email, receive a code, and sign in instantly.")}</div>
-            <div style={styles.formRow}>
+          <div style={styles.authPanel} data-testid="account-auth-panel">
+            <div style={styles.authHero}>
+              <div style={styles.authHeroTitle}>{t(lang, "Welcome to ScenePilotix", "Welcome to ScenePilotix")}</div>
+              <div style={styles.authHeroSub}>
+                {t(lang, "还没有账号？", "Don't have an account?")}
+                <button type="button" style={styles.authHeroLink} onClick={() => void onGoogleSignIn()} disabled={authBusy || !googleSignInEnabled}>
+                  {t(lang, "免费注册", "Sign up for free")}
+                </button>
+              </div>
+            </div>
+
+            <input
+              value={authEmail}
+              onChange={(e) => onAuthEmailChange(e.target.value)}
+              placeholder={t(lang, "Username or Email", "Username or Email")}
+              style={styles.authInput}
+              autoComplete="email"
+            />
+            <input
+              value={authPassword}
+              onChange={(e) => onAuthPasswordChange(e.target.value)}
+              placeholder={t(lang, "Password", "Password")}
+              style={styles.authInput}
+              autoComplete="current-password"
+              type="password"
+            />
+            <label style={styles.checkboxRow}>
               <input
-                value={authEmail}
-                onChange={(e) => onAuthEmailChange(e.target.value)}
-                placeholder={t(lang, "邮箱地址", "Email")}
-                style={styles.input}
+                type="checkbox"
+                checked={authLegalAccepted}
+                onChange={(e) => onAuthLegalAcceptedChange(e.target.checked)}
+                data-testid="account-auth-legal-consent"
               />
+              <span>{authConsentHint}</span>
+            </label>
+
+            <button
+              type="button"
+              style={styles.authPrimaryBtn}
+              onClick={onPasswordSignIn}
+              disabled={authBusy || !authLegalAccepted || !authEmail.trim() || !authPassword.trim()}
+              data-testid="account-auth-send-code"
+            >
+              {authBusy ? t(lang, "处理中...", "Processing...") : t(lang, "登录 / 注册", "Log in / Sign up")}
+            </button>
+
+            <div style={styles.authOrRow} aria-hidden="true">
+              <span style={styles.authOrLine} />
+              <span style={styles.authOrText}>OR</span>
+              <span style={styles.authOrLine} />
             </div>
-            {authStep === "code" ? (
-              <div style={styles.formRow}>
-                <input
-                  value={authCode}
-                  onChange={(e) => onAuthCodeChange(e.target.value)}
-                  placeholder={t(lang, "6 位验证码", "6-digit code")}
-                  style={styles.input}
-                />
-              </div>
-            ) : null}
-            {lastSentCode ? (
-              <div style={styles.devHint}>{t(lang, "开发验证码：", "Dev code: ")}{lastSentCode}</div>
-            ) : null}
-            <div style={styles.legalCard}>
-              <label style={styles.checkboxRow}>
-                <input
-                  type="checkbox"
-                  checked={authLegalAccepted}
-                  onChange={(e) => onAuthLegalAcceptedChange(e.target.checked)}
-                  data-testid="account-auth-legal-consent"
-                />
-                <span>{authConsentHint}</span>
-              </label>
-              <div style={styles.legalLinks}>
-                <button type="button" style={styles.legalLinkBtn} onClick={() => setActiveLegalDoc("terms")} data-testid="account-legal-open-terms">
-                  {legalText(lang, LEGAL_DOCS.terms.title)}
-                </button>
-                <button type="button" style={styles.legalLinkBtn} onClick={() => setActiveLegalDoc("privacy")} data-testid="account-legal-open-privacy">
-                  {legalText(lang, LEGAL_DOCS.privacy.title)}
-                </button>
-              </div>
-            </div>
-            <div style={styles.actions}>
-              {authStep === "email" ? (
-                <button
-                  type="button"
-                  style={styles.primaryBtn}
-                  onClick={onSendCode}
-                  disabled={authBusy || !authLegalAccepted}
-                  data-testid="account-auth-send-code"
-                >
-                  {authBusy ? t(lang, "发送中…", "Sending…") : t(lang, "发送验证码", "Send Code")}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  style={styles.primaryBtn}
-                  onClick={onVerifyCode}
-                  disabled={authBusy || !authLegalAccepted}
-                  data-testid="account-auth-verify"
-                >
-                  {authBusy ? t(lang, "验证中…", "Verifying…") : t(lang, "验证并登录", "Verify & Sign In")}
-                </button>
-              )}
-              {showSkipProEntry && onSkipProEntry ? (
-                <button
-                  type="button"
-                  style={styles.secondaryBtn}
-                  onClick={onSkipProEntry}
-                  data-testid="account-auth-skip-pro"
-                >
-                  {t(lang, "跳过，先进入 Pro", "Skip for now, enter Pro")}
-                </button>
-              ) : null}
+
+            <button
+              type="button"
+              style={styles.authGoogleBtn}
+              onClick={onGoogleSignIn}
+              disabled={authBusy || !googleSignInEnabled || !authLegalAccepted}
+              data-testid="account-auth-google"
+            >
+              <span style={styles.authGoogleGlyph}>G</span>
+              <span>{authBusy ? t(lang, "登录中…", "Signing in…") : t(lang, "Log in with Google", "Log in with Google")}</span>
+            </button>
+
+            {authHint ? <div style={styles.authHint}>{authHint}</div> : null}
+
+            <div style={styles.authLegalInline}>
+              <a href="/privacy" style={styles.authLegalRouteLink} data-testid="account-legal-open-privacy">
+                {t(lang, "隐私协议", "Privacy")}
+              </a>
+              <span style={styles.authLegalDot}>·</span>
+              <a href="/terms" style={styles.authLegalRouteLink} data-testid="account-legal-open-terms">
+                {t(lang, "服务协议", "Terms")}
+              </a>
             </div>
           </div>
         ) : null}
@@ -245,6 +274,10 @@ export function AccountCenterModal(props: Props) {
               </div>
             ) : null}
 
+            {billingNotice ? (
+              <div style={styles.muted}>{billingNotice}</div>
+            ) : null}
+
             {section === "overview" ? (
               <div style={styles.panel}>
                 <div style={styles.blockTitle}>{t(lang, "账户操作", "Account Actions")}</div>
@@ -253,15 +286,18 @@ export function AccountCenterModal(props: Props) {
                     <CreditCard size={14} />{t(lang, "购买点数", "Buy Credits")}
                   </button>
                   {user.tier !== "pro" ? (
-                    <button type="button" style={styles.primaryBtn} onClick={billingLegalAccepted ? onUpgradePro : () => onSectionChange("pro")} disabled={billingBusy}>
+                    <button type="button" style={styles.primaryBtn} onClick={billingLegalAccepted ? onUpgradePro : () => onSectionChange("pro")} disabled={!billingEnabled || billingBusy}>
                       <Sparkles size={14} />{t(lang, "升级 Pro", "Upgrade to Pro")}
                     </button>
                   ) : null}
                   {subscription?.status === "active" ? (
-                    <button type="button" style={styles.secondaryBtn} onClick={onOpenCustomerPortal} disabled={billingBusy}>
+                    <button type="button" style={styles.secondaryBtn} onClick={onOpenCustomerPortal} disabled={!billingEnabled || billingBusy}>
                       {t(lang, "管理订阅", "Manage Subscription")}
                     </button>
                   ) : null}
+                  <a href="/account" style={styles.secondaryBtn}>
+                    <UserRound size={14} />{t(lang, "用户管理页面", "User Management Page")}
+                  </a>
                   <button type="button" style={styles.ghostBtn} onClick={onLogout}>
                     <LogOut size={14} />{t(lang, "退出登录", "Log Out")}
                   </button>
@@ -290,6 +326,13 @@ export function AccountCenterModal(props: Props) {
                       {legalText(lang, LEGAL_DOCS.refund.title)}
                     </button>
                   </div>
+                  <div style={styles.legalRouteLinks}>
+                    <a href="/billing-terms" style={styles.legalRouteLink}>{t(lang, "付费条款", "Billing Terms")}</a>
+                    <a href="/refund-policy" style={styles.legalRouteLink}>{t(lang, "退款政策", "Refund Policy")}</a>
+                    <a href="/terms" style={styles.legalRouteLink}>{t(lang, "用户协议", "Terms")}</a>
+                    <a href="/privacy" style={styles.legalRouteLink}>{t(lang, "隐私说明", "Privacy")}</a>
+                  </div>
+                  <div style={styles.legalContact}>{contactHint}</div>
                 </div>
                 <div style={styles.packGrid}>
                   {creditPacks.map((pack) => (
@@ -298,13 +341,20 @@ export function AccountCenterModal(props: Props) {
                       type="button"
                       style={styles.packCard}
                       onClick={() => onPurchasePack(pack.id)}
-                      disabled={billingBusy || !billingLegalAccepted}
+                      disabled={!billingEnabled || billingBusy || !billingLegalAccepted}
                       data-testid={`account-credit-pack-${pack.id}`}
                     >
                       <div style={styles.packTitle}>{pack.name}</div>
                       <div style={styles.packMeta}>{pack.usdPrice} USD</div>
                     </button>
                   ))}
+                </div>
+                <div style={styles.muted}>
+                  {t(
+                    lang,
+                    "提示词导出：注册后 7 天内免费，之后每次消耗 2 点。",
+                    "Prompt export: free for 7 days after registration, then 2 credits per export."
+                  )}
                 </div>
                 <div style={styles.blockTitle}>{t(lang, "最近流水", "Recent Ledger")}</div>
                 <div style={styles.ledgerList}>
@@ -345,6 +395,13 @@ export function AccountCenterModal(props: Props) {
                       {legalText(lang, LEGAL_DOCS.refund.title)}
                     </button>
                   </div>
+                  <div style={styles.legalRouteLinks}>
+                    <a href="/billing-terms" style={styles.legalRouteLink}>{t(lang, "付费条款", "Billing Terms")}</a>
+                    <a href="/refund-policy" style={styles.legalRouteLink}>{t(lang, "退款政策", "Refund Policy")}</a>
+                    <a href="/terms" style={styles.legalRouteLink}>{t(lang, "用户协议", "Terms")}</a>
+                    <a href="/privacy" style={styles.legalRouteLink}>{t(lang, "隐私说明", "Privacy")}</a>
+                  </div>
+                  <div style={styles.legalContact}>{contactHint}</div>
                 </div>
                 {user.tier !== "pro" ? (
                   <div style={styles.actions}>
@@ -352,7 +409,7 @@ export function AccountCenterModal(props: Props) {
                       type="button"
                       style={styles.primaryBtn}
                       onClick={onUpgradePro}
-                      disabled={billingBusy || !proPlan || !billingLegalAccepted}
+                      disabled={!billingEnabled || billingBusy || !proPlan || !billingLegalAccepted}
                       data-testid="account-pro-upgrade"
                     >
                       <Crown size={14} />{t(lang, "开通 Pro", "Start Pro")}
@@ -624,8 +681,8 @@ const styles: Record<string, React.CSSProperties> = {
   mask: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.52)",
-    backdropFilter: "blur(14px)",
+    background: "rgba(7,10,16,0.42)",
+    backdropFilter: "blur(10px)",
     display: "grid",
     placeItems: "center",
     zIndex: 90,
@@ -642,12 +699,26 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 20,
     color: "#f7f7fb"
   },
+  modalAuth: {
+    width: "min(560px, calc(100vw - 28px))",
+    background: "linear-gradient(180deg, #f7f8fb 0%, #f2f4f9 100%)",
+    border: "1px solid rgba(18,22,32,0.1)",
+    color: "#161b27",
+    boxShadow: "0 16px 48px rgba(5,10,20,0.28)"
+  },
   head: {
     display: "flex",
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 16,
     marginBottom: 18
+  },
+  headAuth: {
+    marginBottom: 2
+  },
+  headAuthSpacer: {
+    width: 1,
+    height: 1
   },
   eyebrow: {
     fontSize: 12,
@@ -671,6 +742,11 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     placeItems: "center",
     cursor: "pointer"
+  },
+  iconBtnAuth: {
+    border: "1px solid rgba(18,22,32,0.16)",
+    background: "rgba(255,255,255,0.74)",
+    color: "#1a2233"
   },
   tabs: {
     display: "flex",
@@ -705,6 +781,138 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 16,
     display: "grid",
     gap: 12
+  },
+  authPanel: {
+    borderRadius: 20,
+    border: "1px solid rgba(18,22,32,0.1)",
+    background: "linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.44))",
+    padding: "6px 14px 10px",
+    display: "grid",
+    gap: 12
+  },
+  authHero: {
+    display: "grid",
+    justifyItems: "center",
+    textAlign: "center",
+    gap: 8,
+    marginTop: 4
+  },
+  authHeroTitle: {
+    fontSize: 44,
+    lineHeight: 1.03,
+    fontWeight: 800,
+    letterSpacing: "-0.042em",
+    color: "#151a26"
+  },
+  authHeroSub: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 14,
+    color: "rgba(20,26,38,0.72)"
+  },
+  authHeroLink: {
+    border: "none",
+    padding: 0,
+    background: "transparent",
+    color: "#2f5fbf",
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: "pointer"
+  },
+  authInput: {
+    width: "100%",
+    maxWidth: 400,
+    justifySelf: "center",
+    height: 50,
+    borderRadius: 14,
+    border: "1px solid rgba(20,24,32,0.15)",
+    background: "rgba(255,255,255,0.76)",
+    color: "#121622",
+    padding: "0 16px",
+    fontSize: 15,
+    outline: "none"
+  },
+  authPrimaryBtn: {
+    width: "100%",
+    maxWidth: 400,
+    justifySelf: "center",
+    height: 52,
+    borderRadius: 999,
+    border: "1px solid #0f1625",
+    background: "#0f1625",
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: 700,
+    cursor: "pointer"
+  },
+  authOrRow: {
+    width: "100%",
+    maxWidth: 400,
+    justifySelf: "center",
+    display: "grid",
+    gridTemplateColumns: "1fr auto 1fr",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 0
+  },
+  authOrLine: {
+    height: 1,
+    background: "rgba(20,24,32,0.16)"
+  },
+  authOrText: {
+    fontSize: 13,
+    color: "rgba(20,24,32,0.72)",
+    letterSpacing: "0.03em"
+  },
+  authGoogleBtn: {
+    width: "100%",
+    maxWidth: 400,
+    justifySelf: "center",
+    height: 50,
+    borderRadius: 999,
+    border: "1px solid rgba(20,24,32,0.12)",
+    background: "rgba(255,255,255,0.92)",
+    color: "#2a2e39",
+    padding: "0 16px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    cursor: "pointer",
+    fontWeight: 680,
+    fontSize: 14
+  },
+  authGoogleGlyph: {
+    width: 20,
+    height: 20,
+    borderRadius: "50%",
+    background: "#ffffff",
+    border: "1px solid rgba(20,24,32,0.16)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#4285F4",
+    fontWeight: 800,
+    fontSize: 13
+  },
+  authLegalInline: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifySelf: "center",
+    gap: 8,
+    fontSize: 11,
+    color: "rgba(15,17,23,0.6)",
+    marginTop: 2
+  },
+  authLegalDot: {
+    color: "rgba(15,17,23,0.38)"
+  },
+  authLegalRouteLink: {
+    fontSize: 11,
+    fontWeight: 600,
+    textDecoration: "none",
+    color: "rgba(15,17,23,0.62)"
   },
   apiDefaultCard: {
     display: "grid",
@@ -850,6 +1058,18 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     color: "#aab3ff"
   },
+  authHint: {
+    width: "100%",
+    maxWidth: 400,
+    justifySelf: "center",
+    fontSize: 11,
+    lineHeight: 1.5,
+    color: "rgba(30,36,48,0.86)",
+    borderRadius: 12,
+    padding: "8px 10px",
+    border: "1px solid rgba(20,24,32,0.14)",
+    background: "rgba(255,255,255,0.64)"
+  },
   legalCard: {
     marginTop: 2,
     borderRadius: 14,
@@ -888,7 +1108,8 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: 8,
     cursor: "pointer",
-    fontWeight: 600
+    fontWeight: 600,
+    textDecoration: "none"
   },
   ghostBtn: {
     height: 40,
@@ -955,6 +1176,29 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexWrap: "wrap",
     gap: 8
+  },
+  legalRouteLinks: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  legalRouteLink: {
+    height: 30,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.02)",
+    color: "rgba(247,247,251,0.9)",
+    padding: "0 12px",
+    fontSize: 12,
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    fontWeight: 600
+  },
+  legalContact: {
+    color: "rgba(198,206,227,0.88)",
+    fontSize: 12.5,
+    lineHeight: 1.5
   },
   legalLinkBtn: {
     height: 30,

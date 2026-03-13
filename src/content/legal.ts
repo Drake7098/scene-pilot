@@ -1,4 +1,5 @@
 import type { Lang } from "../i18n";
+import { CONTACT_CHANNELS } from "../config/contactChannels";
 
 export type LegalDocId = "terms" | "privacy" | "billing" | "refund";
 
@@ -21,11 +22,11 @@ export type LegalDoc = {
   sections: LegalSection[];
 };
 
-export const LEGAL_COMPANY_PLACEHOLDERS = {
-  legalName: "[Company Legal Name]",
-  address: "[Registered Address]",
-  contactEmail: "[support@yourdomain.com]",
-  governingLaw: "[Governing Law / Jurisdiction]"
+export const LEGAL_COMPANY_PROFILE = {
+  brandName: "ScenePilotix",
+  supportEmail: CONTACT_CHANNELS.support,
+  businessEmail: CONTACT_CHANNELS.contact,
+  noReplyEmail: CONTACT_CHANNELS.noreply
 } as const;
 
 export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
@@ -35,8 +36,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
       zh: "用户协议",
       en: "Terms of Service"
     },
-    version: "v1.0",
-    updatedAt: "2026-03-10",
+    version: "v1.1",
+    updatedAt: "2026-03-13",
     summary: {
       zh: "规范账户、服务使用、内容责任、可接受使用、知识产权、AI 输出限制与责任边界。",
       en: "Covers accounts, acceptable use, content responsibility, intellectual property, AI output limits, and liability boundaries."
@@ -49,12 +50,12 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: `${LEGAL_COMPANY_PLACEHOLDERS.legalName}（以下简称“我们”）向全球用户提供 ScenePilot 服务。本协议适用于网站、应用、API、快捷工作台、Pro 工作台及相关付费功能。你在注册、登录、访问或使用服务时，即表示你同意本协议。`,
-            en: `${LEGAL_COMPANY_PLACEHOLDERS.legalName} ("we", "us", or "our") provides ScenePilot services to users globally. These Terms apply to the website, apps, APIs, Quick Workspace, Pro Workspace, and related paid features. By registering, signing in, accessing, or using the service, you agree to these Terms.`
+            zh: `${LEGAL_COMPANY_PROFILE.brandName}（以下简称“我们”）向全球用户提供网站、应用、API、快捷工作台、Pro 工作台及相关付费功能。你在注册、登录、访问或使用服务时，即表示你同意本协议。`,
+            en: `${LEGAL_COMPANY_PROFILE.brandName} ("we", "us", or "our") provides the website, apps, APIs, Quick Workspace, Pro Workspace, and related paid features globally. By registering, signing in, accessing, or using the service, you agree to these Terms.`
           },
           {
-            zh: `请在上线前补充完整主体名称、注册地址、联系邮箱和适用法律信息：${LEGAL_COMPANY_PLACEHOLDERS.legalName} / ${LEGAL_COMPANY_PLACEHOLDERS.address} / ${LEGAL_COMPANY_PLACEHOLDERS.contactEmail} / ${LEGAL_COMPANY_PLACEHOLDERS.governingLaw}。`,
-            en: `Before launch, complete the legal entity, address, contact email, and governing law placeholders: ${LEGAL_COMPANY_PLACEHOLDERS.legalName} / ${LEGAL_COMPANY_PLACEHOLDERS.address} / ${LEGAL_COMPANY_PLACEHOLDERS.contactEmail} / ${LEGAL_COMPANY_PLACEHOLDERS.governingLaw}.`
+            zh: `付费订单由 Paddle 处理；在 Paddle 托管结账页、发票和收据中会展示法定销售主体、注册地址、税费与付款信息。客服联系方式：${LEGAL_COMPANY_PROFILE.supportEmail}。`,
+            en: `Paid orders are processed by Paddle. The legal seller entity, registered address, tax details, and payment information are shown on Paddle-hosted checkout, invoices, and receipts. Support contact: ${LEGAL_COMPANY_PROFILE.supportEmail}.`
           }
         ]
       },
@@ -125,12 +126,12 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "部分功能需付费订阅或购买点数。若你违反本协议、存在欺诈或支付风险、或法律要求我们采取措施，我们可暂停或终止你的访问权限。",
-            en: "Some features require a paid subscription or credits. We may suspend or terminate access if you violate these Terms, present fraud or payment risk, or where required by law."
+            zh: "部分功能需付费订阅或购买点数。你可通过账户中心的“管理订阅（Manage Subscription）”入口取消自动续费；除当地法律另有要求外，取消在当前计费周期结束时生效。",
+            en: "Some features require a paid subscription or credits. You can cancel auto-renewal through the Account Center \"Manage Subscription\" entry; unless local law requires otherwise, cancellation takes effect at the end of the current billing period."
           },
           {
-            zh: "终止后，法律允许范围内你对服务的访问将停止；已产生的付款义务、责任限制、争议解决和知识产权条款继续有效。",
-            en: "Upon termination, your access may cease to the extent permitted by law; accrued payment obligations, limitations of liability, dispute terms, and intellectual property provisions survive."
+            zh: "若你违反本协议、存在欺诈或支付风险、或法律要求我们采取措施，我们可暂停或终止你的访问。终止后，已产生的付款义务、责任限制、争议解决和知识产权条款继续有效。",
+            en: "If you violate these Terms, present fraud or payment risk, or law requires action, we may suspend or terminate access. Accrued payment obligations, liability limitations, dispute terms, and intellectual property provisions survive termination."
           }
         ]
       },
@@ -145,8 +146,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
             en: "To the extent permitted by law, the service is provided on an 'as is' and 'as available' basis. We disclaim express and implied warranties, including merchantability, fitness for a particular purpose, non-infringement, uninterrupted availability, and error-free operation."
           },
           {
-            zh: "除适用法律不得限制者外，我们不对间接、附带、惩罚性、特殊或后果性损失负责。责任上限建议在上线前由律师按实体和市场补充。",
-            en: "Except where prohibited by law, we are not liable for indirect, incidental, punitive, special, or consequential damages. A liability cap should be finalized with counsel before launch based on your entity and markets."
+            zh: "除适用法律不得限制者外，我们不对间接、附带、惩罚性、特殊或后果性损失负责。若你的法域要求特定责任上限或消费者救济，该等强制性规则优先适用。",
+            en: "Except where prohibited by law, we are not liable for indirect, incidental, punitive, special, or consequential damages. If your jurisdiction requires specific liability caps or consumer remedies, those mandatory rules prevail."
           }
         ]
       },
@@ -157,8 +158,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: `请在上线前补充争议解决机制、法院或仲裁机构以及适用法。若当地消费者保护法赋予你不可放弃的权利，该等权利优先适用。占位：${LEGAL_COMPANY_PLACEHOLDERS.governingLaw}。`,
-            en: `Before launch, add your dispute mechanism, forum, and governing law. Where local consumer protection law gives users non-waivable rights, those rights prevail. Placeholder: ${LEGAL_COMPANY_PLACEHOLDERS.governingLaw}.`
+            zh: `本协议遵循运营主体所在地法律并受当地冲突法规则约束，但不会限制你在所在地消费者保护法下享有的不可放弃权利。与计费相关争议可先联系 ${LEGAL_COMPANY_PROFILE.supportEmail} 处理。`,
+            en: `These Terms are governed by the law of the operating entity's jurisdiction, excluding conflict-of-law principles, but do not limit non-waivable consumer rights under your local law. For billing disputes, contact ${LEGAL_COMPANY_PROFILE.supportEmail} first.`
           }
         ]
       }
@@ -170,8 +171,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
       zh: "隐私说明",
       en: "Privacy Notice"
     },
-    version: "v1.0",
-    updatedAt: "2026-03-10",
+    version: "v1.1",
+    updatedAt: "2026-03-13",
     summary: {
       zh: "说明收集哪些数据、为何收集、如何使用、保存多久、跨境传输、用户权利和联系渠道。",
       en: "Explains what data is collected, why it is collected, how it is used, retention periods, cross-border transfers, user rights, and contact channels."
@@ -208,8 +209,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "为提供服务，我们可能与云基础设施、支付服务商、分析服务商、邮件服务商和模型供应商共享必要数据。你应在上线前列明主要处理者类别和跨境传输安排。",
-            en: "To provide the service, we may share necessary data with cloud infrastructure providers, payment processors, analytics vendors, email vendors, and model providers. Before launch, list major processor categories and cross-border transfer arrangements."
+            zh: "为提供服务，我们可能与云基础设施、支付服务商、分析服务商、邮件服务商和模型供应商共享必要数据。支付环节由 Paddle 及其支付网络处理，我们仅接收订单状态、风控与对账所需信息。",
+            en: "To provide the service, we may share necessary data with cloud infrastructure providers, payment processors, analytics vendors, email vendors, and model providers. Payment processing is handled by Paddle and its payment network, while we receive order-status, risk, and reconciliation data needed to run the service."
           }
         ]
       },
@@ -244,8 +245,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: `隐私相关请求请联系 ${LEGAL_COMPANY_PLACEHOLDERS.contactEmail}。若适用法律要求设立数据保护负责人、欧盟代表或英国代表，请在上线前补充。`,
-            en: `For privacy requests, contact ${LEGAL_COMPANY_PLACEHOLDERS.contactEmail}. If required by law, add your data protection officer, EU representative, or UK representative before launch.`
+            zh: `隐私与数据权利请求请联系 ${LEGAL_COMPANY_PROFILE.supportEmail}。商务联系请使用 ${LEGAL_COMPANY_PROFILE.businessEmail}。系统通知邮箱为 ${LEGAL_COMPANY_PROFILE.noReplyEmail}（不接收客服请求）。`,
+            en: `For privacy and data-rights requests, contact ${LEGAL_COMPANY_PROFILE.supportEmail}. For business inquiries, use ${LEGAL_COMPANY_PROFILE.businessEmail}. System notifications are sent from ${LEGAL_COMPANY_PROFILE.noReplyEmail} (not monitored for support).`
           }
         ]
       }
@@ -257,11 +258,11 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
       zh: "付费、订阅与点数条款",
       en: "Billing, Subscription, and Credits Terms"
     },
-    version: "v1.0",
-    updatedAt: "2026-03-10",
+    version: "v1.1",
+    updatedAt: "2026-03-13",
     summary: {
-      zh: "说明价格、自动续费、取消时点、点数规则、税费、风控和服务变更。",
-      en: "Explains pricing, auto-renewal, cancellation timing, credits rules, taxes, risk controls, and service changes."
+      zh: "说明价格展示、Paddle 支付处理、自动续费、取消时点、点数规则、税费、风控和支持路径。",
+      en: "Explains pricing display, Paddle payment processing, auto-renewal, cancellation timing, credits rules, taxes, risk controls, and support paths."
     },
     sections: [
       {
@@ -271,24 +272,24 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "价格、计费周期、包含权益和点数数量会在结账前展示。除非另有说明，显示价格不含适用税费、汇率差额、银行费用或平台收取的附加费用。",
-            en: "Pricing, billing cycle, included benefits, and credits amounts will be shown before checkout. Unless stated otherwise, displayed prices exclude applicable taxes, exchange-rate differences, bank fees, or platform charges."
+            zh: "价格、计费周期、包含权益和点数数量会在结账前展示。适用税费、汇率差额、银行费用或平台附加费用会按结账页面规则显示。",
+            en: "Pricing, billing cycle, included benefits, and credits amounts are shown before checkout. Applicable taxes, exchange-rate differences, bank fees, or platform surcharges are displayed according to checkout rules."
           }
         ]
       },
       {
         heading: {
-          zh: "2. Pro 订阅",
-          en: "2. Pro Subscription"
+          zh: "2. 结账与订阅",
+          en: "2. Checkout and Subscription"
         },
         body: [
           {
-            zh: "Pro 为自动续费订阅，直到你取消为止。除当地法律另有要求外，取消将在当前计费周期结束时生效，不追溯既往已提供的服务。",
-            en: "Pro is an auto-renewing subscription until cancelled. Unless local law requires otherwise, cancellation takes effect at the end of the current billing period and does not retroactively undo services already provided."
+            zh: "结账由 Paddle 托管或处理，Paddle 可作为 Merchant of Record（法定销售主体）处理付款、税费、发票和收据。Pro 为自动续费订阅，直到你取消为止。",
+            en: "Checkout is hosted or processed by Paddle. Paddle may act as the merchant of record to handle payment collection, taxes, invoices, and receipts. Pro is an auto-renewing subscription until cancelled."
           },
           {
-            zh: "我们会在结账前向你明确展示自动续费、计费周期、价格、如何取消以及退款规则。",
-            en: "Before checkout, we will clearly disclose auto-renewal, billing cycle, price, how to cancel, and the refund rules."
+            zh: "我们会在结账前明确展示自动续费、计费周期、价格、如何取消和退款规则。你可通过账户中心“管理订阅（Manage Subscription）”入口或 Paddle 客户门户管理续费。",
+            en: "Before checkout, we clearly disclose auto-renewal, billing cycle, pricing, how to cancel, and refund rules. You can manage renewal in Account Center via \"Manage Subscription\" or the Paddle customer portal."
           }
         ]
       },
@@ -315,8 +316,20 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "若交易存在欺诈、盗刷、滥用退款、制裁合规、身份异常或系统故障风险，我们可以延迟、限制、撤销或拒绝订单，并在适用法律允许范围内回收相关权益。",
-            en: "If a transaction presents fraud, stolen-payment, refund abuse, sanctions, identity anomaly, or system-failure risk, we may delay, limit, reverse, or refuse the order and, where permitted by law, reclaim related benefits."
+            zh: "若交易存在欺诈、盗刷、滥用退款、制裁合规、身份异常或系统故障风险，我们可以延迟、限制、撤销或拒绝订单，并在适用法律允许范围内回收相关权益。涉嫌滥用的账户可能被临时限制支付能力。",
+            en: "If a transaction presents fraud, stolen-payment use, refund abuse, sanctions risk, identity anomalies, or system-failure risk, we may delay, limit, reverse, or refuse the order and, where permitted by law, reclaim related benefits. Accounts suspected of abuse may be temporarily restricted from further payments."
+          }
+        ]
+      },
+      {
+        heading: {
+          zh: "5. 支持与争议处理",
+          en: "5. Support and Dispute Handling"
+        },
+        body: [
+          {
+            zh: `账单、订阅、扣款和退款问题请联系 ${LEGAL_COMPANY_PROFILE.supportEmail}。商务合作请联系 ${LEGAL_COMPANY_PROFILE.businessEmail}。系统通知由 ${LEGAL_COMPANY_PROFILE.noReplyEmail} 发出（不接收回复）。`,
+            en: `For billing, subscription, charge, or refund issues, contact ${LEGAL_COMPANY_PROFILE.supportEmail}. For business inquiries, contact ${LEGAL_COMPANY_PROFILE.businessEmail}. System notifications are sent from ${LEGAL_COMPANY_PROFILE.noReplyEmail} (no support replies).`
           }
         ]
       }
@@ -328,8 +341,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
       zh: "退款政策",
       en: "Refund Policy"
     },
-    version: "v1.0",
-    updatedAt: "2026-03-10",
+    version: "v1.1",
+    updatedAt: "2026-03-13",
     summary: {
       zh: "首购订阅 7 天可退，不再以是否已消耗订阅点数为退款前提；单独充值点数在整包未使用时可退。",
       en: "First-time subscriptions are refundable within 7 days without conditioning the refund on whether subscription credits were used; standalone purchased credits are refundable when the purchased pack remains unused."
@@ -346,8 +359,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
             en: "A user making a first-time Pro subscription purchase may request a refund within 7 calendar days after the initial subscription charge. This 7-day refund is not conditioned on whether you used any included subscription credits, features, or generations."
           },
           {
-            zh: "若退款获批，订阅将在退款处理后终止，后续订阅权益可被停止；适用法律要求保留的权利除外。续费订阅、升级差价或企业定制方案是否退款，可在订单页另行说明。",
-            en: "If a refund is granted, the subscription will terminate after refund processing and future subscription benefits may stop, except where local law requires otherwise. Refund treatment for renewals, upgrade proration, or enterprise plans may be stated separately on the order page."
+            zh: "若退款获批，订阅将在退款处理后终止，后续订阅权益可被停止；适用法律要求保留的权利除外。续费订阅、升级差价或企业定制方案是否退款，以结账页和订单页披露为准。",
+            en: "If a refund is granted, the subscription will terminate after refund processing and future subscription benefits may stop, except where local law requires otherwise. Renewals, upgrade prorations, and enterprise-plan refund treatment follow checkout and order-page disclosures."
           }
         ]
       },
@@ -386,8 +399,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: `退款申请请发送至 ${LEGAL_COMPANY_PLACEHOLDERS.contactEmail}，并附上账户邮箱、订单号、购买日期和退款原因。建议在正式上线前补充处理时限、原路退回说明以及税费处理规则。`,
-            en: `Submit refund requests to ${LEGAL_COMPANY_PLACEHOLDERS.contactEmail} with your account email, order number, purchase date, and reason. Before launch, add processing timelines, original-payment-method handling, and tax treatment details.`
+            zh: `退款申请请发送至 ${LEGAL_COMPANY_PROFILE.supportEmail}，并附上账户邮箱、订单号、购买日期和退款原因。我们通常在 2 个工作日内回复并在 5-10 个工作日内完成审核与退回（具体到账时间受支付渠道影响）。`,
+            en: `Submit refund requests to ${LEGAL_COMPANY_PROFILE.supportEmail} with your account email, order number, purchase date, and refund reason. We usually reply within 2 business days and complete review/refund in 5-10 business days (final settlement timing depends on payment rails).`
           }
         ]
       }

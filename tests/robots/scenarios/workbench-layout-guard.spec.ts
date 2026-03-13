@@ -3,7 +3,7 @@ import { ensureMockProAccount, openQuickWorkspace, runStep } from "../support/ru
 import { verifySelectRepresentativeOptions } from "../support/uiGuards";
 
 async function openProWorkspace(page: Page, lang: "zh" | "en") {
-  await page.goto("/");
+  await page.goto("/app");
   await page.evaluate((nextLang) => {
     localStorage.setItem("sp_workspace_mode", "pro");
     localStorage.setItem("scenepilot_lang", nextLang);

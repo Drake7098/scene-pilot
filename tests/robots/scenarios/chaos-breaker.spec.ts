@@ -7,7 +7,7 @@ test("chaos_breaker_invalid_and_extreme_inputs", async ({ page }) => {
   const projectName = `robot-chaos-${Date.now()}-${"x".repeat(24)}`;
 
   await runStep(page, "open_app", async () => {
-    await page.goto("/");
+    await page.goto("/app");
     await expect(page).toHaveTitle(/Scene|Pilot|Vite/i);
   });
 

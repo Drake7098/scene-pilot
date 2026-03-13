@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { runStep } from "../support/runtime";
 
 async function resetLang(page: import("@playwright/test").Page) {
-  await page.goto("/");
+  await page.goto("/app");
   await page.evaluate(() => {
     localStorage.removeItem("scenepilot_lang");
   });

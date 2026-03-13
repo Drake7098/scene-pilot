@@ -19,7 +19,7 @@ test("power_creator_high_frequency_edits", async ({ page }) => {
   const projectName = `robot-power-${Date.now()}`;
 
   await runStep(page, "open_workspace", async () => {
-    await page.goto("/");
+    await page.goto("/app");
     await expect(page).toHaveTitle(/Scene|Pilot|Vite/i);
   });
 
