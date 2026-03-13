@@ -51,8 +51,6 @@ type Props = {
   onUpgradePro: () => void;
   onOpenCustomerPortal: () => void;
   onSaveApiCredentials: (next: ApiCredentialState) => void;
-  showSkipProEntry?: boolean;
-  onSkipProEntry?: () => void;
 };
 
 export function AccountCenterModal(props: Props) {
@@ -95,9 +93,7 @@ export function AccountCenterModal(props: Props) {
     onPurchasePack,
     onUpgradePro,
     onOpenCustomerPortal,
-    onSaveApiCredentials,
-    showSkipProEntry,
-    onSkipProEntry
+    onSaveApiCredentials
   } = props;
   const [apiDraft, setApiDraft] = useState<ApiCredentialState>(() => normalizeApiCredentials(apiCredentials));
   const [activeLegalDoc, setActiveLegalDoc] = useState<LegalDocId | null>(null);
@@ -113,15 +109,20 @@ export function AccountCenterModal(props: Props) {
     if (section === "api") return t(lang, "自带 API", "Bring Your Own API");
     return t(lang, "我的账户", "My Account");
   }, [lang, section, user]);
-  const authConsentHint = t(
+  const authConsentLine1 = t(
     lang,
-    "继续即表示你已阅读并同意《用户协议》与《隐私说明》。",
-    "To continue, you must agree to the Terms of Service and Privacy Notice."
+    "我已经同意服务协议和隐私协议",
+    "I have read and agree to the Terms of Service and Privacy Notice"
+  );
+  const authConsentLine2 = t(
+    lang,
+    "并同意按协议处理账户和数据",
+    "including account and data processing described there"
   );
   const billingConsentHint = t(
     lang,
-    "支付前请确认：首购订阅 7 天可退；单独购买的点数整包未使用可退；当地强制性消费者权利优先。",
-    "Before payment: first-time subscriptions are refundable within 7 days; separately purchased credits are refundable if the purchased pack remains unused; mandatory local consumer rights prevail."
+    "我已阅读并同意《付费条款》《退款政策》《用户协议》《隐私说明》，并理解支付与税费由 Paddle 处理；当地强制性消费者权利优先。",
+    "I have read and agree to the Billing Terms, Refund Policy, Terms of Service, and Privacy Notice, and understand checkout and taxes are processed by Paddle; mandatory local consumer rights prevail."
   );
   const contactHint = t(
     lang,
@@ -204,15 +205,6 @@ export function AccountCenterModal(props: Props) {
               autoComplete="current-password"
               type="password"
             />
-            <label style={styles.checkboxRow}>
-              <input
-                type="checkbox"
-                checked={authLegalAccepted}
-                onChange={(e) => onAuthLegalAcceptedChange(e.target.checked)}
-                data-testid="account-auth-legal-consent"
-              />
-              <span>{authConsentHint}</span>
-            </label>
 
             <button
               type="button"
@@ -243,14 +235,32 @@ export function AccountCenterModal(props: Props) {
 
             {authHint ? <div style={styles.authHint}>{authHint}</div> : null}
 
-            <div style={styles.authLegalInline}>
-              <a href="/privacy" style={styles.authLegalRouteLink} data-testid="account-legal-open-privacy">
-                {t(lang, "隐私协议", "Privacy")}
-              </a>
-              <span style={styles.authLegalDot}>·</span>
-              <a href="/terms" style={styles.authLegalRouteLink} data-testid="account-legal-open-terms">
-                {t(lang, "服务协议", "Terms")}
-              </a>
+            <div style={styles.authConsentBlock}>
+              <label style={styles.authCheckboxRow}>
+                <input
+                  type="checkbox"
+                  style={{
+                    ...styles.authCheckboxInput,
+                    ...(authLegalAccepted ? styles.authCheckboxInputOn : null)
+                  }}
+                  checked={authLegalAccepted}
+                  onChange={(e) => onAuthLegalAcceptedChange(e.target.checked)}
+                  data-testid="account-auth-legal-consent"
+                />
+                <span style={styles.authConsentText}>
+                  <span style={styles.authConsentLine}>{authConsentLine1}</span>
+                  <span style={styles.authConsentLine}>{authConsentLine2}</span>
+                </span>
+              </label>
+              <div style={styles.authLegalInline}>
+                <a href="/privacy" style={styles.authLegalRouteLink} data-testid="account-legal-open-privacy">
+                  {t(lang, "隐私协议", "Privacy")}
+                </a>
+                <span style={styles.authLegalDot}>·</span>
+                <a href="/terms" style={styles.authLegalRouteLink} data-testid="account-legal-open-terms">
+                  {t(lang, "服务协议", "Terms")}
+                </a>
+              </div>
             </div>
           </div>
         ) : null}
@@ -871,8 +881,8 @@ const styles: Record<string, React.CSSProperties> = {
     justifySelf: "center",
     height: 50,
     borderRadius: 999,
-    border: "1px solid rgba(20,24,32,0.12)",
-    background: "rgba(255,255,255,0.92)",
+    border: "1px solid rgba(25,48,89,0.55)",
+    background: "linear-gradient(180deg, rgba(255,255,255,0.96), rgba(236,242,255,0.98))",
     color: "#2a2e39",
     padding: "0 16px",
     display: "inline-flex",
@@ -881,7 +891,8 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
     cursor: "pointer",
     fontWeight: 680,
-    fontSize: 14
+    fontSize: 14,
+    boxShadow: "0 0 0 1px rgba(16,35,71,0.22), 0 12px 26px rgba(16,35,71,0.14)"
   },
   authGoogleGlyph: {
     width: 20,
@@ -898,15 +909,58 @@ const styles: Record<string, React.CSSProperties> = {
   },
   authLegalInline: {
     display: "inline-flex",
+    width: "100%",
     alignItems: "center",
-    justifySelf: "center",
+    justifyContent: "center",
     gap: 8,
-    fontSize: 11,
+    fontSize: 12,
     color: "rgba(15,17,23,0.6)",
-    marginTop: 2
+    marginTop: 0
+  },
+  authConsentBlock: {
+    width: "100%",
+    maxWidth: 400,
+    justifySelf: "center",
+    display: "grid",
+    gap: 8
+  },
+  authCheckboxRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 8,
+    fontSize: 11.5,
+    lineHeight: 1.45,
+    color: "rgba(17,23,35,0.78)"
+  },
+  authCheckboxInput: {
+    marginTop: 1,
+    appearance: "none",
+    width: 14,
+    height: 14,
+    borderRadius: 4,
+    border: "1px solid #0f1523",
+    background: "#ffffff",
+    outline: "none",
+    cursor: "pointer",
+    flex: "0 0 auto"
+  },
+  authCheckboxInputOn: {
+    borderColor: "#1a2336",
+    backgroundColor: "#1a2336",
+    backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 6.4 5 8.4 9 3.8' fill='none' stroke='%23ffffff' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+    backgroundSize: "11px 11px",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat"
   },
   authLegalDot: {
     color: "rgba(15,17,23,0.38)"
+  },
+  authConsentText: {
+    display: "grid",
+    gap: 1
+  },
+  authConsentLine: {
+    display: "block"
   },
   authLegalRouteLink: {
     fontSize: 11,

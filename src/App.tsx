@@ -65,6 +65,7 @@ import {
 import { CREDIT_PACKS, creditCostFor, getBillingSnapshot, launchCheckout, openCustomerPortal, PRO_PLAN } from "./services/billingService";
 import { finalizeReservedCredits, getCreditLedger, getWalletState, reserveCredits, rollbackReservedCredits } from "./services/creditService";
 import { getPromptExportPolicy, PROMPT_EXPORT_CREDITS_COST } from "./services/promptExportPolicy";
+import { recordLegalConsent, syncPendingLegalConsents } from "./services/legalConsentService";
 import { getApiCredentials, setApiCredentials } from "./services/mockAccountStore";
 import { canOpenCustomerPortal, canUseBringYourOwnApi, canUseHostedGeneration, canUseProConsole } from "./utils/entitlement";
 import { PRO_PLUS_MOTION_CATEGORIES } from "./content/proCameraPresets";
@@ -390,7 +391,6 @@ export default function App() {
   const [authCode, setAuthCode] = useState("");
   const [authHint, setAuthHint] = useState("");
   const [postAuthRedirect, setPostAuthRedirect] = useState("");
-  const [allowProSkip, setAllowProSkip] = useState(false);
   const [lastSentCode, setLastSentCode] = useState("");
   const [authLegalAccepted, setAuthLegalAccepted] = useState<boolean>(() => {
     try {
@@ -507,6 +507,7 @@ export default function App() {
   const [renameProjectOpen, setRenameProjectOpen] = useState(false);
   const [renameProjectDraft, setRenameProjectDraft] = useState("");
   const [helpMenuOpen, setHelpMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [openExportNonce, setOpenExportNonce] = useState(0);
   const [openExportAction, setOpenExportAction] = useState<ExportPanelOpenAction>("open");
   const [workspaceSwitchShield, setWorkspaceSwitchShield] = useState(false);
@@ -547,6 +548,9 @@ export default function App() {
       return AVATAR_COLOR_PALETTE[0];
     }
   }, [accountUser]);
+  const accountEntryLabel = accountUser
+    ? (lang === "zh" ? "账户" : "Account")
+    : (lang === "zh" ? "登录" : "Sign in");
 
   function syncSavePlatform(id: SavePlatformId) {
     setSavePlatformId(id);
@@ -572,21 +576,29 @@ export default function App() {
   }
 
   function enterProWorkspace() {
+    if (!canUseProConsole(accountUser)) {
+      openAccountCenter("pro");
+      return false;
+    }
     setWorkspaceSwitchShield(true);
     setWorkspaceMode("pro");
     window.setTimeout(() => setWorkspaceSwitchShield(false), 180);
+    return true;
   }
 
   useEffect(() => {
-    if (!helpMenuOpen) return;
+    if (!helpMenuOpen && !accountMenuOpen) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setHelpMenuOpen(false);
+      if (e.key === "Escape") {
+        setHelpMenuOpen(false);
+        setAccountMenuOpen(false);
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [helpMenuOpen]);
+  }, [helpMenuOpen, accountMenuOpen]);
   useEffect(() => {
     try {
       localStorage.setItem(WORKSPACE_MODE_KEY, workspaceMode);
@@ -1278,14 +1290,13 @@ export default function App() {
     setAccountApiCredentials(getApiCredentials(user.id));
   }, []);
 
-  function openAccountCenter(section: AccountCenterSection, options?: { allowProSkip?: boolean }) {
+  function openAccountCenter(section: AccountCenterSection) {
     if (!accountUser) {
       setAuthStep("email");
       setAuthCode("");
       setAuthPassword("");
       setAuthHint("");
     }
-    setAllowProSkip(Boolean(options?.allowProSkip && section === "pro" && !accountUser));
     setAccountCenterSection(section);
     setAccountCenterOpen(true);
   }
@@ -1315,7 +1326,11 @@ export default function App() {
   }
 
   function chooseWorkspaceEntry(mode: ResultConsoleMode) {
-    setWorkspaceMode(mode);
+    if (mode === "pro") {
+      requestProAccess("pro");
+    } else {
+      setWorkspaceMode(mode);
+    }
     markWorkspaceEntryGuideDone();
     setWorkspaceEntryGuideOpen(false);
   }
@@ -1337,7 +1352,6 @@ export default function App() {
         setAuthStep("email");
         setAuthCode("");
         setAuthHint("");
-        setAllowProSkip(false);
         setAccountCenterSection("auth");
         setAccountCenterOpen(true);
         url.searchParams.delete(SIGNIN_QUERY_KEY);
@@ -1438,11 +1452,8 @@ export default function App() {
   }, [lang]);
 
   function requestProAccess(section: AccountCenterSection = "pro") {
-    if (canUseProConsole(accountUser)) {
-      setWorkspaceMode("pro");
-      return true;
-    }
-    openAccountCenter(section, { allowProSkip: section === "pro" });
+    if (canUseProConsole(accountUser)) return enterProWorkspace();
+    openAccountCenter(section);
     return false;
   }
 
@@ -1471,12 +1482,19 @@ export default function App() {
     setAuthBusy(true);
     setAuthHint("");
     try {
-      await verifyCode(authEmail, authCode);
+      const authResult = await verifyCode(authEmail, authCode);
       setAuthCode("");
       setLastSentCode("");
       setAuthStep("email");
       setAuthHint("");
       await refreshAccountState();
+      void recordLegalConsent({
+        userId: authResult.user.id,
+        context: "auth_signup_signin",
+        docs: ["terms", "privacy"],
+        source: "account_center_auth",
+        locale: lang
+      });
       setAccountCenterSection("overview");
     } catch (error) {
       setAuthHint(authErrorText(error));
@@ -1486,16 +1504,23 @@ export default function App() {
   }
 
   async function handleGoogleSignIn() {
-    if (authBusy) return;
+    if (authBusy || !authLegalAccepted) return;
     setAuthBusy(true);
     setAuthHint("");
     try {
-      await signInWithGoogle();
+      const authResult = await signInWithGoogle();
       setAuthPassword("");
       setAuthCode("");
       setLastSentCode("");
       setAuthStep("email");
       await refreshAccountState();
+      void recordLegalConsent({
+        userId: authResult.user.id,
+        context: "auth_signup_signin",
+        docs: ["terms", "privacy"],
+        source: "account_center_auth",
+        locale: lang
+      });
       setAccountCenterSection("overview");
     } catch (error) {
       setAuthHint(authErrorText(error));
@@ -1509,12 +1534,19 @@ export default function App() {
     setAuthBusy(true);
     setAuthHint("");
     try {
-      await signInWithPassword(authEmail, authPassword);
+      const authResult = await signInWithPassword(authEmail, authPassword);
       setAuthPassword("");
       setAuthCode("");
       setLastSentCode("");
       setAuthStep("email");
       await refreshAccountState();
+      void recordLegalConsent({
+        userId: authResult.user.id,
+        context: "auth_signup_signin",
+        docs: ["terms", "privacy"],
+        source: "account_center_auth",
+        locale: lang
+      });
       setAccountCenterSection("overview");
     } catch (error) {
       setAuthHint(authErrorText(error));
@@ -1547,6 +1579,13 @@ export default function App() {
       openBillingPage("credits");
       return;
     }
+    void recordLegalConsent({
+      userId: accountUser.id,
+      context: "billing_credits",
+      docs: ["billing", "refund", "terms", "privacy"],
+      source: "billing_overlay_credits",
+      locale: lang
+    });
     setBillingBusy(true);
     try {
       await launchCheckout({ userId: accountUser.id, userEmail: accountUser.email, kind: "credits", productId: packId });
@@ -1572,6 +1611,13 @@ export default function App() {
       openBillingPage("upgrade");
       return;
     }
+    void recordLegalConsent({
+      userId: accountUser.id,
+      context: "billing_upgrade",
+      docs: ["billing", "refund", "terms", "privacy"],
+      source: "billing_overlay_upgrade",
+      locale: lang
+    });
     setBillingBusy(true);
     try {
       await launchCheckout({ userId: accountUser.id, userEmail: accountUser.email, kind: "pro", productId: PRO_PLAN.id });
@@ -1703,6 +1749,19 @@ export default function App() {
   }, [accountUser, postAuthRedirect]);
 
   useEffect(() => {
+    // Guard persisted "pro" mode: only Pro entitlement can stay in Pro workspace.
+    if (workspaceMode !== "pro") return;
+    if (!accountUser) return;
+    if (canUseProConsole(accountUser)) return;
+    setWorkspaceMode("results");
+  }, [accountUser, workspaceMode]);
+
+  useEffect(() => {
+    if (!accountUser?.id) return;
+    void syncPendingLegalConsents(accountUser.id);
+  }, [accountUser?.id]);
+
+  useEffect(() => {
     try {
       localStorage.setItem(AUTH_LEGAL_CONSENT_KEY, authLegalAccepted ? "1" : "0");
     } catch {
@@ -1720,7 +1779,7 @@ export default function App() {
 
   function requestNewProject() {
     if (!hasUnsavedLibraryChanges) {
-      setWorkspaceMode("pro");
+      if (!requestProAccess("pro")) return;
       openCreateWizard(false);
       trackProjectFlow("wizard_open", { withSave: false, skippedSavePrompt: true }, lang);
       return;
@@ -1759,8 +1818,8 @@ export default function App() {
     try {
       const ok = await saveToDisk();
       if (!ok) return;
+      if (!requestProAccess("pro")) return;
       setNewProjectConfirmOpen(false);
-      setWorkspaceMode("pro");
       openCreateWizard(false);
       trackProjectFlow("wizard_open", { withSave: true }, lang);
     } finally {
@@ -1770,7 +1829,7 @@ export default function App() {
 
   function createNewProjectDirectly() {
     setNewProjectConfirmOpen(false);
-    enterProWorkspace();
+    if (!enterProWorkspace()) return;
     setProjectSavePlatformLockedPersist(false);
     openCreateWizard(false);
     trackProjectFlow("wizard_open", { withSave: false }, lang);
@@ -1883,7 +1942,7 @@ export default function App() {
     setLabelPersist(projectFileName);
     setProjectSavePlatformLockedPersist(false);
     updateProject(p);
-    setWorkspaceMode("pro");
+    if (!enterProWorkspace()) return;
     setWizardOpen(false);
     markOnboardingDone();
     trackProjectFlow("project_create", { media: wizardDraft.mediaType, shotPlan: wizardDraft.shotPlan, sceneTier: wizardDraft.sceneTier }, lang);
@@ -2196,8 +2255,7 @@ export default function App() {
   }
 
   function openProFromQuickWorkspace() {
-    if (!requestProAccess("pro")) return;
-    enterProWorkspace();
+    requestProAccess("pro");
   }
 
   async function generateResultPlan() {
@@ -3060,6 +3118,56 @@ export default function App() {
       }
     }] : [])
   ];
+  const accountMenuItems = accountUser
+    ? [
+      {
+        key: "account_center",
+        label: lang === "zh" ? "账户中心" : "Account Center",
+        icon: <UserRound size={UI_MENU.item.iconSize} />,
+        onClick: () => {
+          setAccountMenuOpen(false);
+          openAccountCenter("overview");
+        }
+      },
+      {
+        key: "account_page",
+        label: lang === "zh" ? "用户管理页面" : "User Management",
+        icon: <Wallet size={UI_MENU.item.iconSize} />,
+        onClick: () => {
+          setAccountMenuOpen(false);
+          window.location.assign("/account");
+        }
+      },
+      {
+        key: "logout",
+        label: lang === "zh" ? "退出登录" : "Log Out",
+        icon: <LogOut size={UI_MENU.item.iconSize} />,
+        onClick: () => {
+          setAccountMenuOpen(false);
+          void handleLogout();
+        }
+      }
+    ]
+    : [
+      {
+        key: "signin",
+        label: lang === "zh" ? "登录 / 注册" : "Sign In / Sign Up",
+        icon: <UserRound size={UI_MENU.item.iconSize} />,
+        onClick: () => {
+          setAccountMenuOpen(false);
+          openAccountCenter("auth");
+        }
+      },
+      {
+        key: "pricing",
+        label: lang === "zh" ? "价格" : "Pricing",
+        icon: <CreditCard size={UI_MENU.item.iconSize} />,
+        onClick: () => {
+          setAccountMenuOpen(false);
+          window.location.assign("/pricing");
+        }
+      }
+    ];
 
   const helpSections: Array<{ id: HelpCenterSection; label: string }> = [
     { id: "quick_start", label: lang === "zh" ? "快速开始" : "Quick Start" },
@@ -3128,7 +3236,13 @@ export default function App() {
           data-testid="top-help-trigger"
           style={styles.topIconBtn}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setHelpMenuOpen((v) => !v)}
+          onClick={() => {
+            setHelpMenuOpen((v) => {
+              const next = !v;
+              if (next) setAccountMenuOpen(false);
+              return next;
+            });
+          }}
           type="button"
         >
           <MoreHorizontal size={16} />
@@ -3136,17 +3250,26 @@ export default function App() {
 
         <button
           data-testid="top-account-trigger"
-          style={{ ...styles.topAvatarBtn, background: accountAvatarColor }}
-          onClick={() => openAccountCenter(accountUser ? "overview" : "auth")}
+          style={styles.topAccountBtn}
+          onClick={() => {
+            setAccountMenuOpen((v) => {
+              const next = !v;
+              if (next) setHelpMenuOpen(false);
+              return next;
+            });
+          }}
           type="button"
           aria-label={accountUser ? (lang === "zh" ? "账户中心" : "Account Center") : (lang === "zh" ? "登录 / 注册" : "Sign In")}
           title={accountUser ? (lang === "zh" ? "账户中心" : "Account Center") : (lang === "zh" ? "登录 / 注册" : "Sign In")}
         >
-          {accountUser?.avatarUrl ? (
-            <img src={accountUser.avatarUrl} alt="" style={styles.topAvatarImage} />
-          ) : (
-            <span style={styles.topAvatarDot} />
-          )}
+          <span style={{ ...styles.topAccountAvatar, background: accountAvatarColor }}>
+            {accountUser?.avatarUrl ? (
+              <img src={accountUser.avatarUrl} alt="" style={styles.topAvatarImage} />
+            ) : (
+              <span style={styles.topAvatarDot} />
+            )}
+          </span>
+          <span style={styles.topBtnText}>{accountEntryLabel}</span>
         </button>
 
         {/* hidden file input for no FS access */}
@@ -3218,26 +3341,53 @@ export default function App() {
         </div>
       ) : null}
 
+      {helpMenuOpen || accountMenuOpen ? (
+        <div
+          style={styles.menuMask}
+          onMouseDown={() => {
+            setHelpMenuOpen(false);
+            setAccountMenuOpen(false);
+          }}
+          role="presentation"
+        />
+      ) : null}
+
       {helpMenuOpen ? (
-        <>
-          <div style={styles.menuMask} onMouseDown={() => setHelpMenuOpen(false)} role="presentation" />
-          <div style={styles.helpMenu}>
-            {helpMenuItems.map((item) => (
-              <button
-                key={item.key}
-                data-testid={`top-help-item-${item.key}`}
-                style={styles.helpMenuItem}
-                type="button"
-                onClick={item.onClick}
-              >
-                <span style={styles.helpMenuItemLabel}>
-                  {item.icon}
-                  <span>{item.label}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </>
+        <div style={styles.helpMenu}>
+          {helpMenuItems.map((item) => (
+            <button
+              key={item.key}
+              data-testid={`top-help-item-${item.key}`}
+              style={styles.helpMenuItem}
+              type="button"
+              onClick={item.onClick}
+            >
+              <span style={styles.helpMenuItemLabel}>
+                {item.icon}
+                <span>{item.label}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {accountMenuOpen ? (
+        <div style={styles.accountMenu} data-testid="top-account-menu">
+          {accountMenuItems.map((item) => (
+            <button
+              key={item.key}
+              data-testid={`top-account-item-${item.key}`}
+              style={styles.accountMenuItem}
+              type="button"
+              onClick={item.onClick}
+            >
+              <span style={styles.helpMenuItemLabel}>
+                {item.icon}
+                <span>{item.label}</span>
+              </span>
+            </button>
+          ))}
+        </div>
       ) : null}
 
       {newProjectConfirmOpen && (
@@ -3680,6 +3830,7 @@ export default function App() {
             </div>
 
             <div style={styles.proCanvasFooterOutside}>
+              {proGenerateHint ? <div style={styles.proGenerateToast}>{proGenerateHint}</div> : null}
               <div style={styles.proCanvasFooter}>
                 <div className="spx-pro-result-rail" style={styles.proResultRailDock}>
                   <button
@@ -3696,10 +3847,13 @@ export default function App() {
                     {lang === "zh" ? "画布" : "Canvas"}
                   </button>
 
-                  {currentSceneAssets.map((asset, index) => (
+                  {currentSceneAssets.map((asset, index) => {
+                    const tabLabel = asset.title?.trim() || proAssetLabel(asset.kind, index + 1);
+                    return (
                     <button
                       key={asset.id}
                       type="button"
+                      title={tabLabel}
                       style={{
                         ...styles.proResultTab,
                         ...(currentSceneActiveAssetId === asset.id ? styles.proResultTabOn : null)
@@ -3709,9 +3863,10 @@ export default function App() {
                         setProAssetMenuId(null);
                       }}
                     >
-                      {index + 1}
+                      {tabLabel}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div style={styles.proGenerateHandle}>
                   {canUseBringYourOwnApi(accountUser) ? (
@@ -3735,8 +3890,6 @@ export default function App() {
                       ? (lang === "zh" ? "生成中…" : "Generating…")
                       : (lang === "zh" ? "生成" : "Generate")}
                   </button>
-
-                  {proGenerateHint ? <div style={styles.proActionHint}>{proGenerateHint}</div> : null}
                 </div>
               </div>
             </div>
@@ -3918,16 +4071,12 @@ export default function App() {
         billingLegalAccepted={billingLegalAccepted}
         onClose={() => {
           setAccountCenterOpen(false);
-          setAllowProSkip(false);
           setAuthHint("");
         }}
         onSectionChange={(nextSection) => {
           setAccountCenterSection(nextSection);
           if (nextSection === "auth") {
             setAuthHint("");
-          }
-          if (nextSection !== "pro") {
-            setAllowProSkip(false);
           }
         }}
         onAuthEmailChange={(value) => {
@@ -3953,12 +4102,6 @@ export default function App() {
         onUpgradePro={() => void handleUpgradePro()}
         onOpenCustomerPortal={() => void handleOpenCustomerPortal()}
         onSaveApiCredentials={handleSaveApiCredentials}
-        showSkipProEntry={allowProSkip}
-        onSkipProEntry={() => {
-          setAccountCenterOpen(false);
-          setAllowProSkip(false);
-          setWorkspaceMode("pro");
-        }}
       />
 
       {helpCenterOpen && createPortal(
@@ -4397,18 +4540,28 @@ const styles: Record<string, React.CSSProperties> = {
     ["--spx-btn-shadow-hover" as any]: UI_COMMAND.shadow.hover,
     ["--spx-btn-shadow-active" as any]: UI_COMMAND.shadow.active
   },
-  topAvatarBtn: {
-    width: 34,
-    height: 34,
+  topAccountBtn: {
+    border: "none",
+    background: "transparent",
+    color: UI_PALETTE.text.primary,
+    fontSize: 13,
+    fontWeight: 640,
+    padding: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    cursor: "pointer",
+    flexShrink: 0
+  },
+  topAccountAvatar: {
+    width: 22,
+    height: 22,
     borderRadius: "50%",
-    border: "1px solid rgba(255,255,255,0.18)",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     color: "#fff",
-    cursor: "pointer",
-    outline: "none",
-    boxShadow: "0 6px 16px rgba(0,0,0,0.28)",
+    boxShadow: "0 0 0 1px rgba(255,255,255,0.16)",
     overflow: "hidden",
     flexShrink: 0
   },
@@ -4418,11 +4571,10 @@ const styles: Record<string, React.CSSProperties> = {
     objectFit: "cover"
   },
   topAvatarDot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: "50%",
-    background: "rgba(255,255,255,0.9)",
-    boxShadow: "0 0 0 2px rgba(0,0,0,0.16)"
+    background: "rgba(248,252,255,0.92)"
   },
   topBtnText: {
     overflow: "hidden",
@@ -4555,54 +4707,56 @@ const styles: Record<string, React.CSSProperties> = {
   proResultTab: {
     position: "relative",
     zIndex: 1,
-    height: 34,
-    minWidth: 54,
-    padding: "0 15px",
+    height: 36,
+    minWidth: 72,
+    maxWidth: 180,
+    padding: "0 16px",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: "0 0 12px 12px",
-    border: "1px solid rgba(122,154,202,0.46)",
-    borderTopColor: "transparent",
-    background: "linear-gradient(180deg, rgba(10,15,23,0.98) 0%, rgba(20,29,42,0.95) 24%, rgba(44,60,84,0.9) 100%)",
+    borderRadius: "12px 12px 0 0",
+    border: "1px solid rgba(112,144,196,0.5)",
+    borderBottomColor: "transparent",
+    background: "linear-gradient(180deg, rgba(40,58,88,0.92) 0%, rgba(21,33,51,0.96) 58%, rgba(10,16,27,0.98) 100%)",
     color: UI_PALETTE.text.secondary,
     fontSize: UI_TYPO.size12,
     fontWeight: 820,
     cursor: "pointer",
     whiteSpace: "nowrap",
     flexShrink: 0,
-    overflow: "visible",
-    marginTop: -1
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    marginBottom: -1
   },
   proResultTabOn: {
-    border: "1px solid rgba(146,182,232,0.74)",
-    borderTopColor: "transparent",
-    background: "linear-gradient(180deg, rgba(14,24,36,0.98) 0%, rgba(42,64,94,0.98) 28%, rgba(92,126,178,0.96) 100%)",
+    border: "1px solid rgba(148,183,232,0.78)",
+    borderBottomColor: "transparent",
+    background: "linear-gradient(180deg, rgba(70,102,148,0.94) 0%, rgba(33,50,77,0.98) 60%, rgba(12,20,31,0.98) 100%)",
     color: UI_PALETTE.text.primary,
-    boxShadow: "0 6px 14px rgba(3,9,20,0.24), inset 0 1px 0 rgba(255,255,255,0.24)"
+    boxShadow: "0 4px 10px rgba(2,8,18,0.22), inset 0 1px 0 rgba(238,246,255,0.24)"
   },
   proActionBtnPrimary: {
-    minHeight: 34,
-    padding: "0 16px",
+    minHeight: 40,
+    padding: "0 20px",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 12,
-    border: "1px solid rgba(146,182,232,0.74)",
-    background: "linear-gradient(180deg, rgba(88,132,198,0.96) 0%, rgba(56,92,146,0.98) 100%)",
+    borderRadius: 13,
+    border: "1px solid rgba(126,162,210,0.66)",
+    background: "linear-gradient(180deg, rgba(68,103,150,0.95) 0%, rgba(44,70,106,0.98) 100%)",
     color: UI_PALETTE.text.primary,
     cursor: "pointer",
-    fontSize: UI_TYPO.size12,
+    fontSize: UI_TYPO.size13,
     fontWeight: 820,
     whiteSpace: "nowrap",
-    boxShadow: "0 8px 16px rgba(6,14,30,0.28), inset 0 1px 0 rgba(234,245,255,0.36)"
+    boxShadow: "0 7px 14px rgba(6,14,30,0.24), inset 0 1px 0 rgba(229,240,255,0.28)"
   },
   proSourceSelect: {
     width: 128,
     minWidth: 128,
-    height: 34,
+    height: 36,
     padding: "0 12px",
-    borderRadius: 10,
+    borderRadius: 11,
     border: "1px solid rgba(122,154,202,0.46)",
     background: "rgba(12,20,32,0.9)",
     color: UI_PALETTE.text.primary,
@@ -4610,12 +4764,21 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 760,
     outline: "none"
   },
-  proActionHint: {
+  proGenerateToast: {
+    position: "absolute",
+    right: 12,
+    bottom: 46,
+    zIndex: 40,
+    maxWidth: 240,
+    padding: "7px 11px",
+    borderRadius: 10,
+    border: "1px solid rgba(118,155,206,0.5)",
+    background: "rgba(12,19,31,0.92)",
+    color: UI_PALETTE.text.primary,
     fontSize: UI_TYPO.size12,
-    color: UI_PALETTE.text.secondary,
-    textAlign: "center",
-    maxWidth: 148,
-    lineHeight: 1.35
+    fontWeight: 760,
+    lineHeight: 1.35,
+    boxShadow: "0 10px 20px rgba(0,0,0,0.35)"
   },
   proCanvasWorkspace: {
     position: "relative",
@@ -4626,27 +4789,28 @@ const styles: Record<string, React.CSSProperties> = {
     paddingBottom: 0
   },
   proCanvasFooterOutside: {
-    marginTop: -2,
-    padding: "0 12px 0"
+    position: "relative",
+    marginTop: -1,
+    padding: "0 12px 7px"
   },
   proCanvasFooter: {
     position: "relative",
     display: "flex",
-    alignItems: "flex-start",
+    alignItems: "flex-end",
     justifyContent: "space-between",
-    gap: 12,
-    minHeight: 35,
+    gap: 14,
+    minHeight: 44,
     pointerEvents: "auto"
   },
   proResultRailDock: {
     position: "relative",
     display: "flex",
-    alignItems: "flex-start",
+    alignItems: "flex-end",
     gap: 2,
     minWidth: 0,
     flex: 1,
     maxWidth: "100%",
-    minHeight: 35,
+    minHeight: 44,
     padding: 0,
     overflowX: "auto",
     overflowY: "hidden",
@@ -4675,16 +4839,16 @@ const styles: Record<string, React.CSSProperties> = {
   proGenerateHandle: {
     position: "relative",
     display: "flex",
-    alignItems: "center",
-    gap: 8,
+    alignItems: "flex-end",
+    gap: 10,
     justifyContent: "flex-end",
     flexShrink: 0,
-    minHeight: 35,
-    padding: "0",
+    minHeight: 44,
+    padding: "0 0 1px",
     pointerEvents: "auto"
   },
   proPromptZone: {
-    marginTop: 0
+    marginTop: 1
   },
   proAssetStage: {
     flex: 1,
@@ -4833,7 +4997,47 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: "hidden",
     backdropFilter: "blur(20px)"
   },
+  accountMenu: {
+    position: "absolute",
+    top: 62,
+    right: 12,
+    zIndex: 9999,
+    width: "min(220px, calc(100vw - 24px))",
+    display: "grid",
+    gap: 2,
+    padding: UI_MENU.panel.padding,
+    borderRadius: UI_MENU.panel.radius,
+    border: `1px solid ${UI_MENU.panel.border}`,
+    background: UI_MENU.panel.surface,
+    boxShadow: UI_MENU.panel.shadow,
+    overflow: "hidden",
+    backdropFilter: "blur(20px)"
+  },
   helpMenuItem: {
+    width: "100%",
+    minHeight: UI_MENU.item.minHeight,
+    padding: `0 ${UI_MENU.item.padX}px`,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    borderRadius: UI_MENU.item.radius,
+    border: "1px solid transparent",
+    background: "transparent",
+    color: UI_PALETTE.text.primary,
+    fontSize: UI_MENU.item.fontSize,
+    fontWeight: 760,
+    cursor: "pointer",
+    textAlign: "left",
+    boxShadow: "none",
+    ["--spx-btn-bg-hover" as any]: UI_MENU.item.hover,
+    ["--spx-btn-bg-active" as any]: UI_MENU.item.active,
+    ["--spx-btn-border-hover" as any]: UI_COMMAND.border.hover,
+    ["--spx-btn-border-active" as any]: UI_COMMAND.border.active,
+    ["--spx-btn-shadow" as any]: "none",
+    ["--spx-btn-shadow-hover" as any]: "none",
+    ["--spx-btn-shadow-active" as any]: "none"
+  },
+  accountMenuItem: {
     width: "100%",
     minHeight: UI_MENU.item.minHeight,
     padding: `0 ${UI_MENU.item.padX}px`,

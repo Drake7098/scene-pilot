@@ -51,6 +51,7 @@ Last updated: 2026-03-13
 - 右：对象属性
 - 下：提示词/导出检视区
 - Pro 与 Quick 默认严格分层，不自动继承 Quick 的自由文本与结构状态。
+- Pro 权限闸门已收口：普通登录用户不可进入 Pro；所有入口统一先校验 `canUseProConsole`，不满足则进入升级路径。
 
 ### Top Menu（Quick / Pro 共用）
 - 顶部 `...` 菜单保留统一入口：
@@ -179,6 +180,9 @@ Last updated: 2026-03-13
 - `/Users/dk/scene-pilot/docs/cloudflare-pages-release-checklist.md`
 - Stage-1 环境同步脚本：
 - `npm run release:cloudflare:sync-secrets -- --target all`
+- 本机密钥与发布自动化：
+- `npm run release:secrets:setup`（密钥写入 macOS Keychain）
+- `npm run release:safe`（隐藏输入/读取 Keychain 后一键执行 secrets+audit+smoke）
 - Stage-1 数据库初始化脚本：
 - `/Users/dk/scene-pilot/db/supabase/0000_core.sql`
 - `/Users/dk/scene-pilot/db/supabase/0001_public_rpc_bridge.sql`
@@ -195,10 +199,13 @@ Last updated: 2026-03-13
 - 前端 `creditService/providerGatewayService/billingService` 已接入会话鉴权 header 与服务端链路（保留本地回退仅用于离线调试）。
 
 ## Known Gaps
+- 2026-03-13 13:50（Asia/Shanghai）发布收口：`scene-pilot-prod` 最新生产部署 `cbe40160`、`scene-pilot-test` 最新生产部署 `327eabac`，两端 `Source` 均为 `f98a1dc`。
+- 2026-03-13 安全参数收口：test/prod 已补齐并加密注入新增限流与 webhook 时间窗密钥（`AUTH_*_LIMIT_*`、`GENERATION_*_LIMIT_*`、`CHECKOUT_LIMIT_PER_10M`、`LEGAL_CONSENT_LIMIT_PER_10M`、`COLLECT_RATE_LIMIT_PER_MIN`、`FEEDBACK_RATE_LIMIT_PER_10M`、`PADDLE_WEBHOOK_MAX_*`）。
 - 2026-03-13 收口完成：`scene-pilot-test/pages.dev` 与 `scene-pilot-prod/pages.dev` 的 smoke 已通过，严格鉴权与 billing-off 行为正确（`401/401/503`）。
 - 2026-03-13 收口完成：`SUPABASE_SERVICE_ROLE_KEY` 已注入 test/prod；正式域名 `www.scenepilotix.com` 已绑定并通过最终 smoke（`200/401/503`）。
 - 2026-03-13 最新测试服核验：`/api/generation/providers`、`/api/billing/me` 匿名访问已返回 `401`；登录 cookie 下可访问 `billing/me`，跨用户查询返回 `403 user_id_mismatch`。
-- 测试服邮件验证码当前仍未打通真实发信：`/api/auth/email/send-code` 返回 `delivery=not_sent`、`deliveryReason=email_provider_not_configured`。
+- 登录策略已收口为 Supabase-only：前端 `authService` 仅走 Supabase (`auth/v1/otp` / `auth/v1/verify` / `auth/v1/token`)。
+- 服务端 `/api/auth/email/send-code`、`/api/auth/email/verify-code` 仅保留兼容提示，不再承载 Resend/本地 OTP 登录主链路。
 - 测试服 Google 登录后端当前未配置：`/api/auth/google` 返回 `500 google_not_configured`。
 - 测试服支付保护当前处于 `billing_live_blocked`（`/api/paddle/checkout` 返回 `503`）；仍需明确测试环境最终策略应为 `billing_disabled` 还是 `sandbox`。
 - Quick 草稿跨刷新场景仍不能完整恢复 blob 媒体结果（第二阶段：结果资产持久化）。
@@ -206,6 +213,7 @@ Last updated: 2026-03-13
 - Paddle checkout / customer-portal / webhook 已支持 Supabase 优先、D1 回退；下一步需要在测试服完成真实 Paddle 回调联调与事件重放验证。
 - 已提供 webhook 重放校验脚本：`npm run paddle:webhook:replay`（同 event_id 第二次应 dedup）。
 - Google 登录当前为内部对接阶段：需要在部署环境配置 `VITE_GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_ID`（或 `GOOGLE_CLIENT_IDS`）后才可正式启用。
+- 站点 HTML 响应头当前仍带 `access-control-allow-origin: *`（静态页面层）；API CORS 已切为 allowlist。后续需在 Pages 项目级 Header 设置清理 wildcard，避免与 API 安全策略口径不一致。
 - `src/components/ResultConsole.tsx` 仍是高风险文件，Quick UI 很容易被局部改动带回旧布局。
 - 自动化客服/工单机器人尚未产品化落地（当前仅有测试机器人 + 帮助中心）。
 
@@ -249,12 +257,14 @@ Last updated: 2026-03-13
 - 机器人能力断言已与当前产品规则对齐：
 - Quick 本地图片链路：`ComfyUI` 优先，`Draw Things` 回退。
 - Quick -> Pro：仅模式切换，不自动继承 Quick 自由文本到 Pro 项目快照。
+- Pro 入口已做全局收口：移除“可跳过 Pro”旁路；本地记忆为 `pro` 但账号非 Pro 时，会自动回退到 Quick（`results`）。
 - 应用内已移除 `开发看板` 入口，发布清单改为独立本地页面 `/release-board.html`（用户清单在上，发布清单在下，勾选后变灰并本地持久化）。
 - 账号中心 Auth 区新增 Google 登录入口，后端新增 `/api/auth/google` 进行 Google token 校验。
 - 账号中心未登录态采用 SaaS 登录布局（邮箱+密码主入口 + Google 入口 + 协议链接），账户 tabs 在未登录态隐藏。
 - `/account` 未登录时的登录入口已切到带回跳参数：`/signin?redirect=/account`（底层跳转 `/app?signin=1`）；登录成功后自动返回 `/account`。
 - 用户管理页已与 `BILLING_ENABLED` 对齐：支付关闭时禁用购买/升级/账单入口并给出短提示。
 - 新增测试站定价页入口：`/pricing` 与 `/pricing-test`，用于支付平台提审（不改变 Quick/Pro 主流程）。
+- Pricing 页面分级口径更新为简洁三档展示：`Free / Pro / Pro+`。其中 `$3` 明确为一次性 credits 包（100 credits），不是 Pro 月费；`Pro+` 用于“在 Pro 基础上增加 BYO API 接入”的能力说明（价格与点数可后续再调）。
 - Supabase Auth/Postgres 正在迁移中；当前主链路仍有部分 D1/local mock 兼容逻辑未移除。
 - 支付合规文档入口统一为：`/terms`、`/privacy`、`/billing-terms`、`/refund-policy`，并在定价页、账号中心、支付弹层同步展示 Paddle 结账说明与官方联系邮箱分工。
 - 新增法律同意留痕链路：注册/登录勾选（Terms + Privacy）与付费勾选（Billing + Refund）会写入 `/api/legal/consent`，并落库到 `legal_consents`（D1/Supabase）；前端离线失败会本地排队并在下次登录后自动补交。
@@ -263,7 +273,8 @@ Last updated: 2026-03-13
 - Landing 的 Quick/Pro 主按钮改为“先登录再进入工作台”：点击后跳 `/app?signin=1` 并自动打开账号登录弹层。
 - 账号中心 Auth 勾选位置已更新：注册/登录勾选固定放在协议链接前；Google 与密码登录均在函数层强制校验勾选状态。
 - 付费同意勾选升级为四份协议联合确认：`Billing + Refund + Terms + Privacy`；未勾选不得进入支付下一步，并同步写入 consent 记录。
-- 账号体系新增服务端邮箱验证码全链路：`/api/auth/email/send-code`、`/api/auth/email/verify-code`、`/api/auth/me`、`/api/auth/logout`。
+- 右上角用户入口已在 `Landing / Quick / Pro` 统一为 Landing 同款“头像+文字”样式，并保持在右上角最右主入口；该入口菜单按登录态区分，登录态包含 `退出登录`。
+- 账号体系已切为 Supabase-only：`sendCode/verifyCode` 主链路走 Supabase；服务端 `/api/auth/email/send-code`、`/api/auth/email/verify-code` 仅保留兼容提示（410）。
 - 已补齐密码登录链路：`POST /api/auth/password/sign-in`（无 Supabase 时支持邮箱+密码登录/注册并发 session cookie）。
 - 本地 DB 迁移新增 `0002_auth_core.sql`（`auth_identities / auth_password_credentials / auth_email_otps / auth_sessions`），`db:migrate:local` 已纳入该 migration。
 - 安全加固已新增统一限流层（auth/generation/checkout/legal/collect/feedback），并增加 Paddle webhook 时间窗校验（默认 5 分钟）与基础安全响应头（`public/_headers`）。
