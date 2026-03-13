@@ -597,7 +597,11 @@ export async function getCurrentSession(): Promise<UserSession | null> {
   const api = await getApi<{ user?: UserState }>("/api/auth/me");
   if (api?.response.ok && api.payload?.ok) {
     const user = api.payload.user || null;
-    if (!user) return null;
+    if (!user) {
+      if (!AUTH_MOCK_FALLBACK_ENABLED) return null;
+      await wait(60);
+      return getSession();
+    }
     return {
       token: "cookie_session",
       userId: user.id,
@@ -620,7 +624,12 @@ export async function getCurrentUser(): Promise<UserState | null> {
   }
   const api = await getApi<{ user?: UserState }>("/api/auth/me");
   if (api?.response.ok && api.payload?.ok) {
-    return api.payload.user || null;
+    if (api.payload.user) return api.payload.user;
+    if (!AUTH_MOCK_FALLBACK_ENABLED) return null;
+    const session = getSession();
+    if (!session) return null;
+    await wait(60);
+    return getUser(session.userId);
   }
   if (!AUTH_MOCK_FALLBACK_ENABLED) return null;
   const session = getSession();
