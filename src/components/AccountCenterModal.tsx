@@ -137,10 +137,7 @@ export function AccountCenterModal(props: Props) {
     <div style={styles.mask} onMouseDown={onClose} role="presentation">
       <div
         style={{ ...styles.modal, ...(!user ? styles.modalAuth : null) }}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         <div style={{ ...styles.head, ...(!user ? styles.headAuth : null) }}>
           {user ? (

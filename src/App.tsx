@@ -396,13 +396,7 @@ export default function App() {
   const [lastSentCode, setLastSentCode] = useState("");
   const activeWorkspaceMode: ResultConsoleMode =
     workspaceMode === "pro" ? "pro" : "results";
-  const [authLegalAccepted, setAuthLegalAccepted] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem(AUTH_LEGAL_CONSENT_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
+  const [authLegalAccepted, setAuthLegalAccepted] = useState<boolean>(false);
   const [billingLegalAccepted, setBillingLegalAccepted] = useState<boolean>(() => {
     try {
       return localStorage.getItem(BILLING_LEGAL_CONSENT_KEY) === "1";
