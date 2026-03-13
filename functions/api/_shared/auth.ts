@@ -1,9 +1,27 @@
 import { json } from "./http";
 import { verifySupabaseBearerToken } from "./supabase-admin";
+import { readSessionToken, sha256Hex } from "./auth-email";
 
 type AuthOptions = {
   claimedUserId?: string;
 };
+
+function parseBooleanFlag(value: unknown, fallback: boolean) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (!normalized) return fallback;
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off"].includes(normalized)) return false;
+  return fallback;
+}
+
+function isLocalRequest(request: Request) {
+  try {
+    const host = new URL(request.url).hostname.toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host === "::1";
+  } catch {
+    return false;
+  }
+}
 
 function parseBearer(request: Request) {
   const auth = request.headers.get("authorization") || "";
@@ -26,7 +44,8 @@ function authConfigured(env: any) {
   const hasBearerPool = parseTokens(env).size > 0;
   const hasAccessPair = Boolean(String(env?.CF_ACCESS_CLIENT_ID || "").trim() && String(env?.CF_ACCESS_CLIENT_SECRET || "").trim());
   const hasSupabase = Boolean(String(env?.SUPABASE_URL || "").trim() && String(env?.SUPABASE_SERVICE_ROLE_KEY || "").trim());
-  return hasBearerPool || hasAccessPair || hasSupabase;
+  const hasLocalSessionAuth = Boolean(env?.DB);
+  return hasBearerPool || hasAccessPair || hasSupabase || hasLocalSessionAuth;
 }
 
 function validateAccessServiceToken(request: Request, env: any) {
@@ -45,8 +64,24 @@ function validateBearerToken(request: Request, env: any) {
   return allowed.has(token);
 }
 
+async function validateLocalSessionCookie(request: Request, env: any) {
+  if (!env?.DB) return "";
+  const token = readSessionToken(request);
+  if (!token) return "";
+  const tokenHash = await sha256Hex(token);
+  const row = await env.DB.prepare(`
+    SELECT user_id, expires_at
+    FROM auth_sessions
+    WHERE session_token_hash = ? AND revoked_at IS NULL
+    LIMIT 1
+  `).bind(tokenHash).first<{ user_id: string; expires_at: string }>();
+  if (!row?.user_id) return "";
+  if (String(row.expires_at || "") <= new Date().toISOString()) return "";
+  return String(row.user_id);
+}
+
 export async function requireApiAuth(context: EventContext<any, any, any>, options: AuthOptions = {}) {
-  const strict = String(context.env?.API_AUTH_STRICT || "0") === "1";
+  const strict = parseBooleanFlag(context.env?.API_AUTH_STRICT, !isLocalRequest(context.request));
   const configured = authConfigured(context.env);
   if (!configured && !strict) return null;
   if (!configured && strict) {
@@ -62,8 +97,11 @@ export async function requireApiAuth(context: EventContext<any, any, any>, optio
       supabaseUserId = verified.userId;
     }
   }
+  const localSessionUserId = (!okStatic && !supabaseUserId)
+    ? await validateLocalSessionCookie(context.request, context.env)
+    : "";
 
-  if (!okStatic && !supabaseUserId) {
+  if (!okStatic && !supabaseUserId && !localSessionUserId) {
     return json({ error: "unauthorized" }, 401, context.request, context.env);
   }
 
@@ -73,6 +111,9 @@ export async function requireApiAuth(context: EventContext<any, any, any>, optio
       return json({ error: "user_id_mismatch" }, 403, context.request, context.env);
     }
     if (supabaseUserId && supabaseUserId !== options.claimedUserId) {
+      return json({ error: "user_id_mismatch" }, 403, context.request, context.env);
+    }
+    if (localSessionUserId && localSessionUserId !== options.claimedUserId) {
       return json({ error: "user_id_mismatch" }, 403, context.request, context.env);
     }
   }
