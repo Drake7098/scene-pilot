@@ -24,7 +24,7 @@
     "tracker:remind": "node scripts/dev-tracker.mjs remind",
     "tracker:notify": "node scripts/dev-tracker.mjs notify",
     "tracker:check": "node scripts/dev-tracker.mjs check",
-    "db:migrate:local": "npx wrangler d1 execute scene-pilot-db --local --file=db/migrations/0000_observability.sql && npx wrangler d1 execute scene-pilot-db --local --file=db/migrations/0001_billing_core.sql && npx wrangler d1 execute scene-pilot-db --local --file=db/migrations/0002_auth_core.sql",
+    "db:migrate:local": "npx wrangler d1 execute scene-pilot-db --local --file=db/migrations/0000_observability.sql && npx wrangler d1 execute scene-pilot-db --local --file=db/migrations/0001_billing_core.sql && npx wrangler d1 execute scene-pilot-db --local --file=db/migrations/0002_auth_core.sql && npx wrangler d1 execute scene-pilot-db --local --file=db/migrations/0003_legal_consents.sql",
     "db:seed:local": "npx wrangler d1 execute scene-pilot-db --local --file=db/seeds/0001_products.sql",
     "db:init:local": "npm run db:migrate:local && npm run db:seed:local",
     "db:query:local": "npx wrangler d1 execute scene-pilot-db --local --command",
@@ -76,6 +76,11 @@
     "check:env:release": "node scripts/check-env-release.mjs",
     "release:readiness": "node scripts/release-readiness.mjs",
     "release:cloudflare:audit": "node scripts/cloudflare-pages-release-audit.mjs",
+    "release:cloudflare:sync-secrets": "node scripts/cloudflare-pages-secret-sync.mjs",
+    "release:secrets:setup": "bash scripts/release-secrets-keychain.sh setup",
+    "release:secrets:status": "bash scripts/release-secrets-keychain.sh status",
+    "release:secrets:clear": "bash scripts/release-secrets-keychain.sh clear",
+    "release:safe": "bash scripts/release-safe.sh",
     "release:orchestrate": "node scripts/release-orchestrate.mjs"
   },
   "dependencies": {

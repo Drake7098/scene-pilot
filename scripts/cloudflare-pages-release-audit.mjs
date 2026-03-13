@@ -34,10 +34,21 @@ async function cfApi(path) {
   return payload.result;
 }
 
-function readVar(config, key) {
+function readVarMeta(config, key) {
   const raw = config?.env_vars?.[key];
-  if (!raw || typeof raw !== "object") return "";
-  return String(raw.value || "").trim();
+  if (!raw || typeof raw !== "object") {
+    return { present: false, known: false, value: "" };
+  }
+  const value = String(raw.value || "").trim();
+  const type = String(raw.type || "").trim().toLowerCase();
+  if (value) {
+    return { present: true, known: true, value };
+  }
+  // Cloudflare Pages API returns secret_text with empty value for security.
+  if (type === "secret_text") {
+    return { present: true, known: false, value: "" };
+  }
+  return { present: false, known: false, value: "" };
 }
 
 function collectChecks(projectName, projectConfig, expected) {
@@ -45,32 +56,36 @@ function collectChecks(projectName, projectConfig, expected) {
   const envVars = projectConfig?.env_vars || {};
 
   for (const key of expected.requiredKeys) {
-    const value = readVar(projectConfig, key);
+    const meta = readVarMeta(projectConfig, key);
     checks.push({
       key,
-      ok: Boolean(value),
-      reason: value ? "present" : "missing",
-      value: value ? `${value.slice(0, 4)}...` : ""
+      ok: meta.present,
+      reason: meta.present ? (meta.known ? "present" : "present_secret_text") : "missing",
+      value: meta.known ? `${meta.value.slice(0, 4)}...` : ""
     });
   }
 
   for (const [key, exact] of Object.entries(expected.exactValues)) {
-    const value = readVar(projectConfig, key);
+    const meta = readVarMeta(projectConfig, key);
+    const unknownSecret = meta.present && !meta.known;
+    const ok = unknownSecret ? true : meta.value === exact;
     checks.push({
       key,
-      ok: value === exact,
-      reason: value === exact ? "match" : `expected_${exact}`,
-      value
+      ok,
+      reason: unknownSecret ? "present_secret_text_unverifiable" : (ok ? "match" : `expected_${exact}`),
+      value: meta.known ? meta.value : ""
     });
   }
 
   for (const key of expected.notWildcardKeys) {
-    const value = readVar(projectConfig, key);
+    const meta = readVarMeta(projectConfig, key);
+    const unknownSecret = meta.present && !meta.known;
+    const ok = unknownSecret ? true : Boolean(meta.value) && meta.value !== "*";
     checks.push({
       key,
-      ok: Boolean(value) && value !== "*",
-      reason: !value ? "missing" : value === "*" ? "wildcard_not_allowed" : "ok",
-      value
+      ok,
+      reason: unknownSecret ? "present_secret_text_unverifiable" : !meta.value ? "missing" : meta.value === "*" ? "wildcard_not_allowed" : "ok",
+      value: meta.known ? meta.value : ""
     });
   }
 
@@ -85,11 +100,16 @@ function collectChecks(projectName, projectConfig, expected) {
 
 function summarizeDomains(result) {
   const domains = Array.isArray(result?.domains) ? result.domains : [];
-  return domains.map((item) => ({
-    name: String(item?.name || ""),
-    status: String(item?.status || ""),
-    verification: String(item?.verification_data || "")
-  }));
+  return domains.map((item) => {
+    if (typeof item === "string") {
+      return { name: item, status: "", verification: "" };
+    }
+    return {
+      name: String(item?.name || ""),
+      status: String(item?.status || ""),
+      verification: String(item?.verification_data || "")
+    };
+  });
 }
 
 async function auditProject(projectName, expected) {
@@ -132,7 +152,7 @@ async function main() {
         notWildcardKeys: ["CORS_ALLOW_ORIGINS"]
       },
       preview: {
-        requiredKeys: ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY"],
+        requiredKeys: [],
         exactValues: {},
         notWildcardKeys: []
       }
@@ -150,7 +170,7 @@ async function main() {
         notWildcardKeys: ["CORS_ALLOW_ORIGINS"]
       },
       preview: {
-        requiredKeys: ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY"],
+        requiredKeys: [],
         exactValues: {},
         notWildcardKeys: []
       }

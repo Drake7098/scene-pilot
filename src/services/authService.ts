@@ -1,41 +1,9 @@
 import type { UserSession, UserState } from "../types/account";
-import {
-  clearChallenge,
-  createOrGetUserByEmail,
-  createSessionForUser,
-  getChallenge,
-  getSession,
-  getUser,
-  saveChallenge,
-  saveSession
-} from "./mockAccountStore";
-import { isGoogleIdentityConfigured, requestGoogleCredential } from "./googleIdentityService";
 
 export type SendCodeResult = {
   ok: boolean;
   devCode: string;
   expiresAt: string;
-};
-
-type ApiEnvelope<T> = {
-  ok?: boolean;
-  error?: string;
-  detail?: string;
-} & T;
-
-type GoogleProfile = {
-  sub: string;
-  email: string;
-  emailVerified: boolean;
-  name: string;
-  picture: string;
-};
-
-type GoogleVerifyResponse = {
-  ok: boolean;
-  profile?: GoogleProfile;
-  error?: string;
-  detail?: string;
 };
 
 type SupabaseConfig = {
@@ -63,8 +31,6 @@ type SupabaseUser = {
 };
 
 const SUPABASE_SESSION_KEY = "sp_supabase_session_v1";
-const AUTH_MOCK_FALLBACK_ENABLED =
-  !import.meta.env.PROD && String(import.meta.env.VITE_AUTH_MOCK_FALLBACK || "1").trim() !== "0";
 
 function getSupabaseConfig(): SupabaseConfig | null {
   const url = String(import.meta.env.VITE_SUPABASE_URL || "").trim().replace(/\/+$/, "");
@@ -73,8 +39,10 @@ function getSupabaseConfig(): SupabaseConfig | null {
   return { url, anonKey };
 }
 
-function isSupabaseAuthConfigured() {
-  return Boolean(getSupabaseConfig());
+function requireSupabaseConfig() {
+  const cfg = getSupabaseConfig();
+  if (!cfg) throw new Error("supabase_not_configured");
+  return cfg;
 }
 
 function readSupabaseSession(): SupabaseSessionState | null {
@@ -91,7 +59,7 @@ function readSupabaseSession(): SupabaseSessionState | null {
 }
 
 function readSupabaseSessionSync() {
-  if (!isSupabaseAuthConfigured()) return null;
+  if (!getSupabaseConfig()) return null;
   captureSupabaseSessionFromHash();
   return readSupabaseSession();
 }
@@ -269,44 +237,6 @@ async function getSupabaseAuthedUser() {
   return { session, user };
 }
 
-async function postApi<T>(url: string, body: Record<string, unknown>) {
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(body)
-    });
-    let payload: ApiEnvelope<T> | null = null;
-    try {
-      payload = await response.json() as ApiEnvelope<T>;
-    } catch {
-      payload = null;
-    }
-    return { response, payload };
-  } catch {
-    return null;
-  }
-}
-
-async function getApi<T>(url: string) {
-  try {
-    const response = await fetch(url, {
-      method: "GET",
-      credentials: "include"
-    });
-    let payload: ApiEnvelope<T> | null = null;
-    try {
-      payload = await response.json() as ApiEnvelope<T>;
-    } catch {
-      payload = null;
-    }
-    return { response, payload };
-  } catch {
-    return null;
-  }
-}
-
 function normalizeErrorCode(value: unknown) {
   return String(value || "")
     .trim()
@@ -319,156 +249,70 @@ export async function sendCode(email: string): Promise<SendCodeResult> {
   if (!normalized || !normalized.includes("@")) {
     throw new Error("invalid_email");
   }
-  if (isSupabaseAuthConfigured()) {
-    const result = await supabaseRequest("/auth/v1/otp", {
-      method: "POST",
-      body: {
-        email: normalized,
-        create_user: true
-      }
-    });
-    if (!result.ok) throw new Error(result.errorCode || "send_code_failed");
-    return {
-      ok: true,
-      devCode: "",
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString()
-    };
-  }
-  const api = await postApi<{ expiresAt?: string; devCode?: string }>("/api/auth/email/send-code", { email: normalized });
-  if (api) {
-    if (api.response.ok && api.payload?.ok) {
-      return {
-        ok: true,
-        devCode: String(api.payload.devCode || ""),
-        expiresAt: String(api.payload.expiresAt || new Date(Date.now() + 10 * 60 * 1000).toISOString())
-      };
+  requireSupabaseConfig();
+  const result = await supabaseRequest("/auth/v1/otp", {
+    method: "POST",
+    body: {
+      email: normalized,
+      create_user: true
     }
-    const code = normalizeErrorCode(api.payload?.error || api.response.statusText);
-    if (code && code !== "not_found") throw new Error(code);
-  }
-  if (!AUTH_MOCK_FALLBACK_ENABLED) {
-    throw new Error("auth_backend_unavailable");
-  }
-
-  const code = `${Math.floor(100000 + Math.random() * 900000)}`;
+  });
+  if (!result.ok) throw new Error(result.errorCode || "send_code_failed");
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-  saveChallenge(normalized, code, expiresAt);
-  await wait(220);
   return {
     ok: true,
-    devCode: code,
+    devCode: "",
     expiresAt
   };
 }
 
 export async function verifyCode(email: string, code: string): Promise<{ session: UserSession; user: UserState }> {
   const normalized = email.trim().toLowerCase();
-  if (isSupabaseAuthConfigured()) {
-    const verify = await supabaseRequest<{
-      access_token?: string;
-      refresh_token?: string;
-      expires_in?: number;
-      token_type?: string;
-      user?: SupabaseUser;
-    }>("/auth/v1/verify", {
-      method: "POST",
-      body: {
-        email: normalized,
-        token: code.trim(),
-        type: "email"
-      }
-    });
-    if (!verify.ok || !verify.data?.access_token || !verify.data?.refresh_token || !verify.data?.user?.id) {
-      throw new Error(verify.errorCode || "verify_code_failed");
-    }
-    const sessionState: SupabaseSessionState = {
-      accessToken: String(verify.data.access_token),
-      refreshToken: String(verify.data.refresh_token),
-      expiresAt: Date.now() + Math.max(1, Number(verify.data.expires_in || 3600)) * 1000,
-      tokenType: String(verify.data.token_type || "bearer"),
-      provider: providerFromUser(verify.data.user),
-      createdAt: new Date().toISOString()
-    };
-    writeSupabaseSession(sessionState);
-    const userState = mapSupabaseUserToUserState(verify.data.user);
-    const userSession = mapSupabaseSessionToUserSession(verify.data.user, sessionState);
-    return { session: userSession, user: userState };
-  }
-  const api = await postApi<{ session?: UserSession; user?: UserState }>("/api/auth/email/verify-code", {
-    email: normalized,
-    code: code.trim()
-  });
-  if (api) {
-    if (api.response.ok && api.payload?.ok && api.payload?.session && api.payload?.user) {
-      return { session: api.payload.session, user: api.payload.user };
-    }
-    const err = normalizeErrorCode(api.payload?.error || api.response.statusText);
-    if (err && err !== "not_found") throw new Error(err);
-  }
-  if (!AUTH_MOCK_FALLBACK_ENABLED) {
-    throw new Error("auth_backend_unavailable");
-  }
-
-  const challenge = getChallenge(normalized);
-  if (!challenge) throw new Error("missing_challenge");
-  if (challenge.expiresAt < new Date().toISOString()) throw new Error("code_expired");
-  if (challenge.code !== code.trim()) throw new Error("code_invalid");
-  const user = createOrGetUserByEmail(normalized);
-  const session = createSessionForUser(user);
-  saveSession(session);
-  clearChallenge(normalized);
-  await wait(180);
-  return { session, user };
-}
-
-async function verifyGoogleCredential(credential: string): Promise<GoogleProfile> {
-  const response = await fetch("/api/auth/google", {
+  requireSupabaseConfig();
+  const verify = await supabaseRequest<{
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+    token_type?: string;
+    user?: SupabaseUser;
+  }>("/auth/v1/verify", {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ credential })
+    body: {
+      email: normalized,
+      token: code.trim(),
+      type: "email"
+    }
   });
-  const payload = await response.json() as GoogleVerifyResponse;
-  if (!response.ok || !payload?.ok || !payload.profile) {
-    const code = normalizeErrorCode(payload?.error || response.statusText || "google_verify_failed");
-    throw new Error(code || "google_verify_failed");
+  if (!verify.ok || !verify.data?.access_token || !verify.data?.refresh_token || !verify.data?.user?.id) {
+    throw new Error(verify.errorCode || "verify_code_failed");
   }
-  return payload.profile;
+  const sessionState: SupabaseSessionState = {
+    accessToken: String(verify.data.access_token),
+    refreshToken: String(verify.data.refresh_token),
+    expiresAt: Date.now() + Math.max(1, Number(verify.data.expires_in || 3600)) * 1000,
+    tokenType: String(verify.data.token_type || "bearer"),
+    provider: providerFromUser(verify.data.user),
+    createdAt: new Date().toISOString()
+  };
+  writeSupabaseSession(sessionState);
+  const userState = mapSupabaseUserToUserState(verify.data.user);
+  const userSession = mapSupabaseSessionToUserSession(verify.data.user, sessionState);
+  return { session: userSession, user: userState };
 }
 
 export function isGoogleSignInEnabled() {
-  return isSupabaseAuthConfigured() || isGoogleIdentityConfigured();
+  return Boolean(getSupabaseConfig());
 }
 
 export async function signInWithGoogle(): Promise<{ session: UserSession; user: UserState }> {
-  if (isSupabaseAuthConfigured()) {
-    const cfg = getSupabaseConfig();
-    if (!cfg || typeof window === "undefined") {
-      throw new Error("google_not_configured");
-    }
-    const redirectTo = `${window.location.origin}${window.location.pathname}?auth_provider=google`;
-    const authUrl = `${cfg.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
-    window.location.assign(authUrl);
-    throw new Error("auth_redirect_started");
+  const cfg = requireSupabaseConfig();
+  if (typeof window === "undefined") {
+    throw new Error("google_not_configured");
   }
-  if (!isGoogleIdentityConfigured()) {
-    throw new Error("google_client_id_missing");
-  }
-  if (!AUTH_MOCK_FALLBACK_ENABLED) {
-    throw new Error("auth_backend_unavailable");
-  }
-  const credential = await requestGoogleCredential();
-  const profile = await verifyGoogleCredential(credential);
-  const user = createOrGetUserByEmail(profile.email, {
-    displayName: profile.name || null,
-    avatarUrl: profile.picture || null
-  });
-  const session = createSessionForUser(user, {
-    provider: "google",
-    providerSubject: profile.sub || null
-  });
-  saveSession(session);
-  await wait(180);
-  return { session, user };
+  const redirectTo = `${window.location.origin}${window.location.pathname}?auth_provider=google`;
+  const authUrl = `${cfg.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
+  window.location.assign(authUrl);
+  throw new Error("auth_redirect_started");
 }
 
 export async function signInWithPassword(email: string, password: string): Promise<{ session: UserSession; user: UserState }> {
@@ -480,203 +324,127 @@ export async function signInWithPassword(email: string, password: string): Promi
   if (rawPassword.length < 6) {
     throw new Error("password_too_short");
   }
+  requireSupabaseConfig();
 
-  if (isSupabaseAuthConfigured()) {
-    const login = await supabaseRequest<{
-      access_token?: string;
-      refresh_token?: string;
-      expires_in?: number;
-      token_type?: string;
-      user?: SupabaseUser;
-    }>("/auth/v1/token?grant_type=password", {
-      method: "POST",
-      body: { email: normalized, password: rawPassword }
-    });
-
-    if (login.ok && login.data?.access_token && login.data?.refresh_token && login.data?.user?.id) {
-      const sessionState: SupabaseSessionState = {
-        accessToken: String(login.data.access_token),
-        refreshToken: String(login.data.refresh_token),
-        expiresAt: Date.now() + Math.max(1, Number(login.data.expires_in || 3600)) * 1000,
-        tokenType: String(login.data.token_type || "bearer"),
-        provider: providerFromUser(login.data.user),
-        createdAt: new Date().toISOString()
-      };
-      writeSupabaseSession(sessionState);
-      return {
-        user: mapSupabaseUserToUserState(login.data.user),
-        session: mapSupabaseSessionToUserSession(login.data.user, sessionState)
-      };
-    }
-
-    const signup = await supabaseRequest<{
-      access_token?: string;
-      refresh_token?: string;
-      expires_in?: number;
-      token_type?: string;
-      user?: SupabaseUser;
-    }>("/auth/v1/signup", {
-      method: "POST",
-      body: { email: normalized, password: rawPassword }
-    });
-
-    if (signup.ok && signup.data?.access_token && signup.data?.refresh_token && signup.data?.user?.id) {
-      const sessionState: SupabaseSessionState = {
-        accessToken: String(signup.data.access_token),
-        refreshToken: String(signup.data.refresh_token),
-        expiresAt: Date.now() + Math.max(1, Number(signup.data.expires_in || 3600)) * 1000,
-        tokenType: String(signup.data.token_type || "bearer"),
-        provider: providerFromUser(signup.data.user),
-        createdAt: new Date().toISOString()
-      };
-      writeSupabaseSession(sessionState);
-      return {
-        user: mapSupabaseUserToUserState(signup.data.user),
-        session: mapSupabaseSessionToUserSession(signup.data.user, sessionState)
-      };
-    }
-
-    const retry = await supabaseRequest<{
-      access_token?: string;
-      refresh_token?: string;
-      expires_in?: number;
-      token_type?: string;
-      user?: SupabaseUser;
-    }>("/auth/v1/token?grant_type=password", {
-      method: "POST",
-      body: { email: normalized, password: rawPassword }
-    });
-    if (retry.ok && retry.data?.access_token && retry.data?.refresh_token && retry.data?.user?.id) {
-      const sessionState: SupabaseSessionState = {
-        accessToken: String(retry.data.access_token),
-        refreshToken: String(retry.data.refresh_token),
-        expiresAt: Date.now() + Math.max(1, Number(retry.data.expires_in || 3600)) * 1000,
-        tokenType: String(retry.data.token_type || "bearer"),
-        provider: providerFromUser(retry.data.user),
-        createdAt: new Date().toISOString()
-      };
-      writeSupabaseSession(sessionState);
-      return {
-        user: mapSupabaseUserToUserState(retry.data.user),
-        session: mapSupabaseSessionToUserSession(retry.data.user, sessionState)
-      };
-    }
-
-    const code = retry.errorCode || signup.errorCode || login.errorCode || "password_auth_failed";
-    throw new Error(code);
-  }
-
-  const api = await postApi<{ session?: UserSession; user?: UserState }>("/api/auth/password/sign-in", {
-    email: normalized,
-    password: rawPassword
+  const login = await supabaseRequest<{
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+    token_type?: string;
+    user?: SupabaseUser;
+  }>("/auth/v1/token?grant_type=password", {
+    method: "POST",
+    body: { email: normalized, password: rawPassword }
   });
-  if (api) {
-    if (api.response.ok && api.payload?.ok && api.payload?.session && api.payload?.user) {
-      return { session: api.payload.session, user: api.payload.user };
-    }
-    const err = normalizeErrorCode(api.payload?.error || api.response.statusText);
-    if (err && err !== "not_found") throw new Error(err);
-  }
-  if (!AUTH_MOCK_FALLBACK_ENABLED) {
-    throw new Error("auth_backend_unavailable");
+
+  if (login.ok && login.data?.access_token && login.data?.refresh_token && login.data?.user?.id) {
+    const sessionState: SupabaseSessionState = {
+      accessToken: String(login.data.access_token),
+      refreshToken: String(login.data.refresh_token),
+      expiresAt: Date.now() + Math.max(1, Number(login.data.expires_in || 3600)) * 1000,
+      tokenType: String(login.data.token_type || "bearer"),
+      provider: providerFromUser(login.data.user),
+      createdAt: new Date().toISOString()
+    };
+    writeSupabaseSession(sessionState);
+    return {
+      user: mapSupabaseUserToUserState(login.data.user),
+      session: mapSupabaseSessionToUserSession(login.data.user, sessionState)
+    };
   }
 
-  const user = createOrGetUserByEmail(normalized);
-  const session = createSessionForUser(user, { provider: "password", providerSubject: null });
-  saveSession(session);
-  await wait(180);
-  return { session, user };
+  const signup = await supabaseRequest<{
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+    token_type?: string;
+    user?: SupabaseUser;
+  }>("/auth/v1/signup", {
+    method: "POST",
+    body: { email: normalized, password: rawPassword }
+  });
+
+  if (signup.ok && signup.data?.access_token && signup.data?.refresh_token && signup.data?.user?.id) {
+    const sessionState: SupabaseSessionState = {
+      accessToken: String(signup.data.access_token),
+      refreshToken: String(signup.data.refresh_token),
+      expiresAt: Date.now() + Math.max(1, Number(signup.data.expires_in || 3600)) * 1000,
+      tokenType: String(signup.data.token_type || "bearer"),
+      provider: providerFromUser(signup.data.user),
+      createdAt: new Date().toISOString()
+    };
+    writeSupabaseSession(sessionState);
+    return {
+      user: mapSupabaseUserToUserState(signup.data.user),
+      session: mapSupabaseSessionToUserSession(signup.data.user, sessionState)
+    };
+  }
+
+  const retry = await supabaseRequest<{
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+    token_type?: string;
+    user?: SupabaseUser;
+  }>("/auth/v1/token?grant_type=password", {
+    method: "POST",
+    body: { email: normalized, password: rawPassword }
+  });
+  if (retry.ok && retry.data?.access_token && retry.data?.refresh_token && retry.data?.user?.id) {
+    const sessionState: SupabaseSessionState = {
+      accessToken: String(retry.data.access_token),
+      refreshToken: String(retry.data.refresh_token),
+      expiresAt: Date.now() + Math.max(1, Number(retry.data.expires_in || 3600)) * 1000,
+      tokenType: String(retry.data.token_type || "bearer"),
+      provider: providerFromUser(retry.data.user),
+      createdAt: new Date().toISOString()
+    };
+    writeSupabaseSession(sessionState);
+    return {
+      user: mapSupabaseUserToUserState(retry.data.user),
+      session: mapSupabaseSessionToUserSession(retry.data.user, sessionState)
+    };
+  }
+
+  const code = retry.errorCode || signup.errorCode || login.errorCode || "password_auth_failed";
+  throw new Error(code);
 }
 
 export async function getCurrentSession(): Promise<UserSession | null> {
-  if (isSupabaseAuthConfigured()) {
-    const authed = await getSupabaseAuthedUser();
-    if (!authed) return null;
-    return mapSupabaseSessionToUserSession(authed.user, authed.session);
-  }
-  const api = await getApi<{ user?: UserState }>("/api/auth/me");
-  if (api?.response.ok && api.payload?.ok) {
-    const user = api.payload.user || null;
-    if (!user) {
-      if (!AUTH_MOCK_FALLBACK_ENABLED) return null;
-      await wait(60);
-      return getSession();
-    }
-    return {
-      token: "cookie_session",
-      userId: user.id,
-      email: user.email,
-      provider: "email_code",
-      providerSubject: null,
-      createdAt: user.createdAt || new Date().toISOString()
-    };
-  }
-  if (!AUTH_MOCK_FALLBACK_ENABLED) return null;
-  await wait(60);
-  return getSession();
+  if (!getSupabaseConfig()) return null;
+  const authed = await getSupabaseAuthedUser();
+  if (!authed) return null;
+  return mapSupabaseSessionToUserSession(authed.user, authed.session);
 }
 
 export async function getCurrentUser(): Promise<UserState | null> {
-  if (isSupabaseAuthConfigured()) {
-    const authed = await getSupabaseAuthedUser();
-    if (!authed) return null;
-    return mapSupabaseUserToUserState(authed.user);
-  }
-  const api = await getApi<{ user?: UserState }>("/api/auth/me");
-  if (api?.response.ok && api.payload?.ok) {
-    if (api.payload.user) return api.payload.user;
-    if (!AUTH_MOCK_FALLBACK_ENABLED) return null;
-    const session = getSession();
-    if (!session) return null;
-    await wait(60);
-    return getUser(session.userId);
-  }
-  if (!AUTH_MOCK_FALLBACK_ENABLED) return null;
-  const session = getSession();
-  if (!session) return null;
-  await wait(60);
-  return getUser(session.userId);
+  if (!getSupabaseConfig()) return null;
+  const authed = await getSupabaseAuthedUser();
+  if (!authed) return null;
+  return mapSupabaseUserToUserState(authed.user);
 }
 
 export async function logout(): Promise<void> {
-  if (isSupabaseAuthConfigured()) {
-    const session = readSupabaseSession();
-    if (session?.accessToken) {
-      await supabaseRequest("/auth/v1/logout", {
-        method: "POST",
-        accessToken: session.accessToken
-      });
-    }
+  if (!getSupabaseConfig()) {
     writeSupabaseSession(null);
-    saveSession(null);
-    await wait(60);
     return;
   }
-  await postApi("/api/auth/logout", {});
-  saveSession(null);
-  await wait(60);
+  const session = readSupabaseSession();
+  if (session?.accessToken) {
+    await supabaseRequest("/auth/v1/logout", {
+      method: "POST",
+      accessToken: session.accessToken
+    });
+  }
+  writeSupabaseSession(null);
 }
 
 export async function getApiAuthHeaders(claimedUserId?: string): Promise<Record<string, string>> {
   const headers: Record<string, string> = {};
   if (claimedUserId) headers["x-sp-user-id"] = claimedUserId;
-
-  if (isSupabaseAuthConfigured()) {
-    const refreshed = await refreshSupabaseSessionIfNeeded();
-    const token = refreshed?.accessToken || readSupabaseSessionSync()?.accessToken || "";
-    if (token) headers.authorization = `Bearer ${token}`;
-    return headers;
-  }
-
-  if (AUTH_MOCK_FALLBACK_ENABLED) {
-    const legacySession = getSession();
-    if (legacySession?.token && legacySession.token !== "cookie_session") {
-      headers.authorization = `Bearer ${legacySession.token}`;
-    }
-  }
+  if (!getSupabaseConfig()) return headers;
+  const refreshed = await refreshSupabaseSessionIfNeeded();
+  const token = refreshed?.accessToken || readSupabaseSessionSync()?.accessToken || "";
+  if (token) headers.authorization = `Bearer ${token}`;
   return headers;
-}
-
-function wait(ms: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }

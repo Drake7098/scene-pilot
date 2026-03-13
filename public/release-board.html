@@ -186,12 +186,14 @@
       const STORAGE_KEY = "sp_release_board_checks_v1";
       const USER_ITEMS = [
         "确保提示词引擎没问题，可以面向需求生成稳定的结构化提示词",
+        "本地 ComfyUI / Draw Things 调试入口先内部保留，后续下沉到“设置 > 开发者/实验室”，并从对外定价展示中移除",
         "确保 UI 不崩",
         "确保会员系统、基础操作、PRO 工作台都没问题",
         "确保两个付费接口（视频/图片）没问题，用户可接自己的 API 生成，会员专属功能可用",
         "确保 Paddle 开通、Google 登录开通",
         "埋点、错误反馈、客服自动化可用",
-        "旧域名到新域名迁移完成"
+        "旧域名到新域名迁移完成",
+        "待完成：轮换 Cloudflare API Token 与 Supabase 密钥，并执行 npm run release:safe 全链路验证"
       ];
 
       const ASSISTANT_ITEMS = [

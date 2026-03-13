@@ -8,6 +8,7 @@ import type { CreditLedgerEntry, SubscriptionState, WalletState } from "../types
 import { CREDIT_PACKS, HOSTED_ACTIONS, getBillingSnapshot, launchCheckout, openCustomerPortal, PRO_PLAN } from "../services/billingService";
 import { getCreditLedger, getWalletState } from "../services/creditService";
 import { getCurrentSession, getCurrentUser, logout } from "../services/authService";
+import { recordLegalConsent } from "../services/legalConsentService";
 import { getApiCredentials } from "../services/mockAccountStore";
 import { PUBLIC_CONTACT_CHANNELS, SYSTEM_NOTIFICATION_MAILBOX } from "../config/contactChannels";
 import { BILLING_ENABLED, BILLING_LIVE_BLOCKED } from "../config/billingFlags";
@@ -151,6 +152,13 @@ export default function UserManagementPage() {
       setHint(t(lang, "请先勾选付费条款确认。", "Confirm billing terms before checkout."));
       return;
     }
+    void recordLegalConsent({
+      userId: user.id,
+      context: "account_checkout",
+      docs: ["billing", "refund"],
+      source: "user_management_upgrade",
+      locale: lang
+    });
     setBusy("pro");
     setHint("");
     try {
@@ -180,6 +188,13 @@ export default function UserManagementPage() {
       setHint(t(lang, "请先勾选付费条款确认。", "Confirm billing terms before checkout."));
       return;
     }
+    void recordLegalConsent({
+      userId: user.id,
+      context: "account_checkout",
+      docs: ["billing", "refund"],
+      source: "user_management_credits",
+      locale: lang
+    });
     setBusy("credits");
     setHint("");
     try {

@@ -1,236 +1,415 @@
 import type { CSSProperties } from "react";
-import { CREDIT_PACKS, HOSTED_ACTIONS, PRO_PLAN } from "../services/billingService";
 import { PUBLIC_CONTACT_CHANNELS } from "../config/contactChannels";
+import { CREDIT_PACKS, HOSTED_ACTIONS, PRO_PLAN } from "../services/billingService";
 import PublicFooter from "../components/PublicFooter";
 
-const SURFACE: CSSProperties = {
-  maxWidth: 1120,
-  margin: "0 auto",
-  padding: "42px 20px 56px"
+const APP_SIGNIN_HREF = "/app?signin=1";
+
+type PlanSpec = {
+  id: "free" | "pro" | "pro_plus";
+  label: string;
+  tag?: string;
+  price: string;
+  period: string;
+  summary: string;
+  bullets: string[];
+  cta: string;
+  href: string;
+  featured?: boolean;
 };
 
-const cardBase: CSSProperties = {
-  border: "1px solid var(--spx-border)",
-  borderRadius: 16,
-  background: "linear-gradient(180deg, rgba(18,24,38,0.92), rgba(12,17,28,0.94))",
-  boxShadow: "var(--spx-shadow-panel)"
-};
+const planSpecs: PlanSpec[] = [
+  {
+    id: "free",
+    label: "Free",
+    price: "$0",
+    period: "/ month",
+    summary: "For first direction checks in Quick Workspace.",
+    bullets: [
+      "Quick Workspace access",
+      "Structured scene prompt drafting",
+      "Scene structure and camera language editing",
+      "No hosted AI generation"
+    ],
+    cta: "Start with Quick",
+    href: APP_SIGNIN_HREF
+  },
+  {
+    id: "pro",
+    label: "Pro",
+    tag: "Most Used",
+    price: `$${PRO_PLAN.monthlyUsdPrice}`,
+    period: "/ month",
+    summary: "For stable production with platform-hosted generation.",
+    bullets: [
+      "Everything in Free",
+      "Pro Workspace and multi-scene workflow",
+      `${PRO_PLAN.monthlyCredits} monthly credits included`,
+      "Use ScenePilotix hosted generation"
+    ],
+    cta: "Enter Pro",
+    href: APP_SIGNIN_HREF,
+    featured: true
+  },
+  {
+    id: "pro_plus",
+    label: "Pro+",
+    tag: "BYO API",
+    price: "Custom",
+    period: "(price later)",
+    summary: "For teams that need own API routing and higher control.",
+    bullets: [
+      "Everything in Pro",
+      "Bring your own API keys (fal / runway)",
+      "Provider-level routing and account isolation",
+      "Business support channel"
+    ],
+    cta: "Contact Sales",
+    href: `mailto:${PUBLIC_CONTACT_CHANNELS.business}`
+  }
+];
+
+function usageLabel(media: string, tier: string) {
+  const mediaText = media === "image" ? "Image" : "Video";
+  const tierMap: Record<string, string> = {
+    standard: "Standard",
+    hd: "HD",
+    video: "Standard"
+  };
+  return `${mediaText} · ${tierMap[tier] || tier}`;
+}
 
 export default function PricingPage() {
+  const packs = CREDIT_PACKS.filter((item) => item.enabled);
+  const costs = HOSTED_ACTIONS.filter((item) => item.enabled);
+
   return (
-    <div style={{ minHeight: "100%", color: "var(--spx-text-1)" }}>
-      <div style={SURFACE}>
-        <header style={{ marginBottom: 26 }}>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
-            <a href="/" style={closeBtn} aria-label="Close and back to home">
-              Close
-            </a>
+    <div style={page}>
+      <div style={surface}>
+        <header style={hero}>
+          <div style={topBar}>
+            <a href="/" style={closeBtn} aria-label="Close and back to home">Close</a>
           </div>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              border: "1px solid var(--spx-border)",
-              borderRadius: 999,
-              padding: "6px 12px",
-              fontSize: 12,
-              color: "var(--spx-text-2)",
-              background: "rgba(255,255,255,0.04)"
-            }}
-          >
-            ScenePilotix Pricing
-          </div>
-          <h1 style={{ margin: "14px 0 8px", fontSize: 34, lineHeight: 1.15, letterSpacing: 0.2 }}>Plans & Credits</h1>
-          <p style={{ margin: 0, color: "var(--spx-text-2)", fontSize: 15 }}>
-            Transparent SaaS subscription pricing for ScenePilotix.
+          <div style={eyebrow}>ScenePilotix Pricing</div>
+          <h1 style={title}>Predictable plans for structured scene generation</h1>
+          <p style={subtitle}>
+            We turn scene structure, camera language, and director packs into more controllable prompts.
           </p>
         </header>
 
-        <section style={{ ...cardBase, padding: 20, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, color: "var(--spx-text-3)" }}>Plans</div>
-          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginTop: 12 }}>
-            <article style={miniCard}>
-              <div style={{ fontSize: 14, color: "var(--spx-text-2)" }}>Free</div>
-              <div style={{ fontSize: 30, fontWeight: 700, marginTop: 4 }}>$0</div>
-              <div style={{ color: "var(--spx-text-2)", fontSize: 13 }}>/ month</div>
-              <div style={{ marginTop: 10, color: "var(--spx-text-2)", fontSize: 13.5 }}>
-                Core scene-structure workspace for quick prompt drafting.
+        <section style={plansGrid}>
+          {planSpecs.map((plan) => (
+            <article
+              key={plan.id}
+              style={{ ...planCard, ...(plan.featured ? planCardFeatured : null) }}
+              data-testid={`pricing-plan-${plan.id}`}
+            >
+              <div style={planTop}>
+                <div style={planLabel}>{plan.label}</div>
+                {plan.tag ? <span style={planTag}>{plan.tag}</span> : null}
               </div>
-              <div style={{ marginTop: 12 }}>
-                <a href="/app" style={secondaryCta}>Start Free</a>
+              <div style={priceLine}>
+                <span style={priceValue}>{plan.price}</span>
+                <span style={pricePeriod}>{plan.period}</span>
               </div>
+              <p style={planSummary}>{plan.summary}</p>
+              <ul style={bulletList}>
+                {plan.bullets.map((line) => (
+                  <li key={line} style={bulletItem}>{line}</li>
+                ))}
+              </ul>
+              <a href={plan.href} style={{ ...cta, ...(plan.featured ? ctaPrimary : ctaGhost) }}>
+                {plan.cta}
+              </a>
             </article>
-            <article style={{ ...miniCard, border: "1px solid rgba(123, 181, 255, 0.58)" }}>
-              <div style={{ fontSize: 14, color: "var(--spx-text-2)" }}>Pro</div>
-              <div style={{ fontSize: 30, fontWeight: 700, marginTop: 4 }}>${PRO_PLAN.monthlyUsdPrice}</div>
-              <div style={{ color: "var(--spx-text-2)", fontSize: 13 }}>/ month</div>
-              <div style={{ marginTop: 10, color: "var(--spx-text-2)", fontSize: 13.5 }}>
-                Subscription with Pro workspace and {PRO_PLAN.monthlyCredits} monthly credits.
-              </div>
-              <div style={{ marginTop: 12 }}>
-                <a href="/app" style={primaryCta}>Upgrade to Pro</a>
-              </div>
-            </article>
-          </div>
+          ))}
         </section>
 
-        <section style={{ ...cardBase, padding: 20, marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <section style={section}>
+          <h2 style={sectionTitle}>Credit packs and deduction baseline (adjustable later)</h2>
+          <div style={metricsGrid}>
             <div>
-              <div style={{ fontSize: 13, color: "var(--spx-text-3)" }}>Subscription</div>
-              <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4 }}>Pro Monthly</div>
+              <div style={metricLabel}>Credit packs</div>
+              <div style={lineStack}>
+                {packs.map((pack) => (
+                  <div key={pack.id} style={metricLine}>
+                    <span>{pack.credits} credits</span>
+                    <span>${pack.usdPrice} one-time</span>
+                  </div>
+                ))}
+              </div>
+              <div style={metricHint}>Note: `$3` is a one-time credit pack, not the Pro subscription.</div>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 32, fontWeight: 700 }}>${PRO_PLAN.monthlyUsdPrice}</div>
-              <div style={{ color: "var(--spx-text-2)", fontSize: 13 }}>/ month</div>
+            <div>
+              <div style={metricLabel}>Generation usage</div>
+              <div style={lineStack}>
+                {costs.map((item) => (
+                  <div key={item.id} style={metricLine}>
+                    <span>{usageLabel(item.mediaType, item.qualityTier)}</span>
+                    <span>{item.creditsCost} credits</span>
+                  </div>
+                ))}
+              </div>
+              <div style={metricHint}>Prompt export: free for first 7 days after registration, then 2 credits each.</div>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-            <Badge text={`${PRO_PLAN.monthlyCredits} credits included monthly`} />
-            <Badge text="Pro workspace unlocked" />
-            <Badge text="BYO API mode available" />
-          </div>
-          <div style={{ marginTop: 16 }}>
-            <a href="/app" style={primaryCta}>
-              Upgrade to Pro
-            </a>
-          </div>
         </section>
 
-        <section style={{ ...cardBase, padding: 20, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, color: "var(--spx-text-3)" }}>Credit Packs</div>
-          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginTop: 12 }}>
-            {CREDIT_PACKS.filter((item) => item.enabled).map((pack) => (
-              <article key={pack.id} style={{ ...miniCard }}>
-                <div style={{ fontSize: 14, color: "var(--spx-text-2)" }}>{pack.credits} credits</div>
-                <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>${pack.usdPrice}</div>
-                <div style={{ marginTop: 10 }}>
-                  <a href="/app" style={secondaryCta}>Buy Credits</a>
-                </div>
-              </article>
-            ))}
+        <section style={section}>
+          <h2 style={sectionTitle}>Billing and legal</h2>
+          <div style={legalText}>
+            Checkout and tax handling are processed by Paddle. Pro is auto-renewing until canceled.
+            First-time Pro subscription supports a 7-day refund window. Used credits are non-refundable.
           </div>
-        </section>
-
-        <section style={{ ...cardBase, padding: 20, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, color: "var(--spx-text-3)" }}>Generation Credit Cost</div>
-          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", marginTop: 12 }}>
-            {HOSTED_ACTIONS.filter((item) => item.enabled).map((item) => (
-              <article key={item.id} style={miniCard}>
-                <div style={{ fontSize: 12, color: "var(--spx-text-3)", textTransform: "uppercase", letterSpacing: 0.4 }}>
-                  {item.mediaType}
-                </div>
-                <div style={{ fontSize: 18, fontWeight: 650, marginTop: 3 }}>{item.qualityTier}</div>
-                <div style={{ marginTop: 8, color: "var(--spx-text-2)" }}>{item.creditsCost} credits / output</div>
-              </article>
-            ))}
+          <div style={legalLinks}>
+            <a href="/terms" style={textLink}>Terms</a>
+            <a href="/privacy" style={textLink}>Privacy</a>
+            <a href="/billing-terms" style={textLink}>Billing Terms</a>
+            <a href="/refund-policy" style={textLink}>Refund Policy</a>
           </div>
-        </section>
-
-        <section style={{ ...cardBase, padding: 20 }}>
-          <div style={{ fontSize: 13, color: "var(--spx-text-3)" }}>Billing Notes</div>
-          <ul style={{ margin: "10px 0 0", paddingLeft: 18, color: "var(--spx-text-2)", lineHeight: 1.6 }}>
-            <li>Checkout, tax calculation, invoices, and receipts are processed by Paddle.</li>
-            <li>Pro is auto-renewing until canceled.</li>
-            <li>First-time Pro subscription supports a 7-day refund window.</li>
-            <li>Used credits are non-refundable. Purchased credit packs are refundable only when fully unused.</li>
-            <li>Applicable local consumer protection laws prevail.</li>
-          </ul>
-          <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <a href="/terms" style={policyLink}>Terms of Service</a>
-            <a href="/privacy" style={policyLink}>Privacy Notice</a>
-            <a href="/billing-terms" style={policyLink}>Billing Terms</a>
-            <a href="/refund-policy" style={policyLink}>Refund Policy</a>
-          </div>
-          <div style={{ marginTop: 10, color: "var(--spx-text-2)", fontSize: 13, lineHeight: 1.6 }}>
+          <div style={contactRow}>
             Support: {PUBLIC_CONTACT_CHANNELS.support} | Business: {PUBLIC_CONTACT_CHANNELS.business}
           </div>
         </section>
 
-        <PublicFooter />
+        <PublicFooter compact />
       </div>
     </div>
   );
 }
 
-function Badge({ text }: { text: string }) {
-  return (
-    <span
-      style={{
-        border: "1px solid var(--spx-border)",
-        borderRadius: 999,
-        padding: "6px 10px",
-        fontSize: 12,
-        color: "var(--spx-text-2)",
-        background: "rgba(255,255,255,0.03)"
-      }}
-    >
-      {text}
-    </span>
-  );
-}
-
-const miniCard: CSSProperties = {
-  border: "1px solid var(--spx-border-soft)",
-  borderRadius: 14,
-  background: "rgba(255,255,255,0.025)",
-  padding: 14
-};
-
-const primaryCta: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minWidth: 140,
-  padding: "10px 14px",
-  borderRadius: 12,
-  textDecoration: "none",
-  border: "1px solid rgba(123, 181, 255, 0.84)",
-  background: "linear-gradient(180deg, rgba(84,144,232,0.48), rgba(40,97,172,0.62))",
-  color: "#f2f7ff",
-  fontWeight: 650
-};
-
-const secondaryCta: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minWidth: 112,
-  padding: "8px 12px",
-  borderRadius: 10,
-  textDecoration: "none",
-  border: "1px solid var(--spx-border)",
-  background: "rgba(255,255,255,0.03)",
+const page: CSSProperties = {
+  minHeight: "100%",
   color: "var(--spx-text-1)",
-  fontWeight: 600
+  background: "radial-gradient(860px 460px at 12% -16%, rgba(83,146,226,0.18), transparent 62%), #070b12"
+};
+
+const surface: CSSProperties = {
+  maxWidth: 1160,
+  margin: "0 auto",
+  padding: "32px 20px 52px"
+};
+
+const hero: CSSProperties = {
+  marginBottom: 20
+};
+
+const topBar: CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  marginBottom: 8
 };
 
 const closeBtn: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  minWidth: 90,
-  padding: "8px 12px",
-  borderRadius: 10,
+  minWidth: 88,
+  minHeight: 34,
+  borderRadius: 999,
   textDecoration: "none",
-  border: "1px solid var(--spx-border)",
-  background: "rgba(255,255,255,0.03)",
   color: "var(--spx-text-2)",
-  fontWeight: 600,
-  fontSize: 13
+  background: "rgba(255,255,255,0.05)",
+  fontSize: 13,
+  fontWeight: 600
 };
 
-const policyLink: CSSProperties = {
+const eyebrow: CSSProperties = {
+  color: "var(--spx-text-3)",
+  fontSize: 12.5,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase"
+};
+
+const title: CSSProperties = {
+  margin: "10px 0 10px",
+  fontSize: "clamp(30px, 5.2vw, 52px)",
+  lineHeight: 1.08,
+  letterSpacing: "-0.03em"
+};
+
+const subtitle: CSSProperties = {
+  margin: 0,
+  color: "var(--spx-text-2)",
+  fontSize: 16,
+  lineHeight: 1.58,
+  maxWidth: 880
+};
+
+const plansGrid: CSSProperties = {
+  display: "grid",
+  gap: 14,
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  marginBottom: 18
+};
+
+const planCard: CSSProperties = {
+  background: "linear-gradient(180deg, rgba(13,18,30,0.92), rgba(10,14,24,0.94))",
+  borderRadius: 18,
+  padding: 18,
+  display: "grid",
+  gap: 10
+};
+
+const planCardFeatured: CSSProperties = {
+  background: "linear-gradient(180deg, rgba(29,46,77,0.84), rgba(13,22,39,0.95))",
+  boxShadow: "0 16px 36px rgba(0,0,0,0.26)"
+};
+
+const planTop: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10
+};
+
+const planLabel: CSSProperties = {
+  fontSize: 20,
+  fontWeight: 700,
+  letterSpacing: "-0.01em"
+};
+
+const planTag: CSSProperties = {
+  fontSize: 12,
+  color: "#dce9ff",
+  background: "rgba(255,255,255,0.15)",
+  borderRadius: 999,
+  padding: "4px 10px",
+  fontWeight: 600
+};
+
+const priceLine: CSSProperties = {
+  display: "flex",
+  alignItems: "baseline",
+  gap: 8
+};
+
+const priceValue: CSSProperties = {
+  fontSize: 42,
+  lineHeight: 1,
+  fontWeight: 750,
+  letterSpacing: "-0.02em"
+};
+
+const pricePeriod: CSSProperties = {
+  color: "var(--spx-text-2)",
+  fontSize: 14
+};
+
+const planSummary: CSSProperties = {
+  margin: 0,
+  color: "var(--spx-text-2)",
+  fontSize: 14,
+  lineHeight: 1.6
+};
+
+const bulletList: CSSProperties = {
+  margin: 0,
+  paddingLeft: 18,
+  color: "var(--spx-text-2)",
+  fontSize: 13.5,
+  lineHeight: 1.58,
+  minHeight: 132
+};
+
+const bulletItem: CSSProperties = {
+  marginBottom: 4
+};
+
+const cta: CSSProperties = {
+  minHeight: 42,
+  borderRadius: 12,
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  minHeight: 30,
-  padding: "0 10px",
-  borderRadius: 999,
   textDecoration: "none",
-  border: "1px solid var(--spx-border)",
-  background: "rgba(255,255,255,0.03)",
+  padding: "0 16px",
+  fontWeight: 650,
+  fontSize: 14
+};
+
+const ctaPrimary: CSSProperties = {
+  color: "#f4f8ff",
+  background: "linear-gradient(180deg, rgba(84,145,232,0.7), rgba(40,97,172,0.72))"
+};
+
+const ctaGhost: CSSProperties = {
   color: "var(--spx-text-1)",
+  background: "rgba(255,255,255,0.08)"
+};
+
+const section: CSSProperties = {
+  marginBottom: 16,
+  paddingTop: 12
+};
+
+const sectionTitle: CSSProperties = {
+  margin: "0 0 10px",
+  fontSize: 20,
+  letterSpacing: "-0.01em"
+};
+
+const metricsGrid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gap: 12
+};
+
+const metricLabel: CSSProperties = {
+  color: "var(--spx-text-3)",
   fontSize: 12.5,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  marginBottom: 8
+};
+
+const lineStack: CSSProperties = {
+  display: "grid",
+  gap: 6
+};
+
+const metricLine: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10,
+  minHeight: 32,
+  borderRadius: 10,
+  padding: "0 10px",
+  background: "rgba(255,255,255,0.045)",
+  color: "var(--spx-text-2)",
+  fontSize: 13.5
+};
+
+const metricHint: CSSProperties = {
+  marginTop: 8,
+  color: "var(--spx-text-3)",
+  fontSize: 12.5,
+  lineHeight: 1.6
+};
+
+const legalText: CSSProperties = {
+  color: "var(--spx-text-2)",
+  fontSize: 13.5,
+  lineHeight: 1.62,
+  marginBottom: 8
+};
+
+const legalLinks: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 10,
+  marginBottom: 8
+};
+
+const textLink: CSSProperties = {
+  color: "var(--spx-text-2)",
+  textDecoration: "none",
+  fontSize: 13,
   fontWeight: 600
+};
+
+const contactRow: CSSProperties = {
+  color: "var(--spx-text-3)",
+  fontSize: 12.5
 };

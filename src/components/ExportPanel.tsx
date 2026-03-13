@@ -699,11 +699,6 @@ export function ExportPanel({
             {lang === "zh" ? `冲突 ${sceneConflicts.length}` : `Conflicts ${sceneConflicts.length}`}
           </button>
         ) : null}
-        {promptExportNote ? (
-          <div style={styles.modeHint} data-testid="export-prompt-note">
-            {promptExportNote}
-          </div>
-        ) : null}
       </div>
       {actionHint ? <div style={styles.actionHint}>{actionHint}</div> : null}
 
@@ -769,6 +764,11 @@ export function ExportPanel({
               ×
             </button>
           </div>
+          {promptExportNote ? (
+            <div style={styles.exportPolicyHint} data-testid="export-prompt-note">
+              {promptExportNote}
+            </div>
+          ) : null}
           <div style={styles.modalRow}>
             <div style={styles.profileLabel}>{lang === "zh" ? "导出类型" : "Export Type"}</div>
             <div style={styles.optionWrap}>
@@ -1001,16 +1001,6 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.25
   },
 
-  modeHint: {
-    fontSize: UI_FONT.hint,
-    fontWeight: 900,
-    opacity: 0.66,
-    padding: "4px 8px",
-    borderRadius: UI_RADIUS.chip,
-    border: `1px solid ${UI_INFO.border.default}`,
-    background: UI_INFO.surface.subtle,
-    userSelect: "none"
-  },
   scopeSelect: {
     height: UI_SIZE.controlH,
     borderRadius: UI_SIZE.controlRadius,
@@ -1271,6 +1261,15 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: UI_RADIUS.control,
     background: UI_INFO.surface.default,
     padding: "8px 10px"
+  },
+  exportPolicyHint: {
+    fontSize: UI_FONT.hint,
+    lineHeight: 1.35,
+    color: UI_PALETTE.text.secondary,
+    border: `1px solid ${UI_PALETTE.border.soft}`,
+    borderRadius: UI_RADIUS.control,
+    background: "rgba(255,255,255,0.02)",
+    padding: "7px 10px"
   },
   platformPendingHint: {
     fontSize: UI_FONT.hint,

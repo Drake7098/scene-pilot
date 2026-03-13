@@ -392,6 +392,8 @@ export default function App() {
   const [authHint, setAuthHint] = useState("");
   const [postAuthRedirect, setPostAuthRedirect] = useState("");
   const [lastSentCode, setLastSentCode] = useState("");
+  const activeWorkspaceMode: ResultConsoleMode =
+    workspaceMode === "pro" && canUseProConsole(accountUser) ? "pro" : "results";
   const [authLegalAccepted, setAuthLegalAccepted] = useState<boolean>(() => {
     try {
       return localStorage.getItem(AUTH_LEGAL_CONSENT_KEY) === "1";
@@ -2814,7 +2816,7 @@ export default function App() {
       lang,
       platformId,
       profile: getPlatformPreset(platformId).baseProfile,
-      workspace: workspaceMode === "pro" ? "pro" : "quick"
+      workspace: activeWorkspaceMode === "pro" ? "pro" : "quick"
     }).finalCopyPrompt.trim();
   }
 
@@ -3099,7 +3101,7 @@ export default function App() {
         setHelpCenterOpen(true);
       }
     },
-    ...(workspaceMode === "pro" ? [{
+    ...(activeWorkspaceMode === "pro" ? [{
       key: "quick_workspace",
       label: lang === "zh" ? "返回快捷工作台" : "Back to Quick Workspace",
       icon: <FolderOpen size={UI_MENU.item.iconSize} />,
@@ -3181,7 +3183,7 @@ export default function App() {
 
   // ---------------------- UI ----------------------
   return (
-    <div style={{ ...styles.app, ...(workspaceMode === "pro" ? styles.appPro : styles.appQuick) }}>
+    <div style={{ ...styles.app, ...(activeWorkspaceMode === "pro" ? styles.appPro : styles.appQuick) }}>
       <div style={styles.appBackdrop} aria-hidden="true">
         <div style={styles.appBackdropPro} />
       </div>
@@ -3195,7 +3197,7 @@ export default function App() {
           </div>
         </div>
 
-        {workspaceMode === "pro" ? (
+        {activeWorkspaceMode === "pro" ? (
           <div style={styles.topProjectDock}>
             <div style={styles.commandDock}>
               <ProjectControlBar
@@ -3603,11 +3605,11 @@ export default function App() {
 
       {libraryHint ? <div style={styles.libraryFloatHint}>{libraryHint}</div> : null}
 
-      {workspaceMode === "results" ? (
+      {activeWorkspaceMode === "results" ? (
         <div style={styles.resultsMain}>
           <ResultConsole
             lang={lang}
-            mode={workspaceMode}
+            mode={activeWorkspaceMode}
             onModeChange={(mode) => {
               if (mode === "pro") {
                 openProFromQuickWorkspace();

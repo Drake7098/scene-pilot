@@ -41,6 +41,7 @@ npm i -D wrangler
 - Supabase Postgres 初始化脚本：
   - [`db/supabase/0000_core.sql`](/Users/dk/scene-pilot/db/supabase/0000_core.sql)
   - [`db/supabase/0001_public_rpc_bridge.sql`](/Users/dk/scene-pilot/db/supabase/0001_public_rpc_bridge.sql)
+  - [`db/supabase/0002_legal_consents.sql`](/Users/dk/scene-pilot/db/supabase/0002_legal_consents.sql)
 - 执行方式：
   - 在 Supabase SQL Editor 按顺序执行两份 SQL。
 - 发布与配置说明：

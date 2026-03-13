@@ -79,6 +79,9 @@ export function BillingOverlay(props: Props) {
   const [activeLegalDoc, setActiveLegalDoc] = React.useState<LegalDocId | null>(null);
   const [localProvider, setLocalProvider] = React.useState<LocalTestProvider>("comfyui");
   const legalDoc = activeLegalDoc ? LEGAL_DOCS[activeLegalDoc] : null;
+  const billingConsentCopy = lang === "zh"
+    ? "我已阅读并同意《付费条款》《退款政策》《用户协议》《隐私说明》，并理解支付与税费由 Paddle 处理。"
+    : "I have read and agree to the Billing Terms, Refund Policy, Terms of Service, and Privacy Notice, and understand checkout and taxes are processed by Paddle.";
 
   if (!open || !page) return null;
 
@@ -247,7 +250,7 @@ export function BillingOverlay(props: Props) {
                   onChange={(e) => onBillingLegalAcceptedChange(e.target.checked)}
                   data-testid="billing-legal-consent"
                 />
-                <span>I agree to the Billing Terms and Refund Policy before payment.</span>
+                <span>{billingConsentCopy}</span>
               </label>
               <div style={styles.legalLinks}>
                 <button type="button" style={styles.legalLinkBtn} onClick={() => setActiveLegalDoc("billing")} data-testid="billing-open-billing-terms">
@@ -328,7 +331,7 @@ export function BillingOverlay(props: Props) {
                   onChange={(e) => onBillingLegalAcceptedChange(e.target.checked)}
                   data-testid="billing-legal-consent"
                 />
-                <span>I agree to the Billing Terms and Refund Policy before payment.</span>
+                <span>{billingConsentCopy}</span>
               </label>
               <div style={styles.legalLinks}>
                 <button type="button" style={styles.legalLinkBtn} onClick={() => setActiveLegalDoc("billing")} data-testid="billing-open-billing-terms">

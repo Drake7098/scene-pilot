@@ -26,9 +26,10 @@ Last updated: 2026-03-13
 ## 当前发布状态（2026-03-13）
 
 - 代码侧：登录回跳、fail-closed、`/api/auth/password/sign-in`、`AUTH_DEV_CODE_EXPOSE` 默认关闭，已完成。
-- 测试服：`https://scene-pilot-12y.pages.dev` 可访问，但 `smoke:release` 显示严格鉴权与 billing 关闭未生效（接口仍返回 200）。
-- 正式域名：`www.scenepilotix.com` 当前 DNS 未解析（本地 `curl/smoke` 为 `Could not resolve host`）。
-- 结论：当前处于“可部署代码，未完成云端配置”阶段，不能判定为可上线。
+- 测试服：`https://scene-pilot-test.pages.dev` 冒烟通过（`/api/generation/providers=401`、`/api/billing/me=401`、`/api/paddle/checkout=503`）。
+- 预正式服：`https://scene-pilot-prod.pages.dev` 冒烟通过（同上）。
+- 生产域名：`https://www.scenepilotix.com` 已绑定 `scene-pilot-prod` 并通过最终冒烟（`200/401/503`）。
+- 结论：Stage-1 发布链路收口完成（支付仍按 `BILLING_ENABLED=0` 关闭，待 Paddle 正式联调再开启）。
 
 ### 并行线程防污染（上线前新增）
 
@@ -131,7 +132,7 @@ Last updated: 2026-03-13
 - 单次 credits 购买
 - webhook 重放防重
 5. 回放命令（同一 `event_id` 发送两次，第二次应返回 `dedup=true`）：
-- `APP_URL=https://scene-pilot-12y.pages.dev PADDLE_WEBHOOK_SECRET=<secret> npm run paddle:webhook:replay`
+- `APP_URL=https://scene-pilot-test.pages.dev PADDLE_WEBHOOK_SECRET=<secret> npm run paddle:webhook:replay`
 - 如需指定测试用户与产品：
 - `APP_URL=... PADDLE_WEBHOOK_SECRET=... PADDLE_REPLAY_USER_ID=<uuid> PADDLE_REPLAY_PRODUCT_ID=pro_monthly npm run paddle:webhook:replay`
 
