@@ -6,7 +6,7 @@ import { resolveSceneConfig } from "../model";
 import type { Project, Scene, Layer, ShotPlan, Direction, TransitionType } from "../model";
 import { defaultObjectName, defaultSceneName } from "../utils/naming";
 import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_FONT, UI_INFO, UI_OPACITY, UI_PALETTE, UI_RADIUS, UI_SIZE, UI_SPACE, UI_STATUS, UI_TYPO } from "../uiTokens";
-import { Plus, Minus, ChevronRight } from "lucide-react";
+import { Plus, Minus, ChevronDown, ChevronRight } from "lucide-react";
 import {
   PRO_PLUS_MOTION_CATEGORIES,
   applyProMotionSelection,
@@ -43,6 +43,14 @@ import {
   type DirectorStylePackId
 } from "../content/directorStylePacks";
 import { resolveSceneStrategy } from "../utils/sceneStrategyResolver";
+import { TemplatesPanel } from "./TemplatesPanel";
+import type { SceneTemplate } from "../model/template";
+import { applyTemplateSnapshot } from "../rules/applyTemplate";
+import { useProCollapseSections } from "../hooks/useProCollapseSections";
+import { EditorSection, EditorSelect, EditorInput, EditorCheckbox } from "./ui";
+import { ProjectControlBar } from "./ProjectControlBar";
+import { editorTheme } from "../theme/editorTheme";
+import { Film, LayoutGrid, Layers, Camera, Settings } from "lucide-react";
 
 type Props = {
   lang: Lang;
@@ -55,6 +63,21 @@ type Props = {
   selectedLayerId: string | null;
   onSelectLayer: (id: string | null) => void;
   onUpdateScene: (s: Scene) => void;
+
+  isPro?: boolean;
+  onLockedTemplateClick?: (template: SceneTemplate) => void;
+  onRequestSaveTemplate?: () => boolean;
+  onTrackTemplate?: (event: string, props?: Record<string, unknown>) => void;
+  projectLabel?: string;
+  isMac?: boolean;
+  onOpenProject?: () => void;
+  onRenameProject?: () => void;
+  onNewProject?: () => void;
+  onSaveProject?: () => void;
+  onSaveAs?: () => void;
+  onCopyPrompt?: () => void;
+  onExportProject?: () => void;
+  onOpenLibrary?: () => void;
 };
 
 function isComposing(e: any) {
@@ -230,7 +253,21 @@ export function Sidebar(props: Props) {
     scene,
     selectedLayerId,
     onSelectLayer,
-    onUpdateScene
+    onUpdateScene,
+    isPro = false,
+    onLockedTemplateClick,
+    onRequestSaveTemplate,
+    onTrackTemplate,
+    projectLabel,
+    isMac = false,
+    onOpenProject,
+    onRenameProject,
+    onNewProject,
+    onSaveProject,
+    onSaveAs,
+    onCopyPrompt,
+    onExportProject,
+    onOpenLibrary
   } = props;
 
   const tt = useMemo(() => (key: string) => t(lang, key), [lang]);
@@ -1085,9 +1122,77 @@ export function Sidebar(props: Props) {
     );
   }
 
+  const [sidebarCollapsed, toggleSidebar] = useProCollapseSections(
+    "sidebar",
+    ["scenes", "templates", "scene_strategy", "camera_lighting", "objects"],
+    ["scenes", "scene_strategy", "camera_lighting", "objects"]
+  );
+
+  const { colors: ec, spacing: es } = editorTheme;
+
   return (
     <>
-    <div className="spx-glass-left" style={styles.wrap}>
+    {/* Override global .pro-sidebar select/input so EditorSelect/EditorInput theme wins */}
+    <style dangerouslySetInnerHTML={{
+      __html: `
+        .editor-sidebar-forms select {
+          height: auto !important;
+          min-height: 28px !important;
+          padding: 6px 28px 6px 10px !important;
+          font-size: 12px !important;
+          background-color: ${ec.bg} !important;
+          border: 1px solid ${ec.border} !important;
+          color: ${ec.text} !important;
+          border-radius: ${editorTheme.radius.input}px !important;
+        }
+        .editor-sidebar-forms select:focus {
+          border-color: ${ec.accent} !important;
+        }
+        .editor-sidebar-forms input[type="text"],
+        .editor-sidebar-forms input[type="number"] {
+          height: auto !important;
+          min-height: 24px !important;
+          padding: 0 8px !important;
+          font-size: 12px !important;
+          color: ${ec.text} !important;
+        }
+      `
+    }} />
+    <div
+      className="pro-sidebar spx-glass-left editor-sidebar-forms"
+      style={{
+        ...styles.wrap,
+        ...styles.wrapPro,
+        background: ec.panel,
+        borderRight: `1px solid ${ec.border}`,
+        padding: es.panelPadding,
+        display: "flex",
+        flexDirection: "column",
+        gap: 0,
+        minHeight: 0,
+        overflow: "auto"
+      }}
+    >
+      {/* Project header (Figma: Layout + app name + / Project) */}
+      {projectLabel != null && onSaveProject && (
+        <div style={styles.projectHeader}>
+          <ProjectControlBar
+            lang={lang}
+            isMac={isMac}
+            isPro={true}
+            variant="sidebar"
+            projectLabel={projectLabel}
+            onOpenProject={onOpenProject ?? (() => {})}
+            onRenameProject={onRenameProject ?? (() => {})}
+            onNewProject={onNewProject ?? (() => {})}
+            onSaveProject={onSaveProject}
+            onSaveAs={onSaveAs ?? (() => {})}
+            onCopyPrompt={onCopyPrompt ?? (() => {})}
+            onExportProject={onExportProject ?? (() => {})}
+            onOpenLibrary={onOpenLibrary ?? (() => {})}
+          />
+        </div>
+      )}
       {/* ✅ toast */}
       {toastText ? <div style={styles.toast}>{toastText}</div> : null}
       {floatingHint ? (
@@ -1121,12 +1226,12 @@ export function Sidebar(props: Props) {
               {tt("sidebar.deleteConfirm")}
             </div>
             <div style={styles.modalBtns}>
-              <button type="button" style={styles.btnGhost} onMouseDown={(e) => e.preventDefault()} onClick={() => setConfirmDelIdx(null)}>
+              <button type="button" className="pro-btn-ghost" onMouseDown={(e) => e.preventDefault()} onClick={() => setConfirmDelIdx(null)}>
                 {tt("sidebar.cancel")}
               </button>
               <button
                 type="button"
-                style={styles.btnDanger}
+                className="pro-btn"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => doDeleteScene(confirmDelIdx)}
               >
@@ -1153,22 +1258,24 @@ export function Sidebar(props: Props) {
           >
             <div style={styles.modalTitle}>{tt("sidebar.createScene")}</div>
 
-            <div style={styles.addRow}>
-              <div style={styles.addLabel}>{tt("sidebar.type")}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 40, marginBottom: 8 }}>
+              <div style={{ width: 88, minHeight: 36, display: "flex", alignItems: "center", fontSize: 12, color: ec.textMuted, fontWeight: 600 }}>{tt("sidebar.type")}</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, flex: 1 }}>
                 <button
                   type="button"
+                  className={newSceneModeTouched && newScene.mode === "image" ? "pro-btn" : "pro-btn-ghost"}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     setNewSceneModeTouched(true);
                     setNewScene((s) => ({ ...s, mode: "image", shotCount: "1" }));
                   }}
-                  style={{ ...styles.mediaBtn, ...(newSceneModeTouched && newScene.mode === "image" ? styles.mediaBtnOn : {}) }}
+                  style={{ height: 36, padding: "0 10px" }}
                 >
                   {tt("sidebar.image")}
                 </button>
                 <button
                   type="button"
+                  className={newSceneModeTouched && newScene.mode === "video" ? "pro-btn" : "pro-btn-ghost"}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     setNewSceneModeTouched(true);
@@ -1178,7 +1285,7 @@ export function Sidebar(props: Props) {
                       shotCount: String(defaultShotCountForPlan(resolveShotPlanFromDraft({ ...s, mode: "video" } as NewSceneDraft)))
                     }));
                   }}
-                  style={{ ...styles.mediaBtn, ...(newSceneModeTouched && newScene.mode === "video" ? styles.mediaBtnOn : {}) }}
+                  style={{ height: 36, padding: "0 10px" }}
                 >
                   {tt("sidebar.video")}
                 </button>
@@ -1186,60 +1293,62 @@ export function Sidebar(props: Props) {
             </div>
             {newScene.mode === "video" ? (
               <>
-                <div style={styles.addRow}>
-                  <div style={styles.addLabel}>{lang === "zh" ? "Q1 场景变化" : "Q1 Location"}</div>
-                  <select
-                    value={newScene.locationScope}
-                    onChange={(e) => setNewScene((s) => ({ ...s, locationScope: e.target.value as "same" | "different" }))}
-                    style={styles.select}
-                  >
-                    <option value="same">{lang === "zh" ? "不变（同一地点）" : "Same location"}</option>
-                    <option value="different">{lang === "zh" ? "变化（多地点）" : "Different locations"}</option>
-                  </select>
-                </div>
+                <EditorSelect
+                  label={lang === "zh" ? "Q1 场景变化" : "Q1 Location"}
+                  options={[
+                    { label: lang === "zh" ? "不变（同一地点）" : "Same location", value: "same" },
+                    { label: lang === "zh" ? "变化（多地点）" : "Different locations", value: "different" }
+                  ]}
+                  value={newScene.locationScope}
+                  onChange={(v) => setNewScene((s) => ({ ...s, locationScope: v as "same" | "different" }))}
+                />
                 {newScene.locationScope === "same" ? (
-                  <div style={styles.addRow}>
-                    <div style={styles.addLabel}>{lang === "zh" ? "Q2 镜头移动" : "Q2 Camera Move"}</div>
-                    <select
-                      value={newScene.cameraTravel}
-                      onChange={(e) => {
-                        const nextTravel = e.target.value as "angle_only" | "travel";
-                        const nextPlan = nextTravel === "travel" ? "continuous" : "multicam";
-                        setNewScene((s) => ({ ...s, cameraTravel: nextTravel, shotCount: String(defaultShotCountForPlan(nextPlan)) }));
-                      }}
-                      style={styles.select}
-                    >
-                      <option value="angle_only">{lang === "zh" ? "只换机位" : "Angle change only"}</option>
-                      <option value="travel">{lang === "zh" ? "连续移动" : "Continuous travel"}</option>
-                    </select>
-                  </div>
-                ) : (
-                  <div style={styles.addRow}>
-                    <div style={styles.addLabel}>{lang === "zh" ? "Q3 允许跳切" : "Q3 Jump Cut"}</div>
-                    <select
-                      value={newScene.allowJump}
-                      onChange={(e) => {
-                        const v = e.target.value as "yes" | "no";
-                        const nextPlan = v === "yes" ? "edit" : "continuous";
-                        setNewScene((s) => ({ ...s, allowJump: v, shotCount: String(defaultShotCountForPlan(nextPlan)) }));
-                      }}
-                      style={styles.select}
-                    >
-                      <option value="yes">{lang === "zh" ? "允许（标准剪辑）" : "Yes (Edit)"}</option>
-                      <option value="no">{lang === "zh" ? "不允许（连续跨场）" : "No (Continuous)"}</option>
-                    </select>
-                  </div>
-                )}
-                <div style={styles.addRow}>
-                  <div style={styles.addLabel}>{lang === "zh" ? "分镜数量" : "Shot Count"}</div>
-                  <input
-                    value={newScene.shotCount}
-                    onChange={(e) => setNewScene((s) => ({ ...s, shotCount: e.target.value }))}
-                    style={styles.addInputSmall}
-                    inputMode="numeric"
+                  <EditorSelect
+                    label={lang === "zh" ? "Q2 镜头移动" : "Q2 Camera Move"}
+                    options={[
+                      { label: lang === "zh" ? "只换机位" : "Angle change only", value: "angle_only" },
+                      { label: lang === "zh" ? "连续移动" : "Continuous travel", value: "travel" }
+                    ]}
+                    value={newScene.cameraTravel}
+                    onChange={(v) => {
+                      const nextTravel = v as "angle_only" | "travel";
+                      const nextPlan = nextTravel === "travel" ? "continuous" : "multicam";
+                      setNewScene((s) => ({ ...s, cameraTravel: nextTravel, shotCount: String(defaultShotCountForPlan(nextPlan)) }));
+                    }}
                   />
-                </div>
-                <div style={styles.genHintFloat}>
+                ) : (
+                  <EditorSelect
+                    label={lang === "zh" ? "Q3 允许跳切" : "Q3 Jump Cut"}
+                    options={[
+                      { label: lang === "zh" ? "允许（标准剪辑）" : "Yes (Edit)", value: "yes" },
+                      { label: lang === "zh" ? "不允许（连续跨场）" : "No (Continuous)", value: "no" }
+                    ]}
+                    value={newScene.allowJump}
+                    onChange={(v) => {
+                      const nextPlan = v === "yes" ? "edit" : "continuous";
+                      setNewScene((s) => ({ ...s, allowJump: v as "yes" | "no", shotCount: String(defaultShotCountForPlan(nextPlan)) }));
+                    }}
+                  />
+                )}
+                <EditorInput
+                  label={lang === "zh" ? "分镜数量" : "Shot Count"}
+                  value={newScene.shotCount}
+                  onChange={(v) => setNewScene((s) => ({ ...s, shotCount: v }))}
+                  type="text"
+                  inputMode="numeric"
+                />
+                <div
+                  style={{
+                    fontSize: 11,
+                    lineHeight: 1.35,
+                    border: `1px solid ${ec.border}`,
+                    borderRadius: editorTheme.radius.input,
+                    background: ec.bg,
+                    padding: "8px 10px",
+                    opacity: 0.9,
+                    marginTop: 0
+                  }}
+                >
                   {lang === "zh"
                     ? `已选模式：${resolveShotPlanFromDraft(newScene)}`
                     : `Mode: ${resolveShotPlanFromDraft(newScene)}`}
@@ -1247,85 +1356,97 @@ export function Sidebar(props: Props) {
               </>
             ) : null}
 
-            <div style={styles.addRow}>
-              <div style={styles.addLabel}>{tt("sidebar.mode")}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 40, marginBottom: 8 }}>
+              <div style={{ width: 88, minHeight: 36, display: "flex", alignItems: "center", fontSize: 12, color: ec.textMuted, fontWeight: 600 }}>{tt("sidebar.mode")}</div>
               <div style={styles.genModeRow}>
                 <button
                   type="button"
+                  className={newSceneGenModeTouched && newScene.genMode === "quick" ? "pro-btn" : "pro-btn-ghost"}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     setNewSceneGenModeTouched(true);
                     setNewScene((s) => ({ ...s, genMode: "quick" }));
                   }}
-                  style={{ ...styles.mediaBtn, ...(newSceneGenModeTouched && newScene.genMode === "quick" ? styles.mediaBtnOn : {}) }}
+                  style={{ height: 36, padding: "0 10px" }}
                 >
                   {tt("sidebar.quick")}
                 </button>
                 <button
                   type="button"
+                  className={newSceneGenModeTouched && newScene.genMode === "pro" ? "pro-btn" : "pro-btn-ghost"}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     setNewSceneGenModeTouched(true);
                     setNewScene((s) => ({ ...s, genMode: "pro" }));
                   }}
-                  style={{ ...styles.mediaBtn, ...(newSceneGenModeTouched && newScene.genMode === "pro" ? styles.mediaBtnOn : {}) }}
+                  style={{ height: 36, padding: "0 10px" }}
                 >
                   PRO
                 </button>
                 <button
                   type="button"
-                  style={styles.qBtn}
+                  className="pro-btn-ghost"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => setShowGenHint((v) => !v)}
                   title={tt("sidebar.showModeDiff")}
+                  style={{ height: 36, minWidth: 36, padding: 0 }}
                 >
                   ?
                 </button>
               </div>
             </div>
             {showGenHint ? (
-              <div style={styles.genHintFloat}>
+              <div
+                style={{
+                  fontSize: 11,
+                  lineHeight: 1.35,
+                  border: `1px solid ${ec.border}`,
+                  borderRadius: editorTheme.radius.input,
+                  background: ec.bg,
+                  padding: "8px 10px",
+                  opacity: 0.9,
+                  marginTop: 0
+                }}
+              >
                 {tt("sidebar.modeDiffHint")}
               </div>
             ) : null}
 
-            <div style={styles.addRow}>
-              <div style={styles.addLabel}>{tt("sidebar.name")}</div>
-              <input
-                value={newScene.name}
-                onMouseDown={(e) => e.stopPropagation()}
-                onChange={(e) => setNewScene((s) => ({ ...s, name: e.target.value }))}
-                maxLength={40}
-                style={styles.addInput}
-                placeholder={tt("sidebar.namePlaceholder")}
-              />
-            </div>
+            <EditorInput
+              label={tt("sidebar.name")}
+              value={newScene.name}
+              onChange={(v) => setNewScene((s) => ({ ...s, name: v }))}
+              placeholder={tt("sidebar.namePlaceholder")}
+              maxLength={40}
+            />
 
-            <div style={{ ...styles.addRow, visibility: newScene.mode === "video" ? "visible" : "hidden" }}>
-              <div style={styles.addLabel}>{tt("sidebar.seconds")}</div>
-              <input
+            <div style={{ visibility: newScene.mode === "video" ? "visible" : "hidden" }}>
+              <EditorInput
+                label={tt("sidebar.seconds")}
                 value={newScene.duration_s}
-                onChange={(e) => setNewScene((s) => ({ ...s, duration_s: e.target.value }))}
-                style={styles.addInputSmall}
+                onChange={(v) => setNewScene((s) => ({ ...s, duration_s: v }))}
+                type="text"
                 inputMode="numeric"
                 disabled={newScene.mode !== "video"}
+                suffix={lang === "zh" ? "秒" : "s"}
               />
             </div>
 
             <div style={styles.modalBtns}>
               <button
                 type="button"
+                className="pro-btn-ghost"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={cancelAddScenePanel}
-                style={styles.btnGhost}
               >
                 {tt("sidebar.cancel")}
               </button>
               <button
                 type="button"
+                className="pro-btn"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => confirmAddScene(e.currentTarget as HTMLElement)}
-                style={styles.btnPrimary}
+                style={{ opacity: remainingSceneSlots <= 0 ? 0.6 : 1 }}
                 disabled={remainingSceneSlots <= 0}
                 title={remainingSceneSlots <= 0 ? sceneLimitText() : undefined}
               >
@@ -1336,23 +1457,82 @@ export function Sidebar(props: Props) {
         </div>
       ) : null}
 
-      {/* Scenes */}
+      {/* Template Library (Figma: first) */}
+      <EditorSection
+        title={tt("sidebar.templates")}
+        icon={LayoutGrid}
+        open={!sidebarCollapsed.has("templates")}
+        onOpenChange={(open) => {
+          const currentlyOpen = !sidebarCollapsed.has("templates");
+          if (open !== currentlyOpen) toggleSidebar("templates");
+        }}
+      >
       <div style={styles.section}>
-        <div style={styles.sectionHead}>
-          <div style={styles.sectionTitle}>{tt("sidebar.scenes")}</div>
-          <div style={{ flex: 1 }} />
-          <button
-            type="button"
-            style={styles.iconBtn}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => addSceneByProjectDefaults(e.currentTarget as HTMLElement)}
-            title={sceneLimitReached ? sceneLimitText() : tt("sidebar.addScene")}
-            disabled={isImageProject || sceneLimitReached}
-          >
-            <Plus size={16} />
-          </button>
-        </div>
+        <TemplatesPanel
+          key={lang}
+          lang={lang}
+          isPro={isPro}
+          sceneLimitReached={sceneLimitReached}
+          onUseTemplate={(template) => {
+            const result = applyTemplateSnapshot(template, project, scenes.length, "pro");
+            if (result.appliedProject) {
+              onUpdateProject(result.appliedProject);
+              setSceneIdx(result.appliedProject.scenes.length - 1);
+              onSelectLayer(null);
+              const msg = result.toastMessages[0] ?? (lang === "zh" ? "已从模板创建分镜" : "Scene created from template");
+              showFloatingHint(msg, null, "info");
+              onTrackTemplate?.(
+                result.compatibility === "partial" ? "template_apply_partial" : "template_apply_full",
+                { compatibility: result.compatibility }
+              );
+            } else if (result.appliedScene) {
+              const fallbackProject: Project = {
+                ...project,
+                scenes: [...scenes, result.appliedScene].map((s, i) => ({ ...s, index: i + 1 }))
+              };
+              onUpdateProject(fallbackProject);
+              setSceneIdx(fallbackProject.scenes.length - 1);
+              onSelectLayer(null);
+              showFloatingHint(result.blockReason ?? (lang === "zh" ? "已从模板创建分镜" : "Scene created from template"), null, "info");
+            }
+          }}
+          onLockedClick={(tpl) => onLockedTemplateClick?.(tpl)}
+          onRequestSaveTemplate={() => {
+            const ok = onRequestSaveTemplate?.();
+            if (ok) showFloatingHint(lang === "zh" ? "已保存为模板" : "Saved as template", null, "info");
+            return ok;
+          }}
+          onTrack={onTrackTemplate}
+        />
+      </div>
+      </EditorSection>
 
+      {/* Scene List (Figma: second) */}
+      <EditorSection
+        title={tt("sidebar.scenes")}
+        icon={Film}
+        open={!sidebarCollapsed.has("scenes")}
+        onOpenChange={(open) => {
+          const currentlyOpen = !sidebarCollapsed.has("scenes");
+          if (open !== currentlyOpen) toggleSidebar("scenes");
+        }}
+        extraColumnWidth={28}
+        extra={
+          <div style={styles.plusMinusCol}>
+            <button
+              type="button"
+              className="pro-icon-btn"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => { e.stopPropagation(); addSceneByProjectDefaults(e.currentTarget as HTMLElement); }}
+              title={sceneLimitReached ? sceneLimitText() : tt("sidebar.addScene")}
+              disabled={isImageProject || sceneLimitReached}
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+        }
+      >
+      <div style={styles.sectionListOnly}>
         <div style={styles.list}>
           {scenes.map((s, i) => {
             const isOn = i === safeIdx;
@@ -1366,7 +1546,15 @@ export function Sidebar(props: Props) {
                 <div
                   role="button"
                   tabIndex={0}
-                  style={{ ...styles.rowBtn, ...(isOn ? styles.rowBtnOn : {}) }}
+                  className="pro-scene-row"
+                  data-active={isOn ? "true" : "false"}
+                  style={{
+                    ...styles.listItemContent,
+                    background: isOn ? ec.accentSoft : "transparent",
+                    color: isOn ? ec.accent : ec.text,
+                    border: `1px solid ${isOn ? ec.accent : ec.border}`,
+                    transition: `background ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}, color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}, border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
+                  }}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     setSceneIdx(i);
@@ -1391,7 +1579,17 @@ export function Sidebar(props: Props) {
                           if (e.key === "Escape") setEditingSceneId(null);
                         }}
                         onBlur={() => commitSceneName(s.id)}
-                        style={styles.renameInput}
+                        style={{
+                          flex: 1,
+                          height: 26,
+                          borderRadius: editorTheme.radius.input,
+                          border: `1px solid ${ec.accent}`,
+                          background: ec.bg,
+                          color: ec.text,
+                          outline: "none",
+                          padding: "0 8px",
+                          fontSize: editorTheme.typography.bodySize
+                        }}
                       />
                     ) : (
                       <div
@@ -1421,7 +1619,18 @@ export function Sidebar(props: Props) {
                             if (e.key === "Escape") setEditingDurSceneId(null);
                           }}
                           onBlur={() => commitSceneDuration(s.id)}
-                          style={styles.durInput}
+                          style={{
+                            width: 58,
+                            height: 26,
+                            borderRadius: editorTheme.radius.input,
+                            border: `1px solid ${ec.accent}`,
+                            background: ec.bg,
+                            color: ec.text,
+                            outline: "none",
+                            padding: "0 8px",
+                            fontSize: editorTheme.typography.bodySize,
+                            textAlign: "right"
+                          }}
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -1429,7 +1638,12 @@ export function Sidebar(props: Props) {
                         <div
                           role="button"
                           tabIndex={0}
-                          style={styles.badgeBtn}
+                          style={{
+                            ...styles.infoBadge,
+                            cursor: "pointer",
+                            border: `1px solid ${ec.border}`,
+                            background: ec.bg
+                          }}
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.preventDefault();
@@ -1443,13 +1657,16 @@ export function Sidebar(props: Props) {
                         </div>
                       )
                     ) : (
-                      <div style={{ ...styles.badgeBtn, opacity: 0.78 }} title={tt("sidebar.imageScene")}>
+                      <div
+                        style={{ ...styles.infoBadge, opacity: 0.78, border: `1px solid ${ec.border}`, background: ec.bg }}
+                        title={tt("sidebar.imageScene")}
+                      >
                         {badgeText}
                       </div>
                     )}
                     {mode === "video" && i > 0 ? (
                       <div
-                        style={{ ...styles.badgeBtn, opacity: 0.78 }}
+                        style={{ ...styles.infoBadge, opacity: 0.78, border: `1px solid ${ec.border}`, background: ec.bg }}
                         title={
                           s.inheritFromPrevious
                             ? (lang === "zh" ? "继承上一镜布局" : "Inherit previous shot layout")
@@ -1460,7 +1677,10 @@ export function Sidebar(props: Props) {
                       </div>
                     ) : null}
                     {mode === "video" && i > 0 && i < scenes.length - 1 ? (
-                      <div style={{ ...styles.badgeBtn, opacity: 0.78 }} title={lang === "zh" ? "衔接方式" : "Transition"}>
+                      <div
+                        style={{ ...styles.infoBadge, opacity: 0.78, border: `1px solid ${ec.border}`, background: ec.bg }}
+                        title={lang === "zh" ? "衔接方式" : "Transition"}
+                      >
                         {transitionLabel(lang, s.transitionType)}
                       </div>
                     ) : null}
@@ -1469,43 +1689,99 @@ export function Sidebar(props: Props) {
 
                 <button
                   type="button"
-                  style={styles.iconBtnDanger}
+                  className="pro-icon-btn"
+                  style={styles.minusColBtn}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => requestDeleteScene(i, e.currentTarget as HTMLElement)}
                   title={tt("sidebar.deleteScene")}
                   disabled={scenes.length <= 1 || isImageProject}
                 >
-                  <Minus size={16} />
+                  <Minus size={14} />
                 </button>
               </div>
             );
           })}
         </div>
       </div>
+      </EditorSection>
 
-      {/* Objects */}
+      {/* Camera & Lighting (Figma: third) */}
+      <EditorSection
+        title={lang === "zh" ? "镜头 · 光" : "Camera & Lighting"}
+        icon={Camera}
+        open={!sidebarCollapsed.has("camera_lighting")}
+        onOpenChange={(open) => {
+          const currentlyOpen = !sidebarCollapsed.has("camera_lighting");
+          if (open !== currentlyOpen) toggleSidebar("camera_lighting");
+        }}
+      >
       <div style={styles.section}>
-        <div style={styles.sectionHead}>
-          <div style={styles.sectionTitle}>{tt("sidebar.layers")}</div>
-          <div style={{ flex: 1 }} />
-          <button
-            type="button"
-            style={styles.iconBtn}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={addLayer}
-            title={layerLimitReached ? layerLimitText() : tt("sidebar.addLayer")}
-            disabled={layerLimitReached}
-          >
-            <Plus size={16} />
-          </button>
-        </div>
+        <EditorSelect
+          label={tt("lighting.time")}
+          options={timeOptions.map((o) => ({ label: o.label, value: o.v }))}
+          value={visibleLightingTime}
+          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, time: v } as any })}
+        />
+        <EditorSelect
+          label={tt("lighting.keyDir")}
+          options={dirOptions.map((o) => ({ label: o.label, value: o.v }))}
+          value={visibleLightingKeyDir}
+          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, key_dir: v } as any })}
+        />
+        <EditorSelect
+          label={tt("lighting.mood")}
+          options={moodOptions.map((o) => ({ label: o.label, value: o.v }))}
+          value={visibleLightingMood}
+          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, mood: v } as any })}
+        />
+      </div>
+      </EditorSection>
 
+      {/* Object Layers (Figma: fourth) */}
+      <EditorSection
+        title={tt("sidebar.layers")}
+        icon={Layers}
+        open={!sidebarCollapsed.has("objects")}
+        onOpenChange={(open) => {
+          const currentlyOpen = !sidebarCollapsed.has("objects");
+          if (open !== currentlyOpen) toggleSidebar("objects");
+        }}
+        extraColumnWidth={28}
+        extra={
+          <div style={styles.plusMinusCol}>
+            <button
+              type="button"
+              className="pro-icon-btn"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => { e.stopPropagation(); addLayer(); }}
+              title={layerLimitReached ? layerLimitText() : tt("sidebar.addLayer")}
+              disabled={layerLimitReached}
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+        }
+      >
+      <div style={styles.sectionListOnly}>
         <div style={styles.list}>
           {(scene.layers ?? []).length === 0 ? (
-            <div style={{ ...styles.rowBtn, ...styles.placeholderRow }} title={lang === "zh" ? "示例占位，不会写入项目" : "Example placeholder only"}>
-              <div style={styles.rowInner}>
-                <div style={styles.renameText}>{lang === "zh" ? "人物1" : "character1"}</div>
+            <div style={styles.itemRowWrap}>
+              <div
+                style={{
+                  ...styles.listItemContent,
+                  opacity: 0.55,
+                  cursor: "default",
+                  background: "transparent",
+                  border: `1px solid ${ec.border}`,
+                  color: ec.textMuted
+                }}
+                title={lang === "zh" ? "示例占位，不会写入项目" : "Example placeholder only"}
+              >
+                <div style={styles.rowInner}>
+                  <div style={styles.renameText}>{lang === "zh" ? "人物1" : "character1"}</div>
+                </div>
               </div>
+              <div style={{ width: 28, minWidth: 28 }} />
             </div>
           ) : null}
           {(scene.layers ?? [])
@@ -1519,7 +1795,15 @@ export function Sidebar(props: Props) {
                   <div
                     role="button"
                     tabIndex={0}
-                    style={{ ...styles.rowBtn, ...(isOn ? styles.rowBtnOn : {}) }}
+                    className="pro-object-row"
+                    data-active={isOn ? "true" : "false"}
+                    style={{
+                      ...styles.listItemContent,
+                      background: isOn ? ec.hover : "transparent",
+                      color: isOn ? ec.text : ec.textMuted,
+                      border: `1px solid ${ec.border}`,
+                      transition: `background ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}, color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}, border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
+                    }}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => onSelectLayer(l.id)}
                     onKeyDown={(e) => {
@@ -1538,7 +1822,17 @@ export function Sidebar(props: Props) {
                             if (e.key === "Escape") setEditingLayerId(null);
                           }}
                           onBlur={() => commitLayerId(l.id)}
-                          style={styles.renameInput}
+                          style={{
+                            flex: 1,
+                            height: 26,
+                            borderRadius: editorTheme.radius.input,
+                            border: `1px solid ${ec.accent}`,
+                            background: ec.bg,
+                            color: ec.text,
+                            outline: "none",
+                            padding: "0 8px",
+                            fontSize: editorTheme.typography.bodySize
+                          }}
                         />
                       ) : (
                         <div
@@ -1560,12 +1854,13 @@ export function Sidebar(props: Props) {
 
                   <button
                     type="button"
-                    style={styles.iconBtnDanger}
+                    className="pro-icon-btn"
+                    style={styles.minusColBtn}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => deleteLayer(l.id)}
                     title={tt("sidebar.deleteLayer")}
                   >
-                    <Minus size={16} />
+                    <Minus size={14} />
                   </button>
                 </div>
               );
@@ -1573,208 +1868,228 @@ export function Sidebar(props: Props) {
         </div>
 
       </div>
-      {/* Scene Strategy + Lighting */}
-      <div style={styles.section}>
-        <div style={styles.sectionTitle}>{lang === "zh" ? "场景策略" : "Scene Strategy"}</div>
+      </EditorSection>
 
+      {/* Scene Strategy */}
+      <EditorSection
+        title={lang === "zh" ? "场景策略" : "Scene Strategy"}
+        icon={Settings}
+        open={!sidebarCollapsed.has("scene_strategy")}
+        onOpenChange={(open) => {
+          const currentlyOpen = !sidebarCollapsed.has("scene_strategy");
+          if (open !== currentlyOpen) toggleSidebar("scene_strategy");
+        }}
+      >
+      <div style={styles.section}>
         {isVideoProject && projectShotPlan === "continuous" ? (
           <>
-            <div style={styles.formRow}>
-              <div style={styles.formLabel}>{lang === "zh" ? "入镜方向" : "Entry"}</div>
-              <select
-                style={styles.select}
-                value={(scene.entryDir ?? "").toString()}
-                onChange={(e) => onUpdateScene({ ...scene, entryDir: (e.target.value || undefined) as Direction | undefined })}
-              >
-                <option value="">{lang === "zh" ? "自动" : "Auto"}</option>
-                <option value="N">N</option>
-                <option value="NE">NE</option>
-                <option value="E">E</option>
-                <option value="SE">SE</option>
-                <option value="S">S</option>
-                <option value="SW">SW</option>
-                <option value="W">W</option>
-                <option value="NW">NW</option>
-              </select>
-            </div>
-            <div style={styles.formRow}>
-              <div style={styles.formLabel}>{lang === "zh" ? "出镜方向" : "Exit"}</div>
-              <select
-                style={styles.select}
-                value={(scene.exitDir ?? "").toString()}
-                onChange={(e) => onUpdateScene({ ...scene, exitDir: (e.target.value || undefined) as Direction | undefined })}
-              >
-                <option value="">{lang === "zh" ? "自动" : "Auto"}</option>
-                <option value="N">N</option>
-                <option value="NE">NE</option>
-                <option value="E">E</option>
-                <option value="SE">SE</option>
-                <option value="S">S</option>
-                <option value="SW">SW</option>
-                <option value="W">W</option>
-                <option value="NW">NW</option>
-              </select>
-            </div>
+            <EditorSelect
+              label={lang === "zh" ? "入镜方向" : "Entry"}
+              options={[
+                { label: lang === "zh" ? "自动" : "Auto", value: "" },
+                "N", "NE", "E", "SE", "S", "SW", "W", "NW"
+              ]}
+              value={(scene.entryDir ?? "").toString()}
+              onChange={(v) => onUpdateScene({ ...scene, entryDir: (v || undefined) as Direction | undefined })}
+            />
+            <EditorSelect
+              label={lang === "zh" ? "出镜方向" : "Exit"}
+              options={[
+                { label: lang === "zh" ? "自动" : "Auto", value: "" },
+                "N", "NE", "E", "SE", "S", "SW", "W", "NW"
+              ]}
+              value={(scene.exitDir ?? "").toString()}
+              onChange={(v) => onUpdateScene({ ...scene, exitDir: (v || undefined) as Direction | undefined })}
+            />
           </>
         ) : null}
 
         {isVideoProject && projectShotPlan !== "single" ? (
-          <div style={styles.formRow}>
-            <div style={styles.formLabel}>{lang === "zh" ? "对象继承" : "Inherit Objects"}</div>
-            <select
-              style={styles.select}
-              value={scene.inheritFromPrevious ? "on" : "off"}
-              onChange={(e) => {
-                const on = e.target.value === "on";
-                const forced = projectShotPlan === "continuous" ? true : on;
-                onUpdateScene({ ...scene, inheritFromPrevious: forced });
-              }}
-              disabled={safeIdx === 0 || projectShotPlan === "continuous"}
-            >
-              <option value="on">{lang === "zh" ? "开启" : "On"}</option>
-              <option value="off">{lang === "zh" ? "关闭" : "Off"}</option>
-            </select>
-          </div>
+          <EditorSelect
+            label={lang === "zh" ? "对象继承" : "Inherit Objects"}
+            options={[
+              { label: lang === "zh" ? "开启" : "On", value: "on" },
+              { label: lang === "zh" ? "关闭" : "Off", value: "off" }
+            ]}
+            value={scene.inheritFromPrevious ? "on" : "off"}
+            onChange={(v) => {
+              const on = v === "on";
+              const forced = projectShotPlan === "continuous" ? true : on;
+              onUpdateScene({ ...scene, inheritFromPrevious: forced });
+            }}
+            disabled={safeIdx === 0 || projectShotPlan === "continuous"}
+          />
         ) : null}
 
         <div style={styles.proDirectorBlock} data-testid="pro-director-block">
-          <div style={styles.proDirectorTitle}>{lang === "zh" ? "经典模式" : "Classic Mode"}</div>
-          <div style={styles.formRow}>
-            <div style={styles.formLabel}>{lang === "zh" ? "一键选择" : "Preset"}</div>
-            <select
-              style={{ ...styles.select, ...styles.selectWide }}
+          <div data-testid="pro-shot-recipe-select">
+            <EditorSelect
+              label={lang === "zh" ? "一键选择" : "Preset"}
+              options={[
+                { label: lang === "zh" ? "未选择" : "None", value: "" },
+                ...((isVideoProject ? hasVideoManualClassic : hasImageManualClassic)
+                  ? [{ label: lang === "zh" ? "手动设置" : "Manual Setup", value: "__manual__", disabled: true as const }]
+                  : []),
+                ...(isVideoProject ? videoClassicModes : imageClassicModes).map((recipe) => ({
+                  label: recipeOptionLabel(recipe),
+                  value: recipe.id,
+                  disabled: false as const
+                }))
+              ]}
               value={isVideoProject ? videoClassicSelectValue : imageClassicSelectValue}
-              onChange={(e) => {
-                if (e.target.value === "__manual__") return;
-                return isVideoProject ? pickVideoClassicMode(e.target.value) : pickImageClassicMode(e.target.value);
+              onChange={(v) => {
+                if (v === "__manual__") return;
+                return isVideoProject ? pickVideoClassicMode(v) : pickImageClassicMode(v);
               }}
-              data-testid="pro-shot-recipe-select"
-            >
-              <option value="">{lang === "zh" ? "未选择" : "None"}</option>
-              {(isVideoProject ? hasVideoManualClassic : hasImageManualClassic) ? (
-                <option value="__manual__" disabled>{lang === "zh" ? "手动设置" : "Manual Setup"}</option>
-              ) : null}
-              {(isVideoProject ? videoClassicModes : imageClassicModes).map((recipe) => (
-                <option key={recipe.id} value={recipe.id} title={lang === "zh" ? recipe.nameZh : recipe.nameEn}>
-                  {recipeOptionLabel(recipe)}
-                </option>
-              ))}
-            </select>
+            />
           </div>
-          <div style={styles.formRow}>
-            <div style={styles.formLabel}>{isVideoProject ? tt("camera.shot") : (lang === "zh" ? "构图景别" : "Framing")}</div>
-            <select
-              style={{ ...styles.select, ...styles.selectWide }}
-              value={visibleShot}
-              onChange={(e) => updateCameraField("shot", e.target.value)}
-              data-testid="classic-shot-select"
-            >
-              {shotOptions.map((o) => (
-                <option key={o.v} value={o.v}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <EditorSelect
+            label={isVideoProject ? tt("camera.shot") : (lang === "zh" ? "构图景别" : "Framing")}
+            options={shotOptions.map((o) => ({ label: o.label, value: o.v }))}
+            value={visibleShot}
+            onChange={(v) => updateCameraField("shot", v)}
+          />
           {isVideoProject ? (
-            <div style={styles.formRow}>
-              <div style={styles.formLabel}>{tt("camera.movement")}</div>
-              <select
-                style={{ ...styles.select, ...styles.selectWide }}
-                value={visibleMovement}
-                onChange={(e) => updateCameraField("movement", e.target.value)}
-                data-testid="classic-movement-select"
-              >
-                {moveOptions.map((o) => (
-                  <option key={o.v} value={o.v}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <EditorSelect
+              label={tt("camera.movement")}
+              options={moveOptions.map((o) => ({ label: o.label, value: o.v }))}
+              value={visibleMovement}
+              onChange={(v) => updateCameraField("movement", v)}
+            />
           ) : null}
         </div>
 
         {isVideoProject ? (
           <div style={styles.proMotionBlock} data-testid="pro-motion-block">
-            <div style={styles.proDirectorTitle}>{lang === "zh" ? "PRO+ 导演控制" : "PRO+ Director Controls"}</div>
+            <div style={{ ...styles.proDirectorTitle, color: ec.text }}>{lang === "zh" ? "PRO+ 导演控制" : "PRO+ Director Controls"}</div>
             <div style={styles.proMotionPanel}>
-              <div style={styles.formRow}>
-                <div style={styles.formLabel}>{lang === "zh" ? "导演级风格包" : "Directing Pack"}</div>
-                <select
-                  style={{ ...styles.select, ...styles.selectWide }}
+              <div data-testid="director-style-pack-select">
+                <EditorSelect
+                  label={lang === "zh" ? "导演级风格包" : "Directing Pack"}
+                  options={[
+                    { label: lang === "zh" ? "自动" : "Auto", value: "" },
+                    ...DIRECTOR_STYLE_PACKS.map((pack) => ({ label: lang === "zh" ? pack.labelZh : pack.labelEn, value: pack.id }))
+                  ]}
                   value={directorStylePackId ?? ""}
-                  onChange={(e) => updateDirectorStylePack(e.target.value)}
-                  data-testid="director-style-pack-select"
-                  title={currentDirectorStylePackLabel()}
-                >
-                  <option value="">{lang === "zh" ? "自动" : "Auto"}</option>
-                  {DIRECTOR_STYLE_PACKS.map((pack) => (
-                    <option key={pack.id} value={pack.id}>
-                      {lang === "zh" ? pack.labelZh : pack.labelEn}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => updateDirectorStylePack(v)}
+                />
               </div>
             </div>
             <div style={styles.proMotionPanel} data-testid="pro-motion-plus-panel">
-              <div style={styles.formRow}>
-                <div style={styles.formLabel}>{lang === "zh" ? "镜头语言" : "Shot Language"}</div>
-                <div ref={videoProMenuRef} style={styles.proMotionSelectShell}>
-                  <button
-                    ref={videoProTriggerRef}
-                    type="button"
-                    style={{ ...styles.select, ...styles.selectWide, ...styles.proMotionSelectBtn }}
-                    onClick={() => {
-                      setVideoProMenuOpen((prev) => !prev);
-                      setVideoProCategoryHover(null);
-                    }}
-                    data-testid="pro-plus-trigger"
-                  >
-                    <span style={styles.proMotionSelectValue}>{currentVideoProMenuLabel()}</span>
-                  </button>
+              <div ref={videoProMenuRef} style={styles.proMotionSelectShell}>
+                <div style={{ marginBottom: editorTheme.spacing.fieldMarginBottom }}>
+                  <label style={{ display: "block", fontSize: editorTheme.typography.labelSize, fontWeight: editorTheme.typography.labelWeight, color: ec.textMuted, marginBottom: 4 }}>
+                    {lang === "zh" ? "镜头语言" : "Shot Language"}
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <button
+                      ref={videoProTriggerRef}
+                      type="button"
+                      data-testid="pro-plus-trigger"
+                      data-open={videoProMenuOpen ? "true" : undefined}
+                      onClick={() => {
+                        setVideoProMenuOpen((prev) => !prev);
+                        setVideoProCategoryHover(null);
+                      }}
+                      style={{
+                        ...styles.proShotLanguageBtn,
+                        borderColor: videoProMenuOpen ? ec.accent : undefined,
+                        transition: `border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!videoProMenuOpen) e.currentTarget.style.borderColor = ec.textMuted;
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!videoProMenuOpen) e.currentTarget.style.borderColor = ec.border;
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = ec.accent;
+                      }}
+                      onBlur={(e) => {
+                        if (!videoProMenuOpen) e.currentTarget.style.borderColor = ec.border;
+                      }}
+                    >
+                      <span style={styles.proShotLanguageValue}>{currentVideoProMenuLabel()}</span>
+                      <ChevronDown
+                        size={editorTheme.sizing.selectArrowSize}
+                        style={{
+                          flexShrink: 0,
+                          color: ec.textMuted,
+                          opacity: videoProMenuOpen ? 1 : 0.85,
+                          transform: videoProMenuOpen ? "rotate(180deg)" : "none",
+                          transition: `transform ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
+                        }}
+                        aria-hidden
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         ) : (
           <div style={styles.proMotionBlock} data-testid="pro-image-block">
-            <div style={styles.proDirectorTitle}>{lang === "zh" ? "PRO+ 风格控制" : "PRO+ Style Controls"}</div>
             <div style={styles.proMotionPanel}>
-              <div style={styles.formRow}>
-                <div style={styles.formLabel}>{lang === "zh" ? "导演级风格包" : "Directing Pack"}</div>
-                <select
-                  style={{ ...styles.select, ...styles.selectWide }}
+              <div data-testid="director-style-pack-select">
+                <EditorSelect
+                  label={lang === "zh" ? "导演级风格包" : "Directing Pack"}
+                  options={[
+                    { label: lang === "zh" ? "自动" : "Auto", value: "" },
+                    ...DIRECTOR_STYLE_PACKS.map((pack) => ({ label: lang === "zh" ? pack.labelZh : pack.labelEn, value: pack.id }))
+                  ]}
                   value={directorStylePackId ?? ""}
-                  onChange={(e) => updateDirectorStylePack(e.target.value)}
-                  data-testid="director-style-pack-select"
-                  title={currentDirectorStylePackLabel()}
-                >
-                  <option value="">{lang === "zh" ? "自动" : "Auto"}</option>
-                  {DIRECTOR_STYLE_PACKS.map((pack) => (
-                    <option key={pack.id} value={pack.id}>
-                      {lang === "zh" ? pack.labelZh : pack.labelEn}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => updateDirectorStylePack(v)}
+                />
               </div>
             </div>
             <div style={styles.proMotionPanel}>
-              <div style={styles.formRow}>
-                <div style={styles.formLabel}>{lang === "zh" ? "画面语言" : "Visual Language"}</div>
-                <div ref={imageProMenuRef} style={styles.proMotionSelectShell}>
-                  <button
-                    ref={imageProTriggerRef}
-                    type="button"
-                    style={{ ...styles.select, ...styles.selectWide, ...styles.proMotionSelectBtn }}
-                    onClick={() => {
-                      setImageProMenuOpen((prev) => !prev);
-                      setImageProCategoryHover(null);
-                    }}
-                    data-testid="pro-image-trigger"
-                  >
-                    <span style={styles.proMotionSelectValue}>{currentImageProMenuLabel()}</span>
-                  </button>
+              <div ref={imageProMenuRef} style={styles.proMotionSelectShell}>
+                <div style={{ marginBottom: editorTheme.spacing.fieldMarginBottom }}>
+                  <label style={{ display: "block", fontSize: editorTheme.typography.labelSize, fontWeight: editorTheme.typography.labelWeight, color: ec.textMuted, marginBottom: 4 }}>
+                    {lang === "zh" ? "画面语言" : "Visual Language"}
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <button
+                      ref={imageProTriggerRef}
+                      type="button"
+                      data-testid="pro-image-trigger"
+                      data-open={imageProMenuOpen ? "true" : undefined}
+                      onClick={() => {
+                        setImageProMenuOpen((prev) => !prev);
+                        setImageProCategoryHover(null);
+                      }}
+                      style={{
+                        ...styles.proShotLanguageBtn,
+                        borderColor: imageProMenuOpen ? ec.accent : undefined,
+                        transition: `border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!imageProMenuOpen) e.currentTarget.style.borderColor = ec.textMuted;
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!imageProMenuOpen) e.currentTarget.style.borderColor = ec.border;
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = ec.accent;
+                      }}
+                      onBlur={(e) => {
+                        if (!imageProMenuOpen) e.currentTarget.style.borderColor = ec.border;
+                      }}
+                    >
+                      <span style={styles.proShotLanguageValue}>{currentImageProMenuLabel()}</span>
+                      <ChevronDown
+                        size={editorTheme.sizing.selectArrowSize}
+                        style={{
+                          flexShrink: 0,
+                          color: ec.textMuted,
+                          opacity: imageProMenuOpen ? 1 : 0.85,
+                          transform: imageProMenuOpen ? "rotate(180deg)" : "none",
+                          transition: `transform ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
+                        }}
+                        aria-hidden
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1782,72 +2097,23 @@ export function Sidebar(props: Props) {
         )}
 
         {isVideoProject && projectShotPlan !== "single" ? (
-          <div style={styles.formRow}>
-            <div style={styles.formLabel}>{lang === "zh" ? "衔接方式" : "Transition"}</div>
-            <select
-              style={styles.select}
-              value={visibleTransition}
-              onChange={(e) => onUpdateScene({ ...scene, transitionType: e.target.value as TransitionType })}
-              disabled={projectShotPlan === "continuous" || safeIdx >= scenes.length - 1}
-            >
-              <option value="cut">{lang === "zh" ? "切换 (cut)" : "Cut"}</option>
-              <option value="reverse_angle">{lang === "zh" ? "反打 (reverse angle)" : "Reverse angle"}</option>
-              <option value="camera_continues">{lang === "zh" ? "连续推进 (camera continues)" : "Camera continues"}</option>
-              <option value="dissolve">{lang === "zh" ? "叠化 (dissolve)" : "Dissolve"}</option>
-              <option value="time_jump">{lang === "zh" ? "时间跳转 (time jump)" : "Time jump"}</option>
-            </select>
-          </div>
+          <EditorSelect
+            label={lang === "zh" ? "衔接方式" : "Transition"}
+            options={[
+              { label: lang === "zh" ? "切换 (cut)" : "Cut", value: "cut" },
+              { label: lang === "zh" ? "反打 (reverse angle)" : "Reverse angle", value: "reverse_angle" },
+              { label: lang === "zh" ? "连续推进 (camera continues)" : "Camera continues", value: "camera_continues" },
+              { label: lang === "zh" ? "叠化 (dissolve)" : "Dissolve", value: "dissolve" },
+              { label: lang === "zh" ? "时间跳转 (time jump)" : "Time jump", value: "time_jump" }
+            ]}
+            value={visibleTransition}
+            onChange={(v) => onUpdateScene({ ...scene, transitionType: v as TransitionType })}
+            disabled={projectShotPlan === "continuous" || safeIdx >= scenes.length - 1}
+          />
         ) : null}
 
-        <div style={{ height: 8 }} />
-
-        <div style={styles.sectionTitle}>{tt("lighting.title")}</div>
-
-        <div style={styles.formRow}>
-          <div style={styles.formLabel}>{tt("lighting.time")}</div>
-          <select
-            style={styles.select}
-            value={visibleLightingTime}
-            onChange={(e) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, time: e.target.value } as any })}
-          >
-            {timeOptions.map((o) => (
-              <option key={o.v} value={o.v}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div style={styles.formRow}>
-          <div style={styles.formLabel}>{tt("lighting.keyDir")}</div>
-          <select
-            style={styles.select}
-            value={visibleLightingKeyDir}
-            onChange={(e) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, key_dir: e.target.value } as any })}
-          >
-            {dirOptions.map((o) => (
-              <option key={o.v} value={o.v}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div style={styles.formRow}>
-          <div style={styles.formLabel}>{tt("lighting.mood")}</div>
-          <select
-            style={styles.select}
-            value={visibleLightingMood}
-            onChange={(e) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, mood: e.target.value } as any })}
-          >
-            {moodOptions.map((o) => (
-              <option key={o.v} value={o.v}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
+      </EditorSection>
     </div>
     {renderVideoCascadeMenu()}
     {renderImageCascadeMenu()}
@@ -1860,7 +2126,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: "clamp(252px, 26vw, 332px)",
     minWidth: 252,
     borderRight: "none",
-    background: "#000000",
+    background: "#f7f9fc",
     backdropFilter: "none",
     padding: UI_SPACE.sm,
     display: "flex",
@@ -1871,6 +2137,16 @@ const styles: Record<string, React.CSSProperties> = {
     position: "relative",
     boxShadow: "none"
   },
+  wrapPro: {
+    background: "var(--pro-bg-panel)",
+    borderRight: "1px solid var(--pro-border-soft)"
+  },
+  projectHeader: {
+    flexShrink: 0,
+    paddingBottom: 10,
+    marginBottom: 4,
+    borderBottom: "1px solid var(--pro-border-soft, #3a3f46)"
+  },
 
   section: {
     border: "none",
@@ -1879,8 +2155,16 @@ const styles: Record<string, React.CSSProperties> = {
     padding: UI_SPACE.sm,
     boxShadow: "none"
   },
+  /** Section for scene/object lists: no horizontal padding so plus/minus column aligns with header */
+  sectionListOnly: {
+    border: "none",
+    borderRadius: 0,
+    background: "transparent",
+    padding: "4px 0 12px 0",
+    boxShadow: "none"
+  },
 
-  sectionHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 2 },
+  sectionHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 2 },
   sectionTitle: { fontWeight: 850, fontSize: UI_TYPO.size14, opacity: UI_OPACITY.title, color: "rgba(255,255,255,0.94)", letterSpacing: 0.1 },
   projectNameRow: {
     display: "grid",
@@ -2100,7 +2384,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   list: { display: "flex", flexDirection: "column", gap: 8 },
-  itemRowWrap: { display: "flex", gap: 8, alignItems: "center", minWidth: 0 },
+  itemRowWrap: {
+    display: "grid",
+    gridTemplateColumns: "1fr 28px",
+    gap: 8,
+    alignItems: "center",
+    minWidth: 0,
+    width: "100%"
+  },
 
   rowBtn: {
     flex: "1 1 0",
@@ -2133,19 +2424,48 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "default"
   },
 
-  rowInner: { display: "flex", alignItems: "center", gap: 6, rowGap: 6, minWidth: 0, flexWrap: "wrap" },
+  rowInner: { display: "flex", alignItems: "center", gap: 6, minWidth: 0, flexWrap: "nowrap" },
+  plusMinusCol: { width: 28, minWidth: 28, display: "flex", alignItems: "center", justifyContent: "center" },
+  listItemContent: {
+    flex: "1 1 0",
+    minWidth: 0,
+    overflow: "hidden",
+    borderRadius: editorTheme.radius.input,
+    padding: "6px 8px",
+    minHeight: "var(--pro-row-height)",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    boxSizing: "border-box"
+  },
+  infoBadge: {
+    flex: "0 0 auto",
+    width: 88,
+    minWidth: 88,
+    maxWidth: 88,
+    fontSize: "var(--pro-font-2xs)",
+    fontWeight: 600,
+    padding: "2px 6px",
+    borderRadius: 6,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    lineHeight: 1.2,
+    textAlign: "center"
+  },
+  minusColBtn: { width: 28, minWidth: 28, height: 28, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", gridColumn: 2 },
 
   renameText: {
-    flex: "1 1 100%",
+    flex: "1 1 0",
     minWidth: 0,
-    fontWeight: 900,
-    fontSize: UI_TYPO.size13,
+    fontWeight: 600,
+    fontSize: "var(--pro-font-2xs)",
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
-    padding: "2px 6px",
-    borderRadius: 8,
-    opacity: 0.92
+    padding: "2px 0",
+    lineHeight: 1.3,
+    opacity: 0.95
   },
 
   renameInput: {
@@ -2163,6 +2483,9 @@ const styles: Record<string, React.CSSProperties> = {
 
   badgeBtn: {
     flex: "0 0 auto",
+    width: 88,
+    minWidth: 88,
+    maxWidth: 88,
     fontSize: UI_FONT.tiny,
     fontWeight: 900,
     opacity: 0.85,
@@ -2172,11 +2495,11 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(255,255,255,0.06)",
     userSelect: "none",
     outline: "none",
-    maxWidth: "min(40%, 120px)",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
-    boxShadow: "0 1px 0 rgba(255,255,255,0.05) inset"
+    boxShadow: "0 1px 0 rgba(255,255,255,0.05) inset",
+    textAlign: "center"
   },
   durInput: {
     width: 58,
@@ -2275,6 +2598,30 @@ const styles: Record<string, React.CSSProperties> = {
     position: "relative",
     flex: 1,
     minWidth: 0
+  },
+  proShotLanguageBtn: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    textAlign: "left",
+    appearance: "none",
+    backgroundColor: editorTheme.colors.bg,
+    border: `1px solid ${editorTheme.colors.border}`,
+    borderRadius: editorTheme.radius.input,
+    padding: `${editorTheme.spacing.selectPaddingY}px ${editorTheme.spacing.selectPaddingX}px`,
+    color: editorTheme.colors.text,
+    fontSize: editorTheme.typography.bodySize,
+    cursor: "pointer",
+    outline: "none",
+    minHeight: editorTheme.sizing.controlHeight
+  },
+  proShotLanguageValue: {
+    flex: 1,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    lineHeight: 1.24
   },
   proMotionSelectBtn: {
     width: "100%",
@@ -2446,7 +2793,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   proMotionPanel: {
     display: "grid",
-    gap: 10
+    gap: 12
   },
   proPlusGroup: {
     display: "grid",
@@ -2506,8 +2853,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   proDirectorBlock: {
     display: "grid",
-    gap: 8,
-    marginBottom: 10,
+    gap: 12,
+    marginBottom: 12,
     padding: "10px 12px",
     borderRadius: 14,
     border: "none",
@@ -2544,21 +2891,26 @@ const styles: Record<string, React.CSSProperties> = {
     pointerEvents: "none"
   },
 
-  // ✅ toast（左下角）
+  // ✅ toast（Pro 工作台：统一信息框样式）
   toast: {
     position: "sticky",
     top: 0,
     zIndex: 50,
     marginBottom: 8,
-    padding: "8px 10px",
-    borderRadius: 12,
-    border: `1px solid ${UI_STATUS.border.info}`,
-    background: UI_STATUS.surface.info,
-    boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
-    fontSize: 12,
-    fontWeight: 900,
-    lineHeight: 1.3,
-    opacity: 0.92
+    padding: "4px 10px",
+    borderRadius: 6,
+    border: "1px solid var(--pro-border)",
+    background: "var(--pro-bg-panel)",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+    fontSize: "var(--pro-info-font-size)",
+    fontFamily: "var(--pro-info-font)",
+    lineHeight: 1.2,
+    maxHeight: "var(--pro-info-height)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    display: "flex",
+    alignItems: "center",
+    color: "var(--pro-text-primary)"
   },
   floatingHint: {
     position: "fixed",
@@ -2567,29 +2919,29 @@ const styles: Record<string, React.CSSProperties> = {
     width: "max-content",
     minWidth: 108,
     maxWidth: "min(320px, calc(100vw - 24px))",
-    padding: "7px 10px",
-    borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.14)",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
-    fontSize: 12,
-    fontWeight: 900,
+    padding: "4px 10px",
+    borderRadius: 6,
+    border: "1px solid var(--pro-border)",
+    background: "var(--pro-bg-panel)",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+    fontSize: "var(--pro-info-font-size)",
+    fontFamily: "var(--pro-info-font)",
     lineHeight: 1.35,
     textAlign: "center",
     whiteSpace: "normal",
     overflowWrap: "break-word",
-    wordBreak: "keep-all",
     pointerEvents: "none",
-    backdropFilter: "blur(4px)"
+    backdropFilter: "blur(6px)"
   },
   floatingHintInfo: {
-    background: UI_STATUS.surface.info,
-    border: `1px solid ${UI_STATUS.border.info}`,
-    color: "rgba(255,255,255,0.95)"
+    background: "color-mix(in srgb, var(--pro-bg-panel) 95%, transparent)",
+    border: "1px solid var(--pro-border)",
+    color: "var(--pro-text-primary)"
   },
   floatingHintDanger: {
-    background: UI_STATUS.surface.warn,
-    border: `1px solid ${UI_STATUS.border.warn}`,
-    color: "rgba(255,235,235,0.96)"
+    background: "color-mix(in srgb, var(--pro-bg-panel) 95%, transparent)",
+    border: "1px solid var(--pro-accent)",
+    color: "var(--pro-text-primary)"
   },
 
   // ✅ confirm modal

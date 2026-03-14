@@ -1,5 +1,25 @@
 :root {
   color-scheme: dark;
+  /* Pro workspace (Figma SceneMaker theme) */
+  --pro-bg: #1f2125;
+  --pro-bg-panel: #24262b;
+  --pro-border: #3a3f46;
+  --pro-border-soft: #3a3f46;
+  --pro-hover: #343942;
+  --pro-text-primary: #e5e7eb;
+  --pro-text-muted: #9ca3af;
+  --pro-accent: #f59e0b;
+  --pro-accent-hover: #d97706;
+  --pro-accent-soft: rgba(245, 158, 11, 0.1);
+  --pro-info-height: 24px;
+  --pro-info-font-size: 10px;
+  --pro-info-font: "SF Mono", "Monaco", "Consolas", "Menlo", monospace;
+  --pro-font-xs: 12px;
+  --pro-font-2xs: 11px;
+  --pro-font-3xs: 10px;
+  --pro-row-height: 28px;
+  --pro-control-height: 28px;
+  --pro-tab-bar-height: 38px;
   --spx-bg-app: #0a0d14;
   --spx-bg-toolbar: rgba(16, 22, 34, 0.76);
   --spx-surface-1: rgba(255, 255, 255, 0.035);
@@ -332,6 +352,322 @@ button:focus-visible {
 
 .spx-scroll-mid::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.62);
+}
+
+/* --- Pro workspace (Figma theme) overrides --- */
+[data-workspace="pro"] [data-top] {
+  height: 48px;
+  border-bottom: 1px solid var(--pro-border);
+  background: var(--pro-bg-panel);
+}
+
+[data-workspace="pro"] .pro-export-panel {
+  background: var(--pro-bg-panel);
+  border-top: 1px solid var(--pro-border);
+}
+
+[data-workspace="pro"] .pro-prompt-preview pre {
+  color: var(--pro-text-primary);
+}
+
+[data-workspace="pro"] .spx-pro-viewport-info,
+[data-workspace="pro"] .spx-pro-zoom-hint,
+[data-workspace="pro"] .pro-prompt-preview pre,
+[data-workspace="pro"] [data-pro-info] {
+  font-size: var(--pro-info-font-size) !important;
+  font-family: var(--pro-info-font) !important;
+  min-height: var(--pro-info-height) !important;
+  max-height: var(--pro-info-height) !important;
+  line-height: 1.2 !important;
+}
+
+[data-workspace="pro"] .spx-pro-viewport-info {
+  color: var(--pro-text-muted);
+  background: color-mix(in srgb, var(--pro-bg-panel) 80%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--pro-border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+}
+
+[data-workspace="pro"] .spx-pro-zoom-hint {
+  color: var(--pro-text-muted);
+  background: color-mix(in srgb, var(--pro-bg-panel) 80%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--pro-border);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+[data-workspace="pro"] ::selection {
+  background: rgba(245, 158, 11, 0.3) !important;
+  color: #e5e7eb !important;
+}
+
+[data-workspace="pro"] .pro-canvas-tab:hover:not([data-active]) {
+  background: #2d3036 !important;
+  color: #e5e7eb !important;
+}
+
+/* Sidebar scene list: inactive hover = #343942; active = accent */
+[data-workspace="pro"] .pro-scene-row[data-active="false"]:hover {
+  background: var(--pro-hover) !important;
+}
+[data-workspace="pro"] .pro-scene-row[data-active="true"] {
+  background: var(--pro-accent-soft) !important;
+  color: var(--pro-accent) !important;
+  border-color: var(--pro-accent) !important;
+}
+
+/* Sidebar object list: inactive = muted; hover/active = #343942 + primary */
+[data-workspace="pro"] .pro-object-row[data-active="false"] {
+  color: var(--pro-text-muted) !important;
+  background: transparent !important;
+  border-color: var(--pro-border) !important;
+}
+[data-workspace="pro"] .pro-object-row[data-active="false"]:hover {
+  background: var(--pro-hover) !important;
+  color: var(--pro-text-primary) !important;
+}
+[data-workspace="pro"] .pro-object-row[data-active="true"] {
+  background: var(--pro-hover) !important;
+  color: var(--pro-text-primary) !important;
+  border-color: var(--pro-border) !important;
+}
+
+/* Input/select hover & focus (Figma: hover border #9ca3af, focus border #f59e0b) */
+[data-workspace="pro"] .editor-sidebar-forms select:hover,
+[data-workspace="pro"] .editor-sidebar-forms input[type="text"]:hover,
+[data-workspace="pro"] .editor-sidebar-forms input[type="number"]:hover {
+  border-color: var(--pro-text-muted) !important;
+}
+[data-workspace="pro"] .editor-sidebar-forms select:focus,
+[data-workspace="pro"] .editor-sidebar-forms input[type="text"]:focus,
+[data-workspace="pro"] .editor-sidebar-forms input[type="number"]:focus {
+  border-color: var(--pro-accent) !important;
+  outline: none !important;
+}
+
+/* PropsPanel inputs (right sidebar) */
+[data-workspace="pro"] .pro-props-panel select:hover,
+[data-workspace="pro"] .pro-props-panel input:hover,
+[data-workspace="pro"] .pro-props-panel textarea:hover {
+  border-color: var(--pro-text-muted) !important;
+}
+[data-workspace="pro"] .pro-props-panel select:focus,
+[data-workspace="pro"] .pro-props-panel input:focus,
+[data-workspace="pro"] .pro-props-panel textarea:focus {
+  border-color: var(--pro-accent) !important;
+  outline: none !important;
+}
+
+/* Template card hover border (Figma) */
+[data-workspace="pro"] .pro-template-card:hover {
+  border-color: var(--pro-accent) !important;
+}
+
+/* Sidebar project header trigger (Figma-style) */
+[data-workspace="pro"] .pro-sidebar [data-testid="project-menu-trigger"]:hover {
+  border-color: var(--pro-text-muted) !important;
+  background: var(--pro-hover) !important;
+}
+
+/* Template panel: higher contrast for buttons on dark cards */
+[data-workspace="pro"] .pro-template-card .pro-btn,
+[data-workspace="pro"] .pro-template-card .pro-btn-ghost {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 12px !important;
+}
+[data-workspace="pro"] .pro-template-card .pro-btn:hover:not(:disabled),
+[data-workspace="pro"] .pro-template-card .pro-btn-ghost:hover:not(:disabled) {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+[data-workspace="pro"] .pro-template-card .pro-btn {
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+[data-workspace="pro"] .pro-template-card .pro-btn:hover:not(:disabled) {
+  border-color: var(--pro-accent) !important;
+  background: rgba(245, 158, 11, 0.15) !important;
+}
+
+/* Template panel: footer and empty-state buttons visibility */
+[data-workspace="pro"] .pro-templates-panel .pro-btn,
+[data-workspace="pro"] .pro-templates-panel > .pro-btn-ghost {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 12px !important;
+}
+[data-workspace="pro"] .pro-templates-panel > .pro-btn-ghost {
+  padding: 6px 12px !important;
+}
+[data-workspace="pro"] .pro-templates-panel .pro-btn:hover:not(:disabled),
+[data-workspace="pro"] .pro-templates-panel > .pro-btn-ghost:hover:not(:disabled) {
+  color: var(--pro-accent) !important;
+}
+
+[data-workspace="pro"] .spx-pro-stage > div:first-of-type {
+  border-color: var(--pro-border);
+  background: #1f2125 !important;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px) !important;
+  background-size: 40px 40px !important;
+}
+
+[data-workspace="pro"] .pro-canvas-viewport[data-view="canvas"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    linear-gradient(to right, rgba(239, 68, 68, 0.2) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(59, 130, 246, 0.2) 1px, transparent 1px);
+  background-position: 50% 0, 0 50%;
+  background-size: 100% 1px, 1px 100%;
+  background-repeat: no-repeat;
+}
+
+[data-workspace="pro"] .editor-sidebar-forms select,
+[data-workspace="pro"] .editor-sidebar-forms input[type="text"],
+[data-workspace="pro"] .editor-sidebar-forms input[type="number"] {
+  min-height: var(--pro-control-height) !important;
+  font-size: var(--pro-font-xs) !important;
+}
+
+[data-workspace="pro"] .pro-collapse-section .pro-section-header {
+  min-height: var(--pro-row-height);
+  font-size: var(--pro-font-xs);
+}
+[data-workspace="pro"] .pro-collapse-section .pro-section-header:hover {
+  background-color: var(--pro-hover) !important;
+}
+
+[data-workspace="pro"] .pro-section-body .pro-row,
+[data-workspace="pro"] [data-pro-row] {
+  min-height: var(--pro-row-height);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Figma-style icon buttons (Plus/Minus) - 28x28 to align in column */
+.pro-icon-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pro-text-muted);
+  cursor: pointer;
+  box-shadow: none !important;
+  transition: color 150ms ease, background 150ms ease;
+}
+.pro-icon-btn:hover:not(:disabled) {
+  color: var(--pro-text-primary);
+  background: var(--pro-hover);
+  transform: none !important;
+}
+.pro-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Pro workspace: template/custom button (unified with ghost; selected = subtle fill) */
+.pro-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--pro-border);
+  background: rgba(255,255,255,0.06);
+  color: var(--pro-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none !important;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+.pro-btn:hover:not(:disabled) {
+  color: var(--pro-text-primary);
+  border-color: rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.1);
+  transform: none !important;
+}
+
+/* Generate button: same color as canvas tab (#f59e0b) */
+.pro-generate-btn {
+  background: #f59e0b !important;
+  color: #1f2125 !important;
+}
+.pro-generate-btn:hover:not(:disabled) {
+  background: #d97706 !important;
+  color: #1f2125 !important;
+}
+
+/* Legacy alias */
+.pro-btn-primary {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--pro-border);
+  background: rgba(255,255,255,0.06);
+  color: var(--pro-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none !important;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+.pro-btn-primary:hover:not(:disabled) {
+  color: var(--pro-text-primary);
+  border-color: rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.1);
+  transform: none !important;
+}
+
+/* Pro workspace: template ghost button */
+.pro-btn-ghost {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--pro-text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: none !important;
+  transition: color 150ms ease;
+}
+.pro-btn-ghost:hover:not(:disabled) {
+  color: var(--pro-text-primary);
+  transform: none !important;
+}
+
+/* Figma-style canvas toolbar buttons */
+.pro-canvas-tool-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--pro-text-muted);
+  cursor: pointer;
+  transition: color 150ms ease, background 150ms ease;
+}
+.pro-canvas-tool-btn:hover {
+  background: var(--pro-hover);
+  color: var(--pro-text-primary);
+}
+.pro-canvas-tool-btn.active {
+  background: var(--pro-hover);
+  color: var(--pro-accent);
 }
 
 @media (prefers-reduced-motion: reduce) {
