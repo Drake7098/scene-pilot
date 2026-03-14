@@ -6,7 +6,7 @@ import { resolveSceneConfig } from "../model";
 import type { Project, Scene, Layer, ShotPlan, Direction, TransitionType } from "../model";
 import { defaultObjectName, defaultSceneName } from "../utils/naming";
 import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_FONT, UI_INFO, UI_OPACITY, UI_PALETTE, UI_RADIUS, UI_SIZE, UI_SPACE, UI_STATUS, UI_TYPO } from "../uiTokens";
-import { Plus, Minus, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Minus, ChevronRight } from "lucide-react";
 import {
   PRO_PLUS_MOTION_CATEGORIES,
   applyProMotionSelection,
@@ -45,10 +45,10 @@ import {
 import { resolveSceneStrategy } from "../utils/sceneStrategyResolver";
 import { TemplatesPanel } from "./TemplatesPanel";
 import type { SceneTemplate } from "../model/template";
+import { cloneSceneFromTemplate } from "../lib/templateStore";
 import { applyTemplateSnapshot } from "../rules/applyTemplate";
 import { useProCollapseSections } from "../hooks/useProCollapseSections";
 import { EditorSection, EditorSelect, EditorInput, EditorCheckbox } from "./ui";
-import { ProjectControlBar } from "./ProjectControlBar";
 import { editorTheme } from "../theme/editorTheme";
 import { Film, LayoutGrid, Layers, Camera, Settings } from "lucide-react";
 
@@ -66,18 +66,8 @@ type Props = {
 
   isPro?: boolean;
   onLockedTemplateClick?: (template: SceneTemplate) => void;
-  onRequestSaveTemplate?: () => boolean;
+  onRequestSaveTemplate?: () => void;
   onTrackTemplate?: (event: string, props?: Record<string, unknown>) => void;
-  projectLabel?: string;
-  isMac?: boolean;
-  onOpenProject?: () => void;
-  onRenameProject?: () => void;
-  onNewProject?: () => void;
-  onSaveProject?: () => void;
-  onSaveAs?: () => void;
-  onCopyPrompt?: () => void;
-  onExportProject?: () => void;
-  onOpenLibrary?: () => void;
 };
 
 function isComposing(e: any) {
@@ -257,17 +247,7 @@ export function Sidebar(props: Props) {
     isPro = false,
     onLockedTemplateClick,
     onRequestSaveTemplate,
-    onTrackTemplate,
-    projectLabel,
-    isMac = false,
-    onOpenProject,
-    onRenameProject,
-    onNewProject,
-    onSaveProject,
-    onSaveAs,
-    onCopyPrompt,
-    onExportProject,
-    onOpenLibrary
+    onTrackTemplate
   } = props;
 
   const tt = useMemo(() => (key: string) => t(lang, key), [lang]);
@@ -1125,7 +1105,7 @@ export function Sidebar(props: Props) {
   const [sidebarCollapsed, toggleSidebar] = useProCollapseSections(
     "sidebar",
     ["scenes", "templates", "scene_strategy", "camera_lighting", "objects"],
-    ["scenes", "scene_strategy", "camera_lighting", "objects"]
+    ["scenes", "templates", "scene_strategy", "camera_lighting", "objects"]
   );
 
   const { colors: ec, spacing: es } = editorTheme;
@@ -1173,26 +1153,6 @@ export function Sidebar(props: Props) {
         overflow: "auto"
       }}
     >
-      {/* Project header (Figma: Layout + app name + / Project) */}
-      {projectLabel != null && onSaveProject && (
-        <div style={styles.projectHeader}>
-          <ProjectControlBar
-            lang={lang}
-            isMac={isMac}
-            isPro={true}
-            variant="sidebar"
-            projectLabel={projectLabel}
-            onOpenProject={onOpenProject ?? (() => {})}
-            onRenameProject={onRenameProject ?? (() => {})}
-            onNewProject={onNewProject ?? (() => {})}
-            onSaveProject={onSaveProject}
-            onSaveAs={onSaveAs ?? (() => {})}
-            onCopyPrompt={onCopyPrompt ?? (() => {})}
-            onExportProject={onExportProject ?? (() => {})}
-            onOpenLibrary={onOpenLibrary ?? (() => {})}
-          />
-        </div>
-      )}
       {/* ✅ toast */}
       {toastText ? <div style={styles.toast}>{toastText}</div> : null}
       {floatingHint ? (
@@ -1226,12 +1186,12 @@ export function Sidebar(props: Props) {
               {tt("sidebar.deleteConfirm")}
             </div>
             <div style={styles.modalBtns}>
-              <button type="button" className="pro-btn-ghost" onMouseDown={(e) => e.preventDefault()} onClick={() => setConfirmDelIdx(null)}>
+              <button type="button" style={styles.btnGhost} onMouseDown={(e) => e.preventDefault()} onClick={() => setConfirmDelIdx(null)}>
                 {tt("sidebar.cancel")}
               </button>
               <button
                 type="button"
-                className="pro-btn"
+                style={styles.btnDanger}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => doDeleteScene(confirmDelIdx)}
               >
@@ -1263,19 +1223,28 @@ export function Sidebar(props: Props) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, flex: 1 }}>
                 <button
                   type="button"
-                  className={newSceneModeTouched && newScene.mode === "image" ? "pro-btn" : "pro-btn-ghost"}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     setNewSceneModeTouched(true);
                     setNewScene((s) => ({ ...s, mode: "image", shotCount: "1" }));
                   }}
-                  style={{ height: 36, padding: "0 10px" }}
+                  style={{
+                    height: 36,
+                    borderRadius: editorTheme.radius.button,
+                    border: `1px solid ${newSceneModeTouched && newScene.mode === "image" ? ec.accent : ec.border}`,
+                    background: newSceneModeTouched && newScene.mode === "image" ? ec.accentSoft : ec.bg,
+                    color: ec.text,
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: "0 10px",
+                    outline: "none"
+                  }}
                 >
                   {tt("sidebar.image")}
                 </button>
                 <button
                   type="button"
-                  className={newSceneModeTouched && newScene.mode === "video" ? "pro-btn" : "pro-btn-ghost"}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     setNewSceneModeTouched(true);
@@ -1285,7 +1254,18 @@ export function Sidebar(props: Props) {
                       shotCount: String(defaultShotCountForPlan(resolveShotPlanFromDraft({ ...s, mode: "video" } as NewSceneDraft)))
                     }));
                   }}
-                  style={{ height: 36, padding: "0 10px" }}
+                  style={{
+                    height: 36,
+                    borderRadius: editorTheme.radius.button,
+                    border: `1px solid ${newSceneModeTouched && newScene.mode === "video" ? ec.accent : ec.border}`,
+                    background: newSceneModeTouched && newScene.mode === "video" ? ec.accentSoft : ec.bg,
+                    color: ec.text,
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: "0 10px",
+                    outline: "none"
+                  }}
                 >
                   {tt("sidebar.video")}
                 </button>
@@ -1361,35 +1341,54 @@ export function Sidebar(props: Props) {
               <div style={styles.genModeRow}>
                 <button
                   type="button"
-                  className={newSceneGenModeTouched && newScene.genMode === "quick" ? "pro-btn" : "pro-btn-ghost"}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     setNewSceneGenModeTouched(true);
                     setNewScene((s) => ({ ...s, genMode: "quick" }));
                   }}
-                  style={{ height: 36, padding: "0 10px" }}
+                  style={{
+                    height: 36,
+                    borderRadius: editorTheme.radius.button,
+                    border: `1px solid ${newSceneGenModeTouched && newScene.genMode === "quick" ? ec.accent : ec.border}`,
+                    background: newSceneGenModeTouched && newScene.genMode === "quick" ? ec.accentSoft : ec.bg,
+                    color: ec.text,
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: "0 10px",
+                    outline: "none"
+                  }}
                 >
                   {tt("sidebar.quick")}
                 </button>
                 <button
                   type="button"
-                  className={newSceneGenModeTouched && newScene.genMode === "pro" ? "pro-btn" : "pro-btn-ghost"}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     setNewSceneGenModeTouched(true);
                     setNewScene((s) => ({ ...s, genMode: "pro" }));
                   }}
-                  style={{ height: 36, padding: "0 10px" }}
+                  style={{
+                    height: 36,
+                    borderRadius: editorTheme.radius.button,
+                    border: `1px solid ${newSceneGenModeTouched && newScene.genMode === "pro" ? ec.accent : ec.border}`,
+                    background: newSceneGenModeTouched && newScene.genMode === "pro" ? ec.accentSoft : ec.bg,
+                    color: ec.text,
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: "0 10px",
+                    outline: "none"
+                  }}
                 >
                   PRO
                 </button>
                 <button
                   type="button"
-                  className="pro-btn-ghost"
+                  style={styles.qBtn}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => setShowGenHint((v) => !v)}
                   title={tt("sidebar.showModeDiff")}
-                  style={{ height: 36, minWidth: 36, padding: 0 }}
                 >
                   ?
                 </button>
@@ -1435,18 +1434,38 @@ export function Sidebar(props: Props) {
             <div style={styles.modalBtns}>
               <button
                 type="button"
-                className="pro-btn-ghost"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={cancelAddScenePanel}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: editorTheme.radius.button,
+                  border: `1px solid ${ec.border}`,
+                  background: ec.bg,
+                  color: ec.text,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  outline: "none"
+                }}
               >
                 {tt("sidebar.cancel")}
               </button>
               <button
                 type="button"
-                className="pro-btn"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => confirmAddScene(e.currentTarget as HTMLElement)}
-                style={{ opacity: remainingSceneSlots <= 0 ? 0.6 : 1 }}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: editorTheme.radius.button,
+                  border: `1px solid ${ec.accent}`,
+                  background: ec.accent,
+                  color: ec.bg,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  outline: "none",
+                  opacity: remainingSceneSlots <= 0 ? 0.6 : 1
+                }}
                 disabled={remainingSceneSlots <= 0}
                 title={remainingSceneSlots <= 0 ? sceneLimitText() : undefined}
               >
@@ -1457,57 +1476,7 @@ export function Sidebar(props: Props) {
         </div>
       ) : null}
 
-      {/* Template Library (Figma: first) */}
-      <EditorSection
-        title={tt("sidebar.templates")}
-        icon={LayoutGrid}
-        open={!sidebarCollapsed.has("templates")}
-        onOpenChange={(open) => {
-          const currentlyOpen = !sidebarCollapsed.has("templates");
-          if (open !== currentlyOpen) toggleSidebar("templates");
-        }}
-      >
-      <div style={styles.section}>
-        <TemplatesPanel
-          key={lang}
-          lang={lang}
-          isPro={isPro}
-          sceneLimitReached={sceneLimitReached}
-          onUseTemplate={(template) => {
-            const result = applyTemplateSnapshot(template, project, scenes.length, "pro");
-            if (result.appliedProject) {
-              onUpdateProject(result.appliedProject);
-              setSceneIdx(result.appliedProject.scenes.length - 1);
-              onSelectLayer(null);
-              const msg = result.toastMessages[0] ?? (lang === "zh" ? "已从模板创建分镜" : "Scene created from template");
-              showFloatingHint(msg, null, "info");
-              onTrackTemplate?.(
-                result.compatibility === "partial" ? "template_apply_partial" : "template_apply_full",
-                { compatibility: result.compatibility }
-              );
-            } else if (result.appliedScene) {
-              const fallbackProject: Project = {
-                ...project,
-                scenes: [...scenes, result.appliedScene].map((s, i) => ({ ...s, index: i + 1 }))
-              };
-              onUpdateProject(fallbackProject);
-              setSceneIdx(fallbackProject.scenes.length - 1);
-              onSelectLayer(null);
-              showFloatingHint(result.blockReason ?? (lang === "zh" ? "已从模板创建分镜" : "Scene created from template"), null, "info");
-            }
-          }}
-          onLockedClick={(tpl) => onLockedTemplateClick?.(tpl)}
-          onRequestSaveTemplate={() => {
-            const ok = onRequestSaveTemplate?.();
-            if (ok) showFloatingHint(lang === "zh" ? "已保存为模板" : "Saved as template", null, "info");
-            return ok;
-          }}
-          onTrack={onTrackTemplate}
-        />
-      </div>
-      </EditorSection>
-
-      {/* Scene List (Figma: second) */}
+      {/* Scenes */}
       <EditorSection
         title={tt("sidebar.scenes")}
         icon={Film}
@@ -1516,23 +1485,30 @@ export function Sidebar(props: Props) {
           const currentlyOpen = !sidebarCollapsed.has("scenes");
           if (open !== currentlyOpen) toggleSidebar("scenes");
         }}
-        extraColumnWidth={28}
         extra={
-          <div style={styles.plusMinusCol}>
-            <button
-              type="button"
-              className="pro-icon-btn"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={(e) => { e.stopPropagation(); addSceneByProjectDefaults(e.currentTarget as HTMLElement); }}
-              title={sceneLimitReached ? sceneLimitText() : tt("sidebar.addScene")}
-              disabled={isImageProject || sceneLimitReached}
-            >
-              <Plus size={14} />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="pro-btn"
+            style={{
+              padding: "4px 8px",
+              minWidth: 0,
+              background: ec.bg,
+              border: `1px solid ${ec.border}`,
+              borderRadius: editorTheme.radius.button,
+              color: ec.text,
+              cursor: sceneLimitReached || isImageProject ? "not-allowed" : "pointer",
+              opacity: sceneLimitReached || isImageProject ? 0.6 : 1
+            }}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => { e.stopPropagation(); addSceneByProjectDefaults(e.currentTarget as HTMLElement); }}
+            title={sceneLimitReached ? sceneLimitText() : tt("sidebar.addScene")}
+            disabled={isImageProject || sceneLimitReached}
+          >
+            <Plus size={14} />
+          </button>
         }
       >
-      <div style={styles.sectionListOnly}>
+      <div style={styles.section}>
         <div style={styles.list}>
           {scenes.map((s, i) => {
             const isOn = i === safeIdx;
@@ -1546,14 +1522,17 @@ export function Sidebar(props: Props) {
                 <div
                   role="button"
                   tabIndex={0}
-                  className="pro-scene-row"
-                  data-active={isOn ? "true" : "false"}
                   style={{
-                    ...styles.listItemContent,
+                    flex: "1 1 0",
+                    minWidth: 0,
+                    overflow: "hidden",
+                    borderRadius: editorTheme.radius.input,
+                    padding: "8px 10px",
+                    cursor: "pointer",
                     background: isOn ? ec.accentSoft : "transparent",
                     color: isOn ? ec.accent : ec.text,
                     border: `1px solid ${isOn ? ec.accent : ec.border}`,
-                    transition: `background ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}, color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}, border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
+                    transition: `background ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
                   }}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
@@ -1639,10 +1618,18 @@ export function Sidebar(props: Props) {
                           role="button"
                           tabIndex={0}
                           style={{
-                            ...styles.infoBadge,
-                            cursor: "pointer",
+                            flex: "0 0 auto",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: "3px 7px",
+                            borderRadius: editorTheme.radius.input,
                             border: `1px solid ${ec.border}`,
-                            background: ec.bg
+                            background: ec.bg,
+                            cursor: "pointer",
+                            maxWidth: "min(40%, 120px)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap"
                           }}
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={(e) => {
@@ -1658,7 +1645,20 @@ export function Sidebar(props: Props) {
                       )
                     ) : (
                       <div
-                        style={{ ...styles.infoBadge, opacity: 0.78, border: `1px solid ${ec.border}`, background: ec.bg }}
+                        style={{
+                          flex: "0 0 auto",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: "3px 7px",
+                          borderRadius: editorTheme.radius.input,
+                          border: `1px solid ${ec.border}`,
+                          background: ec.bg,
+                          opacity: 0.78,
+                          maxWidth: "min(40%, 120px)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap"
+                        }}
                         title={tt("sidebar.imageScene")}
                       >
                         {badgeText}
@@ -1666,7 +1666,20 @@ export function Sidebar(props: Props) {
                     )}
                     {mode === "video" && i > 0 ? (
                       <div
-                        style={{ ...styles.infoBadge, opacity: 0.78, border: `1px solid ${ec.border}`, background: ec.bg }}
+                        style={{
+                          flex: "0 0 auto",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: "3px 7px",
+                          borderRadius: editorTheme.radius.input,
+                          border: `1px solid ${ec.border}`,
+                          background: ec.bg,
+                          opacity: 0.78,
+                          maxWidth: "min(40%, 120px)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap"
+                        }}
                         title={
                           s.inheritFromPrevious
                             ? (lang === "zh" ? "继承上一镜布局" : "Inherit previous shot layout")
@@ -1678,7 +1691,20 @@ export function Sidebar(props: Props) {
                     ) : null}
                     {mode === "video" && i > 0 && i < scenes.length - 1 ? (
                       <div
-                        style={{ ...styles.infoBadge, opacity: 0.78, border: `1px solid ${ec.border}`, background: ec.bg }}
+                        style={{
+                          flex: "0 0 auto",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: "3px 7px",
+                          borderRadius: editorTheme.radius.input,
+                          border: `1px solid ${ec.border}`,
+                          background: ec.bg,
+                          opacity: 0.78,
+                          maxWidth: "min(40%, 120px)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap"
+                        }}
                         title={lang === "zh" ? "衔接方式" : "Transition"}
                       >
                         {transitionLabel(lang, s.transitionType)}
@@ -1689,14 +1715,28 @@ export function Sidebar(props: Props) {
 
                 <button
                   type="button"
-                  className="pro-icon-btn"
-                  style={styles.minusColBtn}
+                  className={isPro ? "pro-btn-danger-ghost" : undefined}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flex: "0 0 34px",
+                    lineHeight: 0,
+                    borderRadius: editorTheme.radius.button,
+                    border: `1px solid ${editorTheme.colors.danger}`,
+                    background: "transparent",
+                    color: ec.textMuted,
+                    cursor: "pointer",
+                    outline: "none"
+                  }}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => requestDeleteScene(i, e.currentTarget as HTMLElement)}
                   title={tt("sidebar.deleteScene")}
                   disabled={scenes.length <= 1 || isImageProject}
                 >
-                  <Minus size={14} />
+                  <Minus size={16} />
                 </button>
               </div>
             );
@@ -1705,39 +1745,63 @@ export function Sidebar(props: Props) {
       </div>
       </EditorSection>
 
-      {/* Camera & Lighting (Figma: third) */}
+      {/* Templates */}
       <EditorSection
-        title={lang === "zh" ? "镜头 · 光" : "Camera & Lighting"}
-        icon={Camera}
-        open={!sidebarCollapsed.has("camera_lighting")}
+        title={tt("sidebar.templates")}
+        icon={LayoutGrid}
+        open={!sidebarCollapsed.has("templates")}
         onOpenChange={(open) => {
-          const currentlyOpen = !sidebarCollapsed.has("camera_lighting");
-          if (open !== currentlyOpen) toggleSidebar("camera_lighting");
+          const currentlyOpen = !sidebarCollapsed.has("templates");
+          if (open !== currentlyOpen) toggleSidebar("templates");
         }}
       >
       <div style={styles.section}>
-        <EditorSelect
-          label={tt("lighting.time")}
-          options={timeOptions.map((o) => ({ label: o.label, value: o.v }))}
-          value={visibleLightingTime}
-          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, time: v } as any })}
-        />
-        <EditorSelect
-          label={tt("lighting.keyDir")}
-          options={dirOptions.map((o) => ({ label: o.label, value: o.v }))}
-          value={visibleLightingKeyDir}
-          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, key_dir: v } as any })}
-        />
-        <EditorSelect
-          label={tt("lighting.mood")}
-          options={moodOptions.map((o) => ({ label: o.label, value: o.v }))}
-          value={visibleLightingMood}
-          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, mood: v } as any })}
+        <TemplatesPanel
+          key={lang}
+          lang={lang}
+          isPro={isPro}
+          sceneLimitReached={sceneLimitReached}
+          onUseTemplate={(template) => {
+            const allSceneIds = new Set(scenes.map((s) => s.id));
+            const allLayerIds = new Set(scenes.flatMap((s) => (s.layers ?? []).map((l) => l.id)));
+            const sceneIdExists = (id: string) => allSceneIds.has(id);
+            const layerIdExists = (id: string) => allLayerIds.has(id);
+            const cloned = cloneSceneFromTemplate(template, sceneIdExists, layerIdExists);
+            const tempProject: Project = {
+              ...project,
+              scenes: [...scenes, cloned].map((s, i) => ({ ...s, index: i + 1 }))
+            };
+            const result = applyTemplateSnapshot(template, tempProject, scenes.length, "pro");
+            if (result.success && result.appliedProject) {
+              onUpdateProject(result.appliedProject);
+              setSceneIdx(result.appliedProject.scenes.length - 1);
+              onSelectLayer(null);
+              const msg = result.toastMessages[0] ?? (lang === "zh" ? "已从模板创建" : "Scene created from template");
+              showFloatingHint(msg, null, "info");
+              onTrackTemplate?.(
+                result.compatibility === "partial" ? "template_apply_partial" : "template_apply_full",
+                { compatibility: result.compatibility }
+              );
+            } else {
+              onUpdateProject(tempProject);
+              setSceneIdx(tempProject.scenes.length - 1);
+              onSelectLayer(null);
+              if (result.blockReason) {
+                showFloatingHint(result.blockReason, null, "info");
+                onTrackTemplate?.("template_apply_blocked", { reason: result.blockReason });
+              } else {
+                showFloatingHint(lang === "zh" ? "已从模板创建" : "Scene created from template", null, "info");
+              }
+            }
+          }}
+          onLockedClick={(tpl) => onLockedTemplateClick?.(tpl)}
+          onRequestSaveTemplate={() => onRequestSaveTemplate?.()}
+          onTrack={onTrackTemplate}
         />
       </div>
       </EditorSection>
 
-      {/* Object Layers (Figma: fourth) */}
+      {/* Objects */}
       <EditorSection
         title={tt("sidebar.layers")}
         icon={Layers}
@@ -1746,42 +1810,49 @@ export function Sidebar(props: Props) {
           const currentlyOpen = !sidebarCollapsed.has("objects");
           if (open !== currentlyOpen) toggleSidebar("objects");
         }}
-        extraColumnWidth={28}
         extra={
-          <div style={styles.plusMinusCol}>
-            <button
-              type="button"
-              className="pro-icon-btn"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={(e) => { e.stopPropagation(); addLayer(); }}
-              title={layerLimitReached ? layerLimitText() : tt("sidebar.addLayer")}
-              disabled={layerLimitReached}
-            >
-              <Plus size={14} />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="pro-btn"
+            style={{
+              padding: "4px 8px",
+              minWidth: 0,
+              background: ec.bg,
+              border: `1px solid ${ec.border}`,
+              borderRadius: editorTheme.radius.button,
+              color: ec.text,
+              cursor: layerLimitReached ? "not-allowed" : "pointer",
+              opacity: layerLimitReached ? 0.6 : 1
+            }}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => { e.stopPropagation(); addLayer(); }}
+            title={layerLimitReached ? layerLimitText() : tt("sidebar.addLayer")}
+            disabled={layerLimitReached}
+          >
+            <Plus size={14} />
+          </button>
         }
       >
-      <div style={styles.sectionListOnly}>
+      <div style={{ ...styles.section, paddingTop: 0 }}>
         <div style={styles.list}>
           {(scene.layers ?? []).length === 0 ? (
-            <div style={styles.itemRowWrap}>
-              <div
-                style={{
-                  ...styles.listItemContent,
-                  opacity: 0.55,
-                  cursor: "default",
-                  background: "transparent",
-                  border: `1px solid ${ec.border}`,
-                  color: ec.textMuted
-                }}
-                title={lang === "zh" ? "示例占位，不会写入项目" : "Example placeholder only"}
-              >
-                <div style={styles.rowInner}>
-                  <div style={styles.renameText}>{lang === "zh" ? "人物1" : "character1"}</div>
-                </div>
+            <div
+              style={{
+                flex: "1 1 0",
+                minWidth: 0,
+                borderRadius: editorTheme.radius.input,
+                padding: "8px 10px",
+                opacity: 0.55,
+                cursor: "default",
+                background: "transparent",
+                border: `1px solid ${ec.border}`,
+                color: ec.textMuted
+              }}
+              title={lang === "zh" ? "示例占位，不会写入项目" : "Example placeholder only"}
+            >
+              <div style={styles.rowInner}>
+                <div style={styles.renameText}>{lang === "zh" ? "人物1" : "character1"}</div>
               </div>
-              <div style={{ width: 28, minWidth: 28 }} />
             </div>
           ) : null}
           {(scene.layers ?? [])
@@ -1795,14 +1866,17 @@ export function Sidebar(props: Props) {
                   <div
                     role="button"
                     tabIndex={0}
-                    className="pro-object-row"
-                    data-active={isOn ? "true" : "false"}
                     style={{
-                      ...styles.listItemContent,
-                      background: isOn ? ec.hover : "transparent",
-                      color: isOn ? ec.text : ec.textMuted,
-                      border: `1px solid ${ec.border}`,
-                      transition: `background ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}, color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}, border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
+                      flex: "1 1 0",
+                      minWidth: 0,
+                      overflow: "hidden",
+                      borderRadius: editorTheme.radius.input,
+                      padding: "8px 10px",
+                      cursor: "pointer",
+                      background: isOn ? ec.accentSoft : "transparent",
+                      color: isOn ? ec.accent : ec.text,
+                      border: `1px solid ${isOn ? ec.accent : ec.border}`,
+                      transition: `background ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
                     }}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => onSelectLayer(l.id)}
@@ -1854,13 +1928,27 @@ export function Sidebar(props: Props) {
 
                   <button
                     type="button"
-                    className="pro-icon-btn"
-                    style={styles.minusColBtn}
+                    className={isPro ? "pro-btn-danger-ghost" : undefined}
+                    style={{
+                      width: 34,
+                      height: 34,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flex: "0 0 34px",
+                      lineHeight: 0,
+                      borderRadius: editorTheme.radius.button,
+                      border: `1px solid ${editorTheme.colors.danger}`,
+                      background: "transparent",
+                      color: ec.textMuted,
+                      cursor: "pointer",
+                      outline: "none"
+                    }}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => deleteLayer(l.id)}
                     title={tt("sidebar.deleteLayer")}
                   >
-                    <Minus size={14} />
+                    <Minus size={16} />
                   </button>
                 </div>
               );
@@ -1881,6 +1969,8 @@ export function Sidebar(props: Props) {
         }}
       >
       <div style={styles.section}>
+        <div style={{ ...styles.sectionTitle, color: ec.text, opacity: 1 }}>{lang === "zh" ? "场景策略" : "Scene Strategy"}</div>
+
         {isVideoProject && projectShotPlan === "continuous" ? (
           <>
             <EditorSelect
@@ -1922,6 +2012,7 @@ export function Sidebar(props: Props) {
         ) : null}
 
         <div style={styles.proDirectorBlock} data-testid="pro-director-block">
+          <div style={{ ...styles.proDirectorTitle, color: ec.text }}>{lang === "zh" ? "经典模式" : "Classic Mode"}</div>
           <div data-testid="pro-shot-recipe-select">
             <EditorSelect
               label={lang === "zh" ? "一键选择" : "Preset"}
@@ -1986,41 +2077,25 @@ export function Sidebar(props: Props) {
                       ref={videoProTriggerRef}
                       type="button"
                       data-testid="pro-plus-trigger"
-                      data-open={videoProMenuOpen ? "true" : undefined}
                       onClick={() => {
                         setVideoProMenuOpen((prev) => !prev);
                         setVideoProCategoryHover(null);
                       }}
                       style={{
-                        ...styles.proShotLanguageBtn,
-                        borderColor: videoProMenuOpen ? ec.accent : undefined,
-                        transition: `border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!videoProMenuOpen) e.currentTarget.style.borderColor = ec.textMuted;
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!videoProMenuOpen) e.currentTarget.style.borderColor = ec.border;
-                      }}
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderColor = ec.accent;
-                      }}
-                      onBlur={(e) => {
-                        if (!videoProMenuOpen) e.currentTarget.style.borderColor = ec.border;
+                        width: "100%",
+                        textAlign: "left",
+                        appearance: "none",
+                        backgroundColor: ec.bg,
+                        border: `1px solid ${ec.border}`,
+                        borderRadius: editorTheme.radius.input,
+                        padding: `${editorTheme.spacing.selectPaddingY}px ${editorTheme.spacing.selectPaddingX}px`,
+                        color: ec.text,
+                        fontSize: editorTheme.typography.bodySize,
+                        cursor: "pointer",
+                        outline: "none"
                       }}
                     >
-                      <span style={styles.proShotLanguageValue}>{currentVideoProMenuLabel()}</span>
-                      <ChevronDown
-                        size={editorTheme.sizing.selectArrowSize}
-                        style={{
-                          flexShrink: 0,
-                          color: ec.textMuted,
-                          opacity: videoProMenuOpen ? 1 : 0.85,
-                          transform: videoProMenuOpen ? "rotate(180deg)" : "none",
-                          transition: `transform ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
-                        }}
-                        aria-hidden
-                      />
+                      <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentVideoProMenuLabel()}</span>
                     </button>
                   </div>
                 </div>
@@ -2029,6 +2104,7 @@ export function Sidebar(props: Props) {
           </div>
         ) : (
           <div style={styles.proMotionBlock} data-testid="pro-image-block">
+            <div style={{ ...styles.proDirectorTitle, color: ec.text }}>{lang === "zh" ? "PRO+ 风格控制" : "PRO+ Style Controls"}</div>
             <div style={styles.proMotionPanel}>
               <div data-testid="director-style-pack-select">
                 <EditorSelect
@@ -2053,41 +2129,25 @@ export function Sidebar(props: Props) {
                       ref={imageProTriggerRef}
                       type="button"
                       data-testid="pro-image-trigger"
-                      data-open={imageProMenuOpen ? "true" : undefined}
                       onClick={() => {
                         setImageProMenuOpen((prev) => !prev);
                         setImageProCategoryHover(null);
                       }}
                       style={{
-                        ...styles.proShotLanguageBtn,
-                        borderColor: imageProMenuOpen ? ec.accent : undefined,
-                        transition: `border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!imageProMenuOpen) e.currentTarget.style.borderColor = ec.textMuted;
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!imageProMenuOpen) e.currentTarget.style.borderColor = ec.border;
-                      }}
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderColor = ec.accent;
-                      }}
-                      onBlur={(e) => {
-                        if (!imageProMenuOpen) e.currentTarget.style.borderColor = ec.border;
+                        width: "100%",
+                        textAlign: "left",
+                        appearance: "none",
+                        backgroundColor: ec.bg,
+                        border: `1px solid ${ec.border}`,
+                        borderRadius: editorTheme.radius.input,
+                        padding: `${editorTheme.spacing.selectPaddingY}px ${editorTheme.spacing.selectPaddingX}px`,
+                        color: ec.text,
+                        fontSize: editorTheme.typography.bodySize,
+                        cursor: "pointer",
+                        outline: "none"
                       }}
                     >
-                      <span style={styles.proShotLanguageValue}>{currentImageProMenuLabel()}</span>
-                      <ChevronDown
-                        size={editorTheme.sizing.selectArrowSize}
-                        style={{
-                          flexShrink: 0,
-                          color: ec.textMuted,
-                          opacity: imageProMenuOpen ? 1 : 0.85,
-                          transform: imageProMenuOpen ? "rotate(180deg)" : "none",
-                          transition: `transform ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
-                        }}
-                        aria-hidden
-                      />
+                      <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentImageProMenuLabel()}</span>
                     </button>
                   </div>
                 </div>
@@ -2112,6 +2172,40 @@ export function Sidebar(props: Props) {
           />
         ) : null}
 
+      </div>
+      </EditorSection>
+
+      {/* Camera & Lighting */}
+      <EditorSection
+        title={lang === "zh" ? "镜头 · 光" : "Camera & Lighting"}
+        icon={Camera}
+        open={!sidebarCollapsed.has("camera_lighting")}
+        onOpenChange={(open) => {
+          const currentlyOpen = !sidebarCollapsed.has("camera_lighting");
+          if (open !== currentlyOpen) toggleSidebar("camera_lighting");
+        }}
+      >
+      <div style={styles.section}>
+        <div style={{ ...styles.sectionTitle, color: ec.text, opacity: 1 }}>{tt("lighting.title")}</div>
+
+        <EditorSelect
+          label={tt("lighting.time")}
+          options={timeOptions.map((o) => ({ label: o.label, value: o.v }))}
+          value={visibleLightingTime}
+          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, time: v } as any })}
+        />
+        <EditorSelect
+          label={tt("lighting.keyDir")}
+          options={dirOptions.map((o) => ({ label: o.label, value: o.v }))}
+          value={visibleLightingKeyDir}
+          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, key_dir: v } as any })}
+        />
+        <EditorSelect
+          label={tt("lighting.mood")}
+          options={moodOptions.map((o) => ({ label: o.label, value: o.v }))}
+          value={visibleLightingMood}
+          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, mood: v } as any })}
+        />
       </div>
       </EditorSection>
     </div>
@@ -2141,12 +2235,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: "var(--pro-bg-panel)",
     borderRight: "1px solid var(--pro-border-soft)"
   },
-  projectHeader: {
-    flexShrink: 0,
-    paddingBottom: 10,
-    marginBottom: 4,
-    borderBottom: "1px solid var(--pro-border-soft, #3a3f46)"
-  },
 
   section: {
     border: "none",
@@ -2155,16 +2243,8 @@ const styles: Record<string, React.CSSProperties> = {
     padding: UI_SPACE.sm,
     boxShadow: "none"
   },
-  /** Section for scene/object lists: no horizontal padding so plus/minus column aligns with header */
-  sectionListOnly: {
-    border: "none",
-    borderRadius: 0,
-    background: "transparent",
-    padding: "4px 0 12px 0",
-    boxShadow: "none"
-  },
 
-  sectionHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 2 },
+  sectionHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 2 },
   sectionTitle: { fontWeight: 850, fontSize: UI_TYPO.size14, opacity: UI_OPACITY.title, color: "rgba(255,255,255,0.94)", letterSpacing: 0.1 },
   projectNameRow: {
     display: "grid",
@@ -2384,14 +2464,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   list: { display: "flex", flexDirection: "column", gap: 8 },
-  itemRowWrap: {
-    display: "grid",
-    gridTemplateColumns: "1fr 28px",
-    gap: 8,
-    alignItems: "center",
-    minWidth: 0,
-    width: "100%"
-  },
+  itemRowWrap: { display: "flex", gap: 8, alignItems: "center", minWidth: 0 },
 
   rowBtn: {
     flex: "1 1 0",
@@ -2424,48 +2497,19 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "default"
   },
 
-  rowInner: { display: "flex", alignItems: "center", gap: 6, minWidth: 0, flexWrap: "nowrap" },
-  plusMinusCol: { width: 28, minWidth: 28, display: "flex", alignItems: "center", justifyContent: "center" },
-  listItemContent: {
-    flex: "1 1 0",
-    minWidth: 0,
-    overflow: "hidden",
-    borderRadius: editorTheme.radius.input,
-    padding: "6px 8px",
-    minHeight: "var(--pro-row-height)",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    boxSizing: "border-box"
-  },
-  infoBadge: {
-    flex: "0 0 auto",
-    width: 88,
-    minWidth: 88,
-    maxWidth: 88,
-    fontSize: "var(--pro-font-2xs)",
-    fontWeight: 600,
-    padding: "2px 6px",
-    borderRadius: 6,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    lineHeight: 1.2,
-    textAlign: "center"
-  },
-  minusColBtn: { width: 28, minWidth: 28, height: 28, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", gridColumn: 2 },
+  rowInner: { display: "flex", alignItems: "center", gap: 6, rowGap: 6, minWidth: 0, flexWrap: "wrap" },
 
   renameText: {
-    flex: "1 1 0",
+    flex: "1 1 100%",
     minWidth: 0,
-    fontWeight: 600,
-    fontSize: "var(--pro-font-2xs)",
+    fontWeight: 900,
+    fontSize: UI_TYPO.size13,
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
-    padding: "2px 0",
-    lineHeight: 1.3,
-    opacity: 0.95
+    padding: "2px 6px",
+    borderRadius: 8,
+    opacity: 0.92
   },
 
   renameInput: {
@@ -2483,9 +2527,6 @@ const styles: Record<string, React.CSSProperties> = {
 
   badgeBtn: {
     flex: "0 0 auto",
-    width: 88,
-    minWidth: 88,
-    maxWidth: 88,
     fontSize: UI_FONT.tiny,
     fontWeight: 900,
     opacity: 0.85,
@@ -2495,11 +2536,11 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(255,255,255,0.06)",
     userSelect: "none",
     outline: "none",
+    maxWidth: "min(40%, 120px)",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
-    boxShadow: "0 1px 0 rgba(255,255,255,0.05) inset",
-    textAlign: "center"
+    boxShadow: "0 1px 0 rgba(255,255,255,0.05) inset"
   },
   durInput: {
     width: 58,
@@ -2598,30 +2639,6 @@ const styles: Record<string, React.CSSProperties> = {
     position: "relative",
     flex: 1,
     minWidth: 0
-  },
-  proShotLanguageBtn: {
-    width: "100%",
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    textAlign: "left",
-    appearance: "none",
-    backgroundColor: editorTheme.colors.bg,
-    border: `1px solid ${editorTheme.colors.border}`,
-    borderRadius: editorTheme.radius.input,
-    padding: `${editorTheme.spacing.selectPaddingY}px ${editorTheme.spacing.selectPaddingX}px`,
-    color: editorTheme.colors.text,
-    fontSize: editorTheme.typography.bodySize,
-    cursor: "pointer",
-    outline: "none",
-    minHeight: editorTheme.sizing.controlHeight
-  },
-  proShotLanguageValue: {
-    flex: 1,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    lineHeight: 1.24
   },
   proMotionSelectBtn: {
     width: "100%",
@@ -2793,7 +2810,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   proMotionPanel: {
     display: "grid",
-    gap: 12
+    gap: 10
   },
   proPlusGroup: {
     display: "grid",
@@ -2853,8 +2870,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   proDirectorBlock: {
     display: "grid",
-    gap: 12,
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 10,
     padding: "10px 12px",
     borderRadius: 14,
     border: "none",
@@ -2891,26 +2908,21 @@ const styles: Record<string, React.CSSProperties> = {
     pointerEvents: "none"
   },
 
-  // ✅ toast（Pro 工作台：统一信息框样式）
+  // ✅ toast（左下角）
   toast: {
     position: "sticky",
     top: 0,
     zIndex: 50,
     marginBottom: 8,
-    padding: "4px 10px",
-    borderRadius: 6,
-    border: "1px solid var(--pro-border)",
-    background: "var(--pro-bg-panel)",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-    fontSize: "var(--pro-info-font-size)",
-    fontFamily: "var(--pro-info-font)",
-    lineHeight: 1.2,
-    maxHeight: "var(--pro-info-height)",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    display: "flex",
-    alignItems: "center",
-    color: "var(--pro-text-primary)"
+    padding: "8px 10px",
+    borderRadius: 12,
+    border: `1px solid ${UI_STATUS.border.info}`,
+    background: UI_STATUS.surface.info,
+    boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+    fontSize: 12,
+    fontWeight: 900,
+    lineHeight: 1.3,
+    opacity: 0.92
   },
   floatingHint: {
     position: "fixed",
@@ -2919,29 +2931,29 @@ const styles: Record<string, React.CSSProperties> = {
     width: "max-content",
     minWidth: 108,
     maxWidth: "min(320px, calc(100vw - 24px))",
-    padding: "4px 10px",
-    borderRadius: 6,
-    border: "1px solid var(--pro-border)",
-    background: "var(--pro-bg-panel)",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-    fontSize: "var(--pro-info-font-size)",
-    fontFamily: "var(--pro-info-font)",
+    padding: "7px 10px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.14)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+    fontSize: 12,
+    fontWeight: 900,
     lineHeight: 1.35,
     textAlign: "center",
     whiteSpace: "normal",
     overflowWrap: "break-word",
+    wordBreak: "keep-all",
     pointerEvents: "none",
-    backdropFilter: "blur(6px)"
+    backdropFilter: "blur(4px)"
   },
   floatingHintInfo: {
-    background: "color-mix(in srgb, var(--pro-bg-panel) 95%, transparent)",
-    border: "1px solid var(--pro-border)",
-    color: "var(--pro-text-primary)"
+    background: UI_STATUS.surface.info,
+    border: `1px solid ${UI_STATUS.border.info}`,
+    color: "rgba(255,255,255,0.95)"
   },
   floatingHintDanger: {
-    background: "color-mix(in srgb, var(--pro-bg-panel) 95%, transparent)",
-    border: "1px solid var(--pro-accent)",
-    color: "var(--pro-text-primary)"
+    background: UI_STATUS.surface.warn,
+    border: `1px solid ${UI_STATUS.border.warn}`,
+    color: "rgba(255,235,235,0.96)"
   },
 
   // ✅ confirm modal

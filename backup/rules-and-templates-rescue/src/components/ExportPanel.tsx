@@ -703,11 +703,11 @@ export function ExportPanel({
     <div className="pro-export-panel" style={styles.wrap}>
       <div style={styles.head}>
         {sceneConflicts.length > 0 ? (
-          <button className="pro-btn-ghost" type="button" onClick={() => {
+          <button style={styles.conflictBadgeBtn} type="button" onClick={() => {
             setPendingConflictAction(null);
             setPendingConflicts(sceneConflicts);
             setShowConflictModal(true);
-          }} style={{ borderColor: "rgba(255,120,120,0.58)", color: "rgba(255,200,200,0.96)" }}>
+          }}>
             {lang === "zh" ? `冲突 ${sceneConflicts.length}` : `Conflicts ${sceneConflicts.length}`}
           </button>
         ) : null}
@@ -729,10 +729,10 @@ export function ExportPanel({
           <div style={{ ...styles.modal, width: "min(700px, calc(100vw - 48px))" }} onMouseDown={(e) => e.stopPropagation()}>
             <div style={styles.copyModalHead}>
               <div style={styles.modalTitle}>{lang === "zh" ? "复制提示词" : "Copy Prompt"}</div>
-              <button className="pro-btn-ghost" type="button" onClick={() => {
+              <button style={styles.iconCloseBtn} type="button" onClick={() => {
                 setCopyConfirmOpen(false);
                 setCopyDone(false);
-              }} style={{ width: 28, height: 28, minWidth: 28, padding: 0, fontSize: 14, fontWeight: 900 }} aria-label={lang === "zh" ? "关闭" : "Close"}>×</button>
+              }}>×</button>
             </div>
             <div style={styles.platformTips}>
               {lang === "zh"
@@ -746,10 +746,10 @@ export function ExportPanel({
             <pre style={styles.copyPreview}>{quickCopyPrompt}</pre>
             {copyDone ? <div style={styles.copyOk}>{lang === "zh" ? "复制成功" : "Copied"}</div> : null}
             <div style={styles.modalBtns}>
-              <button className="pro-btn" type="button" onClick={() => void confirmCopyPrompt()}>
+              <button style={styles.btnPrimary} type="button" onClick={() => void confirmCopyPrompt()}>
                 {lang === "zh" ? "复制" : "Copy"}
               </button>
-              <button className="pro-btn-ghost" type="button" onClick={() => {
+              <button style={styles.btnGhost} type="button" onClick={() => {
                 setCopyConfirmOpen(false);
                 setCopyDone(false);
               }}>
@@ -766,13 +766,12 @@ export function ExportPanel({
           <div style={styles.copyModalHead}>
             <div style={styles.modalTitle}>{lang === "zh" ? "导出" : "Export"}</div>
             <button
-              className="pro-btn-ghost"
+              style={styles.iconCloseBtn}
               type="button"
               data-testid="export-close-top"
               onClick={() => setShowExportModal(false)}
               aria-label={lang === "zh" ? "关闭导出弹窗" : "Close export modal"}
               title={lang === "zh" ? "关闭" : "Close"}
-              style={{ width: 28, height: 28, minWidth: 28, padding: 0, fontSize: 14, fontWeight: 900 }}
             >
               ×
             </button>
@@ -785,10 +784,10 @@ export function ExportPanel({
           <div style={styles.modalRow}>
             <div style={styles.profileLabel}>{lang === "zh" ? "导出类型" : "Export Type"}</div>
             <div style={styles.optionWrap}>
-              <button data-testid="export-mode-quick" type="button" className={exportMode === "quick" ? "pro-btn" : "pro-btn-ghost"} style={styles.optionBtn} onClick={() => setExportMode("quick")}>
+              <button data-testid="export-mode-quick" type="button" style={{ ...styles.optionBtn, ...(exportMode === "quick" ? styles.optionBtnOn : {}) }} onClick={() => setExportMode("quick")}>
                 {lang === "zh" ? "提示词 TXT" : "Prompt TXT"}
               </button>
-              <button data-testid="export-mode-package" type="button" className={exportMode === "package" ? "pro-btn" : "pro-btn-ghost"} style={styles.optionBtn} onClick={() => setExportMode("package")}>
+              <button data-testid="export-mode-package" type="button" style={{ ...styles.optionBtn, ...(exportMode === "package" ? styles.optionBtnOn : {}) }} onClick={() => setExportMode("package")}>
                 {lang === "zh" ? "整个项目（含参考图）" : "Whole Project (with refs)"}
               </button>
             </div>
@@ -797,10 +796,10 @@ export function ExportPanel({
             <div style={styles.modalRow}>
               <div style={styles.profileLabel}>{lang === "zh" ? "导出范围" : "Export Scope"}{rangeField.reason ? ` · ${rangeField.reason}` : ""}</div>
               <div style={styles.optionWrap}>
-                <button data-testid="export-scope-current" type="button" disabled={!rangeField.enabled} title={rangeOptions.find((o) => o.value === "current_scene")?.reason} className={exportScope === "current_scene" ? "pro-btn" : "pro-btn-ghost"} style={styles.optionBtn} onClick={() => setExportScope("current_scene")}>
+                <button data-testid="export-scope-current" type="button" disabled={!rangeField.enabled} title={rangeOptions.find((o) => o.value === "current_scene")?.reason} style={{ ...styles.optionBtn, ...(exportScope === "current_scene" ? styles.optionBtnOn : {}) }} onClick={() => setExportScope("current_scene")}>
                   {lang === "zh" ? "当前分镜" : "Current Scene"}
                 </button>
-                <button data-testid="export-scope-sequence" type="button" disabled={!rangeOptions.find((o) => o.value === "continuous_sequence")?.enabled} title={rangeOptions.find((o) => o.value === "continuous_sequence")?.reason} className={exportScope === "continuous_sequence" ? "pro-btn" : "pro-btn-ghost"} style={styles.optionBtn} onClick={() => rangeOptions.find((o) => o.value === "continuous_sequence")?.enabled && setExportScope("continuous_sequence")}>
+                <button data-testid="export-scope-sequence" type="button" disabled={!rangeOptions.find((o) => o.value === "continuous_sequence")?.enabled} title={rangeOptions.find((o) => o.value === "continuous_sequence")?.reason} style={{ ...styles.optionBtn, ...(exportScope === "continuous_sequence" ? styles.optionBtnOn : {}) }} onClick={() => rangeOptions.find((o) => o.value === "continuous_sequence")?.enabled && setExportScope("continuous_sequence")}>
                   {lang === "zh" ? "连续序列" : "Continuity Sequence"}
                 </button>
               </div>
@@ -833,7 +832,7 @@ export function ExportPanel({
               </div>
               <div style={styles.unsupportedActions}>
                 <button
-                  className="pro-btn-ghost"
+                  style={styles.btnGhost}
                   type="button"
                   onClick={async () => {
                     await copy(manualSaveGuide);
@@ -846,12 +845,12 @@ export function ExportPanel({
             </div>
           ) : null}
           <div style={styles.modalBtns}>
-            <button data-testid="export-close" className="pro-btn-ghost" onClick={() => setShowExportModal(false)} type="button">
+            <button data-testid="export-close" style={styles.btnGhost} onClick={() => setShowExportModal(false)} type="button">
               {lang === "zh" ? "关闭" : "Close"}
             </button>
             <button
               data-testid="export-submit"
-              className="pro-btn"
+              style={styles.btnPrimary}
               onClick={async () => {
                 if (exportMode === "quick") {
                   let ticket: PromptExportTicket = { allowed: true };
@@ -923,12 +922,11 @@ export function ExportPanel({
             <div style={styles.copyModalHead}>
               <div style={styles.modalTitle}>{lang === "zh" ? "检测到冲突，请先修正" : "Conflicts Detected"}</div>
               <button
-                className="pro-btn-ghost"
+                style={styles.iconCloseBtn}
                 type="button"
                 onClick={() => setShowConflictModal(false)}
                 aria-label={lang === "zh" ? "关闭冲突弹窗" : "Close conflict modal"}
                 title={lang === "zh" ? "关闭" : "Close"}
-                style={{ width: 28, height: 28, minWidth: 28, padding: 0, fontSize: 14, fontWeight: 900 }}
               >
                 ×
               </button>
@@ -949,7 +947,7 @@ export function ExportPanel({
                   <div style={styles.conflictActions}>
                     {c.layerId ? (
                       <button
-                        className="pro-btn-ghost"
+                        style={styles.btnGhost}
                         type="button"
                         onClick={() => {
                           onJumpToConflict?.(c.layerId);
@@ -964,11 +962,11 @@ export function ExportPanel({
               ))}
             </div>
             <div style={styles.modalBtns}>
-              <button className="pro-btn-ghost" type="button" onClick={() => setShowConflictModal(false)}>
+              <button style={styles.btnGhost} type="button" onClick={() => setShowConflictModal(false)}>
                 {lang === "zh" ? "返回修改" : "Back to Edit"}
               </button>
               <button
-                className="pro-btn"
+                style={styles.btnPrimary}
                 type="button"
                 onClick={async () => {
                   const action = pendingConflictAction;
@@ -989,14 +987,14 @@ export function ExportPanel({
 
 const styles: Record<string, React.CSSProperties> = {
   wrap: {
-    padding: "16px",
-    minHeight: 160,
-    height: 160,
+    padding: "0 12px 12px",
+    minHeight: 132,
+    height: "min(30vh, 250px)",
     display: "flex",
     flexDirection: "column",
     gap: 8,
     borderTop: "none",
-    background: "var(--pro-bg-panel)",
+    background: "#f7f9fc",
     position: "relative",
     backdropFilter: "none"
   },
@@ -1108,18 +1106,13 @@ const styles: Record<string, React.CSSProperties> = {
     right: 10,
     top: 44,
     zIndex: 60,
-    padding: "4px 10px",
-    borderRadius: 6,
-    border: "1px solid var(--pro-border)",
-    background: "var(--pro-bg-panel)",
-    fontSize: "var(--pro-info-font-size)",
-    fontFamily: "var(--pro-info-font)",
-    maxHeight: "var(--pro-info-height)",
-    lineHeight: 1.2,
-    display: "flex",
-    alignItems: "center",
-    color: "var(--pro-text-primary)",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.25)"
+    padding: "7px 10px",
+    borderRadius: UI_RADIUS.control,
+    border: `1px solid ${UI_STATUS.border.info}`,
+    background: UI_STATUS.surface.info,
+    fontSize: UI_FONT.body,
+    fontWeight: 900,
+    boxShadow: "0 10px 30px rgba(0,0,0,0.35)"
   },
   helpFloat: {
     position: "absolute",
@@ -1147,12 +1140,12 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 0,
     display: "flex",
     flexDirection: "column",
-    gap: 6,
-    border: "1px solid var(--pro-border)",
-    borderRadius: 6,
-    background: "var(--pro-bg)",
+    gap: 8,
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: UI_RADIUS.panel,
+    background: "rgba(255,255,255,0.01)",
     boxShadow: "none",
-    padding: 8
+    padding: 10
   },
   promptTitleRow: {
     display: "flex",
@@ -1465,42 +1458,42 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 60,
     display: "flex",
     flexDirection: "column",
-    gap: 6,
+    gap: 8,
     overflowY: "auto",
     overflowX: "hidden",
-    paddingRight: 4,
+    paddingRight: 2,
     scrollbarWidth: "thin"
   },
 
   pre: {
     flex: "0 0 auto",
     margin: 0,
-    padding: "8px 10px",
-    borderRadius: 6,
-    border: "1px solid var(--pro-border)",
-    background: "var(--pro-bg)",
-    color: "var(--pro-text-primary)",
+    padding: 10,
+    borderRadius: UI_RADIUS.control,
+    border: "none",
+    background: "#f3f6fa",
     overflow: "visible",
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
-    fontFamily: 'ui-monospace, SF Mono, Menlo, Consolas, monospace',
-    fontSize: "var(--pro-font-xs)",
-    lineHeight: 1.4
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+    fontSize: UI_TYPO.size12,
+    lineHeight: 1.5
   },
 
+  // 机器语言/控制层：保持和主提示词一致可读性，避免灰区难读
   preNotes: {
     flex: "0 0 auto",
     margin: 0,
-    padding: "8px 10px",
-    borderRadius: 6,
-    border: "1px solid var(--pro-border)",
-    background: "var(--pro-bg)",
-    color: "var(--pro-text-muted)",
+    padding: 10,
+    borderRadius: UI_RADIUS.control,
+    border: "none",
+    background: "#f3f6fa",
+    color: "#334155",
     overflow: "visible",
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
-    fontFamily: 'ui-monospace, SF Mono, Menlo, Consolas, monospace',
-    fontSize: "var(--pro-font-xs)",
-    lineHeight: 1.4
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+    fontSize: UI_TYPO.size12,
+    lineHeight: 1.5
   }
 };

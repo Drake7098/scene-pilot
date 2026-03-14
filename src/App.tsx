@@ -47,7 +47,7 @@ import {
   type LocalProviderStatus
 } from "./utils/localGeneration";
 
-import { CircleHelp, FolderOpen, Languages, MoreHorizontal, X } from "lucide-react";
+import { CircleHelp, FolderOpen, Image as ImageIcon, Languages, Layout, MoreHorizontal, X } from "lucide-react";
 import { CreditCard, Crown, KeyRound, LogOut, UserRound, Wallet } from "lucide-react";
 import { AccountCenterModal } from "./components/AccountCenterModal";
 import { BillingOverlay } from "./components/billing/BillingOverlay";
@@ -67,6 +67,7 @@ import { finalizeReservedCredits, getCreditLedger, getWalletState, reserveCredit
 import { getPromptExportPolicy, PROMPT_EXPORT_CREDITS_COST } from "./services/promptExportPolicy";
 import { recordLegalConsent, syncPendingLegalConsents } from "./services/legalConsentService";
 import { getApiCredentials, setApiCredentials } from "./services/mockAccountStore";
+import { createTemplateFromScene, saveUserTemplate } from "./lib/templateStore";
 import { canOpenCustomerPortal, canUseBringYourOwnApi, canUseHostedGeneration, canUseProConsole } from "./utils/entitlement";
 import { PRO_PLUS_MOTION_CATEGORIES } from "./content/proCameraPresets";
 import {
@@ -407,6 +408,7 @@ export default function App() {
   const [creditPacks] = useState<CreditPackConfig[]>(CREDIT_PACKS);
   const [proPlan] = useState<ProPlanConfig | null>(PRO_PLAN);
   const [billingPage, setBillingPage] = useState<"upgrade" | "credits" | null>(null);
+  const [, setTemplatesRefresh] = useState(0);
   const [billingLocalHint, setBillingLocalHint] = useState("");
   const [insufficientCreditsOpen, setInsufficientCreditsOpen] = useState(false);
   const [insufficientCreditsMessage, setInsufficientCreditsMessage] = useState("");
@@ -441,8 +443,6 @@ export default function App() {
   const [proAssetsBySceneId, setProAssetsBySceneId] = useState<Record<string, ProGeneratedAsset[]>>({});
   const [proActiveAssetBySceneId, setProActiveAssetBySceneId] = useState<Record<string, string>>({});
   const [proAssetMenuId, setProAssetMenuId] = useState<string | null>(null);
-  const [proCanvasTabMenuOpen, setProCanvasTabMenuOpen] = useState(false);
-  const proCanvasTabTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const [, setFileHandle] = useState<any | null>(null);
   const [fileLabel, setFileLabel] = useState<string>(() => {
@@ -858,17 +858,6 @@ export default function App() {
     window.addEventListener("pointerdown", onPointerDown);
     return () => window.removeEventListener("pointerdown", onPointerDown);
   }, [proAssetMenuId]);
-
-  useEffect(() => {
-    if (!proCanvasTabMenuOpen) return;
-    const onPointerDown = (e: PointerEvent) => {
-      const el = e.target as Node;
-      if (proCanvasTabTriggerRef.current?.contains(el)) return;
-      setProCanvasTabMenuOpen(false);
-    };
-    window.addEventListener("pointerdown", onPointerDown);
-    return () => window.removeEventListener("pointerdown", onPointerDown);
-  }, [proCanvasTabMenuOpen]);
 
   useEffect(() => {
     proAssetsRef.current = proAssetsBySceneId;
@@ -3204,12 +3193,15 @@ export default function App() {
 
   // ---------------------- UI ----------------------
   return (
-    <div style={{ ...styles.app, ...(activeWorkspaceMode === "pro" ? styles.appPro : styles.appQuick) }}>
+    <div
+      data-workspace={activeWorkspaceMode}
+      style={{ ...styles.app, ...(activeWorkspaceMode === "pro" ? styles.appPro : styles.appQuick) }}
+    >
       <div style={styles.appBackdrop} aria-hidden="true">
         <div style={styles.appBackdropPro} />
       </div>
       {workspaceSwitchShield ? <div style={styles.workspaceSwitchShield} aria-hidden="true" /> : null}
-      <div style={styles.top}>
+      <div data-top style={styles.top}>
         {/* ✅ 左上角 Logo：ScenePilotix + 放大中文；彻底移除原 tagline 行 */}
         <div style={styles.brand} title="ScenePilotix">
           <div style={styles.logoRow}>
@@ -3218,7 +3210,7 @@ export default function App() {
           </div>
         </div>
 
-        {activeWorkspaceMode === "pro" ? (
+        {activeWorkspaceMode === "pro" ? null : (
           <div style={styles.topProjectDock}>
             <div style={styles.commandDock}>
               <ProjectControlBar
@@ -3241,9 +3233,6 @@ export default function App() {
                 }}
               />
             </div>
-          </div>
-        ) : (
-          <div style={styles.topProjectDock}>
           </div>
         )}
 
@@ -3697,6 +3686,22 @@ export default function App() {
             lang={lang}
             project={safeProject}
             sceneIdx={sceneIdx}
+            projectLabel={fileLabel || defaultProjectName(lang)}
+            isMac={isMac}
+            onOpenProject={() => fileInputRef.current?.click()}
+            onRenameProject={requestRenameProject}
+            onNewProject={requestNewProject}
+            onSaveProject={() => void saveToDisk()}
+            onSaveAs={() => saveAsToDisk()}
+            onCopyPrompt={() => openExportPanel("copy")}
+            onExportProject={() => openExportPanel("open")}
+            onOpenLibrary={() => {
+              setLibraryOpen(true);
+              setLibraryProjectName(null);
+              void ensureLibraryRoot(false).then((root) => {
+                if (root) void refreshLibraryEntries(root, null);
+              });
+            }}
             setSceneIdx={(i) => {
               setSceneIdx(i);
               setSelectedLayerId(null);
@@ -3718,11 +3723,70 @@ export default function App() {
               updateScene(s);
               trackEditorChange("scene", "update", { idx: sceneIdx }, lang);
             }}
+            isPro={canUseProConsole(accountUser)}
+            onLockedTemplateClick={() => setBillingPage("upgrade")}
+            onRequestSaveTemplate={() => {
+              const sc = safeProject?.scenes?.[sceneIdx];
+              if (!sc) return false;
+              const tpl = createTemplateFromScene(sc, {
+                name: (sc.name ?? "").trim() || (lang === "zh" ? "未命名模板" : "Untitled Template"),
+                category: "custom"
+              });
+              saveUserTemplate(tpl);
+              setTemplatesRefresh((r) => r + 1);
+              return true;
+            }}
           />
 
           <div style={styles.center}>
+            {/* Canvas tab bar (Figma-style browser tabs) */}
+            <div style={styles.proCanvasTabBar}>
+              <button
+                type="button"
+                className="pro-canvas-tab"
+                data-active={currentSceneActiveAssetId === "canvas" ? true : undefined}
+                style={{
+                  ...styles.proCanvasTab,
+                  ...(currentSceneActiveAssetId === "canvas" ? styles.proCanvasTabActive : null)
+                }}
+                onClick={() => setActiveProAsset(sceneAssetKey, "canvas")}
+                title={lang === "zh" ? "画布" : "Canvas"}
+              >
+                <Layout size={14} style={{ marginRight: 6, opacity: 0.8 }} />
+                {lang === "zh" ? "画布" : "Canvas"}
+                {currentSceneActiveAssetId === "canvas" ? (
+                  <div style={styles.proCanvasTabSeam} aria-hidden />
+                ) : null}
+              </button>
+              {currentSceneAssets.map((asset, index) => {
+                const tabLabel = asset.title?.trim() || proAssetLabel(asset.kind, index + 1);
+                const isActive = currentSceneActiveAssetId === asset.id;
+                return (
+                  <button
+                    key={asset.id}
+                    type="button"
+                    className="pro-canvas-tab"
+                    data-active={isActive ? true : undefined}
+                    style={{
+                      ...styles.proCanvasTab,
+                      ...(isActive ? styles.proCanvasTabActive : null)
+                    }}
+                    onClick={() => setActiveProAsset(sceneAssetKey, asset.id)}
+                    title={tabLabel}
+                  >
+                    <ImageIcon size={14} style={{ marginRight: 6, opacity: 0.8 }} />
+                    {tabLabel}
+                    {isActive ? <div style={styles.proCanvasTabSeam} aria-hidden /> : null}
+                  </button>
+                );
+              })}
+            </div>
             <div style={styles.stageShell}>
-              <div style={styles.proCanvasWorkspace}>
+              <div
+                className={!currentSceneActiveAsset ? "pro-canvas-viewport" : undefined}
+                style={styles.proCanvasWorkspace}
+                data-view={!currentSceneActiveAsset ? "canvas" : "asset"}
+              >
                 {currentSceneActiveAsset ? (
                   <div style={styles.proAssetStage}>
                     <div style={styles.proAssetPreviewTop}>
@@ -3752,6 +3816,7 @@ export default function App() {
                           <div style={styles.proAssetMenu} onPointerDown={(e) => e.stopPropagation()}>
                             <button
                               type="button"
+                              className="pro-btn-ghost"
                               style={styles.proAssetMenuItem}
                               onClick={() => {
                                 downloadProAsset(currentSceneActiveAsset);
@@ -3762,6 +3827,7 @@ export default function App() {
                             </button>
                             <button
                               type="button"
+                              className="pro-btn-ghost"
                               style={styles.proAssetMenuItem}
                               onClick={() => {
                                 setProAssetMenuId(null);
@@ -3772,6 +3838,7 @@ export default function App() {
                             </button>
                             <button
                               type="button"
+                              className="pro-btn-ghost"
                               style={{ ...styles.proAssetMenuItem, ...styles.proAssetMenuDanger }}
                               onClick={() => {
                                 deleteProAsset(sceneAssetKey, currentSceneActiveAsset.id);
@@ -3809,6 +3876,7 @@ export default function App() {
                   </div>
                 ) : (
                   <Stage
+                    className="spx-pro-stage"
                     scene={scene}
                     selectedLayerId={selectedLayerId}
                     onSelectLayer={(id) => {
@@ -3824,112 +3892,6 @@ export default function App() {
                   />
                 )}
 
-              </div>
-            </div>
-
-            <div style={styles.proCanvasFooterOutside}>
-              {proGenerateHint ? <div style={styles.proGenerateToast}>{proGenerateHint}</div> : null}
-              <div style={styles.proCanvasFooter}>
-                <div className="spx-pro-result-rail" style={styles.proResultRailDock}>
-                  <div style={{ position: "relative", display: "inline-flex" }}>
-                    <button
-                      ref={proCanvasTabTriggerRef}
-                      type="button"
-                      style={{
-                        ...styles.proResultTab,
-                        ...styles.proResultTabTrigger,
-                        ...(currentSceneActiveAssetId === "canvas"
-                          ? styles.proResultTabOn
-                          : currentSceneAssets.some((a) => a.id === currentSceneActiveAssetId)
-                            ? styles.proResultTabOn
-                            : null)
-                      }}
-                      onClick={() => setProCanvasTabMenuOpen((o) => !o)}
-                      title={lang === "zh" ? "切换画布 / 分镜" : "Switch canvas / asset"}
-                    >
-                      {currentSceneActiveAssetId === "canvas"
-                        ? (lang === "zh" ? "画布" : "Canvas")
-                        : (() => {
-                            const a = currentSceneAssets.find((x) => x.id === currentSceneActiveAssetId);
-                            return a ? (a.title?.trim() || proAssetLabel(a.kind, currentSceneAssets.indexOf(a) + 1)) : (lang === "zh" ? "画布" : "Canvas");
-                          })()}
-                      <span style={{ marginLeft: 6, opacity: 0.8 }}>▾</span>
-                    </button>
-                    {proCanvasTabMenuOpen ? (
-                      <div
-                        role="menu"
-                        style={{
-                          ...styles.proCanvasTabMenu,
-                          bottom: "100%",
-                          left: 0,
-                          marginBottom: 4
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          role="menuitem"
-                          type="button"
-                          style={{
-                            ...styles.proCanvasTabMenuItem,
-                            ...(currentSceneActiveAssetId === "canvas" ? styles.proCanvasTabMenuItemOn : null)
-                          }}
-                          onClick={() => {
-                            setActiveProAsset(sceneAssetKey, "canvas");
-                            setProAssetMenuId(null);
-                            setProCanvasTabMenuOpen(false);
-                          }}
-                        >
-                          {lang === "zh" ? "画布" : "Canvas"}
-                        </button>
-                        {currentSceneAssets.map((asset, index) => {
-                          const tabLabel = asset.title?.trim() || proAssetLabel(asset.kind, index + 1);
-                          return (
-                            <button
-                              key={asset.id}
-                              role="menuitem"
-                              type="button"
-                              title={tabLabel}
-                              style={{
-                                ...styles.proCanvasTabMenuItem,
-                                ...(currentSceneActiveAssetId === asset.id ? styles.proCanvasTabMenuItemOn : null)
-                              }}
-                              onClick={() => {
-                                setActiveProAsset(sceneAssetKey, asset.id);
-                                setProAssetMenuId(null);
-                                setProCanvasTabMenuOpen(false);
-                              }}
-                            >
-                              {tabLabel}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-                <div style={styles.proGenerateHandle}>
-                  {canUseBringYourOwnApi(accountUser) ? (
-                    <select
-                      value={proGenerationSource}
-                      onChange={(e) => setProGenerationSource(e.target.value as ProGenerationSource)}
-                      style={styles.proSourceSelect}
-                    >
-                      <option value="hosted">{lang === "zh" ? "平台生成" : "Hosted"}</option>
-                      <option value="byo">{lang === "zh" ? "我的 API" : "My API"}</option>
-                    </select>
-                  ) : null}
-
-                  <button
-                    type="button"
-                    style={styles.proActionBtnPrimary}
-                    onClick={() => void generateProAsset()}
-                    disabled={proGenerateBusy}
-                  >
-                    {proGenerateBusy
-                      ? (lang === "zh" ? "生成中…" : "Generating…")
-                      : (lang === "zh" ? "生成" : "Generate")}
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -3972,6 +3934,38 @@ export default function App() {
               setEditT(tv);
               trackEditorChange("timeline", "set_t", { t: tv }, lang);
             }}
+            bottomSlot={
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {proGenerateHint ? (
+                  <div style={{ ...styles.proGenerateToast, position: "relative", right: "auto", bottom: "auto" }}>{proGenerateHint}</div>
+                ) : null}
+                <div style={{ ...styles.proCanvasFooter, justifyContent: "center" }}>
+                  <div style={styles.proGenerateHandle}>
+                    {canUseBringYourOwnApi(accountUser) ? (
+                      <select
+                        value={proGenerationSource}
+                        onChange={(e) => setProGenerationSource(e.target.value as ProGenerationSource)}
+                        style={styles.proSourceSelect}
+                      >
+                        <option value="hosted">{lang === "zh" ? "平台生成" : "Hosted"}</option>
+                        <option value="byo">{lang === "zh" ? "我的 API" : "My API"}</option>
+                      </select>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="pro-btn pro-generate-btn"
+                      style={styles.proGenerateBtn}
+                      onClick={() => void generateProAsset()}
+                      disabled={proGenerateBusy}
+                    >
+                      {proGenerateBusy
+                        ? (lang === "zh" ? "生成中…" : "Generating…")
+                        : (lang === "zh" ? "生成" : "Generate")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
           />
         </div>
       )}
@@ -4418,7 +4412,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#000000"
   },
   appPro: {
-    background: "#000000"
+    background: "var(--pro-bg)"
   },
   appBackdrop: {
     position: "absolute",
@@ -4720,7 +4714,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   mainDesktop: {
     display: "grid",
-    gridTemplateColumns: "clamp(232px, 24vw, 320px) minmax(0, 1fr) clamp(240px, 26vw, 344px)"
+    gridTemplateColumns: "clamp(232px, 24vw, 320px) minmax(0, 1fr) clamp(240px, 26vw, 344px)",
+    gridTemplateRows: "minmax(0, 1fr)"
   },
 
   center: {
@@ -4737,6 +4732,49 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 12,
     padding: "0 12px 12px"
   },
+  proCanvasTabBar: {
+    display: "flex",
+    alignItems: "flex-end",
+    gap: 1,
+    height: 38,
+    padding: "8px 8px 0",
+    background: "#24262b",
+    borderBottom: "1px solid #3a3f46",
+    flexShrink: 0,
+    zIndex: 10,
+    boxShadow: "0 1px 2px rgba(0,0,0,0.08)"
+  },
+  proCanvasTab: {
+    position: "relative",
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "6px 16px",
+    fontSize: 12,
+    fontWeight: 500,
+    borderRadius: "6px 6px 0 0",
+    border: "1px solid transparent",
+    borderBottom: "none",
+    background: "#1a1c1f",
+    color: "#9ca3af",
+    cursor: "pointer",
+    outline: "none",
+    transition: "background 120ms, color 120ms, border-color 120ms"
+  },
+  proCanvasTabActive: {
+    background: "#1f2125",
+    border: "1px solid #3a3f46",
+    borderBottomColor: "transparent",
+    color: "#f59e0b",
+    zIndex: 10
+  },
+  proCanvasTabSeam: {
+    position: "absolute",
+    bottom: -1,
+    left: 0,
+    width: "100%",
+    height: 1,
+    background: "#1f2125"
+  },
   stageShell: {
     flex: 1,
     minWidth: 0,
@@ -4746,20 +4784,20 @@ const styles: Record<string, React.CSSProperties> = {
   proResultTab: {
     position: "relative",
     zIndex: 1,
-    height: 36,
+    height: 28,
     minWidth: 72,
     maxWidth: 180,
-    padding: "0 16px",
+    padding: "0 14px",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: "12px 12px 0 0",
-    border: "1px solid rgba(112,144,196,0.5)",
+    borderRadius: "6px 6px 0 0",
+    border: "1px solid var(--pro-border)",
     borderBottomColor: "transparent",
-    background: "linear-gradient(180deg, rgba(40,58,88,0.92) 0%, rgba(21,33,51,0.96) 58%, rgba(10,16,27,0.98) 100%)",
-    color: UI_PALETTE.text.secondary,
-    fontSize: UI_TYPO.size12,
-    fontWeight: 820,
+    background: "#1a1c1f",
+    color: "var(--pro-text-muted)",
+    fontSize: "var(--pro-font-xs)",
+    fontWeight: 500,
     cursor: "pointer",
     whiteSpace: "nowrap",
     flexShrink: 0,
@@ -4768,11 +4806,11 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: -1
   },
   proResultTabOn: {
-    border: "1px solid rgba(148,183,232,0.78)",
+    border: "1px solid var(--pro-border)",
     borderBottomColor: "transparent",
-    background: "linear-gradient(180deg, rgba(70,102,148,0.94) 0%, rgba(33,50,77,0.98) 60%, rgba(12,20,31,0.98) 100%)",
-    color: UI_PALETTE.text.primary,
-    boxShadow: "0 4px 10px rgba(2,8,18,0.22), inset 0 1px 0 rgba(238,246,255,0.24)"
+    background: "var(--pro-bg)",
+    color: "var(--pro-accent)",
+    boxShadow: "0 -1px 0 0 var(--pro-bg)"
   },
   proResultTabTrigger: {
     paddingRight: 10
@@ -4787,10 +4825,10 @@ const styles: Record<string, React.CSSProperties> = {
     maxHeight: 280,
     overflowY: "auto",
     padding: 6,
-    borderRadius: "10px 10px 0 0",
-    border: "1px solid rgba(112,144,196,0.5)",
+    borderRadius: "8px 8px 0 0",
+    border: "1px solid var(--pro-border)",
     borderBottom: "none",
-    background: "linear-gradient(180deg, rgba(21,33,51,0.98) 0%, rgba(12,20,31,0.99) 100%)",
+    background: "var(--pro-bg-panel)",
     boxShadow: "0 -6px 16px rgba(0,0,0,0.35)"
   },
   proCanvasTabMenuItem: {
@@ -4799,45 +4837,45 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     border: "none",
     background: "transparent",
-    color: UI_PALETTE.text.secondary,
-    fontSize: UI_TYPO.size12,
-    fontWeight: 760,
+    color: "var(--pro-text-muted)",
+    fontSize: 12,
+    fontWeight: 500,
     cursor: "pointer",
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis"
   },
   proCanvasTabMenuItemOn: {
-    background: "rgba(70,102,148,0.4)",
-    color: UI_PALETTE.text.primary
+    background: "var(--pro-hover)",
+    color: "var(--pro-text-primary)"
   },
   proActionBtnPrimary: {
-    minHeight: 40,
-    padding: "0 20px",
+    minHeight: 36,
+    padding: "0 16px",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 13,
-    border: "1px solid rgba(126,162,210,0.66)",
-    background: "linear-gradient(180deg, rgba(68,103,150,0.95) 0%, rgba(44,70,106,0.98) 100%)",
-    color: UI_PALETTE.text.primary,
+    borderRadius: 8,
+    border: "none",
+    background: "var(--pro-accent)",
+    color: "#1f2125",
     cursor: "pointer",
-    fontSize: UI_TYPO.size13,
-    fontWeight: 820,
+    fontSize: 12,
+    fontWeight: 600,
     whiteSpace: "nowrap",
-    boxShadow: "0 7px 14px rgba(6,14,30,0.24), inset 0 1px 0 rgba(229,240,255,0.28)"
+    boxShadow: "0 1px 2px rgba(0,0,0,0.2)"
   },
   proSourceSelect: {
     width: 128,
     minWidth: 128,
     height: 36,
     padding: "0 12px",
-    borderRadius: 11,
-    border: "1px solid rgba(122,154,202,0.46)",
-    background: "rgba(12,20,32,0.9)",
-    color: UI_PALETTE.text.primary,
-    fontSize: UI_TYPO.size12,
-    fontWeight: 760,
+    borderRadius: 8,
+    border: "1px solid var(--pro-border)",
+    background: "var(--pro-bg)",
+    color: "var(--pro-text-primary)",
+    fontSize: 12,
+    fontWeight: 500,
     outline: "none"
   },
   proGenerateToast: {
@@ -4846,15 +4884,22 @@ const styles: Record<string, React.CSSProperties> = {
     bottom: 46,
     zIndex: 40,
     maxWidth: 240,
-    padding: "7px 11px",
-    borderRadius: 10,
-    border: "1px solid rgba(118,155,206,0.5)",
-    background: "rgba(12,19,31,0.92)",
-    color: UI_PALETTE.text.primary,
-    fontSize: UI_TYPO.size12,
-    fontWeight: 760,
-    lineHeight: 1.35,
-    boxShadow: "0 10px 20px rgba(0,0,0,0.35)"
+    padding: "4px 10px",
+    borderRadius: 6,
+    border: "1px solid var(--pro-border)",
+    background: "var(--pro-bg-panel)",
+    color: "var(--pro-text-primary)",
+    fontSize: "var(--pro-info-font-size)",
+    fontFamily: "var(--pro-info-font)",
+    lineHeight: 1.2,
+    minHeight: "var(--pro-info-height)",
+    maxHeight: "var(--pro-info-height)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    display: "flex",
+    alignItems: "center",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.25)"
   },
   proCanvasWorkspace: {
     position: "relative",
@@ -4862,31 +4907,40 @@ const styles: Record<string, React.CSSProperties> = {
     minWidth: 0,
     minHeight: 0,
     display: "flex",
-    paddingBottom: 0
+    paddingBottom: 0,
+    background: "var(--pro-bg)",
+    backgroundImage: `
+      linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px)
+    `,
+    backgroundSize: "40px 40px",
+    backgroundPosition: "center center"
   },
   proCanvasFooterOutside: {
     position: "relative",
     marginTop: -1,
-    padding: "0 12px 7px"
+    padding: "0 12px 8px",
+    background: "var(--pro-bg-panel)",
+    borderTop: "1px solid var(--pro-border)"
   },
   proCanvasFooter: {
     position: "relative",
     display: "flex",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    gap: 14,
-    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 10,
+    minHeight: "var(--pro-row-height)",
     pointerEvents: "auto"
   },
   proResultRailDock: {
     position: "relative",
     display: "flex",
-    alignItems: "flex-end",
+    alignItems: "center",
     gap: 2,
     minWidth: 0,
     flex: 1,
     maxWidth: "100%",
-    minHeight: 44,
+    minHeight: "var(--pro-row-height)",
     padding: 0,
     overflowX: "auto",
     overflowY: "hidden",
@@ -4915,16 +4969,26 @@ const styles: Record<string, React.CSSProperties> = {
   proGenerateHandle: {
     position: "relative",
     display: "flex",
-    alignItems: "flex-end",
+    alignItems: "center",
     gap: 10,
-    justifyContent: "flex-end",
+    justifyContent: "center",
     flexShrink: 0,
-    minHeight: 44,
-    padding: "0 0 1px",
+    minHeight: "var(--pro-row-height)",
+    padding: 0,
     pointerEvents: "auto"
   },
+  proGenerateBtn: {
+    minWidth: 160,
+    paddingLeft: 20,
+    paddingRight: 20
+  },
   proPromptZone: {
-    marginTop: 1
+    marginTop: 0,
+    background: "var(--pro-bg-panel)",
+    borderTop: "1px solid var(--pro-border)",
+    minHeight: 160,
+    display: "flex",
+    flexDirection: "column"
   },
   proAssetStage: {
     flex: 1,
@@ -4932,9 +4996,9 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 0,
     display: "flex",
     flexDirection: "column",
-    borderRadius: UI_RADIUS.panel,
-    border: "1px solid rgba(122,154,202,0.26)",
-    background: "#000000",
+    borderRadius: 6,
+    border: "1px solid var(--pro-border)",
+    background: "var(--pro-bg)",
     boxShadow: "none",
     overflow: "hidden"
   },
@@ -4943,9 +5007,9 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    padding: "12px 14px",
-    borderBottom: "1px solid rgba(122,154,202,0.18)",
-    background: "rgba(255,255,255,0.015)"
+    padding: "10px 12px",
+    borderBottom: "1px solid var(--pro-border)",
+    background: "var(--pro-bg-panel)"
   },
   proAssetMeta: {
     display: "flex",
@@ -4955,32 +5019,32 @@ const styles: Record<string, React.CSSProperties> = {
     flexWrap: "wrap"
   },
   proAssetMetaTitle: {
-    fontSize: UI_TYPO.size14,
-    fontWeight: 860,
-    color: UI_PALETTE.text.primary
+    fontSize: "var(--pro-font-xs)",
+    fontWeight: 600,
+    color: "var(--pro-text-primary)"
   },
   proAssetMetaChip: {
-    height: 24,
-    padding: "0 10px",
+    height: "var(--pro-info-height)",
+    padding: "0 8px",
     display: "inline-flex",
     alignItems: "center",
-    borderRadius: 999,
-    border: "1px solid rgba(122,154,202,0.22)",
-    background: "rgba(255,255,255,0.02)",
-    color: UI_PALETTE.text.secondary,
-    fontSize: 11,
-    fontWeight: 760
+    borderRadius: 4,
+    border: "1px solid var(--pro-border)",
+    background: "var(--pro-bg)",
+    color: "var(--pro-text-muted)",
+    fontSize: "var(--pro-font-3xs)",
+    fontWeight: 500
   },
   proAssetMenuBtn: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 10,
-    border: "1px solid rgba(122,154,202,0.22)",
-    background: "rgba(255,255,255,0.02)",
-    color: UI_PALETTE.text.primary,
+    borderRadius: 6,
+    border: "1px solid var(--pro-border)",
+    background: "var(--pro-bg)",
+    color: "var(--pro-text-primary)",
     cursor: "pointer"
   },
   proAssetMenu: {
@@ -5022,8 +5086,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: 14,
-    background: "#000000"
+    padding: 12,
+    background: "var(--pro-bg)"
   },
   proAssetImage: {
     maxWidth: "100%",

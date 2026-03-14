@@ -19,8 +19,6 @@ type Props = {
   onRenameLayer: (oldId: string, newId: string) => void;
   editT: 0 | 1;
   setEditT: (t: 0 | 1) => void;
-  /** Optional slot rendered at bottom of panel (e.g. generate button) */
-  bottomSlot?: React.ReactNode;
 };
 
 const BG_MARK = "bg:";
@@ -352,7 +350,7 @@ function buildShapePresets(lang: Lang, typeKey: TypeKey) {
 }
 
 export function PropsPanel(props: Props) {
-  const { lang, scene, selectedLayerId, onUpdateScene, onRenameLayer, editT, setEditT, bottomSlot } = props;
+  const { lang, scene, selectedLayerId, onUpdateScene, onRenameLayer, editT, setEditT } = props;
   const tt = useMemo(() => (key: string) => t(lang, key), [lang]);
 
   const mediaMode: MediaMode = useMemo(() => parseMediaModeFromNotes(scene?.notes), [scene?.notes]);
@@ -835,12 +833,11 @@ const typePresets = useMemo(
   const [propsCollapsed, toggleProps] = useProCollapseSections(
     "props",
     ["scene_background", "object_properties", "composition"],
-    ["object_properties", "composition"]
+    ["scene_background", "object_properties", "composition"]
   );
 
   return (
-    <div className="pro-props-panel" style={{ ...styles.wrap, ...styles.wrapPro }}>
-      <div style={styles.scrollArea}>
+    <div style={styles.wrap}>
       {/* Scene Background */}
       <ProCollapseSection
         title={lang === "zh" ? "分镜背景" : "Scene Background"}
@@ -848,6 +845,8 @@ const typePresets = useMemo(
         onToggle={() => toggleProps("scene_background")}
       >
       <div style={styles.card}>
+        <div style={styles.cardTitle}>{lang === "zh" ? "分镜背景" : "Scene Background"}</div>
+
         <div style={styles.row}>
           <div style={styles.label}>{lang === "zh" ? "预设" : "Preset"}</div>
           <select
@@ -900,7 +899,7 @@ const typePresets = useMemo(
           <div style={styles.localRefHead}>
             <div style={styles.localRefTitle}>{lang === "zh" ? "分镜背景参考图" : "Shot Background Ref"}</div>
             <div style={styles.localRefActions}>
-              <label className="pro-btn-ghost" style={styles.localRefImportBtn}>
+              <label style={{ ...styles.smallBtnGhost, ...styles.localRefImportBtn }}>
                 {lang === "zh" ? "导入背景图片" : "Import Background Image"}
                 <input
                   type="file"
@@ -922,8 +921,7 @@ const typePresets = useMemo(
                 <div style={styles.localRefText}>{scene.backgroundRef.name}</div>
                 <button
                   type="button"
-                  className="pro-btn-ghost"
-                  style={{ whiteSpace: "nowrap", flexShrink: 0 }}
+                  style={{ ...styles.smallBtnGhost, whiteSpace: "nowrap", flexShrink: 0 }}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => void removeSceneBackgroundRef()}
                 >
@@ -1154,7 +1152,7 @@ const typePresets = useMemo(
                   {lang === "zh" ? "对象参考图" : "Object Refs"}
                 </div>
                 <div style={styles.localRefActions}>
-                  <label className="pro-btn-ghost" style={styles.localRefImportBtn}>
+                  <label style={{ ...styles.smallBtnGhost, ...styles.localRefImportBtn }}>
                     {lang === "zh" ? "导入对象图片" : "Import Object Image"}
                     <input
                       type="file"
@@ -1193,8 +1191,7 @@ const typePresets = useMemo(
                     <div style={styles.localRefText}>{localRefs[0].name}</div>
                     <button
                       type="button"
-                      className="pro-btn-ghost"
-                      style={{ whiteSpace: "nowrap", flexShrink: 0 }}
+                      style={{ ...styles.smallBtnGhost, whiteSpace: "nowrap", flexShrink: 0 }}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => void removeLocalRef(localRefs[0])}
                     >
@@ -1218,7 +1215,7 @@ const typePresets = useMemo(
                   <span>{lang === "zh" ? `检测到冲突 ${layerPromptConflicts.length} 处` : `${layerPromptConflicts.length} conflict(s) detected`}</span>
                   <button
                     type="button"
-                    className="pro-btn-ghost"
+                    style={styles.smallBtnGhost}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => setShowConflictModal(true)}
                   >
@@ -1305,7 +1302,7 @@ const typePresets = useMemo(
                   />
                   <button
                     type="button"
-                    className="pro-btn"
+                    style={styles.smallBtn}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       applyCustomLine(customNote);
@@ -1316,7 +1313,7 @@ const typePresets = useMemo(
                   </button>
                   <button
                     type="button"
-                    className="pro-btn-ghost"
+                    style={styles.smallBtnGhost}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       setNotesMode("");
@@ -1347,7 +1344,7 @@ const typePresets = useMemo(
                 <div style={styles.menuBtns}>
                   <button
                     type="button"
-                    className="pro-btn"
+                    style={styles.smallBtn}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       applyPasteBlock(pasteBlock);
@@ -1358,7 +1355,7 @@ const typePresets = useMemo(
                   </button>
                   <button
                     type="button"
-                    className="pro-btn-ghost"
+                    style={styles.smallBtnGhost}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       setNotesMode("");
@@ -1413,7 +1410,7 @@ const typePresets = useMemo(
               ))}
             </div>
             <div style={styles.modalBtns}>
-              <button className="pro-btn-ghost" type="button" onClick={() => setShowConflictModal(false)}>
+              <button style={styles.modalBtnGhost} type="button" onClick={() => setShowConflictModal(false)}>
                 {lang === "zh" ? "我去修改" : "Back to Edit"}
               </button>
             </div>
@@ -1439,9 +1436,8 @@ const typePresets = useMemo(
               <div style={styles.pathBtnRow}>
                 <button
                   type="button"
-                  className={editT === 0 ? "pro-btn" : "pro-btn-ghost"}
-                  style={{ ...styles.pathBtn, ...(editT === 0 ? {} : { minWidth: 74 }) }}
                   onMouseDown={(e) => e.preventDefault()}
+                  style={{ ...styles.pillBtn, ...styles.pathBtn, ...(editT === 0 ? styles.pillBtnOn : {}) }}
                   onClick={() => setEditT(0)}
                 >
                   {lang === "zh" ? "编辑起点" : "Start"}
@@ -1450,15 +1446,15 @@ const typePresets = useMemo(
                 {t1Visible ? (
                 <button
                   type="button"
-                  className={editT === 1 && t1Enabled ? "pro-btn" : "pro-btn-ghost"}
-                  style={{
-                    ...styles.pathBtn,
-                    ...(editT === 1 && t1Enabled ? {} : { minWidth: 74 }),
-                    ...(!t1Enabled ? styles.pillBtnDisabled : {})
-                  }}
                   onMouseDown={(e) => e.preventDefault()}
                   disabled={!t1Enabled}
                   title={t1Field.reason ?? (t1Enabled ? "" : (lang === "zh" ? "图片模式：终点 t1 已锁定" : "Image mode: End t1 locked"))}
+                  style={{
+                    ...styles.pillBtn,
+                    ...styles.pathBtn,
+                    ...(editT === 1 ? styles.pillBtnOn : {}),
+                    ...(!t1Enabled ? styles.pillBtnDisabled : {})
+                  }}
                   onClick={() => {
                     if (!t1Enabled) return;
                     setEditT(1);
@@ -1577,10 +1573,6 @@ const typePresets = useMemo(
         )}
       </div>
       </ProCollapseSection>
-      </div>
-      {bottomSlot ? (
-        <div style={styles.bottomSlot}>{bottomSlot}</div>
-      ) : null}
     </div>
   );
 }
@@ -1636,69 +1628,51 @@ function KRow({
 
 const styles: Record<string, React.CSSProperties> = {
   wrap: {
-    width: "clamp(270px, 26vw, 374px)",
-    minWidth: 270,
-    minHeight: 0,
+    width: "clamp(240px, 26vw, 344px)",
+    minWidth: 240,
     borderLeft: "none",
-    background: "var(--pro-bg-panel)",
+    background: "#f7f9fc",
+    padding: 12,
     display: "flex",
     flexDirection: "column",
-    overflow: "hidden",
+    gap: 12,
+    minHeight: 0,
+    overflow: "auto",
     position: "relative",
     boxShadow: "none"
   },
   wrapPro: {
-    background: "var(--pro-bg-panel)"
-  },
-  scrollArea: {
-    flex: 1,
-    minHeight: 0,
-    overflowY: "auto",
-    overflowX: "hidden",
-    padding: 12
-  },
-  bottomSlot: {
-    flexShrink: 0,
-    padding: 12,
-    paddingTop: 12,
-    borderTop: "1px solid var(--pro-border)"
+    background: "var(--pro-bg-panel)",
+    borderLeft: "1px solid var(--pro-border-soft)"
   },
 
   card: {
     border: "none",
-    borderRadius: 0,
+    borderRadius: UI_RADIUS.panel,
     background: "transparent",
-    padding: "0 0 12px",
+    padding: 12,
     boxShadow: "none"
   },
 
-  row: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
-    minWidth: 0,
-    width: "100%",
-    minHeight: "var(--pro-row-height)",
-    flexWrap: "nowrap"
-  },
-  rowTop: { display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 12, minWidth: 0 },
+  cardTitle: { fontWeight: 850, fontSize: UI_TYPO.size13, opacity: UI_OPACITY.title, marginBottom: 10, color: UI_PALETTE.text.secondary },
+
+  row: { display: "flex", alignItems: "center", gap: 10, marginBottom: 10, minWidth: 0 },
+  rowTop: { display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10, minWidth: 0 },
 
   label: {
-    width: 72,
-    minWidth: 72,
-    flexShrink: 0,
+    width: UI_SIZE.labelWProps,
+    minHeight: UI_SIZE.controlH,
     display: "flex",
     alignItems: "center",
-    fontSize: "var(--pro-font-2xs)",
-    fontWeight: 500,
-    lineHeight: 1,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    color: "var(--pro-text-muted)"
+    flexShrink: 0,
+    fontSize: UI_TYPO.size12,
+    opacity: UI_OPACITY.label,
+    fontWeight: 900,
+    lineHeight: 1.3,
+    wordBreak: "break-word",
+    overflowWrap: "anywhere"
   },
-  labelSpacer: { width: 72, minWidth: 72, flexShrink: 0 },
+  labelSpacer: { width: UI_SIZE.labelWProps, flexShrink: 0 },
   labelTop: {
     minHeight: 0,
     alignItems: "flex-start",
@@ -1712,15 +1686,15 @@ const styles: Record<string, React.CSSProperties> = {
     flex: "1 1 0",
     minWidth: 0,
     maxWidth: "100%",
-    height: "var(--pro-control-height)",
-    borderRadius: 8,
-    border: "1px solid var(--pro-border)",
-    background: "var(--pro-bg)",
-    color: "var(--pro-text-primary)",
+    height: UI_SIZE.controlH,
+    borderRadius: UI_SIZE.controlRadius,
+    border: `1px solid ${UI_COLOR.border}`,
+    background: UI_COLOR.bgInput,
+    color: UI_COLOR.text,
     outline: "none",
-    padding: "0 28px 0 8px",
-    fontSize: "var(--pro-font-xs)",
-    fontWeight: 500,
+    padding: "0 34px 0 10px",
+    fontSize: UI_FONT.body,
+    fontWeight: 700,
     backgroundImage:
       "linear-gradient(45deg, transparent 50%, rgba(220,232,255,0.78) 50%), linear-gradient(135deg, rgba(220,232,255,0.78) 50%, transparent 50%), linear-gradient(to right, transparent, transparent)",
     backgroundPosition: "calc(100% - 18px) calc(50% - 1px), calc(100% - 12px) calc(50% - 1px), 100% 0",
@@ -1732,21 +1706,21 @@ const styles: Record<string, React.CSSProperties> = {
     flex: "1 1 0",
     minWidth: 0,
     maxWidth: "100%",
-    height: "var(--pro-control-height)",
-    borderRadius: 8,
-    border: "1px solid var(--pro-border)",
-    background: "var(--pro-bg)",
-    color: "var(--pro-text-primary)",
+    height: UI_SIZE.controlH,
+    borderRadius: UI_SIZE.controlRadius,
+    border: `1px solid ${UI_COLOR.border}`,
+    background: UI_COLOR.bgInput,
+    color: UI_COLOR.text,
     outline: "none",
-    padding: "0 8px",
-    fontSize: "var(--pro-font-xs)"
+    padding: "0 10px",
+    fontSize: UI_FONT.body
   },
 
   clickablePill: {
     flex: "1 1 0",
     minWidth: 0,
     maxWidth: "100%",
-    height: "var(--pro-control-height)",
+    height: UI_SIZE.controlH,
     borderRadius: UI_SIZE.controlRadius,
     border: `1px solid ${UI_COLOR.border}`,
     background: UI_COLOR.bgInput,
@@ -1762,13 +1736,13 @@ const styles: Record<string, React.CSSProperties> = {
 
   warnHint: {
     marginTop: -2,
-    marginBottom: 12,
-    fontSize: "var(--pro-info-font-size)",
-    fontFamily: "var(--pro-info-font)",
+    marginBottom: 8,
+    fontSize: 11,
+    opacity: 0.88,
     lineHeight: 1.35,
-    borderLeft: "2px solid var(--pro-accent)",
+    borderLeft: `2px solid ${UI_STATUS.border.warn}`,
     paddingLeft: 8,
-    color: "var(--pro-text-muted)"
+    color: UI_INFO.text.body
   },
   warnHead: {
     display: "flex",
@@ -1844,13 +1818,13 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     minHeight: 88,
     resize: "vertical",
-    borderRadius: 8,
-    border: "1px solid var(--pro-border)",
-    background: "var(--pro-bg)",
-    color: "var(--pro-text-primary)",
+    borderRadius: 12,
+    border: `1px solid ${UI_COLOR.border}`,
+    background: UI_COLOR.bgInput,
+    color: UI_COLOR.text,
     outline: "none",
     padding: "8px 10px",
-    fontSize: 12,
+    fontSize: UI_FONT.body,
     lineHeight: 1.35
   },
 
@@ -1858,40 +1832,27 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     minHeight: 86,
     resize: "vertical",
-    borderRadius: 8,
-    border: "1px solid var(--pro-border)",
-    background: "var(--pro-bg)",
-    color: "var(--pro-text-primary)",
+    borderRadius: 12,
+    border: `1px solid ${UI_COLOR.border}`,
+    background: UI_COLOR.bgInput,
+    color: UI_COLOR.text,
     outline: "none",
     padding: "8px 10px",
-    fontSize: 12,
+    fontSize: UI_FONT.body,
     lineHeight: 1.35
   },
 
-  miniHint: {
-    fontSize: "var(--pro-info-font-size)",
-    fontFamily: "var(--pro-info-font)",
-    color: "var(--pro-text-muted)",
-    lineHeight: 1.2,
-    marginTop: 4,
-    maxHeight: "var(--pro-info-height)",
-    overflow: "hidden",
-    textOverflow: "ellipsis"
-  },
+  miniHint: { fontSize: 11, opacity: 0.65, lineHeight: 1.4, marginTop: 4 },
   toastHint: {
-    marginTop: 12,
-    marginBottom: 12,
-    fontSize: "var(--pro-info-font-size)",
-    fontFamily: "var(--pro-info-font)",
-    lineHeight: 1.2,
-    maxHeight: "var(--pro-info-height)",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    border: "1px solid var(--pro-border)",
-    borderRadius: 6,
-    background: "var(--pro-bg-panel)",
-    padding: "4px 8px",
-    color: "var(--pro-text-primary)"
+    marginTop: 6,
+    marginBottom: 8,
+    fontSize: 11,
+    lineHeight: 1.35,
+    opacity: 0.88,
+    border: `1px solid ${UI_STATUS.border.info}`,
+    borderRadius: UI_RADIUS.control,
+    background: UI_STATUS.surface.info,
+    padding: "6px 8px"
   },
   localTemplateWrap: {
     marginTop: 8,
@@ -1904,7 +1865,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     fontWeight: 900,
     opacity: 0.82,
-    marginBottom: 12
+    marginBottom: 8
   },
   templateGrid: {
     display: "grid",
@@ -1912,21 +1873,20 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8
   },
   localRefCard: {
-    marginTop: 0,
     position: "relative",
     border: "none",
-    borderRadius: 0,
-    background: "transparent",
-    padding: "8px 0",
-    marginBottom: 12,
+    borderRadius: UI_RADIUS.control,
+    background: "rgba(255,255,255,0.02)",
+    padding: 8,
+    marginBottom: 8,
     boxShadow: "none"
   },
   localRefHead: {
     display: "flex",
     alignItems: "center",
     gap: 8,
-    minHeight: "var(--pro-row-height)",
-    marginBottom: 12,
+    minHeight: UI_SIZE.compactH,
+    marginBottom: 6,
     flexWrap: "wrap"
   },
   localRefActions: {
@@ -1937,24 +1897,21 @@ const styles: Record<string, React.CSSProperties> = {
     flexWrap: "wrap"
   },
   localRefImportBtn: {
-    minWidth: 130,
-    padding: "6px 12px",
+    minWidth: 0,
+    maxWidth: "100%",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    whiteSpace: "nowrap",
+    whiteSpace: "normal",
     lineHeight: 1.2,
-    textAlign: "center",
-    border: "1px solid var(--pro-border)",
-    borderRadius: 6,
-    fontSize: "var(--pro-font-xs)"
+    textAlign: "center"
   },
   localRefTitle: {
     display: "inline-flex",
     alignItems: "center",
-    fontSize: "var(--pro-font-2xs)",
-    fontWeight: 600,
-    color: "var(--pro-text-primary)",
+    fontSize: 12,
+    fontWeight: 900,
+    opacity: 0.86,
     lineHeight: 1
   },
   qBtn: {
@@ -1998,13 +1955,13 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexWrap: "wrap",
     gap: 6,
-    marginTop: 12
+    marginTop: 6
   },
   localRefList: {
     display: "flex",
     flexDirection: "column",
     gap: 6,
-    marginTop: 12
+    marginTop: 8
   },
   localRefItem: {
     display: "flex",
@@ -2041,7 +1998,7 @@ const styles: Record<string, React.CSSProperties> = {
   subCard: {
     minWidth: 0,
     border: "none",
-    borderRadius: 0,
+    borderRadius: UI_RADIUS.control,
     background: "transparent",
     padding: 10,
     boxShadow: "none"
@@ -2050,9 +2007,9 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.55
   },
 
-  subTitle: { fontWeight: 600, fontSize: "var(--pro-font-2xs)", color: "var(--pro-text-primary)", marginBottom: 12 },
+  subTitle: { fontWeight: 900, fontSize: UI_FONT.section, opacity: UI_OPACITY.title, marginBottom: 8 },
 
-  kfRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 },
+  kfRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 },
   kfLabel: {
     width: 30,
     fontSize: UI_FONT.body,
@@ -2108,29 +2065,26 @@ const styles: Record<string, React.CSSProperties> = {
 
   lockHint: {
     marginTop: -2,
-    marginBottom: 12,
-    fontSize: "var(--pro-info-font-size)",
-    fontFamily: "var(--pro-info-font)",
-    lineHeight: 1.2,
-    color: "var(--pro-text-muted)"
+    marginBottom: 8,
+    fontSize: 11,
+    opacity: 0.72,
+    lineHeight: 1.35
   },
 
   // ---- notes panel ----
-  notesHeadRow: { display: "flex", alignItems: "center", gap: 8, marginTop: 4, marginBottom: 12 },
+  notesHeadRow: { display: "flex", alignItems: "center", gap: 8, marginTop: 6, marginBottom: 8 },
 
   notesMenu: {
     border: "1px solid rgba(255,255,255,0.10)",
-    borderRadius: 8,
+    borderRadius: 12,
     background: "rgba(0,0,0,0.18)",
     padding: 10,
-    marginBottom: 12
+    marginBottom: 10
   },
-  notesMenuTitle: { fontWeight: 900, fontSize: UI_FONT.section, opacity: UI_OPACITY.title, marginBottom: 12 },
+  notesMenuTitle: { fontWeight: 900, fontSize: UI_FONT.section, opacity: UI_OPACITY.title, marginBottom: 8 },
 
   smallLabel: {
-    width: 72,
-    minWidth: 72,
-    flexShrink: 0,
+    width: UI_SIZE.labelWSmall,
     fontSize: UI_FONT.body,
     opacity: UI_OPACITY.label,
     fontWeight: 900,

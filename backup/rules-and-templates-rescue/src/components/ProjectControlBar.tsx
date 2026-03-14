@@ -6,7 +6,6 @@ import {
   Download,
   FilePlus2,
   FolderOpen,
-  Layout,
   PencilLine,
   Save
 } from "lucide-react";
@@ -17,7 +16,6 @@ type Props = {
   lang: Lang;
   isMac: boolean;
   projectLabel: string;
-  variant?: "topbar" | "sidebar";
   onOpenProject: () => void;
   onRenameProject: () => void;
   onNewProject: () => void;
@@ -34,7 +32,6 @@ export function ProjectControlBar(props: Props) {
     isMac,
     isPro = false,
     projectLabel,
-    variant = "topbar",
     onOpenProject,
     onRenameProject,
     onNewProject,
@@ -85,39 +82,21 @@ export function ProjectControlBar(props: Props) {
   const btnClass = isPro ? "pro-topbar-trigger" : "";
   const menuClass = isPro ? "pro-topbar-menu" : "";
 
-  const isSidebar = variant === "sidebar";
-  const triggerStyle = isSidebar
-    ? { ...styles.sidebarTrigger, ...(isPro ? styles.sidebarTriggerPro : {}) }
-    : isPro ? { ...styles.projectButton, ...styles.projectButtonPro } : styles.projectButton;
-
   return (
     <div style={styles.anchor} ref={rootRef}>
-      <div style={{ ...styles.wrap, ...(isSidebar ? styles.wrapSidebar : {}) }}>
+      <div style={styles.wrap}>
         <button
           type="button"
           className={btnClass}
-          style={triggerStyle}
+          style={isPro ? { ...styles.projectButton, ...styles.projectButtonPro } : styles.projectButton}
           data-testid="project-menu-trigger"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => setProjectMenuOpen((v) => !v)}
         >
-          {isSidebar ? (
-            <>
-              <div style={styles.sidebarIcon}>
-                <Layout size={14} style={{ color: "var(--pro-text-primary, #e5e7eb)" }} />
-              </div>
-              <span style={styles.sidebarAppName}>ScenePilotix</span>
-              <span style={styles.sidebarProjectName}>/ {projectName}</span>
-              <ChevronDown size={12} style={{ marginLeft: "auto", opacity: 0.8 }} />
-            </>
-          ) : (
-            <>
-              <div style={styles.projectButtonText}>
-                <div style={styles.projectName}>{projectName}</div>
-              </div>
-              <ChevronDown size={13} />
-            </>
-          )}
+          <div style={styles.projectButtonText}>
+            <div style={styles.projectName}>{projectName}</div>
+          </div>
+          <ChevronDown size={13} />
         </button>
 
         {projectMenuOpen ? (
@@ -309,57 +288,5 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--pro-text-primary)",
     boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
     backdropFilter: "none"
-  },
-  wrapSidebar: {
-    width: "100%"
-  },
-  sidebarTrigger: {
-    width: "100%",
-    minWidth: 0,
-    maxWidth: "100%",
-    minHeight: 36,
-    padding: "0 10px",
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: 8,
-    border: "1px solid var(--pro-border, #3a3f46)",
-    background: "var(--pro-bg, #1f2125)",
-    color: "var(--pro-text-primary, #e5e7eb)",
-    fontSize: 12,
-    fontWeight: 600,
-    cursor: "pointer",
-    textAlign: "left",
-    boxShadow: "none"
-  },
-  sidebarTriggerPro: {
-    background: "var(--pro-bg-input, #1f2125)",
-    borderColor: "var(--pro-border-soft, #3a3f46)"
-  },
-  sidebarIcon: {
-    width: 24,
-    height: 24,
-    minWidth: 24,
-    borderRadius: 6,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "var(--pro-bg, #1f2125)",
-    border: "1px solid var(--pro-border, #3a3f46)"
-  },
-  sidebarAppName: {
-    fontWeight: 600,
-    color: "var(--pro-text-primary, #e5e7eb)",
-    whiteSpace: "nowrap",
-    flexShrink: 0
-  },
-  sidebarProjectName: {
-    color: "var(--pro-text-muted, #9ca3af)",
-    fontSize: 11,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    minWidth: 0,
-    flex: 1
   }
 };

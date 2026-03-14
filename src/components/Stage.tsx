@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { MousePointer2, Move, RotateCw, Maximize } from "lucide-react";
 import type { Scene, Layer, LayerKF } from "../model";
 import { ensureKF, resolveSceneConfig } from "../model";
 import { getRefBlob } from "../utils/localRefs";
@@ -54,13 +55,15 @@ export function Stage({
   selectedLayerId,
   onSelectLayer,
   onUpdateScene,
-  editT
+  editT,
+  className
 }: {
   scene: Scene;
   selectedLayerId: string | null;
   onSelectLayer: (id: string | null) => void;
   onUpdateScene: (scene: Scene) => void;
   editT: 0 | 1;
+  className?: string;
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<DragMode>(null);
@@ -307,8 +310,9 @@ export function Stage({
     return () => el.removeEventListener("wheel", onWheelNative as any, { passive: false } as any);
   }, []);
 
+  const isPro = className?.includes("pro");
   return (
-    <div style={styles.outer}>
+    <div className={className} style={{ ...styles.outer, ...(isPro ? styles.outerPro : {}) }}>
       <div
         ref={wrapRef}
         style={styles.stage}
@@ -317,6 +321,26 @@ export function Stage({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
+        {/* Figma-style toolbar overlay (Pro) */}
+        {isPro && (
+          <div style={styles.canvasToolbar}>
+            {[
+              { icon: MousePointer2, active: true, title: "Select" },
+              { icon: Move, active: false, title: "Move" },
+              { icon: RotateCw, active: false, title: "Rotate" },
+              { icon: Maximize, active: false, title: "Scale" }
+            ].map((tool, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`pro-canvas-tool-btn ${tool.active ? "active" : ""}`}
+                title={tool.title}
+              >
+                <tool.icon size={16} />
+              </button>
+            ))}
+          </div>
+        )}
         {/* ✅ world：所有元素都放在 world 中，统一 scale */}
         <div style={{ ...styles.world, transform: `translate(-50%, -50%) scale(${zoom})` }}>
           {backgroundRefUrl ? (
@@ -436,8 +460,10 @@ export function Stage({
           ) : null}
         </div>
 
-        {/* ✅ 角落提示：缩放倍率（不挡操作） */}
-        <div style={styles.zoomHint}>{Math.round(zoom * 100)}%</div>
+        {/* ✅ Figma-style viewport info (bottom-left) */}
+        <div className="spx-pro-viewport-info" style={styles.zoomHint}>
+          Layout | {Math.round(zoom * 100)}%
+        </div>
       </div>
     </div>
   );
@@ -496,14 +522,20 @@ function safeAspect(w: number, h: number) {
 
 const styles: Record<string, React.CSSProperties> = {
   outer: { flex: 1, padding: `0 ${UI_SPACE.sm}px 0`, display: "flex", minHeight: 0 },
+  outerPro: { padding: 0 },
   stage: {
     flex: 1,
     minHeight: 0,
     position: "relative",
-    borderRadius: UI_RADIUS.panel,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background:
-      "radial-gradient(640px 380px at 50% 38%, rgba(104,171,255,0.16), transparent 60%), rgba(9,13,24,0.74)",
+    borderRadius: 0,
+    border: "none",
+    background: "#1f2125",
+    backgroundImage: `
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px)
+    `,
+    backgroundSize: "40px 40px",
+    backgroundPosition: "center center",
     boxShadow: "none",
     overflow: "hidden"
   },
@@ -644,17 +676,33 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 0 0 1px rgba(255,255,255,0.24)"
   },
 
+  canvasToolbar: {
+    position: "absolute",
+    top: 16,
+    left: "50%",
+    transform: "translateX(-50%)",
+    zIndex: 20,
+    display: "flex",
+    alignItems: "center",
+    background: "#24262b",
+    border: "1px solid #3a3f46",
+    borderRadius: 6,
+    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+    overflow: "hidden"
+  },
   zoomHint: {
     position: "absolute",
-    right: 10,
-    bottom: 10,
+    left: 16,
+    bottom: 16,
     padding: "4px 8px",
-    borderRadius: UI_RADIUS.chip,
-    border: `1px solid ${UI_COLOR.border}`,
-    background: "rgba(6,10,20,0.68)",
-    fontSize: UI_TYPO.size11,
-    fontWeight: 900,
-    opacity: 0.85,
+    borderRadius: 4,
+    border: "1px solid #3a3f46",
+    background: "rgba(36, 38, 43, 0.8)",
+    backdropFilter: "blur(6px)",
+    fontSize: 10,
+    fontFamily: "ui-monospace, SFMono-Regular, monospace",
+    color: "#9ca3af",
+    lineHeight: 1.2,
     pointerEvents: "none",
     userSelect: "none"
   },
