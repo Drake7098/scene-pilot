@@ -19,6 +19,8 @@ export type UserState = {
   creditsBalance: number;
   proConsoleEnabled: boolean;
   bringYourOwnApiEnabled: boolean;
+  /** Future: Studio/Pro+ unlimited template use */
+  unlimitedTemplatesEnabled?: boolean;
   createdAt: string;
   updatedAt: string;
 };

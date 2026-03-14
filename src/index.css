@@ -474,6 +474,19 @@ button:focus-visible {
   background: var(--pro-hover) !important;
 }
 
+/* Scene card: delete button visible on hover */
+[data-workspace="pro"] .pro-scene-card:hover .pro-scene-card-delete {
+  opacity: 1 !important;
+}
+[data-workspace="pro"] .pro-scene-card .pro-scene-card-delete:hover:not(:disabled) {
+  color: #f87171 !important;
+}
+
+/* Project section action rows (same hover as sidebar) */
+[data-workspace="pro"] .pro-project-action:hover {
+  background: var(--pro-hover) !important;
+}
+
 /* Template panel: higher contrast for buttons on dark cards */
 [data-workspace="pro"] .pro-template-card .pro-btn,
 [data-workspace="pro"] .pro-template-card .pro-btn-ghost {

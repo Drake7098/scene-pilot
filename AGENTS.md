@@ -37,6 +37,7 @@
 
 ## Product UI Guardrails
 - 涉及用户可见交互时，必须先使用仓库内 skill：`/Users/dk/scene-pilot/.codex/skills/product-ui-guardrails/SKILL.md`
+- UI 布局、间距、配色、组件结构以设计稿为单一事实源，必须使用 skill：`/Users/dk/scene-pilot/.codex/skills/ui-design-reference/SKILL.md`，设计稿文件：`src/design-reference/figma/app.tsx`
 - 适用范围包括：菜单、顶部栏、保存/另存/导出/导入、Quick/Pro 切换、项目库、命名、状态记忆、成功提示、帮助中心与页面文案边界。
 - 这类任务不能只做到“功能可用”，必须额外做一轮“交互一致性复核”。
 - 必须先判断：是否有重复入口、重复命名、模式边界混乱、状态未持久化、说明文案泄漏到页面、保存与导出混淆。

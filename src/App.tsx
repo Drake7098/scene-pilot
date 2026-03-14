@@ -68,7 +68,19 @@ import { getPromptExportPolicy, PROMPT_EXPORT_CREDITS_COST } from "./services/pr
 import { recordLegalConsent, syncPendingLegalConsents } from "./services/legalConsentService";
 import { getApiCredentials, setApiCredentials } from "./services/mockAccountStore";
 import { createTemplateFromScene, saveUserTemplate } from "./lib/templateStore";
-import { canOpenCustomerPortal, canUseBringYourOwnApi, canUseHostedGeneration, canUseProConsole } from "./utils/entitlement";
+import { applyTemplateSnapshot } from "./rules/applyTemplate";
+import {
+  TemplateWorkspace,
+  type TemplateWorkspaceState,
+  DEFAULT_TEMPLATE_WORKSPACE_STATE,
+  getTemplateWorkspaceItemFromIndex,
+  getTemplateMetadataFromIndex,
+  applyTemplateFromIndex,
+  type TemplateIndex
+} from "./features/template-workspace";
+import { addToRecent, type TemplateWorkspaceItem, type ApplyTemplateMode } from "./data/templateWorkspaceData";
+import { unifiedTemplateToSceneTemplate } from "./utils/unifiedTemplateToSceneTemplate";
+import { canOpenCustomerPortal, canUseBringYourOwnApi, canUseHostedGeneration, canUseProConsole, canUseUnlimitedTemplates } from "./utils/entitlement";
 import { PRO_PLUS_MOTION_CATEGORIES } from "./content/proCameraPresets";
 import {
   advancedCreativeTutorialBlocks,
@@ -410,8 +422,13 @@ export default function App() {
   const [billingPage, setBillingPage] = useState<"upgrade" | "credits" | null>(null);
   const [, setTemplatesRefresh] = useState(0);
   const [billingLocalHint, setBillingLocalHint] = useState("");
+  const [resultToast, setResultToast] = useState<string | null>(null);
   const [insufficientCreditsOpen, setInsufficientCreditsOpen] = useState(false);
   const [insufficientCreditsMessage, setInsufficientCreditsMessage] = useState("");
+  const [templateCreditsInsufficientOpen, setTemplateCreditsInsufficientOpen] = useState(false);
+  const [templateCreditsNeeded, setTemplateCreditsNeeded] = useState(0);
+  const [templateCreditsHave, setTemplateCreditsHave] = useState(0);
+  const [templateCreditsName, setTemplateCreditsName] = useState("");
   const [resultPrefs, setResultPrefs] = useState<ResultGenerationPrefs>({
     mediaType: "image",
     ratio: "16:9",
@@ -507,6 +524,10 @@ export default function App() {
   const [renameProjectOpen, setRenameProjectOpen] = useState(false);
   const [renameProjectDraft, setRenameProjectDraft] = useState("");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [isTemplateWorkspaceOpen, setIsTemplateWorkspaceOpen] = useState(false);
+  const [templateWorkspaceState, setTemplateWorkspaceState] = useState<TemplateWorkspaceState>(
+    DEFAULT_TEMPLATE_WORKSPACE_STATE
+  );
   const [openExportNonce, setOpenExportNonce] = useState(0);
   const [openExportAction, setOpenExportAction] = useState<ExportPanelOpenAction>("open");
   const [workspaceSwitchShield, setWorkspaceSwitchShield] = useState(false);
@@ -526,6 +547,9 @@ export default function App() {
     save: () => undefined,
     saveAs: () => undefined
   });
+
+  /** Template IDs already charged in current project - no repeat charge */
+  const appliedTemplateIdsForBillingRef = useRef<Set<string>>(new Set());
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const useDesktopFixedLayout = viewportWidth >= 1400;
@@ -851,6 +875,12 @@ export default function App() {
     const timer = window.setTimeout(() => setProGenerateHint(""), 1800);
     return () => window.clearTimeout(timer);
   }, [proGenerateHint]);
+
+  useEffect(() => {
+    if (!resultToast) return;
+    const timer = window.setTimeout(() => setResultToast(null), 3000);
+    return () => window.clearTimeout(timer);
+  }, [resultToast]);
 
   useEffect(() => {
     if (!proAssetMenuId) return;
@@ -1306,6 +1336,98 @@ export default function App() {
 
   function closeBillingPage() {
     setBillingPage(null);
+  }
+
+  async function handleUseTemplateFromWorkspace(
+    indexOrItem: TemplateIndex | TemplateWorkspaceItem,
+    applyMode?: ApplyTemplateMode
+  ) {
+    const isIndex = "familyId" in indexOrItem;
+    const index = isIndex ? (indexOrItem as TemplateIndex) : null;
+    const item: TemplateWorkspaceItem | null =
+      isIndex ? getTemplateWorkspaceItemFromIndex(index!) : (indexOrItem as TemplateWorkspaceItem);
+
+    const meta = isIndex ? getTemplateMetadataFromIndex(index!) : { id: item!.id, cost: item!.cost ?? 0, isFree: item!.isFree, name: item!.name, nameZh: item!.nameZh };
+    addToRecent(meta.id);
+
+    const doApplyBase = (sceneTemplate: import("./model/template").SceneTemplate) => {
+      const scenes = safeProject?.scenes ?? [];
+      const result = applyTemplateSnapshot(sceneTemplate, safeProject, scenes.length, "pro", { applyMode });
+      if (result.appliedProject) {
+        updateProject(result.appliedProject);
+        setSceneIdx(result.appliedProject.scenes.length - 1);
+        setSelectedLayerId(null);
+        setIsTemplateWorkspaceOpen(false);
+      } else if (result.appliedScene) {
+        const fallbackProject = {
+          ...safeProject,
+          scenes: [...scenes, result.appliedScene].map((s, i) => ({ ...s, index: i + 1 }))
+        };
+        updateProject(fallbackProject);
+        setSceneIdx(fallbackProject.scenes.length - 1);
+        setSelectedLayerId(null);
+        setIsTemplateWorkspaceOpen(false);
+      }
+    };
+
+    const doApplyContinuity = async () => {
+      if (!index) return;
+      const result = await applyTemplateFromIndex(index, safeProject, true);
+      if (result.success && result.appliedProject) {
+        updateProject(result.appliedProject);
+        setSceneIdx(result.appliedProject.scenes.length - 1);
+        setSelectedLayerId(null);
+        setIsTemplateWorkspaceOpen(false);
+      }
+    };
+
+    if (meta.isFree || meta.cost <= 0 || canUseUnlimitedTemplates(accountUser)) {
+      if (item) {
+        doApplyBase(unifiedTemplateToSceneTemplate(item));
+      } else if (index) {
+        await doApplyContinuity();
+      }
+      return;
+    }
+
+    if (appliedTemplateIdsForBillingRef.current.has(meta.id)) {
+      if (item) {
+        doApplyBase(unifiedTemplateToSceneTemplate(item));
+      } else if (index) {
+        await doApplyContinuity();
+      }
+      return;
+    }
+
+    const cost = meta.cost;
+    const have = accountUser ? accountCredits : 0;
+    if (have < cost || !accountUser) {
+      setTemplateCreditsNeeded(cost);
+      setTemplateCreditsHave(have);
+      setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
+      setTemplateCreditsInsufficientOpen(true);
+      return;
+    }
+
+    try {
+      const reserved = await reserveCredits(accountUser.id, cost, `template_${meta.id}`);
+      if (item) {
+        doApplyBase(unifiedTemplateToSceneTemplate(item));
+      } else if (index) {
+        await doApplyContinuity();
+      }
+      appliedTemplateIdsForBillingRef.current.add(meta.id);
+      await finalizeReservedCredits(accountUser.id, reserved.id);
+      await refreshAccountState();
+    } catch (err) {
+      const code = err instanceof Error ? err.message : String(err);
+      if (code === "insufficient_credits") {
+        setTemplateCreditsNeeded(cost);
+        setTemplateCreditsHave(accountCredits);
+        setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
+        setTemplateCreditsInsufficientOpen(true);
+      }
+    }
   }
 
   function markWorkspaceEntryGuideDone() {
@@ -1921,6 +2043,7 @@ export default function App() {
     const fallbackName = defaultProjectName(lang);
     const projectFileName = wizardDraft.projectName.trim() || fallbackName;
     resetProGeneratedAssets();
+    appliedTemplateIdsForBillingRef.current.clear();
     setSceneIdx(0);
     setSelectedLayerId(null);
     setEditT(0);
@@ -2361,11 +2484,11 @@ export default function App() {
       setResultFeedback("");
 
       if (generated) {
-        setBillingLocalHint(
-          lang === "zh"
-            ? `本地测试生成完成（优先 ${preferredProvider === "comfyui" ? "ComfyUI" : "Draw Things"}）。`
-            : `Local test generation completed (preferred ${preferredProvider === "comfyui" ? "ComfyUI" : "Draw Things"}).`
-        );
+        const msg = lang === "zh"
+          ? `本地测试生成完成（优先 ${preferredProvider === "comfyui" ? "ComfyUI" : "Draw Things"}）。`
+          : `Local test generation completed (preferred ${preferredProvider === "comfyui" ? "ComfyUI" : "Draw Things"}).`;
+        setBillingLocalHint(msg);
+        setResultToast(msg);
         closeBillingPage();
       } else {
         setBillingLocalHint(
@@ -2951,6 +3074,7 @@ export default function App() {
         return;
       }
       resetProGeneratedAssets();
+      appliedTemplateIdsForBillingRef.current.clear();
       updateProject(opened);
       setLabelPersist(entry.label);
       setLastLibrarySavedSnapshot(JSON.stringify({ project: opened, fileLabel: entry.label }));
@@ -3590,9 +3714,14 @@ export default function App() {
 
       {libraryHint ? <div style={styles.libraryFloatHint}>{libraryHint}</div> : null}
 
+      {resultToast && activeWorkspaceMode === "results" ? (
+        <div style={styles.resultToast}>{resultToast}</div>
+      ) : null}
+
       {activeWorkspaceMode === "results" ? (
         <div style={styles.resultsMain}>
           <ResultConsole
+            planDerivedPrompt={resultPlan ? (buildScenePromptsForPlan(resultPlan)[0]?.prompt ?? "") : ""}
             lang={lang}
             mode={activeWorkspaceMode}
             onModeChange={(mode) => {
@@ -3736,8 +3865,32 @@ export default function App() {
               setTemplatesRefresh((r) => r + 1);
               return true;
             }}
+            onOpenTemplateWorkspace={() => setIsTemplateWorkspaceOpen(true)}
+            onUseTemplateFromEntry={(item) => void handleUseTemplateFromWorkspace(item, "layout_only")}
           />
 
+          <div
+            style={{
+              gridColumn: useDesktopFixedLayout ? "2 / -1" : undefined,
+              display: useDesktopFixedLayout ? "grid" : "flex",
+              gridTemplateColumns: useDesktopFixedLayout ? "minmax(0, 1fr) clamp(240px, 26vw, 344px)" : undefined,
+              flex: useDesktopFixedLayout ? undefined : 1,
+              minWidth: 0,
+              minHeight: 0
+            }}
+          >
+            {isTemplateWorkspaceOpen ? (
+              <div style={{ gridColumn: "1 / -1", minWidth: 0, minHeight: 0, display: "flex" }}>
+                <TemplateWorkspace
+                  lang={lang}
+                  state={templateWorkspaceState}
+                  onStateChange={setTemplateWorkspaceState}
+                  onClose={() => setIsTemplateWorkspaceOpen(false)}
+                  onUseTemplate={handleUseTemplateFromWorkspace}
+                />
+              </div>
+            ) : (
+              <>
           <div style={styles.center}>
             {/* Canvas tab bar (Figma-style browser tabs) */}
             <div style={styles.proCanvasTabBar}>
@@ -3967,6 +4120,9 @@ export default function App() {
               </div>
             }
           />
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -4071,6 +4227,55 @@ export default function App() {
                 data-testid="insufficient-credits-buy"
               >
                 Buy credits
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {templateCreditsInsufficientOpen ? (
+        <div style={styles.modalMask} onMouseDown={() => setTemplateCreditsInsufficientOpen(false)} role="presentation">
+          <div
+            style={styles.modal}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            data-testid="template-credits-insufficient-modal"
+          >
+            <div style={styles.modalTitle}>
+              {lang === "zh" ? "积分不足" : "Not enough credits"}
+            </div>
+            <div style={styles.modalText}>
+              {templateCreditsName ? (
+                lang === "zh"
+                  ? `模板「${templateCreditsName}」需要 ${templateCreditsNeeded} credits，当前剩余 ${templateCreditsHave}。`
+                  : `Template "${templateCreditsName}" needs ${templateCreditsNeeded} credits. You have ${templateCreditsHave}.`
+              ) : (
+                lang === "zh"
+                  ? `该模板需要 ${templateCreditsNeeded} credits，当前剩余 ${templateCreditsHave}。`
+                  : `This template needs ${templateCreditsNeeded} credits. You have ${templateCreditsHave}.`
+              )}
+            </div>
+            <div style={styles.modalBtns}>
+              <button
+                style={styles.modalBtnGhost}
+                type="button"
+                onClick={() => setTemplateCreditsInsufficientOpen(false)}
+              >
+                {lang === "zh" ? "关闭" : "Close"}
+              </button>
+              <button
+                style={styles.modalBtn}
+                type="button"
+                onClick={() => {
+                  setTemplateCreditsInsufficientOpen(false);
+                  openBillingPage("credits");
+                }}
+                disabled={!billingRuntimeEnabled}
+                data-testid="template-credits-buy"
+              >
+                {lang === "zh" ? "去购买点数" : "Buy credits"}
               </button>
             </div>
           </div>
@@ -5473,6 +5678,22 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "8px 10px",
     background: "rgba(20,28,46,0.96)",
     boxShadow: "0 10px 30px rgba(0,0,0,0.35)"
+  },
+  resultToast: {
+    position: "fixed",
+    left: "50%",
+    bottom: 24,
+    transform: "translateX(-50%)",
+    zIndex: 1200,
+    maxWidth: 420,
+    fontSize: 13,
+    lineHeight: 1.4,
+    border: `1px solid ${UI_PALETTE.border.active}`,
+    borderRadius: UI_RADIUS.control,
+    padding: "10px 14px",
+    background: "rgba(20,28,46,0.96)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+    color: "rgba(255,255,255,0.95)"
   },
   libraryList: {
     minHeight: 180,

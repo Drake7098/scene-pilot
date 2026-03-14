@@ -125,6 +125,7 @@ Last updated: 2026-03-13
 
 ## Prompt Engine Status
 - Prompt engine library 已建立。
+- 模板/规则/提示词综合方案：`/docs/template-prompt-rules-summary-plan.md`
 - 当前重点平台方向：
 - `fal`：对象、层次、构图、材质、布光
 - `Runway`：镜头、动作、连续性、时间推进
@@ -133,6 +134,12 @@ Last updated: 2026-03-13
 - 引擎锁文件已启用：`/Users/dk/scene-pilot/docs/engine-library-lock.json`
 - 测试前必须通过：`npm run engine:lock:check`
 - 任何引擎改动后必须执行：`npm run engine:lock:update`，并同步更新本文件
+
+## New Chat / Session Continuity
+- 新聊天无上一轮记忆，需通过 skill 加载上下文。
+- 使用 `session-continuity` skill：`/Users/dk/scene-pilot/.codex/skills/session-continuity/SKILL.md`
+- 复制粘贴到新聊天：`/Users/dk/scene-pilot/docs/session-primer.md` 的内容。
+- 近期完成与待办见 session-primer，可在此文件末尾追加「接下来做 X」。
 
 ## Cross-Thread Sync Gate
 - 目标：杜绝 A 线程改完、B 线程仍按旧引擎/旧测试方法继续开发。

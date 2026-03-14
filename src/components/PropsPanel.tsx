@@ -1912,13 +1912,16 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8
   },
   localRefCard: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
     marginTop: 0,
     position: "relative",
     border: "none",
     borderRadius: 0,
     background: "transparent",
-    padding: "8px 0",
-    marginBottom: 12,
+    padding: "6px 0",
+    marginBottom: 8,
     boxShadow: "none"
   },
   localRefHead: {
@@ -1926,7 +1929,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: 8,
     minHeight: "var(--pro-row-height)",
-    marginBottom: 12,
     flexWrap: "wrap"
   },
   localRefActions: {
@@ -2003,8 +2005,7 @@ const styles: Record<string, React.CSSProperties> = {
   localRefList: {
     display: "flex",
     flexDirection: "column",
-    gap: 6,
-    marginTop: 12
+    gap: 6
   },
   localRefItem: {
     display: "flex",

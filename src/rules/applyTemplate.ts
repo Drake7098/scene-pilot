@@ -23,7 +23,7 @@ export function applyTemplateSnapshot(
   currentProject: Project,
   sceneIdx: number,
   _workspaceMode: "quick" | "pro",
-  _options?: { partialOnly?: boolean }
+  _options?: { partialOnly?: boolean; applyMode?: "layout_only" | "layout_plus_style" | "full_workflow" }
 ): ApplyTemplateResult {
   const scenes = currentProject.scenes ?? [];
   const sceneIdExists = (id: string) => scenes.some((s) => s.id === id);
