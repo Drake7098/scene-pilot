@@ -19,3 +19,12 @@ export function canPurchaseCredits(user: UserState | null) {
 export function canOpenCustomerPortal(user: UserState | null) {
   return Boolean(user && user.tier !== "free");
 }
+
+/**
+ * Future Studio / Pro+ unlimited templates.
+ * When true: template use does not deduct credits.
+ * Reserved for e.g. $68/month tier.
+ */
+export function canUseUnlimitedTemplates(user: UserState | null): boolean {
+  return Boolean(user?.unlimitedTemplatesEnabled);
+}

@@ -129,6 +129,7 @@ type Props = {
   onStructureChange: (next: ResultStructureState) => void;
   intentPlan: IntentPlan | null;
   onIntentPlanReady?: (intentPlan: IntentPlan) => void;
+  planDerivedPrompt?: string;
 };
 
 function t(lang: Lang, zh: string, en: string) {
@@ -541,6 +542,7 @@ export function ResultConsole(props: Props) {
     onSettlePromptExport,
     runtime,
     onDownloadDrawPack,
+    plan,
     previews,
     onReplacePreviews,
     onClearPreviews,
@@ -548,7 +550,8 @@ export function ResultConsole(props: Props) {
     onSelectPreview,
     onIntentPlanReady,
     onStructureChange,
-    structureState
+    structureState,
+    planDerivedPrompt = ""
   } = props;
 
   const [mediaType, setMediaType] = useState<"image" | "video">(prefs.mediaType);
@@ -762,7 +765,10 @@ export function ResultConsole(props: Props) {
   }
 
   async function handleCopyPrompt() {
-    const payload = (editablePrompt || structureSummaryText(lang, canvasTitle, canvasDraft)).trim();
+    const payload = (canvasDraft
+      ? (editablePrompt || structureSummaryText(lang, canvasTitle, canvasDraft))
+      : (planDerivedPrompt ?? "")
+    ).trim();
     let ticket: PromptExportTicket = { allowed: true };
     if (onPreparePromptExport) {
       ticket = await onPreparePromptExport("quick_copy");
@@ -1388,16 +1394,16 @@ export function ResultConsole(props: Props) {
         </aside>
 
         <main style={styles.main}>
-          {!structureDraft ? <QuickWorkspaceIntro lang={lang} /> : null}
-          {structureDraft && !hasPreviewMedia ? <QuickWorkspaceIntro lang={lang} mode="compact" /> : null}
+          {!structureDraft && !(plan && previews.length) ? <QuickWorkspaceIntro lang={lang} /> : null}
+          {structureDraft && !hasPreviewMedia && !(plan && previews.length) ? <QuickWorkspaceIntro lang={lang} mode="compact" /> : null}
           <div
             style={{
               ...styles.mainContent,
               ...styles.mainContentSingle,
-              ...(structureDraft ? { paddingBottom: secondaryComposerVisible ? 228 : 104 } : null)
+              ...((structureDraft || (plan && previews.length)) ? { paddingBottom: secondaryComposerVisible ? 228 : 104 } : null)
             }}
           >
-            {canvasDraft ? (
+            {(canvasDraft || (plan && previews.length)) ? (
               <div style={styles.quickWorkspaceBody} data-testid="quick-structure-canvas-ready">
                 <section style={styles.previewPane} data-testid="quick-preview-pane">
                   {previews.length ? (
@@ -1438,8 +1444,9 @@ export function ResultConsole(props: Props) {
                 <section style={styles.promptBlock} data-testid="quick-structure-canvas">
                   <div style={styles.promptBlockTop}>
                     <div style={styles.canvasTitle} data-testid="quick-canvas-title">
-                      {canvasTitle}
+                      {canvasDraft ? canvasTitle : (plan?.brief ?? plan?.scenes?.[0]?.title ?? t(lang, "生成结果", "Generated"))}
                     </div>
+                    {canvasDraft ? (
                     <div style={styles.canvasMenuWrap}>
                       <button
                         type="button"
@@ -1507,14 +1514,16 @@ export function ResultConsole(props: Props) {
                         </div>
                       ) : null}
                     </div>
+                    ) : null}
                   </div>
                   <div style={styles.promptPanel} data-testid="quick-prompt-panel">
                     <div style={styles.promptPanelTitle}>
                       {t(lang, "提示词", "Prompt")}
                     </div>
                     <textarea
-                      value={editablePrompt}
-                      onChange={(e) => setEditablePrompt(e.target.value)}
+                      value={canvasDraft ? editablePrompt : (planDerivedPrompt ?? "")}
+                      onChange={canvasDraft ? (e) => setEditablePrompt(e.target.value) : undefined}
+                      readOnly={!canvasDraft}
                       style={styles.promptEditor}
                       data-testid="quick-canvas-prompt-editor"
                     />

@@ -6,7 +6,6 @@ import { resolveSceneConfig } from "../model";
 import type { Project, Scene, Layer, ShotPlan, Direction, TransitionType } from "../model";
 import { defaultObjectName, defaultSceneName } from "../utils/naming";
 import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_FONT, UI_INFO, UI_OPACITY, UI_PALETTE, UI_RADIUS, UI_SIZE, UI_SPACE, UI_STATUS, UI_TYPO } from "../uiTokens";
-import { Plus, Minus, ChevronDown, ChevronRight } from "lucide-react";
 import {
   PRO_PLUS_MOTION_CATEGORIES,
   applyProMotionSelection,
@@ -43,14 +42,13 @@ import {
   type DirectorStylePackId
 } from "../content/directorStylePacks";
 import { resolveSceneStrategy } from "../utils/sceneStrategyResolver";
-import { TemplatesPanel } from "./TemplatesPanel";
+import { TemplateQuickEntry } from "../features/template-workspace";
+import type { TemplateIndex } from "../features/template-workspace";
 import type { SceneTemplate } from "../model/template";
-import { applyTemplateSnapshot } from "../rules/applyTemplate";
 import { useProCollapseSections } from "../hooks/useProCollapseSections";
 import { EditorSection, EditorSelect, EditorInput, EditorCheckbox } from "./ui";
-import { ProjectControlBar } from "./ProjectControlBar";
 import { editorTheme } from "../theme/editorTheme";
-import { Film, LayoutGrid, Layers, Camera, Settings } from "lucide-react";
+import { Film, LayoutGrid, Layers, Camera, Settings, Play, Plus, Minus, ChevronDown, ChevronRight, Save, Copy, Download, FilePlus2, FolderOpen, PencilLine } from "lucide-react";
 
 type Props = {
   lang: Lang;
@@ -78,6 +76,8 @@ type Props = {
   onCopyPrompt?: () => void;
   onExportProject?: () => void;
   onOpenLibrary?: () => void;
+  onOpenTemplateWorkspace?: () => void;
+  onUseTemplateFromEntry?: (item: TemplateIndex | import("../data/templateWorkspaceData").TemplateWorkspaceItem) => void;
 };
 
 function isComposing(e: any) {
@@ -267,7 +267,9 @@ export function Sidebar(props: Props) {
     onSaveAs,
     onCopyPrompt,
     onExportProject,
-    onOpenLibrary
+    onOpenLibrary,
+    onOpenTemplateWorkspace,
+    onUseTemplateFromEntry
   } = props;
 
   const tt = useMemo(() => (key: string) => t(lang, key), [lang]);
@@ -1124,8 +1126,8 @@ export function Sidebar(props: Props) {
 
   const [sidebarCollapsed, toggleSidebar] = useProCollapseSections(
     "sidebar",
-    ["scenes", "templates", "scene_strategy", "camera_lighting", "objects"],
-    ["scenes", "scene_strategy", "camera_lighting", "objects"]
+    ["project", "scenes", "templates", "scene_strategy", "camera_lighting", "objects"],
+    ["project", "scenes", "scene_strategy", "camera_lighting", "objects"]
   );
 
   const { colors: ec, spacing: es } = editorTheme;
@@ -1173,25 +1175,54 @@ export function Sidebar(props: Props) {
         overflow: "auto"
       }}
     >
-      {/* Project header (Figma: Layout + app name + / Project) */}
+      {/* Project (collapsible section, same style as other sidebar sections) */}
       {projectLabel != null && onSaveProject && (
-        <div style={styles.projectHeader}>
-          <ProjectControlBar
-            lang={lang}
-            isMac={isMac}
-            isPro={true}
-            variant="sidebar"
-            projectLabel={projectLabel}
-            onOpenProject={onOpenProject ?? (() => {})}
-            onRenameProject={onRenameProject ?? (() => {})}
-            onNewProject={onNewProject ?? (() => {})}
-            onSaveProject={onSaveProject}
-            onSaveAs={onSaveAs ?? (() => {})}
-            onCopyPrompt={onCopyPrompt ?? (() => {})}
-            onExportProject={onExportProject ?? (() => {})}
-            onOpenLibrary={onOpenLibrary ?? (() => {})}
-          />
+        <EditorSection
+          title={(projectLabel || (lang === "zh" ? "未命名项目" : "Untitled Project")).trim() || (lang === "zh" ? "未命名项目" : "Untitled Project")}
+          icon={FolderOpen}
+          open={!sidebarCollapsed.has("project")}
+          onOpenChange={(open) => {
+            const currentlyOpen = !sidebarCollapsed.has("project");
+            if (open !== currentlyOpen) toggleSidebar("project");
+          }}
+        >
+        <div style={styles.projectSectionBody}>
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onSaveProject?.()}>
+            <Save size={12} />
+            <span>{lang === "zh" ? "保存项目…" : "Save Project..."}</span>
+          </button>
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onCopyPrompt?.()}>
+            <Copy size={12} />
+            <span>{lang === "zh" ? "复制提示词" : "Copy Prompt"}</span>
+          </button>
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onExportProject?.()}>
+            <Download size={12} />
+            <span>{lang === "zh" ? "导出…" : "Export..."}</span>
+          </button>
+          <div style={styles.projectActionSep} />
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onOpenProject?.()}>
+            <FolderOpen size={12} />
+            <span>{lang === "zh" ? "打开项目" : "Open Project"}</span>
+          </button>
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onOpenLibrary?.()}>
+            <FolderOpen size={12} />
+            <span>{lang === "zh" ? "项目库" : "Project Library"}</span>
+          </button>
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onRenameProject?.()}>
+            <PencilLine size={12} />
+            <span>{lang === "zh" ? "重命名项目" : "Rename Project"}</span>
+          </button>
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onSaveAs?.()}>
+            <Save size={12} />
+            <span>{lang === "zh" ? "另存项目…" : "Save Project As..."}</span>
+          </button>
+          <div style={styles.projectActionSep} />
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onNewProject?.()}>
+            <FilePlus2 size={12} />
+            <span>{lang === "zh" ? "新建项目" : "New Project"}</span>
+          </button>
         </div>
+        </EditorSection>
       )}
       {/* ✅ toast */}
       {toastText ? <div style={styles.toast}>{toastText}</div> : null}
@@ -1468,41 +1499,15 @@ export function Sidebar(props: Props) {
         }}
       >
       <div style={styles.section}>
-        <TemplatesPanel
+        <TemplateQuickEntry
           key={lang}
           lang={lang}
-          isPro={isPro}
-          sceneLimitReached={sceneLimitReached}
-          onUseTemplate={(template) => {
-            const result = applyTemplateSnapshot(template, project, scenes.length, "pro");
-            if (result.appliedProject) {
-              onUpdateProject(result.appliedProject);
-              setSceneIdx(result.appliedProject.scenes.length - 1);
-              onSelectLayer(null);
-              const msg = result.toastMessages[0] ?? (lang === "zh" ? "已从模板创建分镜" : "Scene created from template");
-              showFloatingHint(msg, null, "info");
-              onTrackTemplate?.(
-                result.compatibility === "partial" ? "template_apply_partial" : "template_apply_full",
-                { compatibility: result.compatibility }
-              );
-            } else if (result.appliedScene) {
-              const fallbackProject: Project = {
-                ...project,
-                scenes: [...scenes, result.appliedScene].map((s, i) => ({ ...s, index: i + 1 }))
-              };
-              onUpdateProject(fallbackProject);
-              setSceneIdx(fallbackProject.scenes.length - 1);
-              onSelectLayer(null);
-              showFloatingHint(result.blockReason ?? (lang === "zh" ? "已从模板创建分镜" : "Scene created from template"), null, "info");
+          onOpenWorkspace={() => onOpenTemplateWorkspace?.()}
+          onUseTemplate={(item) => {
+            if (onUseTemplateFromEntry) {
+              onUseTemplateFromEntry(item);
             }
           }}
-          onLockedClick={(tpl) => onLockedTemplateClick?.(tpl)}
-          onRequestSaveTemplate={() => {
-            const ok = onRequestSaveTemplate?.();
-            if (ok) showFloatingHint(lang === "zh" ? "已保存为模板" : "Saved as template", null, "info");
-            return ok;
-          }}
-          onTrack={onTrackTemplate}
         />
       </div>
       </EditorSection>
@@ -1533,41 +1538,43 @@ export function Sidebar(props: Props) {
         }
       >
       <div style={styles.sectionListOnly}>
-        <div style={styles.list}>
+        <div style={styles.sceneCardList}>
           {scenes.map((s, i) => {
             const isOn = i === safeIdx;
             const mode = parseMedia(s);
-            const badgeText = mode === "image" ? tt("sidebar.image") : fmtDuration(lang, s.duration_s);
+            const durationSec = Math.max(0, Math.round(Number(s.duration_s) || 0));
             const sceneIndex = Number.isFinite(s.index) ? Number(s.index) : i + 1;
             const sceneNo = String(sceneIndex).padStart(2, "0");
 
             return (
-              <div key={s.id} style={styles.itemRowWrap}>
-                <div
-                  role="button"
-                  tabIndex={0}
-                  className="pro-scene-row"
-                  data-active={isOn ? "true" : "false"}
-                  style={{
-                    ...styles.listItemContent,
-                    background: isOn ? ec.accentSoft : "transparent",
-                    color: isOn ? ec.accent : ec.text,
-                    border: `1px solid ${isOn ? ec.accent : ec.border}`,
-                    transition: `background ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}, color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}, border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
-                  }}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
+              <div
+                key={s.id}
+                role="button"
+                tabIndex={0}
+                className="pro-scene-card"
+                data-active={isOn ? "true" : "false"}
+                style={{
+                  ...styles.sceneCard,
+                  background: isOn ? ec.accentSoft : "rgba(42,45,50,0.6)",
+                  borderColor: isOn ? `${ec.accent}66` : ec.border,
+                  boxShadow: isOn ? `0 0 15px ${ec.accent}0D` : "none"
+                }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setSceneIdx(i);
+                  onSelectLayer(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
                     setSceneIdx(i);
                     onSelectLayer(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      setSceneIdx(i);
-                      onSelectLayer(null);
-                    }
-                  }}
-                >
-                  <div style={styles.rowInner}>
+                  }
+                }}
+              >
+                {isOn ? <div style={styles.sceneCardActiveBar} aria-hidden /> : null}
+                <div style={styles.sceneCardRow1}>
+                  <div style={styles.sceneCardTitleWrap}>
+                    <Film size={14} style={{ color: isOn ? ec.accent : ec.textMuted, flexShrink: 0 }} />
                     {editingSceneId === s.id ? (
                       <input
                         autoFocus
@@ -1579,21 +1586,28 @@ export function Sidebar(props: Props) {
                           if (e.key === "Escape") setEditingSceneId(null);
                         }}
                         onBlur={() => commitSceneName(s.id)}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
                         style={{
                           flex: 1,
-                          height: 26,
-                          borderRadius: editorTheme.radius.input,
+                          minWidth: 0,
+                          height: 22,
+                          borderRadius: 6,
                           border: `1px solid ${ec.accent}`,
                           background: ec.bg,
                           color: ec.text,
                           outline: "none",
-                          padding: "0 8px",
-                          fontSize: editorTheme.typography.bodySize
+                          padding: "0 6px",
+                          fontSize: 12,
+                          fontWeight: 700
                         }}
                       />
                     ) : (
-                      <div
-                        style={styles.renameText}
+                      <span
+                        style={{
+                          ...styles.sceneCardName,
+                          color: isOn ? ec.accent : ec.text
+                        }}
                         onDoubleClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -1603,137 +1617,99 @@ export function Sidebar(props: Props) {
                         title={tt("sidebar.renameHint")}
                       >
                         {formatSceneRowName(sceneNo, s.name, s.id)}
-                      </div>
+                      </span>
                     )}
-
-                    {/* ✅ badge: image shows IMG/图片; video shows seconds (editable) */}
-                    {mode === "video" ? (
-                      editingDurSceneId === s.id ? (
-                        <input
-                          autoFocus
-                          value={durDraft}
-                          onChange={(e) => setDurDraft(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (isComposing(e)) return;
-                            if (e.key === "Enter") commitSceneDuration(s.id);
-                            if (e.key === "Escape") setEditingDurSceneId(null);
-                          }}
-                          onBlur={() => commitSceneDuration(s.id)}
-                          style={{
-                            width: 58,
-                            height: 26,
-                            borderRadius: editorTheme.radius.input,
-                            border: `1px solid ${ec.accent}`,
-                            background: ec.bg,
-                            color: ec.text,
-                            outline: "none",
-                            padding: "0 8px",
-                            fontSize: editorTheme.typography.bodySize,
-                            textAlign: "right"
-                          }}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      ) : (
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          style={{
-                            ...styles.infoBadge,
-                            cursor: "pointer",
-                            border: `1px solid ${ec.border}`,
-                            background: ec.bg
-                          }}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setEditingDurSceneId(s.id);
-                            setDurDraft(String(Math.max(0, Math.round(Number(s.duration_s) || 0))));
-                          }}
-                          title={tt("sidebar.editDuration")}
-                        >
-                          {badgeText}
-                        </div>
-                      )
+                  </div>
+                  <button
+                    type="button"
+                    className="pro-scene-card-delete"
+                    style={styles.sceneCardDelete}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      requestDeleteScene(i, e.currentTarget as HTMLElement);
+                    }}
+                    title={tt("sidebar.deleteScene")}
+                    disabled={scenes.length <= 1 || isImageProject}
+                  >
+                    <Minus size={14} />
+                  </button>
+                </div>
+                <div style={styles.sceneCardRow2}>
+                  <span style={styles.sceneCardPill}>
+                    {mode === "image" ? tt("sidebar.image") : (lang === "zh" ? "视频" : "Video")}
+                  </span>
+                  {mode === "video" ? (
+                    editingDurSceneId === s.id ? (
+                      <input
+                        autoFocus
+                        value={durDraft}
+                        onChange={(e) => setDurDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (isComposing(e)) return;
+                          if (e.key === "Enter") commitSceneDuration(s.id);
+                          if (e.key === "Escape") setEditingDurSceneId(null);
+                        }}
+                        onBlur={() => commitSceneDuration(s.id)}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          width: 48,
+                          height: 20,
+                          borderRadius: 4,
+                          border: `1px solid ${ec.accent}`,
+                          background: ec.bg,
+                          color: ec.text,
+                          outline: "none",
+                          padding: "0 6px",
+                          fontSize: 10,
+                          fontFamily: "monospace",
+                          textAlign: "right"
+                        }}
+                      />
                     ) : (
                       <div
-                        style={{ ...styles.infoBadge, opacity: 0.78, border: `1px solid ${ec.border}`, background: ec.bg }}
-                        title={tt("sidebar.imageScene")}
+                        role="button"
+                        tabIndex={0}
+                        style={styles.sceneCardPillDuration}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setEditingDurSceneId(s.id);
+                          setDurDraft(String(durationSec));
+                        }}
+                        title={tt("sidebar.editDuration")}
                       >
-                        {badgeText}
+                        <Play size={10} style={{ opacity: 0.5, marginRight: 4 }} />
+                        {durationSec}s
                       </div>
-                    )}
-                    {mode === "video" && i > 0 ? (
-                      <div
-                        style={{ ...styles.infoBadge, opacity: 0.78, border: `1px solid ${ec.border}`, background: ec.bg }}
-                        title={
-                          s.inheritFromPrevious
-                            ? (lang === "zh" ? "继承上一镜布局" : "Inherit previous shot layout")
-                            : (lang === "zh" ? "独立镜头布局" : "Independent shot layout")
-                        }
-                      >
-                        {s.inheritFromPrevious ? (lang === "zh" ? "继承" : "Inherit") : (lang === "zh" ? "独立" : "Indep.")}
-                      </div>
-                    ) : null}
-                    {mode === "video" && i > 0 && i < scenes.length - 1 ? (
-                      <div
-                        style={{ ...styles.infoBadge, opacity: 0.78, border: `1px solid ${ec.border}`, background: ec.bg }}
-                        title={lang === "zh" ? "衔接方式" : "Transition"}
-                      >
-                        {transitionLabel(lang, s.transitionType)}
-                      </div>
-                    ) : null}
-                  </div>
+                    )
+                  ) : (
+                    <span style={styles.sceneCardPill}>—</span>
+                  )}
+                  {mode === "video" && i > 0 ? (
+                    <span
+                      style={styles.sceneCardPill}
+                      title={
+                        s.inheritFromPrevious
+                          ? (lang === "zh" ? "继承上一镜布局" : "Inherit previous shot layout")
+                          : (lang === "zh" ? "独立镜头布局" : "Independent shot layout")
+                      }
+                    >
+                      {s.inheritFromPrevious ? (lang === "zh" ? "继承" : "Inherit") : (lang === "zh" ? "独立" : "Indep.")}
+                    </span>
+                  ) : null}
+                  {mode === "video" && i > 0 && i < scenes.length - 1 ? (
+                    <span style={styles.sceneCardPill} title={lang === "zh" ? "衔接方式" : "Transition"}>
+                      {transitionLabel(lang, s.transitionType)}
+                    </span>
+                  ) : null}
                 </div>
-
-                <button
-                  type="button"
-                  className="pro-icon-btn"
-                  style={styles.minusColBtn}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={(e) => requestDeleteScene(i, e.currentTarget as HTMLElement)}
-                  title={tt("sidebar.deleteScene")}
-                  disabled={scenes.length <= 1 || isImageProject}
-                >
-                  <Minus size={14} />
-                </button>
               </div>
             );
           })}
         </div>
-      </div>
-      </EditorSection>
-
-      {/* Camera & Lighting (Figma: third) */}
-      <EditorSection
-        title={lang === "zh" ? "镜头 · 光" : "Camera & Lighting"}
-        icon={Camera}
-        open={!sidebarCollapsed.has("camera_lighting")}
-        onOpenChange={(open) => {
-          const currentlyOpen = !sidebarCollapsed.has("camera_lighting");
-          if (open !== currentlyOpen) toggleSidebar("camera_lighting");
-        }}
-      >
-      <div style={styles.section}>
-        <EditorSelect
-          label={tt("lighting.time")}
-          options={timeOptions.map((o) => ({ label: o.label, value: o.v }))}
-          value={visibleLightingTime}
-          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, time: v } as any })}
-        />
-        <EditorSelect
-          label={tt("lighting.keyDir")}
-          options={dirOptions.map((o) => ({ label: o.label, value: o.v }))}
-          value={visibleLightingKeyDir}
-          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, key_dir: v } as any })}
-        />
-        <EditorSelect
-          label={tt("lighting.mood")}
-          options={moodOptions.map((o) => ({ label: o.label, value: o.v }))}
-          value={visibleLightingMood}
-          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, mood: v } as any })}
-        />
       </div>
       </EditorSection>
 
@@ -2114,6 +2090,38 @@ export function Sidebar(props: Props) {
 
       </div>
       </EditorSection>
+
+      {/* Camera & Lighting (moved to bottom) */}
+      <EditorSection
+        title={lang === "zh" ? "镜头 · 光" : "Camera & Lighting"}
+        icon={Camera}
+        open={!sidebarCollapsed.has("camera_lighting")}
+        onOpenChange={(open) => {
+          const currentlyOpen = !sidebarCollapsed.has("camera_lighting");
+          if (open !== currentlyOpen) toggleSidebar("camera_lighting");
+        }}
+      >
+      <div style={styles.section}>
+        <EditorSelect
+          label={tt("lighting.time")}
+          options={timeOptions.map((o) => ({ label: o.label, value: o.v }))}
+          value={visibleLightingTime}
+          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, time: v } as any })}
+        />
+        <EditorSelect
+          label={tt("lighting.keyDir")}
+          options={dirOptions.map((o) => ({ label: o.label, value: o.v }))}
+          value={visibleLightingKeyDir}
+          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, key_dir: v } as any })}
+        />
+        <EditorSelect
+          label={tt("lighting.mood")}
+          options={moodOptions.map((o) => ({ label: o.label, value: o.v }))}
+          value={visibleLightingMood}
+          onChange={(v) => onUpdateScene({ ...scene, lighting: { ...scene.lighting, mood: v } as any })}
+        />
+      </div>
+      </EditorSection>
     </div>
     {renderVideoCascadeMenu()}
     {renderImageCascadeMenu()}
@@ -2141,11 +2149,31 @@ const styles: Record<string, React.CSSProperties> = {
     background: "var(--pro-bg-panel)",
     borderRight: "1px solid var(--pro-border-soft)"
   },
-  projectHeader: {
-    flexShrink: 0,
-    paddingBottom: 10,
-    marginBottom: 4,
-    borderBottom: "1px solid var(--pro-border-soft, #3a3f46)"
+  projectSectionBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 0
+  },
+  projectAction: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    width: "100%",
+    padding: "6px 0",
+    border: "none",
+    background: "transparent",
+    color: editorTheme.colors.text,
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+    textAlign: "left",
+    borderRadius: 6,
+    transition: "background 150ms ease"
+  },
+  projectActionSep: {
+    height: 1,
+    margin: "6px 0",
+    background: editorTheme.colors.border
   },
 
   section: {
@@ -2384,6 +2412,85 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   list: { display: "flex", flexDirection: "column", gap: 8 },
+  sceneCardList: { display: "flex", flexDirection: "column", gap: 8 },
+  sceneCard: {
+    position: "relative",
+    padding: 12,
+    borderRadius: 12,
+    border: "1px solid",
+    cursor: "pointer",
+    transition: "background 150ms ease, border-color 150ms ease, box-shadow 150ms ease"
+  },
+  sceneCardActiveBar: {
+    position: "absolute",
+    left: 0,
+    top: 12,
+    bottom: 12,
+    width: 3,
+    backgroundColor: editorTheme.colors.accent,
+    borderRadius: "0 2px 2px 0"
+  },
+  sceneCardRow1: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+    gap: 8
+  },
+  sceneCardTitleWrap: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    minWidth: 0,
+    flex: 1
+  },
+  sceneCardName: {
+    fontSize: 12,
+    fontWeight: 700,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
+  },
+  sceneCardDelete: {
+    flexShrink: 0,
+    padding: 4,
+    border: "none",
+    background: "transparent",
+    color: editorTheme.colors.textMuted,
+    cursor: "pointer",
+    opacity: 0.6,
+    transition: "opacity 150ms ease, color 150ms ease"
+  },
+  sceneCardRow2: {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6
+  },
+  sceneCardPill: {
+    fontSize: 9,
+    fontWeight: 700,
+    padding: "2px 6px",
+    borderRadius: 4,
+    background: editorTheme.colors.bg,
+    color: editorTheme.colors.textMuted,
+    border: `1px solid ${editorTheme.colors.border}`,
+    textTransform: "uppercase",
+    lineHeight: 1.2
+  },
+  sceneCardPillDuration: {
+    display: "flex",
+    alignItems: "center",
+    fontSize: 10,
+    fontFamily: "monospace",
+    padding: "2px 8px",
+    borderRadius: 4,
+    background: editorTheme.colors.bg,
+    color: editorTheme.colors.textMuted,
+    border: `1px solid ${editorTheme.colors.border}`,
+    cursor: "pointer",
+    transition: "border-color 150ms ease"
+  },
   itemRowWrap: {
     display: "grid",
     gridTemplateColumns: "1fr 28px",
