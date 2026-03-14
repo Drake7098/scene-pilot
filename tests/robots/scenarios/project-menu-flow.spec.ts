@@ -83,7 +83,7 @@ test("project_menu_save_export_flow_is_continuous", async ({ page }) => {
 
     const exportModal = page.getByTestId("export-modal");
     await expect(exportModal).toBeVisible();
-    await exportModal.getByTestId("export-mode-quick").click();
+    await exportModal.getByTestId("export-mode-prompt-only").click();
     await exportModal.getByTestId("export-platform-select").selectOption("jimeng");
 
     const [download] = await Promise.all([

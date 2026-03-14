@@ -7,6 +7,7 @@ import { LayoutGrid, List } from "lucide-react";
 import type { Lang } from "../../../i18n";
 import type { TemplateIndex } from "../model/templateIndex";
 import { TemplateCard } from "./TemplateCard";
+import { PRO_TYPO } from "../../../uiTokens";
 
 const colors = {
   bg: "#1f2125",
@@ -134,6 +135,8 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     color: colors.textMuted,
-    fontSize: 13
+    fontSize: PRO_TYPO.sm,
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily
   }
 };

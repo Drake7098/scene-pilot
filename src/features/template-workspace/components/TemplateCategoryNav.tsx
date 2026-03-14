@@ -4,6 +4,7 @@
 
 import React from "react";
 import type { Lang } from "../../../i18n";
+import { PRO_TYPO } from "../../../uiTokens";
 import type { TemplateWorkspaceScope } from "../model/templateFilter";
 import { TEMPLATE_NAV_CATEGORIES } from "../model/templateCategory";
 
@@ -90,7 +91,9 @@ const styles: Record<string, React.CSSProperties> = {
     background: "transparent",
     border: "none",
     color: colors.textMuted,
-    fontSize: 12,
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily,
     cursor: "pointer"
   },
   itemActive: {

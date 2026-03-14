@@ -4,6 +4,7 @@
 
 import React from "react";
 import { Star } from "lucide-react";
+import { PRO_TYPO } from "../../../uiTokens";
 import type { Lang } from "../../../i18n";
 import type { TemplateIndex } from "../model/templateIndex";
 import type { ApplyTemplateMode } from "../model/templateFilter";
@@ -154,7 +155,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   empty: {
     color: colors.textMuted,
-    fontSize: 13,
+    fontSize: PRO_TYPO.sm,
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily,
     textAlign: "center",
     padding: 24
   },
@@ -167,8 +170,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   title: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: 600,
+    fontSize: PRO_TYPO.sm,
+    fontWeight: PRO_TYPO.weightMedium,
+    fontFamily: PRO_TYPO.fontFamily,
     color: colors.text,
     margin: 0
   },
@@ -185,12 +189,16 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     justifyContent: "space-between",
     marginBottom: 6,
-    fontSize: 12
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily
   },
   label: { color: colors.textMuted },
   value: { color: colors.text },
   desc: {
-    fontSize: 12,
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily,
     color: colors.textMuted,
     lineHeight: 1.4,
     marginBottom: 8
@@ -200,11 +208,15 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "2px 8px",
     background: colors.bg,
     borderRadius: 6,
-    fontSize: 11,
+    fontSize: PRO_TYPO["2xs"],
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily,
     color: colors.textMuted
   },
   modeLabel: {
-    fontSize: 12,
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily,
     color: colors.textMuted,
     marginBottom: 8
   },
@@ -217,7 +229,9 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: 8,
-    fontSize: 12,
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily,
     color: colors.text,
     cursor: "pointer"
   },
@@ -229,8 +243,9 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     borderRadius: 8,
     color: "#1f2125",
-    fontSize: 13,
-    fontWeight: 600,
+    fontSize: PRO_TYPO.sm,
+    fontWeight: PRO_TYPO.weightMedium,
+    fontFamily: PRO_TYPO.fontFamily,
     cursor: "pointer"
   }
 };

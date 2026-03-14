@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { ChevronDown, ChevronUp, Copy, Download, HelpCircle, MoreHorizontal } from "lucide-react";
 import type { Lang } from "../i18n";
 import type { Project } from "../model";
 import type { PromptProfile } from "../utils/prompt";
@@ -10,13 +11,14 @@ import { getPlatformPreset, PLATFORM_PRESETS } from "../config/platformPresets";
 import type { PlatformPresetId } from "../config/platformPresets";
 import { runPromptEngine } from "../utils/promptEngine";
 import { splitMachineNotes } from "../utils/promptTail";
-import { availableExportScopes, recommendExportMode } from "../utils/exportViewModel";
+import { availableExportScopes, recommendExportMode, type ExportMode } from "../utils/exportViewModel";
 import { useFieldState } from "../hooks/useFieldState";
 import { useAllowedOptions } from "../hooks/useAllowedOptions";
 import { FIELD_KEYS } from "../rules/fieldKeys";
 import { defaultProjectName, safeExportName } from "../utils/naming";
 import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_FONT, UI_INFO, UI_OPACITY, UI_PALETTE, UI_PANEL, UI_RADIUS, UI_SIZE, UI_STATUS, UI_TYPO } from "../uiTokens";
 import type { PromptExportScope } from "../types/export";
+import { PlatformModePanel } from "./PlatformModePanel";
 
 type Props = {
   lang: Lang;
@@ -34,6 +36,9 @@ type Props = {
   onJumpToConflict?: (layerId: string | null) => void;
   exportScope?: PromptExportScope;
   onExportScopeChange?: (scope: PromptExportScope) => void;
+  /** Controlled export mode (quick/package) - when provided, syncs with Platform Mode */
+  exportMode?: ExportMode;
+  onExportModeChange?: (m: ExportMode) => void;
 };
 
 function clampInt(v: number, a: number, b: number) {
@@ -68,7 +73,6 @@ type FlowFile = { path: string; content: string };
 type FlowBlobFile = { path: string; refId: string };
 type ZipEntry = { path: string; data: Uint8Array };
 const OBJECT_REF_LIMIT = 1;
-type ExportMode = "quick" | "package";
 
 let crcTable: Uint32Array | null = null;
 
@@ -226,11 +230,13 @@ export function ExportPanel({
   selectedLayerId,
   onJumpToConflict,
   exportScope: controlledExportScope,
-  onExportScopeChange
+  onExportScopeChange,
+  exportMode: controlledExportMode,
+  onExportModeChange
 }: Props) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
-  const [pendingConflictAction, setPendingConflictAction] = useState<null | "copy" | "save">(null);
+  const [pendingConflictAction, setPendingConflictAction] = useState<null | "copy" | "save" | "prompt_plus_refs">(null);
   const [pendingConflicts, setPendingConflicts] = useState<PromptConflict[]>([]);
   const [actionHint, setActionHint] = useState("");
   const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
@@ -239,8 +245,16 @@ export function ExportPanel({
   const [internalExportScope, setInternalExportScope] = useState<PromptExportScope>("current_scene");
   const exportScope = controlledExportScope ?? internalExportScope;
   const setExportScope = onExportScopeChange ?? setInternalExportScope;
-  const [exportMode, setExportMode] = useState<ExportMode>("quick");
+  const [internalExportMode, setInternalExportMode] = useState<ExportMode>("prompt_only");
+  const exportMode = controlledExportMode ?? internalExportMode;
+  const setExportMode = onExportModeChange ?? setInternalExportMode;
   const [exporting, setExporting] = useState(false);
+  const [platformModeCollapsed, setPlatformModeCollapsed] = useState(true);
+  const [promptExpanded, setPromptExpanded] = useState(false);
+  const [moreExportOpen, setMoreExportOpen] = useState(false);
+  const [readonlyHelpOpen, setReadonlyHelpOpen] = useState(false);
+  const moreExportRef = useRef<HTMLDivElement>(null);
+  const readonlyHelpRef = useRef<HTMLDivElement>(null);
   const canSaveDirectory = typeof window !== "undefined" && "showDirectoryPicker" in window;
 
   const scenes = useMemo(() => project.scenes ?? [], [project.scenes]);
@@ -267,8 +281,8 @@ export function ExportPanel({
   }, [scopeOptions, exportScope]);
 
   useEffect(() => {
-    setExportMode(recommendedExportMode);
-  }, [recommendedExportMode, safeIdx]);
+    if (controlledExportMode == null) setInternalExportMode(recommendedExportMode);
+  }, [recommendedExportMode, safeIdx, controlledExportMode]);
 
   function resetExportState() {
     setExporting(false);
@@ -605,6 +619,156 @@ export function ExportPanel({
       blobFiles
     };
   }, [exportMode, exportProfile, exportScope, lang, platformPreset, platformPresetId, project, projectLabel, promptProject.scenes, quickCopyPrompt, sceneTitle, scenes]);
+
+  const promptPlusRefsBundle = useMemo(() => {
+    const scenesToExport = promptProject.scenes ?? [];
+    if (scenesToExport.length === 0) return flowBundle;
+    const sceneBackgrounds = scenesToExport
+      .map((scene, sceneOrder) => {
+        const bgRef = scene.backgroundRef;
+        if (!bgRef?.id) return null;
+        const sceneTag = String((scene.index ?? sceneOrder + 1)).padStart(2, "0");
+        const ext = extFromName(bgRef.name);
+        const fileName = `${sceneTag}__BG__${safeName(bgRef.name || `background.${ext}`)}`;
+        return { sceneTag, sceneName: scene.name ?? scene.id, fileName, refId: bgRef.id };
+      })
+      .filter(Boolean) as Array<{ sceneTag: string; sceneName: string; fileName: string; refId: string }>;
+    const objects = scenesToExport.flatMap((scene, sceneOrder) =>
+      (scene.layers ?? []).map((layer, idx) => {
+        const sceneTag = String((scene.index ?? sceneOrder + 1)).padStart(2, "0");
+        const code = `OBJ_${String.fromCharCode(65 + (idx % 26))}${idx >= 26 ? `_${idx + 1}` : ""}`;
+        const localRefs = (layer.localRefs ?? []).slice(0, OBJECT_REF_LIMIT);
+        const refItems = localRefs.map((ref, i) => {
+          const type = ref.type;
+          const ext = extFromName(ref.name);
+          const fileName = `${sceneTag}_${code}__${refShort(type)}__${String(i + 1).padStart(2, "0")}.${ext}`;
+          return { source: `local:${ref.name}`, type, fileName, refId: ref.id };
+        });
+        return {
+          sceneTag,
+          sceneName: scene.name ?? scene.id,
+          code,
+          layerId: layer.id,
+          type: (layer.type ?? "").trim(),
+          look: (layer.look ?? "").trim(),
+          notes: (layer.notes ?? "").trim(),
+          referencePolicy: layer.referencePolicy ?? "optional",
+          refItems
+        };
+      })
+    );
+    const projectNameForFile = safeName(projectLabel || defaultProjectName(lang));
+    const shotNameForFile = safeName(sceneTitle || (lang === "zh" ? "分镜" : "shot"));
+    const platformForFile = safeName(lang === "zh" ? platformPreset.labelZh : platformPreset.labelEn);
+    const rootDir = "ScenePilotix";
+    const projectDir = projectNameForFile || defaultProjectName(lang);
+    const modeLabelZh = "稳妥高质（两步）";
+    const modeLabelEn = "Stable Quality (Two-step)";
+    const scopeLabel = exportScope === "continuous_sequence"
+      ? (lang === "zh" ? "连续序列" : "Continuity Sequence")
+      : (lang === "zh" ? "当前分镜" : "Current Scene");
+    const readmeText = lang === "zh"
+      ? [
+          "ScenePilotix 交付包说明",
+          "",
+          `适用大模型：${platformPreset.labelZh}`,
+          `导出范围：${scopeLabel}`,
+          `导出方式：${modeLabelZh}`,
+          "",
+          "1) 先打开 prompt.txt，直接复制提示词。",
+          "2) 再按 refs-manifest.txt 上传参考图。",
+          "3) 若浏览器不支持目录保存，可下载 ZIP 后按相同文件结构使用。",
+          "",
+          "补充说明：",
+          "- 不调用 API，不上传云端。",
+          "- 对象若没图，不会导出空图片文件。",
+          "- 分镜背景参考图为可选项，不填也可导出。"
+        ].join("\n")
+      : [
+          "ScenePilotix Package Guide",
+          "",
+          `Target Model: ${platformPreset.labelEn}`,
+          `Export Scope: ${scopeLabel}`,
+          `Flow: ${modeLabelEn}`,
+          "",
+          "1) Open prompt.txt first and copy the prompt directly.",
+          "2) Upload references by refs-manifest.txt.",
+          "3) If directory save is unavailable, use the ZIP package with the same structure.",
+          "",
+          "Notes:",
+          "- No API call, no cloud upload.",
+          "- Objects with no images won't generate empty files.",
+          "- Shot background references are optional."
+        ].join("\n");
+    const refsManifestText = [
+      lang === "zh" ? "参考图清单" : "Reference Manifest",
+      "",
+      lang === "zh"
+        ? `适用大模型：${platformPreset.labelZh}  |  模式：${modeLabelZh}`
+        : `Target Model: ${platformPreset.labelEn} | Mode: ${modeLabelEn}`,
+      "",
+      lang === "zh" ? "## 分镜背景参考图" : "## Shot Background Refs",
+      ...(sceneBackgrounds.length
+        ? sceneBackgrounds.flatMap((bg) => [
+            lang === "zh"
+              ? `- [${bg.sceneTag}] ${bg.sceneName} -> ${bg.fileName}`
+              : `- [${bg.sceneTag}] ${bg.sceneName} -> ${bg.fileName}`
+          ])
+        : [lang === "zh" ? "- 无" : "- None"]),
+      "",
+      lang === "zh" ? "## 对象参考图" : "## Object Refs",
+      "",
+      ...objects.flatMap((obj) => {
+        const head = lang === "zh"
+          ? `# [${obj.sceneTag}] ${obj.sceneName} / ${obj.code} (${obj.layerId})`
+          : `# [${obj.sceneTag}] ${obj.sceneName} / ${obj.code} (${obj.layerId})`;
+        const lines = [
+          head,
+          obj.type ? (lang === "zh" ? `- 类型: ${obj.type}` : `- Type: ${obj.type}`) : "",
+          obj.look ? (lang === "zh" ? `- 外观: ${obj.look}` : `- Look: ${obj.look}`) : "",
+          obj.notes ? (lang === "zh" ? `- 备注: ${obj.notes}` : `- Notes: ${obj.notes}`) : "",
+          obj.refItems.length
+            ? lang === "zh"
+              ? `- 参考文件: ${obj.refItems.map((r) => `${r.fileName}(${r.type})`).join(", ")}`
+              : `- Ref files: ${obj.refItems.map((r) => `${r.fileName}(${r.type})`).join(", ")}`
+            : lang === "zh"
+              ? "- 参考文件: 无（仅文本描述）"
+              : "- Ref files: none (text-only fallback)",
+          lang === "zh"
+            ? `- 参考图策略: ${obj.referencePolicy === "required" ? "必须带图" : "可选"}`
+            : `- Ref policy: ${obj.referencePolicy === "required" ? "required" : "optional"}`
+        ].filter(Boolean);
+        return [...lines, ""];
+      })
+    ].join("\n");
+    const promptText = `${quickCopyPrompt}\n`;
+    const bgBlobFiles: FlowBlobFile[] = sceneBackgrounds.map((bg) => ({
+      path: `${projectDir}/${bg.fileName}`,
+      refId: bg.refId
+    }));
+    const objectBlobFiles: FlowBlobFile[] = objects.flatMap((obj) =>
+      obj.refItems
+        .filter((r) => typeof (r as any).refId === "string")
+        .map((r) => ({ path: `${projectDir}/${r.fileName}`, refId: (r as any).refId as string }))
+    );
+    const blobFiles: FlowBlobFile[] = [...bgBlobFiles, ...objectBlobFiles];
+    const files: FlowFile[] = [
+      { path: `${projectDir}/prompt.txt`, content: promptText },
+      { path: `${projectDir}/README.txt`, content: readmeText },
+      { path: `${projectDir}/refs-manifest.txt`, content: refsManifestText }
+    ];
+    const quickPromptFileName = flowBundle.quickPromptFileName;
+    return {
+      ...flowBundle,
+      promptText,
+      packagePromptText: promptText,
+      readmeText,
+      refsManifestText,
+      files,
+      blobFiles
+    };
+  }, [exportProfile, exportScope, lang, platformPreset, platformPresetId, project, projectLabel, promptProject.scenes, quickCopyPrompt, sceneTitle, flowBundle]);
+
   const manualSaveGuide = useMemo(() => {
     const fileLines = [
       ...flowBundle.files.map((f) => `- ${f.path}`),
@@ -652,18 +816,18 @@ export function ExportPanel({
     }
   }
 
-  async function downloadFlowZipPackage(): Promise<{ ok: boolean; fileLabel: string }> {
+  async function downloadFlowZipPackage(bundle = flowBundle): Promise<{ ok: boolean; fileLabel: string }> {
     try {
       const encoder = new TextEncoder();
-      const zipEntries: ZipEntry[] = flowBundle.files.map((f) => ({
-        path: `${flowBundle.rootDir}/${f.path}`.replace(/\/+/g, "/"),
+      const zipEntries: ZipEntry[] = bundle.files.map((f) => ({
+        path: `${bundle.rootDir}/${f.path}`.replace(/\/+/g, "/"),
         data: encoder.encode(f.content)
       }));
-      for (const blobFile of flowBundle.blobFiles) {
+      for (const blobFile of bundle.blobFiles) {
         const blob = await getRefBlob(blobFile.refId);
         if (!blob) continue;
         zipEntries.push({
-          path: `${flowBundle.rootDir}/${blobFile.path}`.replace(/\/+/g, "/"),
+          path: `${bundle.rootDir}/${blobFile.path}`.replace(/\/+/g, "/"),
           data: new Uint8Array(await blob.arrayBuffer())
         });
       }
@@ -684,6 +848,26 @@ export function ExportPanel({
     }
   }
 
+  useEffect(() => {
+    if (!moreExportOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const el = moreExportRef.current;
+      if (el && !el.contains(e.target as Node)) setMoreExportOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [moreExportOpen]);
+
+  useEffect(() => {
+    if (!readonlyHelpOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const el = readonlyHelpRef.current;
+      if (el && !el.contains(e.target as Node)) setReadonlyHelpOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [readonlyHelpOpen]);
+
   async function downloadQuickPromptFile(): Promise<{ ok: boolean; fileLabel: string }> {
     try {
       const blob = new Blob([flowBundle.promptText], { type: "text/plain;charset=utf-8" });
@@ -699,25 +883,202 @@ export function ExportPanel({
     }
   }
 
+  async function runExportPromptPlusRefs(skipConflictGuard = false) {
+    if (!skipConflictGuard && sceneConflicts.length) {
+      setPendingConflictAction("prompt_plus_refs");
+      setPendingConflicts(sceneConflicts);
+      setShowConflictModal(true);
+      return;
+    }
+    let ticket: PromptExportTicket = { allowed: true };
+    if (onPreparePromptExport) {
+      ticket = await onPreparePromptExport("pro_export_prompt");
+      if (!ticket.allowed) return;
+    }
+    setExporting(true);
+    let committed = false;
+    try {
+      const res = await downloadFlowZipPackage(promptPlusRefsBundle);
+      committed = res.ok;
+      if (res.ok) {
+        setActionHint(lang === "zh" ? "提示词 + 参考图已导出" : "Prompt + refs exported");
+      } else {
+        setActionHint(res.fileLabel || (lang === "zh" ? "导出失败" : "Export failed"));
+      }
+    } finally {
+      setExporting(false);
+      if (onSettlePromptExport) {
+        await onSettlePromptExport(ticket.reservationId, committed);
+      }
+    }
+  }
+
+  const promptPreviewLines = (promptsMain + (promptsNotes ? `\n${promptsNotes}` : "")).trimEnd().split("\n");
+  const compactLineLimit = 4;
+  const showExpandToggle = promptPreviewLines.length > compactLineLimit;
+  const displayPromptMain = promptExpanded
+    ? promptsMain.trimEnd()
+    : promptPreviewLines.slice(0, compactLineLimit).join("\n").trimEnd();
+  const displayPromptNotes = promptExpanded && promptsNotes ? promptsNotes : null;
+
+  const readonlyHelpText = lang === "zh"
+    ? "这是系统根据模板、对象和场景策略自动生成的结构化提示词，仅用于查看、复制与导出。如需修改，请前往：模板、对象属性、场景策略、镜头/光。"
+    : "This prompt is auto-generated from template, objects, and scene strategy. Read-only; for viewing, copy, and export. To edit, use: Template, Object Properties, Scene Strategy, Camera/Light.";
+
   return (
     <div className="pro-export-panel" style={styles.wrap}>
-      <div style={styles.head}>
-        {sceneConflicts.length > 0 ? (
-          <button className="pro-btn-ghost" type="button" onClick={() => {
-            setPendingConflictAction(null);
-            setPendingConflicts(sceneConflicts);
-            setShowConflictModal(true);
-          }} style={{ borderColor: "rgba(255,120,120,0.58)", color: "rgba(255,200,200,0.96)" }}>
-            {lang === "zh" ? `冲突 ${sceneConflicts.length}` : `Conflicts ${sceneConflicts.length}`}
-          </button>
-        ) : null}
-      </div>
       {actionHint ? <div style={styles.actionHint}>{actionHint}</div> : null}
 
-      <div style={styles.promptPane}>
-        <div className="pro-prompt-preview" style={styles.preWrap}>
-          <pre style={styles.pre}>{promptsMain.trimEnd()}</pre>
-          {promptsNotes ? <pre style={styles.preNotes}>{promptsNotes}</pre> : null}
+      <div style={styles.splitLayout}>
+        <div style={styles.leftColumn} role="region" aria-label={lang === "zh" ? "结构化提示词展示区" : "Structured Prompt Preview"}>
+          <div style={styles.titleRow}>
+            <div style={styles.sectionTitle}>
+              {lang === "zh" ? "结构化提示词展示区" : "Structured Prompt Preview"}
+            </div>
+            <div ref={readonlyHelpRef} style={{ position: "relative" }}>
+              <button
+                type="button"
+                className="pro-btn-ghost"
+                style={styles.helpIcon}
+                onClick={() => setReadonlyHelpOpen((v) => !v)}
+                aria-label={lang === "zh" ? "说明" : "Help"}
+                title={readonlyHelpText}
+              >
+                <HelpCircle size={14} />
+              </button>
+              {readonlyHelpOpen ? (
+                <div style={styles.helpPopover} role="tooltip">
+                  {readonlyHelpText}
+                </div>
+              ) : null}
+            </div>
+          </div>
+          {sceneConflicts.length > 0 ? (
+            <button
+              className="pro-btn-ghost"
+              type="button"
+              onClick={() => {
+                setPendingConflictAction(null);
+                setPendingConflicts(sceneConflicts);
+                setShowConflictModal(true);
+              }}
+              style={styles.conflictBadge}
+            >
+              {lang === "zh" ? `冲突 ${sceneConflicts.length}` : `Conflicts ${sceneConflicts.length}`}
+            </button>
+          ) : null}
+          <div
+            style={styles.promptPane}
+            className="pro-prompt-readonly"
+            aria-readonly="true"
+          >
+            <div className="pro-prompt-preview pro-prompt-result-preview" style={styles.preWrap}>
+              <pre style={styles.preReadonly}>{displayPromptMain}</pre>
+              {displayPromptNotes ? <pre style={styles.preNotes}>{displayPromptNotes}</pre> : null}
+            </div>
+            {showExpandToggle ? (
+              <button
+                type="button"
+                className="pro-btn-ghost"
+                style={styles.expandBtn}
+                onClick={() => setPromptExpanded((v) => !v)}
+                aria-expanded={promptExpanded}
+              >
+                {promptExpanded ? (
+                  <><ChevronUp size={12} />{lang === "zh" ? "收起" : "Collapse"}</>
+                ) : (
+                  <><ChevronDown size={12} />{lang === "zh" ? "展开完整内容" : "Expand full"}</>
+                )}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <div style={styles.rightColumn} role="region" aria-label={lang === "zh" ? "生成与导出" : "Generate & Export"}>
+          <div style={styles.rightColumnScroll}>
+            <div style={styles.sectionTitle}>
+              {lang === "zh" ? "生成与导出" : "Generate & Export"}
+            </div>
+            <div style={styles.primaryActions}>
+            <button
+              className="pro-btn"
+              type="button"
+              data-testid="export-copy-prompt-primary"
+              onClick={() => void guardBeforeExport("copy")}
+              style={styles.primaryBtn}
+            >
+              <Copy size={14} />
+              {lang === "zh" ? "复制提示词" : "Copy Prompt"}
+            </button>
+            <button
+              className="pro-btn"
+              type="button"
+              data-testid="export-prompt-refs-primary"
+              onClick={() => void runExportPromptPlusRefs()}
+              disabled={exporting}
+              style={styles.primaryBtn}
+            >
+              <Download size={14} />
+              {exporting ? (lang === "zh" ? "导出中…" : "Exporting…") : (lang === "zh" ? "导出提示词 + 参考图" : "Export Prompt + Refs")}
+            </button>
+          </div>
+          <div style={styles.moreExportWrap} ref={moreExportRef}>
+            <button
+              type="button"
+              className="pro-btn-ghost"
+              style={styles.moreExportBtn}
+              onClick={() => setMoreExportOpen((v) => !v)}
+              aria-expanded={moreExportOpen}
+              aria-haspopup="true"
+            >
+              <MoreHorizontal size={14} />
+              {lang === "zh" ? "更多导出" : "More Export"}
+              <ChevronDown size={12} style={{ opacity: 0.8 }} />
+            </button>
+            {moreExportOpen ? (
+              <div style={styles.moreExportMenu} role="menu">
+                <button
+                  type="button"
+                  className="pro-btn-ghost"
+                  style={styles.moreExportItem}
+                  role="menuitem"
+                  onClick={() => {
+                    setMoreExportOpen(false);
+                    runOpenSaveModal("prompt_only");
+                  }}
+                >
+                  {lang === "zh" ? "下载 prompt.txt" : "Download prompt.txt"}
+                </button>
+                <button
+                  type="button"
+                  className="pro-btn-ghost"
+                  style={styles.moreExportItem}
+                  role="menuitem"
+                  onClick={() => {
+                    setMoreExportOpen(false);
+                    runOpenSaveModal("package");
+                  }}
+                >
+                  {lang === "zh" ? "完整项目包" : "Full Project Package"}
+                </button>
+              </div>
+            ) : null}
+          </div>
+            {onPlatformChange && onExportModeChange ? (
+              <div style={styles.platformModeBlock}>
+                <PlatformModePanel
+                  lang={lang}
+                  project={project}
+                  platformId={(platformId ?? "universal") as import("../config/platformPresets").PlatformPresetId}
+                  onPlatformChange={(id) => onPlatformChange(id)}
+                  exportMode={exportMode}
+                  onExportModeChange={onExportModeChange}
+                  collapsed={platformModeCollapsed}
+                  onToggle={() => setPlatformModeCollapsed((v) => !v)}
+                />
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -785,7 +1146,7 @@ export function ExportPanel({
           <div style={styles.modalRow}>
             <div style={styles.profileLabel}>{lang === "zh" ? "导出类型" : "Export Type"}</div>
             <div style={styles.optionWrap}>
-              <button data-testid="export-mode-quick" type="button" className={exportMode === "quick" ? "pro-btn" : "pro-btn-ghost"} style={styles.optionBtn} onClick={() => setExportMode("quick")}>
+              <button data-testid="export-mode-prompt-only" type="button" className={exportMode === "prompt_only" ? "pro-btn" : "pro-btn-ghost"} style={styles.optionBtn} onClick={() => setExportMode("prompt_only")}>
                 {lang === "zh" ? "提示词 TXT" : "Prompt TXT"}
               </button>
               <button data-testid="export-mode-package" type="button" className={exportMode === "package" ? "pro-btn" : "pro-btn-ghost"} style={styles.optionBtn} onClick={() => setExportMode("package")}>
@@ -793,7 +1154,7 @@ export function ExportPanel({
               </button>
             </div>
           </div>
-          {exportMode === "quick" && scopeOptions.length > 1 && rangeField.visible ? (
+          {exportMode === "prompt_only" && scopeOptions.length > 1 && rangeField.visible ? (
             <div style={styles.modalRow}>
               <div style={styles.profileLabel}>{lang === "zh" ? "导出范围" : "Export Scope"}{rangeField.reason ? ` · ${rangeField.reason}` : ""}</div>
               <div style={styles.optionWrap}>
@@ -853,7 +1214,7 @@ export function ExportPanel({
               data-testid="export-submit"
               className="pro-btn"
               onClick={async () => {
-                if (exportMode === "quick") {
+                if (exportMode === "prompt_only") {
                   let ticket: PromptExportTicket = { allowed: true };
                   if (onPreparePromptExport) {
                     ticket = await onPreparePromptExport("pro_export_prompt");
@@ -905,9 +1266,9 @@ export function ExportPanel({
             >
               {exporting
                 ? lang === "zh"
-                  ? exportMode === "quick" ? "导出中..." : "保存中..."
-                  : exportMode === "quick" ? "Exporting..." : "Saving..."
-                : exportMode === "quick"
+                  ? exportMode === "prompt_only" ? "导出中..." : "保存中..."
+                  : exportMode === "prompt_only" ? "Exporting..." : "Saving..."
+                : exportMode === "prompt_only"
                   ? (lang === "zh" ? "导出提示词 TXT" : "Export Prompt TXT")
                   : canSaveDirectory
                     ? (lang === "zh" ? "导出整个项目" : "Export Whole Project")
@@ -975,6 +1336,7 @@ export function ExportPanel({
                   setShowConflictModal(false);
                   if (action === "copy") await runCopyPrompt();
                   if (action === "save") runOpenSaveModal();
+                  if (action === "prompt_plus_refs") await runExportPromptPlusRefs(true);
                 }}
               >
                 {lang === "zh" ? "忽略并继续导出" : "Continue Anyway"}
@@ -989,9 +1351,9 @@ export function ExportPanel({
 
 const styles: Record<string, React.CSSProperties> = {
   wrap: {
-    padding: "16px",
-    minHeight: 160,
-    height: 160,
+    padding: "10px 14px",
+    minHeight: 140,
+    height: 140,
     display: "flex",
     flexDirection: "column",
     gap: 8,
@@ -999,6 +1361,164 @@ const styles: Record<string, React.CSSProperties> = {
     background: "var(--pro-bg-panel)",
     position: "relative",
     backdropFilter: "none"
+  },
+
+  splitLayout: {
+    flex: 1,
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "row",
+    gap: 12
+  },
+  leftColumn: {
+    flex: 1,
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: 4
+  },
+  rightColumn: {
+    flexShrink: 0,
+    width: 220,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0
+  },
+  rightColumnScroll: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: 8
+  },
+  platformModeBlock: {
+    marginTop: 4
+  },
+  titleRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6
+  },
+  sectionTitle: {
+    fontWeight: 800,
+    fontSize: UI_TYPO.size12,
+    opacity: UI_OPACITY.title,
+    color: "var(--pro-text-primary)"
+  },
+  helpIcon: {
+    width: 20,
+    height: 20,
+    minWidth: 20,
+    padding: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "var(--pro-text-muted)",
+    opacity: 0.75
+  },
+  helpPopover: {
+    position: "absolute",
+    left: 0,
+    top: "100%",
+    marginTop: 4,
+    padding: "8px 10px",
+    maxWidth: 320,
+    fontSize: UI_FONT.hint,
+    lineHeight: 1.4,
+    color: "var(--pro-text-primary)",
+    background: "var(--pro-bg-panel)",
+    border: "1px solid var(--pro-border)",
+    borderRadius: 6,
+    boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+    zIndex: 100
+  },
+  readonlyHint: {
+    fontSize: UI_FONT.hint,
+    lineHeight: 1.35,
+    opacity: 0.82,
+    color: "var(--pro-text-muted)"
+  },
+  conflictBadge: {
+    borderColor: "rgba(255,120,120,0.58)",
+    color: "rgba(255,200,200,0.96)",
+    padding: "4px 8px",
+    fontSize: UI_FONT.hint,
+    fontWeight: 800,
+    alignSelf: "flex-start"
+  },
+  preReadonly: {
+    flex: "0 0 auto",
+    margin: 0,
+    padding: "8px 10px",
+    borderRadius: 6,
+    border: "1px solid var(--pro-border)",
+    background: "var(--pro-bg)",
+    color: "var(--pro-text-primary)",
+    overflow: "visible",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    fontFamily: "ui-monospace, SF Mono, Menlo, Consolas, monospace",
+    fontSize: "var(--pro-font-xs)",
+    lineHeight: 1.4,
+    cursor: "default",
+    userSelect: "text"
+  },
+  expandBtn: {
+    padding: "4px 8px",
+    fontSize: UI_FONT.hint,
+    fontWeight: 700,
+    marginTop: 4,
+    alignSelf: "flex-start"
+  },
+  primaryActions: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6
+  },
+  primaryBtn: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    padding: "8px 12px",
+    fontSize: UI_FONT.body,
+    fontWeight: 800
+  },
+  moreExportWrap: {
+    position: "relative"
+  },
+  moreExportBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "6px 10px",
+    fontSize: UI_FONT.hint,
+    fontWeight: 700,
+    width: "100%"
+  },
+  moreExportMenu: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    marginTop: 4,
+    padding: 4,
+    borderRadius: UI_RADIUS.control,
+    border: "1px solid var(--pro-border)",
+    background: "var(--pro-bg-panel)",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+    zIndex: 100,
+    display: "flex",
+    flexDirection: "column",
+    gap: 2
+  },
+  moreExportItem: {
+    padding: "6px 10px",
+    fontSize: UI_FONT.hint,
+    fontWeight: 700,
+    textAlign: "left",
+    whiteSpace: "nowrap"
   },
 
   head: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" },
@@ -1147,12 +1667,12 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 0,
     display: "flex",
     flexDirection: "column",
-    gap: 6,
+    gap: 4,
     border: "1px solid var(--pro-border)",
     borderRadius: 6,
     background: "var(--pro-bg)",
     boxShadow: "none",
-    padding: 8
+    padding: 6
   },
   promptTitleRow: {
     display: "flex",

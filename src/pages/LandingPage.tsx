@@ -57,10 +57,8 @@ const COPY = {
     subtitle: "",
     subtitleLine1: "我们通过场景结构化 镜头语言和导演风格包",
     subtitleLine2: "让大模型更准确理解创作意图 提升效率并加速有效生成",
-    quickBtn: "进入快捷工作台",
-    proBtn: "进入 Pro 工作台",
-    quickHint: ["适合试方向", "更快验证与迭代"],
-    proHint: ["适合商业交付", "更稳复用与协作"],
+    workspaceBtn: "进入工作台",
+    workspaceHint: ["模板驱动", "结构化编辑与导出"],
     service: "服务协议",
     privacy: "隐私协议",
     contact: "联系我们",
@@ -82,10 +80,8 @@ const COPY = {
       "We use scene structure, camera language, and director packs to improve model understanding, increase efficiency, and accelerate valid generation.",
     subtitleLine1: "",
     subtitleLine2: "",
-    quickBtn: "Enter Quick Workspace",
-    proBtn: "Enter Pro Workspace",
-    quickHint: ["Best for direction testing", "Faster validation and iteration"],
-    proHint: ["Best for commercial delivery", "Stable reuse and collaboration"],
+    workspaceBtn: "Enter Workspace",
+    workspaceHint: ["Template-driven", "Structure editing & export"],
     service: "Terms",
     privacy: "Privacy",
     contact: "Contact",
@@ -183,21 +179,11 @@ export default function LandingPage() {
 
           <div style={ctaGrid}>
             <div style={ctaCol}>
-              <button type="button" style={{ ...quickBtn, ...(isZh ? ctaBtnZh : null) }} onClick={() => routeToSignIn("results")} data-testid="landing-start-quick">
-                {t.quickBtn}
+              <button type="button" style={{ ...proBtn, ...(isZh ? ctaBtnZh : null) }} onClick={() => routeToSignIn("pro")} data-testid="landing-start-workspace">
+                {t.workspaceBtn}
               </button>
               <div style={ctaHintWrap}>
-                {t.quickHint.map((line) => (
-                  <div key={line} style={{ ...ctaHintLine, ...(isZh ? ctaHintLineZh : null) }}>{line}</div>
-                ))}
-              </div>
-            </div>
-            <div style={ctaCol}>
-              <button type="button" style={{ ...proBtn, ...(isZh ? ctaBtnZh : null) }} onClick={() => routeToSignIn("pro")} data-testid="landing-start-pro">
-                {t.proBtn}
-              </button>
-              <div style={ctaHintWrap}>
-                {t.proHint.map((line) => (
+                {t.workspaceHint.map((line) => (
                   <div key={line} style={{ ...ctaHintLine, ...(isZh ? ctaHintLineZh : null) }}>{line}</div>
                 ))}
               </div>

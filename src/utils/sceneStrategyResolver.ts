@@ -11,6 +11,7 @@ import {
   parseVideoClassicModeId
 } from "../content/proCreativeModes";
 import { parseProMotionSelection } from "../content/proCameraPresets";
+import { parseCameraLanguageId, getCameraLanguageDisplayLabel } from "../content/cameraLanguageLayers";
 
 export type SceneStrategyLayer = "none" | "classic" | "director" | "mixed";
 
@@ -71,6 +72,12 @@ export function resolveSceneStrategy(scene: Scene, lang: Lang, mediaMode: "image
     const profile = getLightingProfile(lightingProfileId);
     if (!profile) continue;
     promptLines.push(lang === "zh" ? profile.promptZh : profile.promptEn);
+  }
+
+  const cameraLanguageId = parseCameraLanguageId(scene.notes ?? "");
+  if (cameraLanguageId) {
+    const label = getCameraLanguageDisplayLabel(cameraLanguageId, lang, false);
+    promptLines.push(lang === "zh" ? `镜头语言：${label}` : `Camera language: ${label}`);
   }
 
   return {

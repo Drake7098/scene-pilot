@@ -10,14 +10,13 @@ import { Stage } from "./components/Stage";
 import { PropsPanel } from "./components/PropsPanel";
 import { ExportPanel } from "./components/ExportPanel";
 import { ProjectControlBar } from "./components/ProjectControlBar";
-import {
-  ResultConsole,
-  type ResultConsoleMode,
-  type ResultGenerationPrefs,
-  type ResultPlan,
-  type ResultPreview,
-  type ResultStructureState
-} from "./components/ResultConsole";
+import type {
+  ResultConsoleMode,
+  ResultGenerationPrefs,
+  ResultPlan,
+  ResultPreview,
+  ResultStructureState
+} from "./types/resultConsole";
 import {
   CreateWizard,
   type CreateStep,
@@ -68,18 +67,17 @@ import { getPromptExportPolicy, PROMPT_EXPORT_CREDITS_COST } from "./services/pr
 import { recordLegalConsent, syncPendingLegalConsents } from "./services/legalConsentService";
 import { getApiCredentials, setApiCredentials } from "./services/mockAccountStore";
 import { createTemplateFromScene, saveUserTemplate } from "./lib/templateStore";
-import { applyTemplateSnapshot } from "./rules/applyTemplate";
 import {
   TemplateWorkspace,
   type TemplateWorkspaceState,
   DEFAULT_TEMPLATE_WORKSPACE_STATE,
-  getTemplateWorkspaceItemFromIndex,
   getTemplateMetadataFromIndex,
+  getTemplateIndex,
   applyTemplateFromIndex,
   type TemplateIndex
 } from "./features/template-workspace";
 import { addToRecent, type TemplateWorkspaceItem, type ApplyTemplateMode } from "./data/templateWorkspaceData";
-import { unifiedTemplateToSceneTemplate } from "./utils/unifiedTemplateToSceneTemplate";
+import type { ExportMode } from "./utils/exportViewModel";
 import { canOpenCustomerPortal, canUseBringYourOwnApi, canUseHostedGeneration, canUseProConsole, canUseUnlimitedTemplates } from "./utils/entitlement";
 import { PRO_PLUS_MOTION_CATEGORIES } from "./content/proCameraPresets";
 import {
@@ -367,23 +365,10 @@ function buildDefaultObjectLayer(lang: Lang, index: number) {
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => loadLang());
   const [project, setProject] = useState<Project>(() => loadProject() ?? defaultProject());
-  const [workspaceMode, setWorkspaceMode] = useState<ResultConsoleMode>(() => {
-    try {
-      const saved = localStorage.getItem(WORKSPACE_MODE_KEY);
-      return saved === "pro" || saved === "results" ? saved : "results";
-    } catch {
-      return "results";
-    }
-  });
-  const [workspaceEntryGuideOpen, setWorkspaceEntryGuideOpen] = useState<boolean>(() => {
-    try {
-      const guideDone = localStorage.getItem(WORKSPACE_ENTRY_GUIDE_KEY) === "1";
-      const hasModeSelection = Boolean(localStorage.getItem(WORKSPACE_MODE_KEY));
-      return !guideDone && !hasModeSelection;
-    } catch {
-      return false;
-    }
-  });
+  const [workspaceMode, _setWorkspaceMode] = useState<ResultConsoleMode>("pro");
+  const setWorkspaceMode = useCallback((_mode: ResultConsoleMode) => {
+    /* always Pro; no-op */
+  }, []);
   const [sceneIdx, setSceneIdx] = useState<number>(0);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
   const [editT, setEditT] = useState<0 | 1>(0);
@@ -407,8 +392,7 @@ export default function App() {
   const [authHint, setAuthHint] = useState("");
   const [postAuthRedirect, setPostAuthRedirect] = useState("");
   const [lastSentCode, setLastSentCode] = useState("");
-  const activeWorkspaceMode: ResultConsoleMode =
-    workspaceMode === "pro" ? "pro" : "results";
+  const activeWorkspaceMode: ResultConsoleMode = "pro";
   const [authLegalAccepted, setAuthLegalAccepted] = useState<boolean>(false);
   const [billingLegalAccepted, setBillingLegalAccepted] = useState<boolean>(() => {
     try {
@@ -530,6 +514,7 @@ export default function App() {
   );
   const [openExportNonce, setOpenExportNonce] = useState(0);
   const [openExportAction, setOpenExportAction] = useState<ExportPanelOpenAction>("open");
+  const [proExportMode, setProExportMode] = useState<ExportMode>("prompt_only");
   const [workspaceSwitchShield, setWorkspaceSwitchShield] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
     typeof window !== "undefined" ? window.innerWidth : 1440
@@ -548,8 +533,6 @@ export default function App() {
     saveAs: () => undefined
   });
 
-  /** Template IDs already charged in current project - no repeat charge */
-  const appliedTemplateIdsForBillingRef = useRef<Set<string>>(new Set());
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const useDesktopFixedLayout = viewportWidth >= 1400;
@@ -598,6 +581,14 @@ export default function App() {
     setOpenExportNonce((v) => v + 1);
   }
 
+  function handleProExportModeChange(mode: ExportMode) {
+    setProExportMode(mode);
+    updateProject({
+      ...project,
+      meta: { ...project.meta, proExportMode: mode }
+    });
+  }
+
   function enterProWorkspace() {
     if (!canUseProConsole(accountUser)) {
       openAccountCenter("pro");
@@ -619,13 +610,11 @@ export default function App() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [accountMenuOpen]);
+
   useEffect(() => {
-    try {
-      localStorage.setItem(WORKSPACE_MODE_KEY, workspaceMode);
-    } catch {
-      // ignore
-    }
-  }, [workspaceMode]);
+    const mode = project?.meta?.proExportMode === "package" ? "package" : "prompt_only";
+    setProExportMode(mode);
+  }, [project?.meta?.proExportMode]);
   const emitEvent = useCallback((
     event: "ui_action" | "project_flow" | "editor_change" | "export_flow",
     props: Record<string, any>,
@@ -1342,60 +1331,64 @@ export default function App() {
     indexOrItem: TemplateIndex | TemplateWorkspaceItem,
     applyMode?: ApplyTemplateMode
   ) {
-    const isIndex = "familyId" in indexOrItem;
-    const index = isIndex ? (indexOrItem as TemplateIndex) : null;
-    const item: TemplateWorkspaceItem | null =
-      isIndex ? getTemplateWorkspaceItemFromIndex(index!) : (indexOrItem as TemplateWorkspaceItem);
+    const index: TemplateIndex | null =
+      "familyId" in indexOrItem
+        ? (indexOrItem as TemplateIndex)
+        : (() => {
+            const item = indexOrItem as TemplateWorkspaceItem;
+            return getTemplateIndex().find((t) => t.id === item.id) ?? null;
+          })();
 
-    const meta = isIndex ? getTemplateMetadataFromIndex(index!) : { id: item!.id, cost: item!.cost ?? 0, isFree: item!.isFree, name: item!.name, nameZh: item!.nameZh };
+    if (!index) return;
+
+    const meta = getTemplateMetadataFromIndex(index);
     addToRecent(meta.id);
 
-    const doApplyBase = (sceneTemplate: import("./model/template").SceneTemplate) => {
-      const scenes = safeProject?.scenes ?? [];
-      const result = applyTemplateSnapshot(sceneTemplate, safeProject, scenes.length, "pro", { applyMode });
-      if (result.appliedProject) {
-        updateProject(result.appliedProject);
-        setSceneIdx(result.appliedProject.scenes.length - 1);
-        setSelectedLayerId(null);
-        setIsTemplateWorkspaceOpen(false);
-      } else if (result.appliedScene) {
-        const fallbackProject = {
-          ...safeProject,
-          scenes: [...scenes, result.appliedScene].map((s, i) => ({ ...s, index: i + 1 }))
-        };
-        updateProject(fallbackProject);
-        setSceneIdx(fallbackProject.scenes.length - 1);
-        setSelectedLayerId(null);
-        setIsTemplateWorkspaceOpen(false);
-      }
-    };
+    const appliedIds = safeProject?.meta?.appliedTemplateIds ?? [];
+    const effectiveApplyMode = applyMode ?? "layout_only";
 
-    const doApplyContinuity = async () => {
-      if (!index) return;
-      const result = await applyTemplateFromIndex(index, safeProject, true);
+    const doApply = async (recordCharged?: boolean) => {
+      const result = await applyTemplateFromIndex(index, safeProject, true, effectiveApplyMode);
       if (result.success && result.appliedProject) {
-        updateProject(result.appliedProject);
-        setSceneIdx(result.appliedProject.scenes.length - 1);
+        let nextProject = result.appliedProject;
+        const nextMeta = { ...nextProject.meta };
+        nextMeta.appliedTemplateIds =
+          recordCharged && !appliedIds.includes(meta.id)
+            ? [...appliedIds, meta.id]
+            : (nextProject.meta?.appliedTemplateIds ?? appliedIds);
+        nextMeta.currentTemplate = {
+          templateId: index.id,
+          familyId: index.familyId,
+          familyNameZh: index.familyNameZh ?? "",
+          familyNameEn: index.familyNameEn ?? "",
+          variantId: index.variantId ?? "",
+          variantNameZh: index.variant ? String(index.variant) : undefined,
+          variantNameEn: index.variant ? String(index.variant) : undefined,
+          titleZh: index.nameZh ?? "",
+          titleEn: index.nameEn ?? "",
+          category: index.category ?? "",
+          domain: index.domain ?? "",
+          cost: index.cost ?? 0,
+          isFree: index.isFree ?? false,
+          applyMode: effectiveApplyMode,
+          appliedAt: Date.now(),
+          fromTemplateWorkspace: true
+        };
+        nextProject = { ...nextProject, meta: nextMeta };
+        updateProject(nextProject);
+        setSceneIdx(nextProject.scenes.length - 1);
         setSelectedLayerId(null);
         setIsTemplateWorkspaceOpen(false);
       }
     };
 
     if (meta.isFree || meta.cost <= 0 || canUseUnlimitedTemplates(accountUser)) {
-      if (item) {
-        doApplyBase(unifiedTemplateToSceneTemplate(item));
-      } else if (index) {
-        await doApplyContinuity();
-      }
+      await doApply(false);
       return;
     }
 
-    if (appliedTemplateIdsForBillingRef.current.has(meta.id)) {
-      if (item) {
-        doApplyBase(unifiedTemplateToSceneTemplate(item));
-      } else if (index) {
-        await doApplyContinuity();
-      }
+    if (appliedIds.includes(meta.id)) {
+      await doApply(false);
       return;
     }
 
@@ -1411,12 +1404,7 @@ export default function App() {
 
     try {
       const reserved = await reserveCredits(accountUser.id, cost, `template_${meta.id}`);
-      if (item) {
-        doApplyBase(unifiedTemplateToSceneTemplate(item));
-      } else if (index) {
-        await doApplyContinuity();
-      }
-      appliedTemplateIdsForBillingRef.current.add(meta.id);
+      await doApply(true);
       await finalizeReservedCredits(accountUser.id, reserved.id);
       await refreshAccountState();
     } catch (err) {
@@ -1430,26 +1418,6 @@ export default function App() {
     }
   }
 
-  function markWorkspaceEntryGuideDone() {
-    try {
-      localStorage.setItem(WORKSPACE_ENTRY_GUIDE_KEY, "1");
-    } catch {
-      // ignore localStorage failures
-    }
-  }
-
-  function closeWorkspaceEntryGuide() {
-    markWorkspaceEntryGuideDone();
-    setWorkspaceEntryGuideOpen(false);
-  }
-
-  function chooseWorkspaceEntry(mode: ResultConsoleMode) {
-    markWorkspaceEntryGuideDone();
-    setWorkspaceEntryGuideOpen(false);
-    setWorkspaceSwitchShield(true);
-    setWorkspaceMode(mode);
-    window.setTimeout(() => setWorkspaceSwitchShield(false), 180);
-  }
 
   useEffect(() => {
     try {
@@ -2043,7 +2011,6 @@ export default function App() {
     const fallbackName = defaultProjectName(lang);
     const projectFileName = wizardDraft.projectName.trim() || fallbackName;
     resetProGeneratedAssets();
-    appliedTemplateIdsForBillingRef.current.clear();
     setSceneIdx(0);
     setSelectedLayerId(null);
     setEditT(0);
@@ -2655,7 +2622,7 @@ export default function App() {
       const obj = JSON.parse(text);
       if (!obj || !Array.isArray(obj.scenes)) return;
       resetProGeneratedAssets();
-      setProject(obj as Project);
+      setProject(sanitizeProject(obj as Project));
       setSceneIdx(0);
       setSelectedLayerId(null);
       setEditT(0);
@@ -3074,7 +3041,6 @@ export default function App() {
         return;
       }
       resetProGeneratedAssets();
-      appliedTemplateIdsForBillingRef.current.clear();
       updateProject(opened);
       setLabelPersist(entry.label);
       setLastLibrarySavedSnapshot(JSON.stringify({ project: opened, fileLabel: entry.label }));
@@ -3235,15 +3201,6 @@ export default function App() {
         setHelpCenterOpen(true);
       }
     },
-    ...(activeWorkspaceMode === "pro" ? [{
-      key: "quick_workspace",
-      label: lang === "zh" ? "返回快捷工作台" : "Back to Quick Workspace",
-      icon: <FolderOpen size={UI_MENU.item.iconSize} />,
-      onClick: () => {
-        setAccountMenuOpen(false);
-        setWorkspaceMode("results");
-      }
-    }] : []),
     ...(accountUser ? [{
       key: "logout",
       label: lang === "zh" ? "退出登录" : "Log Out",
@@ -3319,7 +3276,7 @@ export default function App() {
   return (
     <div
       data-workspace={activeWorkspaceMode}
-      style={{ ...styles.app, ...(activeWorkspaceMode === "pro" ? styles.appPro : styles.appQuick) }}
+      style={{ ...styles.app, ...styles.appPro }}
     >
       <div style={styles.appBackdrop} aria-hidden="true">
         <div style={styles.appBackdropPro} />
@@ -3334,53 +3291,7 @@ export default function App() {
           </div>
         </div>
 
-        {activeWorkspaceMode === "pro" ? null : (
-          <div style={styles.topProjectDock}>
-            <div style={styles.commandDock}>
-              <ProjectControlBar
-                lang={lang}
-                isMac={isMac}
-                projectLabel={fileLabel || defaultProjectName(lang)}
-                onOpenProject={() => fileInputRef.current?.click()}
-                onRenameProject={requestRenameProject}
-                onNewProject={requestNewProject}
-                onSaveProject={() => void saveToDisk()}
-                onSaveAs={() => void saveAsToDisk()}
-                onCopyPrompt={() => openExportPanel("copy")}
-                onExportProject={() => openExportPanel("open")}
-                onOpenLibrary={() => {
-                  setLibraryOpen(true);
-                  setLibraryProjectName(null);
-                  void ensureLibraryRoot(false).then((root) => {
-                    if (root) void refreshLibraryEntries(root, null);
-                  });
-                }}
-              />
-            </div>
-          </div>
-        )}
-
         <div style={{ flex: 1, minWidth: 0 }} />
-
-        {/* Quick / Pro 切换，放在 EN 左边 */}
-        <div style={styles.topModeSwitch}>
-          <button
-            type="button"
-            style={{ ...styles.topModeBtn, ...(activeWorkspaceMode === "results" ? styles.topModeBtnOn : null) }}
-            onClick={() => setWorkspaceMode("results")}
-            data-testid="top-mode-quick"
-          >
-            {lang === "zh" ? "快捷" : "Quick"}
-          </button>
-          <button
-            type="button"
-            style={{ ...styles.topModeBtn, ...(activeWorkspaceMode === "pro" ? styles.topModeBtnOn : null) }}
-            onClick={() => openProFromQuickWorkspace()}
-            data-testid="top-mode-pro"
-          >
-            Pro
-          </button>
-        </div>
 
         <button style={styles.topBtn} onClick={toggleLang} type="button">
           <Languages size={16} />
@@ -3414,65 +3325,6 @@ export default function App() {
           onChange={onUploadFile}
         />
       </div>
-
-      {workspaceEntryGuideOpen ? (
-        <div style={styles.entryGuideMask} onMouseDown={closeWorkspaceEntryGuide} data-testid="workspace-entry-guide-mask" role="presentation">
-          <div
-            style={styles.entryGuideCard}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-            data-testid="workspace-entry-guide"
-          >
-            <div style={styles.entryGuideHead}>
-              <div style={styles.entryGuideTitle}>
-                {lang === "zh" ? "选择你的开始方式" : "Choose how you want to start"}
-              </div>
-              <button
-                type="button"
-                style={styles.entryGuideClose}
-                onClick={closeWorkspaceEntryGuide}
-                data-testid="workspace-entry-guide-close"
-                aria-label={lang === "zh" ? "关闭" : "Close"}
-              >
-                <X size={14} />
-              </button>
-            </div>
-            <div style={styles.entryGuideDesc}>
-              {lang === "zh"
-                ? "非商业快速创作推荐快捷工作台；商业交付与专业控制推荐 Pro 工作台。"
-                : "Quick Workspace is best for non-commercial fast creation. Pro Workspace is best for commercial delivery and advanced control."}
-            </div>
-            <div style={styles.entryGuideActions}>
-              <button
-                type="button"
-                style={styles.entryGuideBtn}
-                onClick={() => chooseWorkspaceEntry("results")}
-                data-testid="workspace-entry-guide-quick"
-              >
-                {lang === "zh" ? "快捷工作台（推荐新手）" : "Quick Workspace (Recommended)"}
-              </button>
-              <button
-                type="button"
-                style={{ ...styles.entryGuideBtn, ...styles.entryGuideBtnPrimary }}
-                onClick={() => chooseWorkspaceEntry("pro")}
-                data-testid="workspace-entry-guide-pro"
-              >
-                {lang === "zh" ? "Pro 工作台（商业/专业）" : "Pro Workspace (Commercial/Pro)"}
-              </button>
-            </div>
-            <button
-              type="button"
-              style={styles.entryGuideSkip}
-              onClick={closeWorkspaceEntryGuide}
-              data-testid="workspace-entry-guide-skip"
-            >
-              {lang === "zh" ? "稍后再选" : "Decide later"}
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       {accountMenuOpen ? (
         <div
@@ -3714,102 +3566,7 @@ export default function App() {
 
       {libraryHint ? <div style={styles.libraryFloatHint}>{libraryHint}</div> : null}
 
-      {resultToast && activeWorkspaceMode === "results" ? (
-        <div style={styles.resultToast}>{resultToast}</div>
-      ) : null}
-
-      {activeWorkspaceMode === "results" ? (
-        <div style={styles.resultsMain}>
-          <ResultConsole
-            planDerivedPrompt={resultPlan ? (buildScenePromptsForPlan(resultPlan)[0]?.prompt ?? "") : ""}
-            lang={lang}
-            mode={activeWorkspaceMode}
-            onModeChange={(mode) => {
-              if (mode === "pro") {
-                openProFromQuickWorkspace();
-                return;
-              }
-              setWorkspaceMode(mode);
-            }}
-            brief={resultBrief}
-            onBriefChange={setResultBrief}
-            secondaryBrief={resultSecondaryBrief}
-            onSecondaryBriefChange={setResultSecondaryBrief}
-            feedback={resultFeedback}
-            onFeedbackChange={setResultFeedback}
-            busy={resultBusy}
-            freeQuota={20}
-            freeUsed={freeTrialUsed}
-            plan={resultPlan}
-            previews={resultPreviews}
-            prefs={resultPrefs}
-            onPrefsChange={setResultPrefs}
-            canGenerate={canUseHostedGeneration(accountUser)}
-            creditsBalance={accountCredits}
-            onReplacePreviews={(next) => {
-              setResultPreviews(next);
-              setResultSelectedPreviewId(next[0]?.id ?? null);
-              setResultRatings({});
-              setResultCardFeedbacks({});
-            }}
-            onClearPreviews={() => {
-              setResultPreviews([]);
-              setResultSelectedPreviewId(null);
-              setResultRatings({});
-              setResultCardFeedbacks({});
-            }}
-            onGenerate={() => void generateResultPlan()}
-            onOpenUpgrade={() => openBillingPage("upgrade")}
-            onOpenCredits={() => openBillingPage("credits")}
-            promptExportNote={promptExportNote}
-            onPreparePromptExport={preparePromptExport}
-            onSettlePromptExport={settlePromptExport}
-            onRefine={() => void refineResultPlan()}
-            onApplyToPro={openProFromQuickWorkspace}
-            onOpenWizard={openProWizardFromResults}
-            runtime={{
-              comfy: {
-                state: comfyStatus.state === "handoff" ? "fail" : comfyStatus.state,
-                label: comfyStatus.state === "ready"
-                  ? (lang === "zh" ? `已连接 ${comfyStatus.baseUrl ?? ""}` : `connected ${comfyStatus.baseUrl ?? ""}`)
-                  : comfyStatus.state === "checking"
-                    ? (lang === "zh" ? "探测中…" : "checking…")
-                    : (lang === "zh" ? "未就绪" : "unavailable")
-              },
-              draw: {
-                state: drawThingsStatus.state,
-                label: drawThingsStatus.state === "ready"
-                  ? (lang === "zh" ? `HTTP 已连接 ${drawThingsStatus.baseUrl ?? ""}` : `HTTP connected ${drawThingsStatus.baseUrl ?? ""}`)
-                  : drawThingsStatus.state === "handoff"
-                    ? (lang === "zh" ? "HTTP 不可用，将使用任务包" : "HTTP unavailable, using task pack")
-                    : drawThingsStatus.state === "checking"
-                      ? (lang === "zh" ? "探测中…" : "checking…")
-                      : (lang === "zh" ? "未就绪" : "unavailable")
-              },
-              drawPackReady: Boolean(drawThingsPack),
-              drawPackCount: drawThingsPack?.tasks.length ?? 0
-            }}
-            onDownloadDrawPack={downloadDrawThingsPack}
-            selectedPreviewId={resultSelectedPreviewId}
-            onSelectPreview={setResultSelectedPreviewId}
-            ratings={resultRatings}
-            onRatingChange={(previewId, score) => {
-              setResultRatings((prev) => ({ ...prev, [previewId]: score }));
-              setResultPreviews((prev) => prev.map((item) => {
-                if (item.id !== previewId) return item;
-                const status: ResultPreview["status"] = score >= 90 ? "approved" : score >= 40 ? "refine" : "draft";
-                return { ...item, status, hint: scoreBandText(score) };
-              }));
-            }}
-            cardFeedbacks={resultCardFeedbacks}
-            onCardFeedbackChange={(previewId, text) => setResultCardFeedbacks((prev) => ({ ...prev, [previewId]: text }))}
-            structureState={resultStructureState}
-            onStructureChange={setResultStructureState}
-            intentPlan={resultIntentPlan}
-            onIntentPlanReady={setResultIntentPlan}
-          />
-        </div>
-      ) : (
+      {
         <div style={{ ...styles.main, ...(useDesktopFixedLayout ? styles.mainDesktop : {}) }}>
           <Sidebar
             lang={lang}
@@ -3866,6 +3623,10 @@ export default function App() {
               return true;
             }}
             onOpenTemplateWorkspace={() => setIsTemplateWorkspaceOpen(true)}
+            onOpenTemplateWorkspaceWithTemplate={(templateId) => {
+              setTemplateWorkspaceState((s) => ({ ...s, selectedTemplateId: templateId }));
+              setIsTemplateWorkspaceOpen(true);
+            }}
             onUseTemplateFromEntry={(item) => void handleUseTemplateFromWorkspace(item, "layout_only")}
           />
 
@@ -4030,6 +3791,8 @@ export default function App() {
                 ) : (
                   <Stage
                     className="spx-pro-stage"
+                    project={safeProject}
+                    lang={lang}
                     scene={scene}
                     selectedLayerId={selectedLayerId}
                     onSelectLayer={(id) => {
@@ -4061,6 +3824,8 @@ export default function App() {
                 onPreparePromptExport={preparePromptExport}
                 onSettlePromptExport={settlePromptExport}
                 onPlatformChange={(id) => syncSavePlatform(id as SavePlatformId)}
+                exportMode={proExportMode}
+                onExportModeChange={handleProExportModeChange}
                 selectedLayerId={selectedLayerId}
                 onJumpToConflict={(layerId) => {
                   if (layerId) setSelectedLayerId(layerId);
@@ -4073,6 +3838,15 @@ export default function App() {
             lang={lang}
             scene={scene}
             selectedLayerId={selectedLayerId}
+            project={safeProject}
+            platformId={savePlatformId}
+            onPlatformChange={(id) => syncSavePlatform(id as SavePlatformId)}
+            exportMode={proExportMode}
+            onExportModeChange={handleProExportModeChange}
+            onUpdateProject={(p) => {
+              updateProject(p);
+              trackEditorChange("props", "update", {}, lang);
+            }}
             onUpdateScene={(s) => {
               updateScene(s);
               trackEditorChange("props", "update", { idx: sceneIdx }, lang);
@@ -4124,7 +3898,7 @@ export default function App() {
             )}
           </div>
         </div>
-      )}
+      }
 
       <CreateWizard
         lang={lang}
@@ -4485,8 +4259,8 @@ export default function App() {
                     <div style={styles.tutBlockTitle}>{lang === "zh" ? "导出说明" : "Export Guide"}</div>
                     <div style={styles.tutText}>
                       {lang === "zh"
-                        ? "Quick Export（快速导出）：适合快速把当前提示词送到大模型平台，先测试初步效果与方向是否正确；重点验证方向是否对、构图是否对、主体关系是否对。\nPackage Export（交付包导出）：适合正式交付，包含提示词、参考图、说明文件等完整内容；适用于交接、存档和稳定复用。\nCurrent Scene（当前分镜）：只导出当前分镜，适合单镜验证。\nContinuity Sequence（连续序列）：导出当前镜头及后续连续镜头，适合验证镜头衔接和连续性。\nTarget Model（目标模型）：会影响输出文案和结构更偏向哪个模型；不同模型理解方式不同，结果可能存在差异。"
-                        : "Quick Export: best when you need to send the current prompt to a model platform quickly and test whether the initial direction is correct. Use it to validate direction, composition, and subject relationships first.\nPackage Export: best for formal delivery. It includes prompt, references, and instruction files as a complete bundle for handoff, archiving, and stable reuse.\nCurrent Scene: exports only the current shot, ideal for single-shot validation.\nContinuity Sequence: exports the current shot plus following continuous shots, ideal for checking transition quality and sequence continuity.\nTarget Model: changes wording and structure bias toward a selected model profile. Different models may produce different results even with the same project."}
+                        ? "提示词 TXT 导出：适合快速把当前提示词送到大模型平台，先测试初步效果与方向是否正确；重点验证方向是否对、构图是否对、主体关系是否对。\nPackage Export（交付包导出）：适合正式交付，包含提示词、参考图、说明文件等完整内容；适用于交接、存档和稳定复用。\nCurrent Scene（当前分镜）：只导出当前分镜，适合单镜验证。\nContinuity Sequence（连续序列）：导出当前镜头及后续连续镜头，适合验证镜头衔接和连续性。\nTarget Model（目标模型）：会影响输出文案和结构更偏向哪个模型；不同模型理解方式不同，结果可能存在差异。"
+                        : "Prompt TXT Export: best when you need to send the current prompt to a model platform quickly and test whether the initial direction is correct. Use it to validate direction, composition, and subject relationships first.\nPackage Export: best for formal delivery. It includes prompt, references, and instruction files as a complete bundle for handoff, archiving, and stable reuse.\nCurrent Scene: exports only the current shot, ideal for single-shot validation.\nContinuity Sequence: exports the current shot plus following continuous shots, ideal for checking transition quality and sequence continuity.\nTarget Model: changes wording and structure bias toward a selected model profile. Different models may produce different results even with the same project."}
                     </div>
                   </>
                 ) : null}
@@ -5191,7 +4965,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: 0,
     background: "var(--pro-bg-panel)",
     borderTop: "1px solid var(--pro-border)",
-    minHeight: 160,
+    minHeight: 140,
     display: "flex",
     flexDirection: "column"
   },

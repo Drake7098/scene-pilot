@@ -20,40 +20,31 @@ Last updated: 2026-03-13
 - 本文档仍是“策略单一事实源”；tracker 是“执行进度单一事实源”。
 
 ## Product Positioning
-- `Quick Workspace`：快速定方向、快速生成提示词、回看结果、继续编辑、继续生成。
-- `Pro Workspace`：精确结构编辑与结果资产管理。
+- 工作台统一为 Pro，不再有 Quick Workspace。
+- `Pro Workspace`：精确结构编辑、模板驱动工作流、结果资产管理。
 - `ScenePilotix`：面向 AI 视频与图像生成的结构化编辑器。
-- 首次进入应用时展示一次“Quick / Pro 起始模式”选择弹层；用户选择后记忆，不重复询问。
 
 ## Current Product Structure
 
 ### Public Routes
 - 根路径 `/` 为公开 Landing 页面（产品介绍、方案入口、合规链接）。
-- 工作台主界面改为 `/app`（保留原有 Quick/Pro 能力，不改核心编辑逻辑）。
+- 工作台主界面改为 `/app`（直接进入 Pro 工作台）。
 - 新增正式认证入口别名：`/login`、`/signin`、`/register`、`/signup`（统一重定向到 `/app?signin=1`）。
 - `/app` 已启用强制登录闸门：未登录直访会跳 `/signin?redirect=/app`，仅登录态或 `signin=1` 认证入口可进入应用壳。
 - 公开路由保留：`/pricing`、`/terms`、`/privacy`、`/product-intro`（另含 `/billing-terms`、`/refund-policy`）。
 - 新增用户管理页：`/account`（别名 `/user-management`），用于账户与订阅全览管理。
 
-### Quick Workspace
-- 左侧只保留：`新建 / 保存 / 打开 / Pro 工作台`
-- 中间主区固定为：
-- 左：结果瀑布流
-- 右：提示词黑区
-- 底部：两步输入胶囊
-- `打开` 采用弹层草稿列表，不在左侧常驻展示草稿。
-- 只有用户手动点击 `保存`，才会生成草稿。
-- 第二步提交绝不能自动在左侧生成文件条目。
-
 ### Pro Workspace
 - 左：结构编辑
 - 中：画布 + 结果切页
 - 右：对象属性
-- 下：提示词/导出检视区
-- Pro 与 Quick 默认严格分层，不自动继承 Quick 的自由文本与结构状态。
+- 下：结构化提示词展示区（左栏，只读）+ 生成与导出区（右栏）
+- 详见 `docs/prompt-preview-and-export-split.md`、`docs/prompt-readonly-positioning.md`、`docs/export-primary-actions-redesign.md`
+- Stage 可移动 Work Bar：选中对象时出现，仅开放结构安全动作（Select、Move、Center、Reset、Copy T0→T1、Lock、Assign Slot、Mark Anchor）；设计详见 `docs/stage-workbar-design.md`、`docs/stage-safe-editing-model.md`
+- 模板驱动工作流为主体验。
 - Pro 权限闸门已收口：普通登录用户不可进入 Pro；所有入口统一先校验 `canUseProConsole`，不满足则进入升级路径。
 
-### Top Menu（Quick / Pro 共用）
+### Top Menu
 - 顶部 `...` 菜单保留统一入口：
 - `帮助中心`
 - `发布看板` 不再内嵌在应用内；改为独立本地页面：`/release-board.html`
@@ -88,27 +79,15 @@ Last updated: 2026-03-13
 
 ## Saving / Opening / Export Rules
 
-### Quick Workspace
-- 保存的是“草稿”，不是“项目”。
-- Quick 草稿当前保存：
-- 两段输入
-- 两层下拉选择
-- 比例 / 秒数
-- 当前结构结果
-- 当前提示词文本
-- Quick 草稿当前已进入第一阶段结果恢复：
-- 保存时会记录可持久结果 URL（非 blob）
-- 同会话可通过内存缓存恢复完整结果列表
-- 跨刷新仍可能丢失 blob 媒体（第二阶段待完成）
-
 ### Project Library
 - 项目库只保存“项目”，不保存单分镜。
 - 项目库主存储格式：单文件 JSON。
+- 项目 JSON 含 `meta`（`proExportMode`、`currentTemplate` 等）；`loadProject` 及打开/上传项目均经 `sanitizeProject` 规范化，旧项目可安全降级。
 
 ### Export
-- `复制提示词`：纯文本，不带参考图文件名。
-- 提示词导出计费规则：注册后 7 天内免费；第 8 天起每次导出消耗 2 credits（Quick 复制/下载、Pro 复制/Prompt TXT 导出统一口径）。
-- `导出项目（含参考图）`：跨平台交付包。
+- 主动作：`复制提示词`（纯文本）、`导出提示词 + 参考图`（ZIP，当前范围）。
+- 次级动作（更多导出）：`下载 prompt.txt`、`完整项目包`。
+- 提示词导出计费规则：注册后 7 天内免费；第 8 天起每次导出消耗 2 credits（复制/Prompt TXT 导出统一口径）。
 - 不再把单分镜伪装成项目。
 
 ## Scene Strategy
@@ -126,6 +105,8 @@ Last updated: 2026-03-13
 ## Prompt Engine Status
 - Prompt engine library 已建立。
 - 模板/规则/提示词综合方案：`/docs/template-prompt-rules-summary-plan.md`
+- 模板应用主链已统一：TemplateIndex → loadTemplatePayloadById → applyPayloadToProject（详见 `/docs/template-apply-flow-map.md`、`/docs/template-base400-payload-migration.md`）
+- 模板逻辑层已抽离：`src/template-engine/` 为引擎，`src/features/template-workspace/` 为 UI（详见 `/docs/template-engine-architecture.md`）
 - 当前重点平台方向：
 - `fal`：对象、层次、构图、材质、布光
 - `Runway`：镜头、动作、连续性、时间推进
@@ -160,7 +141,7 @@ Last updated: 2026-03-13
 - 视频锚图：`ComfyUI` 优先
 - 会员升级页新增“本地测试生成（跳过会员）”入口，仅用于本地调试链路。
 - 该入口支持手动选择 `ComfyUI` 或 `Draw Things` 并做严格单引擎执行（不自动 fallback），用于确认指定本地 API 是否畅通。
-- 常规 Quick 生成链仍保持 `ComfyUI -> Draw Things fallback`，与严格单引擎测试入口分离。
+- 本地测试生成链仍保持 `ComfyUI -> Draw Things fallback`，与严格单引擎测试入口分离。
 - 这是临时测试策略，未来会切回正式 provider adapter。
 - 当本地生成未产生可用媒体结果时，Quick 生成/Refine 的 credits 预留会自动回滚，不计费。
 - 本地运行健康检查统一命令：`npm run health:local`
@@ -247,7 +228,7 @@ Last updated: 2026-03-13
 ## Recent Decisions
 - 已新增独立用户管理页 `/account`，采用行业标准分区：Profile / Security / Subscription & Billing / Credits / API / Account Actions。
 - 账号弹层 `overview` 中新增“用户管理页面”入口，用于从高频弹层进入完整管理页。
-- 新增首次进入模式引导：首开弹层提供 `快捷工作台 / Pro 工作台` 两个入口，含一行短说明；用户选择或跳过后记忆，不再重复弹出。
+- （已移除：Quick/Pro 选择弹层；工作台统一为 Pro。）
 - Quick 与 Pro 不再互相继承内容。
 - Quick 左侧不再常驻“我的/喜欢/下载/删除”。
 - Quick 左侧当前仅保留：`新建 / 保存 / 打开 / Pro 工作台`
@@ -276,7 +257,7 @@ Last updated: 2026-03-13
 - 支付合规文档入口统一为：`/terms`、`/privacy`、`/billing-terms`、`/refund-policy`，并在定价页、账号中心、支付弹层同步展示 Paddle 结账说明与官方联系邮箱分工。
 - 新增法律同意留痕链路：注册/登录勾选（Terms + Privacy）与付费勾选（Billing + Refund）会写入 `/api/legal/consent`，并落库到 `legal_consents`（D1/Supabase）；前端离线失败会本地排队并在下次登录后自动补交。
 - 新增 Landing 首屏并将工作台主入口切换为 `/app`；Landing 以 Quick/Pro 选择作为主决策入口，Pricing 为次级信息入口。
-- Landing 首屏入口已收敛为单一决策组：`进入快捷工作台` / `进入 Pro 工作台`（镜像主入口），`Pricing` 保留为次级信息入口，不再与工作台入口并列重复主动作命名。
+- Landing 首屏入口已收敛为单一决策组：`进入工作台`（即 Pro），`Pricing` 保留为次级信息入口。
 - Landing 的 Quick/Pro 主按钮改为“先登录再进入工作台”：点击后跳 `/app?signin=1` 并自动打开账号登录弹层。
 - 账号中心 Auth 勾选位置已更新：注册/登录勾选固定放在协议链接前；Google 与密码登录均在函数层强制校验勾选状态。
 - 付费同意勾选升级为四份协议联合确认：`Billing + Refund + Terms + Privacy`；未勾选不得进入支付下一步，并同步写入 consent 记录。

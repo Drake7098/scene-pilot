@@ -84,4 +84,4 @@
 - `utils/entitlement.ts`：canUseUnlimitedTemplates
 - `types/account.ts`：unlimitedTemplatesEnabled
 - `App.tsx`：handleUseTemplateFromWorkspace 支持连续性模板与同项目不重复扣点
-- `Sidebar.tsx`：使用 TemplateQuickEntry，支持 600 模板的最近/收藏
+- `Sidebar.tsx`：使用 TemplateSidebarEntry，支持 600 模板的最近/收藏

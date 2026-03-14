@@ -51,7 +51,7 @@
 - `src/features/template-workspace/components/TemplateWorkspaceList.tsx`
 - `src/features/template-workspace/components/TemplateWorkspaceDetail.tsx`
 - `src/features/template-workspace/components/TemplateCard.tsx`
-- `src/features/template-workspace/components/TemplateQuickEntry.tsx`
+- `src/features/template-workspace/components/TemplateSidebarEntry.tsx`
 - `src/features/template-workspace/components/TemplateSearchBar.tsx`
 - `src/features/template-workspace/components/TemplateFilterBar.tsx`
 
@@ -126,7 +126,7 @@ src/features/template-workspace/
 │   ├── TemplateWorkspaceList.tsx
 │   ├── TemplateWorkspaceDetail.tsx
 │   ├── TemplateCard.tsx
-│   ├── TemplateQuickEntry.tsx
+│   ├── TemplateSidebarEntry.tsx
 │   ├── TemplateSearchBar.tsx
 │   └── TemplateFilterBar.tsx
 └── adapters/

@@ -1,6 +1,6 @@
 ---
 name: prompt-engine-architecture
-description: Use when changing ScenePilotix prompt generation, scene strategy, platform adaptation, Quick/Pro prompt behavior, creative-context routing, or provider-specific prompt compilation. Keeps the prompt engine structured, platform-aware, and separated from product UI concerns.
+description: Use when changing ScenePilotix prompt generation, scene strategy, platform adaptation, genMode quick/pro prompt behavior, creative-context routing, or provider-specific prompt compilation. Keeps the prompt engine structured, platform-aware, and separated from product UI concerns.
 ---
 
 # Prompt Engine Architecture
@@ -12,7 +12,7 @@ Use this skill for any ScenePilotix task that touches:
 - `promptPipeline.ts`
 - `promptEngines/*`
 - `sceneStrategyResolver.ts`
-- Quick / Pro prompt differences
+- genMode quick/pro prompt differences
 - platform adaptation for `fal`, `Runway`, or other providers
 - creative-context routing
 - scene-strategy prompt distribution
@@ -40,7 +40,7 @@ Do not collapse these layers into one function or one giant prompt template.
 
 ## Required Architecture Rules
 
-- Quick and Pro prompt behavior must stay distinct.
+- genMode quick and pro prompt behavior must stay distinct.
 - Image and video prompt behavior must stay distinct.
 - Scene strategy must be passed as structured metadata, not inferred late from UI text.
 - Creative context must be passed explicitly if the platform layer needs it.

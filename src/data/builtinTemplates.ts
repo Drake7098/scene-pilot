@@ -64,6 +64,7 @@ function layer(
   };
 }
 
+/** @deprecated 主流程已用 template-engine + templateLibrary400。仅 templateStore 历史兼容。 */
 export const builtinTemplates: SceneTemplate[] = [
   {
     id: "builtin_product_hero",

@@ -3,6 +3,7 @@ import { Star } from "lucide-react";
 import type { Lang } from "../../i18n";
 import type { TemplateWorkspaceItem } from "../../data/templateWorkspaceData";
 import type { ApplyTemplateMode } from "../../data/templateWorkspaceData";
+import { getAdvancedTagLabel, type AdvancedTemplateTagId } from "../../content/cameraLanguageLayers";
 
 const colors = {
   bg: "#1f2125",
@@ -65,6 +66,15 @@ export function TemplateWorkspaceDetail({
         )}
         {(template.description || template.descriptionZh) && (
           <div style={styles.desc}>{lang === "zh" ? (template.descriptionZh ?? template.description) : template.description}</div>
+        )}
+        {(template.advancedTags?.length ?? 0) > 0 && (
+          <div style={styles.advancedTags}>
+            {template.advancedTags!.map((tagId) => (
+              <span key={tagId} style={styles.advancedTag} title={getAdvancedTagLabel(tagId as AdvancedTemplateTagId, lang)}>
+                {getAdvancedTagLabel(tagId as AdvancedTemplateTagId, lang)}
+              </span>
+            ))}
+          </div>
         )}
         {template.tags && template.tags.length > 0 && (
           <div style={styles.tags}>
@@ -193,6 +203,20 @@ const styles: Record<string, React.CSSProperties> = {
     color: colors.textMuted,
     lineHeight: 1.4,
     marginBottom: 8
+  },
+  advancedTags: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 8
+  },
+  advancedTag: {
+    padding: "3px 8px",
+    background: "rgba(245, 158, 11, 0.15)",
+    borderRadius: 6,
+    fontSize: 11,
+    color: colors.accent,
+    fontWeight: 500
   },
   tags: {
     display: "flex",

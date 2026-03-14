@@ -1,0 +1,19 @@
+{
+  "id": "product_hero",
+  "name": "Product Hero",
+  "nameZh": "产品主图",
+  "category": "product",
+  "description": "Product hero layout for image",
+  "descriptionZh": "产品主图布局",
+  "mediaType": "image",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": ["cu", "mcu", "fs", "insert_closeup"],
+  "movementRange": ["static"],
+  "cameraLanguageRange": ["product_quality", "commercial_ad"],
+  "lightingRange": { "time": ["day"], "keyDir": ["top_left", "top_right"], "mood": ["bright"] },
+  "compositionRange": ["center_pressure", "hero_center", "rule_of_thirds"],
+  "objectTypes": ["product", "prop", "text"],
+  "advancedTags": ["advanced_camera", "multi_object"],
+  "variants": ["product_hero_free_starter", "product_hero_basic_wide", "product_hero_basic_medium", "product_hero_basic_close", "product_hero_cinematic"]
+}

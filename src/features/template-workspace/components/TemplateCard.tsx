@@ -6,6 +6,7 @@ import React from "react";
 import { Star } from "lucide-react";
 import type { Lang } from "../../../i18n";
 import type { TemplateIndex } from "../model/templateIndex";
+import { PRO_TYPO } from "../../../uiTokens";
 
 const colors = {
   panel: "#24262b",
@@ -154,7 +155,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     gap: 4
   },
-  cardName: { fontWeight: 600, fontSize: 12, color: colors.text, flex: 1, minWidth: 0 },
+  cardName: { fontWeight: PRO_TYPO.weightMedium, fontSize: PRO_TYPO.xs, fontFamily: PRO_TYPO.fontFamily, color: colors.text, flex: 1, minWidth: 0 },
   favBtn: {
     padding: 2,
     background: "transparent",
@@ -165,9 +166,11 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0
   },
   favBtnOn: { color: colors.accent },
-  cardFamily: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
+  cardFamily: { fontSize: PRO_TYPO["3xs"], fontWeight: PRO_TYPO.weightRegular, fontFamily: PRO_TYPO.fontFamily, color: colors.textMuted, marginTop: 2 },
   cardDesc: {
-    fontSize: 10,
+    fontSize: PRO_TYPO["3xs"],
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily,
     color: colors.textMuted,
     marginTop: 4,
     lineHeight: 1.3,
@@ -177,13 +180,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   cardTags: { display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 },
   cardTag: {
-    fontSize: 9,
+    fontSize: PRO_TYPO["3xs"],
     padding: "1px 4px",
     background: colors.bg,
     borderRadius: 4,
     color: colors.textMuted
   },
-  cardCost: { fontSize: 11, color: colors.accent, marginTop: 6, fontWeight: 600 },
+  cardCost: { fontSize: PRO_TYPO["2xs"], fontWeight: PRO_TYPO.weightMedium, fontFamily: PRO_TYPO.fontFamily, color: colors.accent, marginTop: 6 },
   cardUseBtn: {
     marginTop: 8,
     padding: "4px 10px",
@@ -191,8 +194,9 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     borderRadius: 6,
     color: "#1f2125",
-    fontSize: 11,
-    fontWeight: 600,
+    fontSize: PRO_TYPO["2xs"],
+    fontWeight: PRO_TYPO.weightMedium,
+    fontFamily: PRO_TYPO.fontFamily,
     cursor: "pointer"
   }
 };

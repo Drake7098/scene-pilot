@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { MousePointer2, Move, RotateCw, Maximize } from "lucide-react";
-import type { Scene, Layer, LayerKF } from "../model";
+import type { Project, Scene, Layer, LayerKF } from "../model";
 import { ensureKF, resolveSceneConfig } from "../model";
 import { getRefBlob } from "../utils/localRefs";
 import { UI_COLOR, UI_EFFECT, UI_PALETTE, UI_RADIUS, UI_SPACE, UI_TYPO } from "../uiTokens";
+import { getStageObjectState } from "../features/stage-editor/guards/stageObjectState";
+import { StageWorkBar } from "./stage/StageWorkBar";
+import { StageObjectBadges } from "./stage/StageObjectBadges";
 
 type Handle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 type DragMode =
@@ -51,6 +53,8 @@ function getKFDisplay(layer: Layer, t: 0 | 1): LayerKF {
 }
 
 export function Stage({
+  project = null,
+  lang = "en",
   scene,
   selectedLayerId,
   onSelectLayer,
@@ -58,6 +62,8 @@ export function Stage({
   editT,
   className
 }: {
+  project?: Project | null;
+  lang?: "zh" | "en";
   scene: Scene;
   selectedLayerId: string | null;
   onSelectLayer: (id: string | null) => void;
@@ -67,6 +73,7 @@ export function Stage({
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<DragMode>(null);
+  const [workBarPos, setWorkBarPos] = useState({ x: 0.5, y: 0.12 });
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
   const [backgroundRefUrl, setBackgroundRefUrl] = useState("");
   const backgroundRefId = scene.backgroundRef?.id;
@@ -152,8 +159,11 @@ export function Stage({
   function onPointerDownLayer(e: React.PointerEvent, layer: Layer) {
     e.stopPropagation();
     onSelectLayer(layer.id);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 
+    const state = getStageObjectState(layer, scene, project);
+    if (state.isLocked || state.isProtectedLayout) return;
+
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const rect = getRect();
     if (!rect) return;
 
@@ -175,9 +185,12 @@ export function Stage({
 
   function onPointerDownHandle(e: React.PointerEvent, layer: Layer, handle: Handle) {
     e.stopPropagation();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     onSelectLayer(layer.id);
 
+    const state = getStageObjectState(layer, scene, project);
+    if (state.isLocked || state.isProtectedLayout) return;
+
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const rect = getRect();
     if (!rect) return;
 
@@ -321,25 +334,23 @@ export function Stage({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
-        {/* Figma-style toolbar overlay (Pro) */}
-        {isPro && (
-          <div style={styles.canvasToolbar}>
-            {[
-              { icon: MousePointer2, active: true, title: "Select" },
-              { icon: Move, active: false, title: "Move" },
-              { icon: RotateCw, active: false, title: "Rotate" },
-              { icon: Maximize, active: false, title: "Scale" }
-            ].map((tool, i) => (
-              <button
-                key={i}
-                type="button"
-                className={`pro-canvas-tool-btn ${tool.active ? "active" : ""}`}
-                title={tool.title}
-              >
-                <tool.icon size={16} />
-              </button>
-            ))}
-          </div>
+        {/* Work Bar - movable, context-aware (Pro, single object selected) */}
+        {isPro && sel && (
+          <StageWorkBar
+            lang={lang}
+            project={project}
+            scene={scene}
+            layer={sel}
+            editT={editT}
+            position={workBarPos}
+            onPositionDrag={(nx, ny) => {
+              const cx = Math.max(0.05, Math.min(0.95, nx));
+              const cy = Math.max(0.05, Math.min(0.95, ny));
+              setWorkBarPos({ x: cx, y: cy });
+            }}
+            onUpdateScene={onUpdateScene}
+            containerRect={getRect()}
+          />
         )}
         {/* ✅ world：所有元素都放在 world 中，统一 scale */}
         <div style={{ ...styles.world, transform: `translate(-50%, -50%) scale(${zoom})` }}>
@@ -385,6 +396,7 @@ export function Stage({
 
           {layersSorted.map((layer) => {
             const isSelected = layer.id === selectedLayerId;
+            const objState = getStageObjectState(layer, scene, project);
 
             // ✅ 关键：
             // - 非选中：永远 t0
@@ -427,6 +439,10 @@ export function Stage({
                 }}
                 onPointerDown={(e) => onPointerDownLayer(e, layer)}
               >
+                <StageObjectBadges
+                  isLocked={objState.isLocked}
+                  hasAnchor={!!objState.continuityId}
+                />
                 <div style={styles.label} title={layer.id}>
                   <span style={styles.labelTitle}>{layer.id}</span>
                 </div>

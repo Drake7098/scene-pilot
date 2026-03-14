@@ -48,6 +48,7 @@ function regenerateSceneIds(scene: Scene, sceneIdExists: (id: string) => boolean
   };
 }
 
+/** @deprecated 主流程已用 template-engine index。仅历史兼容。 */
 export function listBuiltinTemplates(): SceneTemplate[] {
   return [...builtinTemplates];
 }
@@ -56,6 +57,7 @@ export function listUserTemplates(): SceneTemplate[] {
   return loadUserTemplates();
 }
 
+/** @deprecated 主流程已用 template-engine index。仅历史兼容。 */
 export function getAllTemplates(): SceneTemplate[] {
   return [...builtinTemplates, ...loadUserTemplates()];
 }
@@ -116,10 +118,26 @@ export function createTemplateFromScene(
   };
 }
 
+/** @deprecated 主流程已用 ensureUniqueSceneIds。仅 applyTemplateSnapshot 使用，勿新调用。 */
 export function cloneSceneFromTemplate(
   template: SceneTemplate,
   sceneIdExists: (id: string) => boolean,
   layerIdExists: (id: string) => boolean
 ): Scene {
   return regenerateSceneIds(template.scene, sceneIdExists, layerIdExists);
+}
+
+/**
+ * Ensure scene and layer IDs are unique relative to existing scenes.
+ * Used when applying TemplatePayload to avoid ID collisions.
+ */
+export function ensureUniqueSceneIds(
+  scene: Scene,
+  existingScenes: Scene[]
+): Scene {
+  const sceneIdExists = (id: string) =>
+    existingScenes.some((s) => s.id === id);
+  const layerIdExists = (id: string) =>
+    existingScenes.some((s) => (s.layers ?? []).some((l) => l.id === id));
+  return regenerateSceneIds(scene, sceneIdExists, layerIdExists);
 }

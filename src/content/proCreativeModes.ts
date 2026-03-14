@@ -331,8 +331,8 @@ export function beginnerCreativeTutorialBlocks(lang: Lang) {
     {
       title: lang === "zh" ? "创作输入放哪里" : "Where Creative Input Lives",
       body: lang === "zh"
-        ? "Quick 工作台的两段原始文字会进入 Pro 左栏的“创作输入”。它们保留原始意图，给对象命名和提示词编译做参考，但不会直接覆盖分镜结构。"
-        : "The two raw lines from Quick Workspace are carried into Pro under Creative Input. They preserve upstream intent for object naming and prompt compilation without overriding storyboard structure."
+        ? "“创作输入”。它们保留原始意图，给对象命名和提示词编译做参考，但不会直接覆盖分镜结构。"
+        : "Creative Input lives in the Pro sidebar. It preserves upstream intent for object naming and prompt compilation without overriding storyboard structure."
     }
   ];
 }

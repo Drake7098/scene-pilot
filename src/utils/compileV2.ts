@@ -3,6 +3,7 @@ import type { Layer, LayerKF, Scene } from "../model";
 import { COMBAT_PATCH_LIST } from "../config/combatPatchList";
 import { buildProMotionPromptLine, parseProMotionSelection } from "../content/proCameraPresets";
 import { buildImageProPromptLine } from "../content/proCreativeModes";
+import { parseCameraLanguageId, getCameraLanguageDisplayLabel } from "../content/cameraLanguageLayers";
 
 export type SceneTier = "indoor" | "small_plaza" | "open_space";
 export type V2Mode = "short" | "strict";
@@ -348,6 +349,10 @@ export function compileScenePromptV2(scene: Scene, lang: Lang, tier: SceneTier, 
   const proMotionLine = buildProMotionPromptLine(parseProMotionSelection(scene.notes ?? ""), lang);
   const mediaMode = /(^|\n)\s*media\s*:\s*image\b/i.test(scene.notes ?? "") ? "image" : "video";
   const imageProLine = mediaMode === "image" ? buildImageProPromptLine(scene.notes ?? "", lang) : "";
+  const cameraLanguageId = parseCameraLanguageId(scene.notes ?? "");
+  const cameraLanguageLine = cameraLanguageId
+    ? (lang === "zh" ? `镜头语言：${getCameraLanguageDisplayLabel(cameraLanguageId, lang, false)}` : `Camera language: ${getCameraLanguageDisplayLabel(cameraLanguageId, lang, false)}`)
+    : "";
 
   const layoutExtra =
     profile.bgDensity === "high"
@@ -408,10 +413,13 @@ export function compileScenePromptV2(scene: Scene, lang: Lang, tier: SceneTier, 
     cameraContract.join("\n"),
     proMotionLine,
     imageProLine,
+    cameraLanguageLine,
     layoutContract.join("\n"),
     t0Lines.join("\n"),
     t1Lines.join("\n"),
     anti.join("\n"),
     "[END]"
-  ].join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }

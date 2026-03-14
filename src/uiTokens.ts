@@ -261,3 +261,15 @@ export const UI_OPACITY = {
   label: 0.78,
   hint: 0.72
 } as const;
+
+/** Pro workspace typography (zh/en unified) */
+export const PRO_TYPO = {
+  fontFamily: "var(--pro-font-family)",
+  xs: 12,
+  "2xs": 11,
+  "3xs": 10,
+  sm: 13,
+  weightRegular: 500,
+  weightMedium: 600,
+  weightBold: 700
+} as const;

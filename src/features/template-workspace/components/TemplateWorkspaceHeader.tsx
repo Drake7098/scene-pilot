@@ -4,6 +4,7 @@
 
 import React from "react";
 import { Search, X } from "lucide-react";
+import { PRO_TYPO } from "../../../uiTokens";
 import type { Lang } from "../../../i18n";
 import type { TemplateWorkspaceFilters } from "../model/templateFilter";
 
@@ -124,7 +125,7 @@ export function TemplateWorkspaceHeader({
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  countBadge: { fontSize: 11, color: colors.textMuted },
+  countBadge: { fontSize: PRO_TYPO["2xs"], fontWeight: PRO_TYPO.weightRegular, fontFamily: PRO_TYPO.fontFamily, color: colors.textMuted },
   wrap: {
     display: "flex",
     alignItems: "center",
@@ -152,7 +153,9 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     outline: "none",
     color: colors.text,
-    fontSize: 12
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily
   },
   filters: { display: "flex", gap: 8 },
   select: {
@@ -161,7 +164,9 @@ const styles: Record<string, React.CSSProperties> = {
     border: `1px solid ${colors.border}`,
     borderRadius: 8,
     color: colors.text,
-    fontSize: 11,
+    fontSize: PRO_TYPO["2xs"],
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily,
     cursor: "pointer"
   },
   closeBtn: {

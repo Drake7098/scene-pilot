@@ -1,0 +1,19 @@
+{
+  "id": "opening_shot",
+  "name": "Opening Shot",
+  "nameZh": "开场镜头",
+  "category": "short_video",
+  "description": "Opening establishing shot",
+  "descriptionZh": "开场建立镜头",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": ["ls", "fs", "xls"],
+  "movementRange": ["static", "slow_push_in", "slow_pull_out"],
+  "cameraLanguageRange": ["cinematic_narrative", "premium_blockbuster"],
+  "lightingRange": { "time": ["day", "golden_hour"], "keyDir": ["top_left", "backlight"], "mood": ["cinematic"] },
+  "compositionRange": ["rule_of_thirds", "depth_split", "cinematic_air"],
+  "objectTypes": ["character", "product"],
+  "advancedTags": ["advanced_camera", "cinematic_mode", "drama_mode"],
+  "variants": ["opening_shot_free_starter", "opening_shot_basic_wide", "opening_shot_basic_medium", "opening_shot_cinematic", "opening_shot_advanced_motion"]
+}

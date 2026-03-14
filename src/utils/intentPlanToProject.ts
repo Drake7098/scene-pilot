@@ -1,7 +1,7 @@
 import type { Lang } from "../i18n";
 import type { Project, TransitionType } from "../model";
 import { sanitizeProject } from "../model";
-import type { ResultStructureState } from "../components/ResultConsole";
+import type { ResultStructureState } from "../types/resultConsole";
 import type { CanvasDraft } from "../types/canvasDraft";
 import type { IntentPlan } from "../types/intentPlan";
 import { applySceneStrategyFromCanvas } from "./sceneStrategyBridge";

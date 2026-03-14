@@ -53,4 +53,6 @@ export type UnifiedTemplate = {
   exportDefaults?: Record<string, unknown>;
   /** Built Scene for applyTemplateSnapshot compatibility */
   scene: Scene;
-};
+  /** Advanced capability tags for template detail (e.g. advanced_camera, continuity) */
+  advancedTags?: string[];
+}

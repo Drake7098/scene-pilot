@@ -1,5 +1,6 @@
 import type { Lang } from "../i18n";
 import type { Project } from "../model";
+import { sanitizeProject } from "../model";
 
 const KEY_PROJECT = "scenepilot_project";
 const KEY_LANG = "scenepilot_lang";
@@ -50,7 +51,7 @@ export function loadProject(): Project | null {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
     if (!Array.isArray((parsed as any).scenes)) return null;
-    return parsed as Project;
+    return sanitizeProject(parsed as Project);
   } catch {
     return null;
   }

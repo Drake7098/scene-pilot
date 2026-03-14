@@ -17,6 +17,10 @@
   --pro-font-xs: 12px;
   --pro-font-2xs: 11px;
   --pro-font-3xs: 10px;
+  --pro-font-family: "SF Pro Text", "Avenir Next", "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  --pro-font-weight-regular: 500;
+  --pro-font-weight-medium: 600;
+  --pro-font-weight-bold: 700;
   --pro-row-height: 28px;
   --pro-control-height: 28px;
   --pro-tab-bar-height: 38px;
@@ -355,6 +359,16 @@ button:focus-visible {
 }
 
 /* --- Pro workspace (Figma theme) overrides --- */
+/* Pro typography: unified font for zh/en (SF Pro / PingFang SC) */
+[data-workspace="pro"],
+[data-workspace="pro"] .pro-sidebar,
+[data-workspace="pro"] .pro-props-panel,
+[data-workspace="pro"] .pro-export-panel,
+[data-workspace="pro"] .pro-template-card,
+[data-workspace="pro"] .pro-templates-panel,
+[data-workspace="pro"] .editor-sidebar-forms {
+  font-family: var(--pro-font-family) !important;
+}
 [data-workspace="pro"] [data-top] {
   height: 48px;
   border-bottom: 1px solid var(--pro-border);
@@ -366,13 +380,13 @@ button:focus-visible {
   border-top: 1px solid var(--pro-border);
 }
 
+/* Prompt preview: multi-line blocks, do NOT use pro-info-height (24px) - that causes overlap */
 [data-workspace="pro"] .pro-prompt-preview pre {
   color: var(--pro-text-primary);
 }
 
 [data-workspace="pro"] .spx-pro-viewport-info,
 [data-workspace="pro"] .spx-pro-zoom-hint,
-[data-workspace="pro"] .pro-prompt-preview pre,
 [data-workspace="pro"] [data-pro-info] {
   font-size: var(--pro-info-font-size) !important;
   font-family: var(--pro-info-font) !important;
@@ -491,7 +505,9 @@ button:focus-visible {
 [data-workspace="pro"] .pro-template-card .pro-btn,
 [data-workspace="pro"] .pro-template-card .pro-btn-ghost {
   color: rgba(255, 255, 255, 0.9) !important;
-  font-size: 12px !important;
+  font-size: var(--pro-font-xs) !important;
+  font-weight: var(--pro-font-weight-bold) !important;
+  font-family: var(--pro-font-family) !important;
 }
 [data-workspace="pro"] .pro-template-card .pro-btn:hover:not(:disabled),
 [data-workspace="pro"] .pro-template-card .pro-btn-ghost:hover:not(:disabled) {
@@ -511,7 +527,9 @@ button:focus-visible {
 [data-workspace="pro"] .pro-templates-panel .pro-btn,
 [data-workspace="pro"] .pro-templates-panel > .pro-btn-ghost {
   color: rgba(255, 255, 255, 0.9) !important;
-  font-size: 12px !important;
+  font-size: var(--pro-font-xs) !important;
+  font-weight: var(--pro-font-weight-bold) !important;
+  font-family: var(--pro-font-family) !important;
 }
 [data-workspace="pro"] .pro-templates-panel > .pro-btn-ghost {
   padding: 6px 12px !important;
@@ -601,8 +619,9 @@ button:focus-visible {
   border: 1px solid var(--pro-border);
   background: rgba(255,255,255,0.06);
   color: var(--pro-text-muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--pro-font-xs);
+  font-weight: var(--pro-font-weight-bold);
+  font-family: var(--pro-font-family);
   cursor: pointer;
   box-shadow: none !important;
   transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
@@ -631,8 +650,9 @@ button:focus-visible {
   border: 1px solid var(--pro-border);
   background: rgba(255,255,255,0.06);
   color: var(--pro-text-muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--pro-font-xs);
+  font-weight: var(--pro-font-weight-bold);
+  font-family: var(--pro-font-family);
   cursor: pointer;
   box-shadow: none !important;
   transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
@@ -651,7 +671,9 @@ button:focus-visible {
   border: none;
   background: transparent;
   color: var(--pro-text-muted);
-  font-size: 11px;
+  font-size: var(--pro-font-2xs);
+  font-weight: var(--pro-font-weight-medium);
+  font-family: var(--pro-font-family);
   cursor: pointer;
   box-shadow: none !important;
   transition: color 150ms ease;
@@ -681,6 +703,27 @@ button:focus-visible {
 .pro-canvas-tool-btn.active {
   background: var(--pro-hover);
   color: var(--pro-accent);
+}
+
+/* Platform Mode: Figma-aligned segmented export buttons (edge + brightness) */
+.platform-export-segmented {
+  display: flex;
+  border: 1px solid #3a3f46;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #1f2125;
+}
+.platform-export-seg-on {
+  background: #343942 !important;
+  color: #f59e0b !important;
+}
+.platform-export-seg-off {
+  background: transparent !important;
+  color: #9ca3af !important;
+}
+.platform-export-seg-off:hover {
+  background: #343942 !important;
+  color: #e5e7eb !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

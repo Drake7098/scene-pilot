@@ -24,14 +24,14 @@ const planSpecs: PlanSpec[] = [
     label: "Free",
     price: "$0",
     period: "/ month",
-    summary: "For first direction checks in Quick Workspace.",
+    summary: "For first direction checks in workspace.",
     bullets: [
-      "Quick Workspace access",
+      "Workspace access",
       "Structured scene prompt drafting",
       "Scene structure and camera language editing",
       "No hosted AI generation"
     ],
-    cta: "Start with Quick",
+    cta: "Get Started",
     href: APP_SIGNIN_HREF
   },
   {

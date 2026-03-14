@@ -1,0 +1,19 @@
+{
+  "id": "solo_speaker",
+  "name": "Solo Speaker",
+  "nameZh": "单人演讲",
+  "category": "dialogue",
+  "description": "Single speaker talking head",
+  "descriptionZh": "单人演讲/口播",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": ["mcu", "ms", "cu"],
+  "movementRange": ["static", "slow_push_in"],
+  "cameraLanguageRange": ["dialogue_cover", "realistic_restrained"],
+  "lightingRange": { "time": ["day"], "keyDir": ["top_left", "top_right"], "mood": ["bright", "warm"] },
+  "compositionRange": ["rule_of_thirds", "center_pressure"],
+  "objectTypes": ["character"],
+  "advancedTags": ["director_preset"],
+  "variants": ["solo_speaker_free_starter", "solo_speaker_basic_wide", "solo_speaker_basic_medium", "solo_speaker_cinematic", "solo_speaker_social"]
+}

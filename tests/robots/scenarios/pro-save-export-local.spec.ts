@@ -71,7 +71,7 @@ test("pro_save_export_flow_stays_stable_after_quick_workspace_handoff", async ({
 
     const exportModal = page.getByTestId("export-modal");
     await expect(exportModal).toBeVisible();
-    await exportModal.getByTestId("export-mode-quick").click();
+    await exportModal.getByTestId("export-mode-prompt-only").click();
     await exportModal.getByTestId("export-platform-select").selectOption("jimeng");
     const [quickDownload] = await Promise.all([
       page.waitForEvent("download"),

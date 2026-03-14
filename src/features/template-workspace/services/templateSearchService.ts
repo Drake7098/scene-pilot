@@ -7,7 +7,7 @@ import type {
   TemplateWorkspaceScope,
   TemplateWorkspaceFilters
 } from "../model/templateFilter";
-import { getTemplateIndex } from "../data/templateIndexData";
+import { getTemplateIndex } from "../../../template-engine";
 import { addToRecent } from "../../../data/templateWorkspaceData";
 
 function matchesSearch(t: TemplateIndex, q: string): boolean {

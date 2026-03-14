@@ -10,7 +10,7 @@ Use this skill for any ScenePilotix task that changes user-facing product flow, 
 - menus and dropdowns
 - top-bar actions
 - save / save as / open / import / export
-- Quick / Pro switching
+- workspace entry (single Pro)
 - project library / template / file export boundaries
 - naming and button labels
 - success / hint / empty states
@@ -29,7 +29,7 @@ Working code is not enough. Before editing, check whether the interaction model 
 - High-frequency actions go higher.
 - Low-frequency or destructive actions go lower.
 - Page UI should not carry long explanations. Explanations belong in Help Center.
-- Quick and Pro are different modes. Do not blur them casually.
+- Workspace is unified as Pro. No Quick/Pro switching.
 - Save and Export are different concepts. Do not merge them.
 - Project library, template library, and exported files must stay distinct.
 - If a choice should persist, persist it. Do not re-ask every time.
@@ -46,7 +46,7 @@ Before changing code, explicitly review these questions in your reasoning:
 1. What is the single user intent here?
 2. Is there already another button/menu item doing the same thing?
 3. Is the current name consistent with the rest of the product?
-4. Should this action live in Quick, Pro, both, or neither?
+4. Should this action live in the main workspace or elsewhere?
 5. Should the system remember this choice after the first time?
 6. Is this a save action, an export action, or a library action?
 7. Does this page now contain explanation text that should instead live in Help Center?

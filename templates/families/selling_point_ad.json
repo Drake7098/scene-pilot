@@ -1,0 +1,19 @@
+{
+  "id": "selling_point_ad",
+  "name": "Selling Point Ad",
+  "nameZh": "卖点广告",
+  "category": "ad",
+  "description": "Product selling point advertisement",
+  "descriptionZh": "产品卖点广告",
+  "mediaType": "image",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": ["cu", "mcu", "insert_closeup"],
+  "movementRange": ["static"],
+  "cameraLanguageRange": ["commercial_ad", "product_quality"],
+  "lightingRange": { "time": ["day"], "keyDir": ["top_left", "top_right"], "mood": ["bright", "warm"] },
+  "compositionRange": ["center_pressure", "hero_center", "rule_of_thirds"],
+  "objectTypes": ["product", "text", "prop"],
+  "advancedTags": ["multi_object"],
+  "variants": ["selling_point_ad_free_starter", "selling_point_ad_basic_wide", "selling_point_ad_basic_close", "selling_point_ad_cinematic"]
+}

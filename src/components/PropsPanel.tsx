@@ -3,7 +3,7 @@ import type { Lang } from "../i18n";
 import { useFieldState } from "../hooks/useFieldState";
 import { FIELD_KEYS } from "../rules/fieldKeys";
 import { t } from "../i18n";
-import type { Scene, Layer, LayerKF, LocalRefMeta, LocalRefType, SceneRefMeta } from "../model";
+import type { Project, Scene, Layer, LayerKF, LocalRefMeta, LocalRefType, SceneRefMeta } from "../model";
 import { ensureKF } from "../model";
 import { deleteRefBlob, getRefBlob, putRefBlob } from "../utils/localRefs";
 import { detectSceneConflicts } from "../utils/conflictRules";
@@ -21,6 +21,13 @@ type Props = {
   setEditT: (t: 0 | 1) => void;
   /** Optional slot rendered at bottom of panel (e.g. generate button) */
   bottomSlot?: React.ReactNode;
+  project?: Project | null;
+  onUpdateProject?: (p: Project) => void;
+  /** For Platform Mode - platform and export strategy */
+  platformId?: string;
+  onPlatformChange?: (id: string) => void;
+  exportMode?: "prompt_only" | "package";
+  onExportModeChange?: (m: "prompt_only" | "package") => void;
 };
 
 const BG_MARK = "bg:";
@@ -352,7 +359,7 @@ function buildShapePresets(lang: Lang, typeKey: TypeKey) {
 }
 
 export function PropsPanel(props: Props) {
-  const { lang, scene, selectedLayerId, onUpdateScene, onRenameLayer, editT, setEditT, bottomSlot } = props;
+  const { lang, scene, selectedLayerId, onUpdateScene, onRenameLayer, editT, setEditT, bottomSlot, project, onUpdateProject, platformId, onPlatformChange, exportMode, onExportModeChange } = props;
   const tt = useMemo(() => (key: string) => t(lang, key), [lang]);
 
   const mediaMode: MediaMode = useMemo(() => parseMediaModeFromNotes(scene?.notes), [scene?.notes]);
@@ -918,7 +925,7 @@ const typePresets = useMemo(
           <div style={styles.localRefList}>
             {scene.backgroundRef ? (
               <div style={styles.localRefItem}>
-                {bgRefThumb ? <img src={bgRefThumb} alt={scene.backgroundRef.name} style={styles.localRefThumb} /> : null}
+                {bgRefThumb ? <img src={bgRefThumb} alt={scene.backgroundRef.name} style={styles.bgRefThumb} /> : null}
                 <div style={styles.localRefText}>{scene.backgroundRef.name}</div>
                 <button
                   type="button"
@@ -2031,6 +2038,16 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     border: "none",
     flexShrink: 0
+  },
+  /** 分镜背景参考图：16:9 标准比例 */
+  bgRefThumb: {
+    width: 80,
+    height: 45,
+    objectFit: "cover",
+    borderRadius: 8,
+    border: "none",
+    flexShrink: 0,
+    aspectRatio: "16/9"
   },
   hiddenInput: {
     display: "none"

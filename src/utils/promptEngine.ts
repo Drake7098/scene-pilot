@@ -94,6 +94,12 @@ function isNegativeHeading(line: string): boolean {
   return /^Anti-Director Rules:/i.test(line) || /^Negative:/i.test(line) || /^负向约束[:：]/.test(line);
 }
 
+/** Extract content after heading colon (e.g. "镜头：全景，固定" → "全景，固定") */
+function contentAfterHeading(line: string): string | null {
+  const m = line.match(/[:：]\s*(.+)$/);
+  return m ? m[1].trim() : null;
+}
+
 function stripInlineDuration(line: string): string {
   return line
     .replace(/[(（]\s*\d+(\.\d+)?\s*(s|sec|secs|second|seconds)\s*[)）]/gi, "")
@@ -140,26 +146,38 @@ function parseSections(main: string): PromptSectionSet {
     }
     if (isCameraHeading(line)) {
       current = "camera";
+      const rest = contentAfterHeading(line);
+      if (rest) sections.camera.push(rest);
       continue;
     }
     if (isLayoutHeading(line)) {
       current = "layout";
+      const rest = contentAfterHeading(line);
+      if (rest) sections.layout.push(rest);
       continue;
     }
     if (isT0Heading(line)) {
       current = "subjects";
+      const rest = contentAfterHeading(line);
+      if (rest) sections.subjects.push(rest);
       continue;
     }
     if (isT1Heading(line)) {
       current = "motion";
+      const rest = contentAfterHeading(line);
+      if (rest) sections.motion.push(rest);
       continue;
     }
     if (isNegativeHeading(line)) {
       current = "negative";
+      const rest = contentAfterHeading(line);
+      if (rest) sections.negative.push(rest);
       continue;
     }
     if (isGenerationConstraintLine(line)) {
       current = "constraints";
+      const rest = contentAfterHeading(line);
+      if (rest) sections.constraints.push(rest);
       continue;
     }
 
@@ -274,6 +292,7 @@ function renderImagePrompt(sections: PromptSectionSet, lang: Lang, workspace: Pr
     : sections.subjects;
   const negatives = workspace === "quick" ? limitLines([...sections.negative, ...sections.constraints], 4) : [...sections.negative, ...sections.constraints];
   const blocks = [
+    sections.extras.join("\n"),
     sections.scene.join("\n"),
     renderSection(labelFor(lang, "layout"), layout),
     renderSection(labelFor(lang, "subjects"), subjects),
@@ -291,6 +310,7 @@ function renderVideoPrompt(sections: PromptSectionSet, lang: Lang, workspace: Pr
     : sections.subjects;
   const negatives = workspace === "quick" ? limitLines([...sections.negative, ...sections.constraints], 4) : [...sections.negative, ...sections.constraints];
   const blocks = [
+    sections.extras.join("\n"),
     sections.scene.join("\n"),
     renderSection(labelFor(lang, "camera"), camera),
     renderSection(labelFor(lang, "layout"), layout),
@@ -308,6 +328,7 @@ function renderImagePromptWithLimits(
 ): string {
   const negativeLines = dedupeLines([...sections.negative, ...sections.constraints]);
   const blocks = [
+    sections.extras.join("\n"),
     sections.scene.join("\n"),
     renderSection(labelFor(lang, "layout"), limitLines(sections.layout, limits?.layout ?? sections.layout.length)),
     renderSection(labelFor(lang, "subjects"), limitLines(sections.subjects, limits?.subjects ?? sections.subjects.length)),
@@ -326,6 +347,7 @@ function renderVideoPromptWithLimits(
 ): string {
   const negativeLines = dedupeLines([...sections.negative, ...sections.constraints]);
   const blocks = [
+    sections.extras.join("\n"),
     sections.scene.join("\n"),
     renderSection(labelFor(lang, "camera"), limitLines(sections.camera, limits?.camera ?? sections.camera.length)),
     renderSection(labelFor(lang, "layout"), limitLines(sections.layout, limits?.layout ?? sections.layout.length)),

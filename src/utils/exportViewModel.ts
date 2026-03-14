@@ -48,7 +48,7 @@ export type ExportInfoRow = {
   value: string;
 };
 
-export type ExportMode = "quick" | "package";
+export type ExportMode = "prompt_only" | "package";
 
 export function recommendExportMode(project: Project, sceneIdx: number): ExportMode {
   const scenes = project.scenes ?? [];
@@ -59,7 +59,7 @@ export function recommendExportMode(project: Project, sceneIdx: number): ExportM
   const isContinuous = shotPlan === "continuous" && scenes.length > 1;
   const hasManyObjects = currentObjects >= 3;
   const hasManyRefs = totalRefs >= 3;
-  return isContinuous || hasManyObjects || hasManyRefs ? "package" : "quick";
+  return isContinuous || hasManyObjects || hasManyRefs ? "package" : "prompt_only";
 }
 
 export function availableExportScopes(project: Project, sceneIdx: number): PromptExportScope[] {
@@ -90,7 +90,7 @@ export function buildSystemProcessRows(input: { lang: Lang; summary: ExportSumma
   const z = lang === "zh";
   return [
     { label: z ? "提示词引擎" : "Prompt Engine", value: summary.engineId },
-    { label: z ? "工作台" : "Workspace", value: summary.workspace === "pro" ? (z ? "Pro" : "Pro") : (z ? "快捷工作台" : "Quick") },
+    { label: z ? "工作台" : "Workspace", value: summary.workspace === "pro" ? (z ? "Pro" : "Pro") : (z ? "紧凑" : "Compact") },
     { label: z ? "当前 compiler" : "Compiler", value: summary.compiler },
     { label: z ? "当前 media" : "Media", value: summary.mediaMode },
     { label: z ? "图片清理" : "Image Cleanup", value: summary.imageCleanupApplied ? (z ? "已执行" : "Applied") : (z ? "未执行" : "No") },
@@ -137,7 +137,7 @@ export function buildSystemSummary(input: Input): string {
   lines.push(line("适配策略", "Adaptation Strategy", preset.nativeStrategy ? (lang === "zh" ? "原生策略" : "Native") : (lang === "zh" ? "映射策略" : "Mapped"), lang));
   lines.push(line("基础策略", "Base Profile", summary.baseProfile, lang));
   lines.push(line("提示词引擎", "Prompt Engine", summary.engineId, lang));
-  lines.push(line("工作台", "Workspace", summary.workspace === "pro" ? "Pro" : lang === "zh" ? "快捷工作台" : "Quick", lang));
+  lines.push(line("工作台", "Workspace", summary.workspace === "pro" ? "Pro" : lang === "zh" ? "紧凑" : "Compact", lang));
   lines.push(line("Compiler", "Compiler", summary.compiler, lang));
   lines.push(line("媒体模式", "Media Mode", summary.mediaMode, lang));
   lines.push(line("结构控制层", "Machine Tail", pipeline.metadata.tailApplied ? (lang === "zh" ? "已追加" : "Applied") : (lang === "zh" ? "未追加" : "Not Applied"), lang));

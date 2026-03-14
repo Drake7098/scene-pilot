@@ -1,4 +1,5 @@
 /**
+ * @deprecated 主流程已改用 template-engine payload apply。仅历史兼容。
  * Convert UnifiedTemplate to SceneTemplate for applyTemplateSnapshot.
  */
 

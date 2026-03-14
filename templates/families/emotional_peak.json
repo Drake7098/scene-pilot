@@ -1,0 +1,19 @@
+{
+  "id": "emotional_peak",
+  "name": "Emotional Peak",
+  "nameZh": "情绪巅峰",
+  "category": "short_video",
+  "description": "Emotional peak moment shot",
+  "descriptionZh": "情绪高潮镜头",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": ["cu", "mcu", "ecu"],
+  "movementRange": ["static", "slow_push_in"],
+  "cameraLanguageRange": ["emotional_pressure", "cinematic_narrative"],
+  "lightingRange": { "time": ["day", "golden_hour", "blue_hour"], "keyDir": ["top_left", "rim_light"], "mood": ["cinematic", "mysterious"] },
+  "compositionRange": ["center_pressure", "eyeline_tension", "rule_of_thirds"],
+  "objectTypes": ["character"],
+  "advancedTags": ["advanced_camera", "cinematic_mode", "drama_mode"],
+  "variants": ["emotional_peak_free_starter", "emotional_peak_basic_wide", "emotional_peak_basic_close", "emotional_peak_cinematic", "emotional_peak_advanced_motion"]
+}

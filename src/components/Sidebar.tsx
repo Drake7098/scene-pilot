@@ -5,7 +5,7 @@ import { t } from "../i18n";
 import { resolveSceneConfig } from "../model";
 import type { Project, Scene, Layer, ShotPlan, Direction, TransitionType } from "../model";
 import { defaultObjectName, defaultSceneName } from "../utils/naming";
-import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_FONT, UI_INFO, UI_OPACITY, UI_PALETTE, UI_RADIUS, UI_SIZE, UI_SPACE, UI_STATUS, UI_TYPO } from "../uiTokens";
+import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_FONT, UI_INFO, UI_OPACITY, UI_PALETTE, UI_RADIUS, UI_SIZE, UI_SPACE, UI_STATUS, UI_TYPO, PRO_TYPO } from "../uiTokens";
 import {
   PRO_PLUS_MOTION_CATEGORIES,
   applyProMotionSelection,
@@ -41,14 +41,22 @@ import {
   parseDirectorStylePackId,
   type DirectorStylePackId
 } from "../content/directorStylePacks";
+import {
+  getUserVisibleCameraLanguageOptions,
+  parseCameraLanguageId,
+  applyCameraLanguage,
+  normalizeForUserSelection,
+  isUserVisibleCameraLanguage
+} from "../content/cameraLanguageLayers";
 import { resolveSceneStrategy } from "../utils/sceneStrategyResolver";
-import { TemplateQuickEntry } from "../features/template-workspace";
+import { TemplateSidebarEntry, CurrentTemplateContext } from "../features/template-workspace";
 import type { TemplateIndex } from "../features/template-workspace";
 import type { SceneTemplate } from "../model/template";
 import { useProCollapseSections } from "../hooks/useProCollapseSections";
 import { EditorSection, EditorSelect, EditorInput, EditorCheckbox } from "./ui";
+import { ContinuityPanel } from "./ContinuityPanel";
 import { editorTheme } from "../theme/editorTheme";
-import { Film, LayoutGrid, Layers, Camera, Settings, Play, Plus, Minus, ChevronDown, ChevronRight, Save, Copy, Download, FilePlus2, FolderOpen, PencilLine } from "lucide-react";
+import { Film, LayoutGrid, Layers, Camera, Settings, Play, Plus, Minus, ChevronDown, ChevronRight, Save, Copy, Download, FilePlus2, FolderOpen, PencilLine, Sun } from "lucide-react";
 
 type Props = {
   lang: Lang;
@@ -77,6 +85,7 @@ type Props = {
   onExportProject?: () => void;
   onOpenLibrary?: () => void;
   onOpenTemplateWorkspace?: () => void;
+  onOpenTemplateWorkspaceWithTemplate?: (templateId: string) => void;
   onUseTemplateFromEntry?: (item: TemplateIndex | import("../data/templateWorkspaceData").TemplateWorkspaceItem) => void;
 };
 
@@ -269,6 +278,7 @@ export function Sidebar(props: Props) {
     onExportProject,
     onOpenLibrary,
     onOpenTemplateWorkspace,
+    onOpenTemplateWorkspaceWithTemplate,
     onUseTemplateFromEntry
   } = props;
 
@@ -1126,8 +1136,8 @@ export function Sidebar(props: Props) {
 
   const [sidebarCollapsed, toggleSidebar] = useProCollapseSections(
     "sidebar",
-    ["project", "scenes", "templates", "scene_strategy", "camera_lighting", "objects"],
-    ["project", "scenes", "scene_strategy", "camera_lighting", "objects"]
+    ["project", "scenes", "continuity", "templates", "scene_strategy", "camera_control", "camera_lighting", "objects"],
+    ["project", "scenes", "continuity", "scene_strategy", "camera_control", "camera_lighting", "objects"]
   );
 
   const { colors: ec, spacing: es } = editorTheme;
@@ -1499,10 +1509,20 @@ export function Sidebar(props: Props) {
         }}
       >
       <div style={styles.section}>
-        <TemplateQuickEntry
+        <CurrentTemplateContext
+          lang={lang}
+          project={project}
+          onOpenWorkspace={() => onOpenTemplateWorkspace?.()}
+          onOpenWorkspaceWithTemplate={(templateId) => onOpenTemplateWorkspaceWithTemplate?.(templateId) ?? onOpenTemplateWorkspace?.()}
+        />
+        <TemplateSidebarEntry
           key={lang}
           lang={lang}
-          onOpenWorkspace={() => onOpenTemplateWorkspace?.()}
+          onOpenWorkspace={() => {
+            const tid = project?.meta?.currentTemplate?.templateId;
+            if (tid) onOpenTemplateWorkspaceWithTemplate?.(tid);
+            else onOpenTemplateWorkspace?.();
+          }}
           onUseTemplate={(item) => {
             if (onUseTemplateFromEntry) {
               onUseTemplateFromEntry(item);
@@ -1713,6 +1733,19 @@ export function Sidebar(props: Props) {
       </div>
       </EditorSection>
 
+      {/* Continuity Panel - scene links, carry-over, prev/next */}
+      <ContinuityPanel
+        lang={lang}
+        project={project}
+        currentSceneIndex={safeIdx}
+        onSetSceneIdx={(i) => {
+          setSceneIdx(i);
+          onSelectLayer(null);
+        }}
+        collapsed={sidebarCollapsed.has("continuity")}
+        onToggle={() => toggleSidebar("continuity")}
+      />
+
       {/* Object Layers (Figma: fourth) */}
       <EditorSection
         title={tt("sidebar.layers")}
@@ -1846,9 +1879,9 @@ export function Sidebar(props: Props) {
       </div>
       </EditorSection>
 
-      {/* Scene Strategy */}
+      {/* Director Control - 导演预设、一键选择、导演级风格包 */}
       <EditorSection
-        title={lang === "zh" ? "场景策略" : "Scene Strategy"}
+        title={lang === "zh" ? "导演控制" : "Director Control"}
         icon={Settings}
         open={!sidebarCollapsed.has("scene_strategy")}
         onOpenChange={(open) => {
@@ -1900,7 +1933,7 @@ export function Sidebar(props: Props) {
         <div style={styles.proDirectorBlock} data-testid="pro-director-block">
           <div data-testid="pro-shot-recipe-select">
             <EditorSelect
-              label={lang === "zh" ? "一键选择" : "Preset"}
+              label={lang === "zh" ? "导演预设" : "Director Preset"}
               options={[
                 { label: lang === "zh" ? "未选择" : "None", value: "" },
                 ...((isVideoProject ? hasVideoManualClassic : hasImageManualClassic)
@@ -1919,6 +1952,36 @@ export function Sidebar(props: Props) {
               }}
             />
           </div>
+          <div style={styles.proMotionPanel}>
+            <div data-testid="director-style-pack-select">
+              <EditorSelect
+                label={lang === "zh" ? "导演级风格包" : "Directing Pack"}
+                options={[
+                  { label: lang === "zh" ? "自动" : "Auto", value: "" },
+                  ...DIRECTOR_STYLE_PACKS.map((pack) => ({ label: lang === "zh" ? pack.labelZh : pack.labelEn, value: pack.id }))
+                ]}
+                value={directorStylePackId ?? ""}
+                onChange={(v) => updateDirectorStylePack(v)}
+              />
+            </div>
+          </div>
+        </div>
+
+      </div>
+      </EditorSection>
+
+      {/* Camera Control - 景别、运动、镜头语言、转场 */}
+      <EditorSection
+        title={lang === "zh" ? "镜头控制" : "Camera Control"}
+        icon={Camera}
+        open={!sidebarCollapsed.has("camera_control")}
+        onOpenChange={(open) => {
+          const currentlyOpen = !sidebarCollapsed.has("camera_control");
+          if (open !== currentlyOpen) toggleSidebar("camera_control");
+        }}
+      >
+      <div style={styles.section}>
+        <div style={styles.proDirectorBlock} data-testid="pro-shot-recipe-select">
           <EditorSelect
             label={isVideoProject ? tt("camera.shot") : (lang === "zh" ? "构图景别" : "Framing")}
             options={shotOptions.map((o) => ({ label: o.label, value: o.v }))}
@@ -1934,28 +1997,33 @@ export function Sidebar(props: Props) {
             />
           ) : null}
         </div>
-
+        <div style={styles.proDirectorBlock} data-testid="pro-camera-language-style">
+          <EditorSelect
+            label={lang === "zh" ? "镜头语言" : "Camera Language"}
+            options={getUserVisibleCameraLanguageOptions().map((o) => ({
+              label: lang === "zh" ? o.labelZh : o.labelEn,
+              value: o.id
+            }))}
+            value={(() => {
+              const raw = parseCameraLanguageId(scene.notes);
+              if (!raw) return undefined;
+              if (isUserVisibleCameraLanguage(raw)) return raw;
+              return normalizeForUserSelection(raw) || undefined;
+            })()}
+            onChange={(v) => {
+              const nextNotes = applyCameraLanguage(scene.notes ?? "", v ?? "");
+              onUpdateScene({ ...scene, notes: nextNotes });
+            }}
+          />
+        </div>
         {isVideoProject ? (
           <div style={styles.proMotionBlock} data-testid="pro-motion-block">
-            <div style={{ ...styles.proDirectorTitle, color: ec.text }}>{lang === "zh" ? "PRO+ 导演控制" : "PRO+ Director Controls"}</div>
-            <div style={styles.proMotionPanel}>
-              <div data-testid="director-style-pack-select">
-                <EditorSelect
-                  label={lang === "zh" ? "导演级风格包" : "Directing Pack"}
-                  options={[
-                    { label: lang === "zh" ? "自动" : "Auto", value: "" },
-                    ...DIRECTOR_STYLE_PACKS.map((pack) => ({ label: lang === "zh" ? pack.labelZh : pack.labelEn, value: pack.id }))
-                  ]}
-                  value={directorStylePackId ?? ""}
-                  onChange={(v) => updateDirectorStylePack(v)}
-                />
-              </div>
-            </div>
+            <div style={{ ...styles.proDirectorTitle, color: ec.text }}>{lang === "zh" ? "专业运镜" : "Pro Motion"}</div>
             <div style={styles.proMotionPanel} data-testid="pro-motion-plus-panel">
               <div ref={videoProMenuRef} style={styles.proMotionSelectShell}>
                 <div style={{ marginBottom: editorTheme.spacing.fieldMarginBottom }}>
                   <label style={{ display: "block", fontSize: editorTheme.typography.labelSize, fontWeight: editorTheme.typography.labelWeight, color: ec.textMuted, marginBottom: 4 }}>
-                    {lang === "zh" ? "镜头语言" : "Shot Language"}
+                    {lang === "zh" ? "专业运镜" : "Pro Motion"}
                   </label>
                   <div style={{ position: "relative" }}>
                     <button
@@ -2005,19 +2073,6 @@ export function Sidebar(props: Props) {
           </div>
         ) : (
           <div style={styles.proMotionBlock} data-testid="pro-image-block">
-            <div style={styles.proMotionPanel}>
-              <div data-testid="director-style-pack-select">
-                <EditorSelect
-                  label={lang === "zh" ? "导演级风格包" : "Directing Pack"}
-                  options={[
-                    { label: lang === "zh" ? "自动" : "Auto", value: "" },
-                    ...DIRECTOR_STYLE_PACKS.map((pack) => ({ label: lang === "zh" ? pack.labelZh : pack.labelEn, value: pack.id }))
-                  ]}
-                  value={directorStylePackId ?? ""}
-                  onChange={(v) => updateDirectorStylePack(v)}
-                />
-              </div>
-            </div>
             <div style={styles.proMotionPanel}>
               <div ref={imageProMenuRef} style={styles.proMotionSelectShell}>
                 <div style={{ marginBottom: editorTheme.spacing.fieldMarginBottom }}>
@@ -2071,7 +2126,6 @@ export function Sidebar(props: Props) {
             </div>
           </div>
         )}
-
         {isVideoProject && projectShotPlan !== "single" ? (
           <EditorSelect
             label={lang === "zh" ? "衔接方式" : "Transition"}
@@ -2087,14 +2141,13 @@ export function Sidebar(props: Props) {
             disabled={projectShotPlan === "continuous" || safeIdx >= scenes.length - 1}
           />
         ) : null}
-
       </div>
       </EditorSection>
 
-      {/* Camera & Lighting (moved to bottom) */}
+      {/* Lighting / Atmosphere - 光与氛围 */}
       <EditorSection
-        title={lang === "zh" ? "镜头 · 光" : "Camera & Lighting"}
-        icon={Camera}
+        title={lang === "zh" ? "光与氛围" : "Lighting / Atmosphere"}
+        icon={Sun}
         open={!sidebarCollapsed.has("camera_lighting")}
         onOpenChange={(open) => {
           const currentlyOpen = !sidebarCollapsed.has("camera_lighting");
@@ -2163,8 +2216,9 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     background: "transparent",
     color: editorTheme.colors.text,
-    fontSize: 12,
-    fontWeight: 600,
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightMedium,
+    fontFamily: PRO_TYPO.fontFamily,
     cursor: "pointer",
     textAlign: "left",
     borderRadius: 6,
@@ -2193,7 +2247,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   sectionHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 2 },
-  sectionTitle: { fontWeight: 850, fontSize: UI_TYPO.size14, opacity: UI_OPACITY.title, color: "rgba(255,255,255,0.94)", letterSpacing: 0.1 },
+  sectionTitle: { fontWeight: PRO_TYPO.weightBold, fontSize: PRO_TYPO.sm, fontFamily: PRO_TYPO.fontFamily, opacity: UI_OPACITY.title, color: "rgba(255,255,255,0.94)", letterSpacing: 0.1 },
   projectNameRow: {
     display: "grid",
     gridTemplateColumns: "minmax(0,1fr) auto",
@@ -2206,8 +2260,9 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     background: "transparent",
     padding: "8px 10px",
-    fontSize: UI_FONT.body,
-    fontWeight: 800,
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightBold,
+    fontFamily: PRO_TYPO.fontFamily,
     opacity: 0.9,
     whiteSpace: "nowrap",
     overflow: "hidden",
@@ -2221,8 +2276,9 @@ const styles: Record<string, React.CSSProperties> = {
     background: UI_CONTROL.bg.default,
     color: "inherit",
     cursor: "pointer",
-    fontSize: UI_TYPO.size12,
-    fontWeight: 800,
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightBold,
+    fontFamily: PRO_TYPO.fontFamily,
     whiteSpace: "nowrap",
     maxWidth: "100%",
     boxShadow: UI_CONTROL.shadow.soft,
@@ -2242,12 +2298,15 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "none"
   },
   ruleSummaryTitle: {
-    fontSize: UI_TYPO.size12,
-    fontWeight: 900,
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightBold,
+    fontFamily: PRO_TYPO.fontFamily,
     color: UI_INFO.text.title
   },
   ruleSummaryLine: {
-    fontSize: UI_TYPO.size11,
+    fontSize: PRO_TYPO["2xs"],
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily,
     color: UI_INFO.text.body,
     opacity: 0.9
   },
@@ -2259,17 +2318,19 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 8
   },
   mediaHint: {
-    fontSize: 11,
+    fontSize: PRO_TYPO["2xs"],
+    fontWeight: PRO_TYPO.weightBold,
+    fontFamily: PRO_TYPO.fontFamily,
     lineHeight: 1.35,
     opacity: 0.55,
-    fontWeight: 800,
     padding: "0 2px 10px 2px"
   },
   profileHint: {
-    fontSize: 11,
+    fontSize: PRO_TYPO["2xs"],
+    fontWeight: PRO_TYPO.weightBold,
+    fontFamily: PRO_TYPO.fontFamily,
     lineHeight: 1.35,
     opacity: 0.68,
-    fontWeight: 800,
     padding: "0 2px 6px 2px"
   },
 
@@ -2280,8 +2341,9 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(255,255,255,0.05)",
     color: "inherit",
     cursor: "pointer",
-    fontSize: 12,
-    fontWeight: 900,
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightBold,
+    fontFamily: PRO_TYPO.fontFamily,
     userSelect: "none",
     outline: "none",
     padding: "0 10px",
@@ -2314,9 +2376,10 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: UI_SIZE.controlH,
     display: "flex",
     alignItems: "center",
-    fontSize: UI_FONT.body,
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightBold,
+    fontFamily: PRO_TYPO.fontFamily,
     opacity: UI_OPACITY.label,
-    fontWeight: 900,
     lineHeight: 1.3
   },
   addInput: {
@@ -2329,8 +2392,9 @@ const styles: Record<string, React.CSSProperties> = {
     color: UI_COLOR.text,
     outline: "none",
     padding: "0 10px",
-    fontSize: UI_FONT.body,
-    fontWeight: 800
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightBold,
+    fontFamily: PRO_TYPO.fontFamily
   },
   addInputSmall: {
     width: "clamp(74px, 28%, 92px)",
@@ -2341,8 +2405,9 @@ const styles: Record<string, React.CSSProperties> = {
     color: UI_COLOR.text,
     outline: "none",
     padding: "0 10px",
-    fontSize: UI_FONT.body,
-    fontWeight: 800,
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightBold,
+    fontFamily: PRO_TYPO.fontFamily,
     textAlign: "right"
   },
   addActions: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2, flexWrap: "wrap" },

@@ -8,7 +8,7 @@ description: Use when working on ScenePilotix across multiple threads or when a 
 Use this skill for any ScenePilotix task that can create cross-thread drift, especially:
 
 - product flow changes
-- Quick / Pro boundary changes
+- workspace boundary changes (single Pro)
 - save / open / export / import changes
 - file menu changes
 - project library or storage changes

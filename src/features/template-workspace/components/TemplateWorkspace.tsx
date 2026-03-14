@@ -13,7 +13,7 @@ import { useTemplateFavorites } from "../hooks/useTemplateFavorites";
 import { addToRecent } from "../../../data/templateWorkspaceData";
 import { TemplateWorkspaceHeader } from "./TemplateWorkspaceHeader";
 import { TemplateWorkspaceSidebar } from "./TemplateWorkspaceSidebar";
-import { TemplateWorkspaceGrid } from "./TemplateWorkspaceGrid";
+import { TemplateGridContainer } from "./TemplateGridContainer";
 import { TemplateWorkspaceDetail } from "./TemplateWorkspaceDetail";
 
 const colors = {
@@ -78,7 +78,7 @@ export function TemplateWorkspace({
           onScopeChange={(s) => update({ scope: s, selectedCategory: null })}
           onCategoryChange={(c) => update({ selectedCategory: c, scope: "all" })}
         />
-        <TemplateWorkspaceGrid
+        <TemplateGridContainer
           lang={lang}
           items={filtered}
           view={state.view}

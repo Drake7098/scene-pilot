@@ -150,7 +150,7 @@ TemplateWorkspace (打开时)
 | TemplateCategoryNav | features | ✅ | - | - | ✅ |
 | TemplateFilterBar | features | ✅ | - | - | 独立组件，Header 内联筛选 |
 | TemplateSearchBar | features | ✅ | - | - | 独立组件，Header 内含 |
-| TemplateQuickEntry | features | ✅ | - | - | ✅ 最近/收藏，Sidebar 使用 |
+| TemplateSidebarEntry | features | ✅ | - | - | ✅ 最近/收藏，Sidebar 使用 |
 
 ### 4.2 旧组件（未使用）
 

@@ -1,5 +1,6 @@
 /**
- * Template Workspace feature module - public API.
+ * Template Workspace feature module - UI layer.
+ * Template logic lives in template-engine.
  */
 
 export { TemplateWorkspace } from "./components/TemplateWorkspace";
@@ -9,6 +10,7 @@ export type { TemplateWorkspaceState } from "./state/templateWorkspaceState";
 export type { TemplateIndex } from "./model/templateIndex";
 export type { TemplatePayload } from "./model/templatePayload";
 export type { ApplyTemplateMode } from "./model/templateFilter";
-export { getTemplateWorkspaceItemFromIndex, getTemplateMetadataFromIndex } from "./adapters/legacyAdapter";
-export { applyTemplateFromIndex } from "./services/templateApplyService";
-export { TemplateQuickEntry } from "./components/TemplateQuickEntry";
+export { getTemplateWorkspaceItemFromIndex } from "./adapters/legacyAdapter";
+export { getTemplateMetadataFromIndex, getTemplateIndex, applyTemplateFromIndex } from "../../template-engine";
+export { TemplateSidebarEntry } from "./components/TemplateSidebarEntry";
+export { CurrentTemplateContext } from "./components/CurrentTemplateContext";

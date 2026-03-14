@@ -50,8 +50,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: `${LEGAL_COMPANY_PROFILE.brandName}（以下简称“我们”）向全球用户提供网站、应用、API、快捷工作台、Pro 工作台及相关付费功能。你在注册、登录、访问或使用服务时，即表示你同意本协议。`,
-            en: `${LEGAL_COMPANY_PROFILE.brandName} ("we", "us", or "our") provides the website, apps, APIs, Quick Workspace, Pro Workspace, and related paid features globally. By registering, signing in, accessing, or using the service, you agree to these Terms.`
+            zh: `${LEGAL_COMPANY_PROFILE.brandName}（以下简称“我们”）向全球用户提供网站、应用、API、工作台及相关付费功能。你在注册、登录、访问或使用服务时，即表示你同意本协议。`,
+            en: `${LEGAL_COMPANY_PROFILE.brandName} ("we", "us", or "our") provides the website, apps, APIs, workspace, and related paid features globally. By registering, signing in, accessing, or using the service, you agree to these Terms.`
           },
           {
             zh: `付费订单由 Paddle 处理；在 Paddle 托管结账页、发票和收据中会展示法定销售主体、注册地址、税费与付款信息。客服联系方式：${LEGAL_COMPANY_PROFILE.supportEmail}。`,

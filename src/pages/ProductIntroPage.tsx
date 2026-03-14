@@ -27,9 +27,8 @@ const MODULES = {
       id: "overview",
       title: "产品定位",
       bullets: [
-        "Quick：快试方向，适合试方向与快速迭代",
-        "Pro：稳做交付，适合商业交付与协作复用",
-        "模式边界清晰，按需切换"
+        "工作台：结构编辑、模板驱动、导出验证",
+        "稳做交付，适合商业交付与协作复用"
       ]
     },
     {
@@ -75,9 +74,8 @@ const MODULES = {
       id: "overview",
       title: "Positioning",
       bullets: [
-        "Quick: fast direction testing and iteration",
-        "Pro: stable delivery, commercial handoff, reuse",
-        "Clear mode boundaries, switch as needed"
+        "Workspace: structure editing, template-driven flow, export validation",
+        "Stable delivery, commercial handoff, reuse"
       ]
     },
     {
@@ -103,7 +101,7 @@ const MODULES = {
       id: "export",
       title: "Export",
       bullets: [
-        "Quick Export: send prompt to model platform, test direction and composition",
+        "Prompt TXT Export: send prompt to model platform, test direction and composition",
         "Package: prompt + refs + readme, for handoff and reuse",
         "Current Scene / Continuity Sequence: choose export scope"
       ]

@@ -24,14 +24,6 @@ This folder contains a minimal robot testing scaffold for Phase 5.
 - `requiredPassRate`: required-fragment pass rate (`1 - missingRequiredCases/total`)
 - `forbiddenCleanRate`: forbidden-fragment clean rate (`1 - forbiddenHitCases/total`)
 
-## Layout Guard Policy
-- `quick_workspace_layout_guard` is now a P0 gate in default robot runs.
-- It validates Quick Workspace in both `zh` and `en` for:
-  - no overlap between step-1 and step-2 input capsules
-  - dropdown selected text fits available width (no clipping/half-text)
-  - dropdown width is not excessively loose (prevents large blank area + useless wrapping)
-  - capsule field height remains within a compact bound
-
 ## Functional Capability Gates
 - Default robot runs now audit an explicit capability matrix before final gate pass/fail.
 - Capability manifest: [`tests/robots/config/functional-capabilities.json`](/Users/dk/scene-pilot/tests/robots/config/functional-capabilities.json)
@@ -39,13 +31,9 @@ This folder contains a minimal robot testing scaffold for Phase 5.
   - `tests/robots/artifacts/functional-audit.json`
   - `tests/robots/artifacts/functional-audit.md`
 - Current blocker capabilities include:
-  - Quick 本地图片生成 / refine / 结构调整
-  - Quick 回退 ComfyUI
-  - Quick 双离线任务包
-  - Quick 进入 Pro 承接
   - Pro 图片/视频媒体契约
   - Pro 保存/另存/导出
-  - Quick 布局守卫
+  - 项目菜单连续流
 
 ## Daily Automation
 - GitHub Actions workflow: `.github/workflows/robots-daily.yml`

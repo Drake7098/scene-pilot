@@ -1,0 +1,19 @@
+{
+  "id": "product_center_display",
+  "name": "Product Center Display",
+  "nameZh": "产品居中展示",
+  "category": "product",
+  "description": "Product centered display layout",
+  "descriptionZh": "产品居中展示布局",
+  "mediaType": "image",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": ["cu", "mcu", "ms"],
+  "movementRange": ["static"],
+  "cameraLanguageRange": ["product_quality", "commercial_ad"],
+  "lightingRange": { "time": ["day"], "keyDir": ["top_left", "top_right", "backlight"], "mood": ["bright"] },
+  "compositionRange": ["center_pressure", "hero_center", "clean_layering"],
+  "objectTypes": ["product", "prop"],
+  "advancedTags": ["advanced_camera", "multi_object"],
+  "variants": ["product_center_display_free_starter", "product_center_display_basic_wide", "product_center_display_basic_close", "product_center_display_cinematic"]
+}

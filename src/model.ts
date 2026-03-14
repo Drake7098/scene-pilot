@@ -119,9 +119,55 @@ export type Scene = {
   notes: string;
 };
 
+/** Current template context - which template was applied to this project. */
+export type CurrentTemplateContext = {
+  templateId: string;
+  familyId: string;
+  familyNameZh: string;
+  familyNameEn: string;
+  variantId: string;
+  variantNameZh?: string;
+  variantNameEn?: string;
+  titleZh: string;
+  titleEn: string;
+  category: string;
+  domain: string;
+  tier?: string;
+  cost: number;
+  isFree: boolean;
+  applyMode: "layout_only" | "layout_plus_style" | "full_workflow";
+  appliedAt?: number;
+  fromTemplateWorkspace?: boolean;
+};
+
+export type ProExportMode = "prompt_only" | "package";
+
+/** Project-level metadata for billing, tracking, future backend sync. */
+export type ProjectMeta = {
+  /** Template IDs already charged in this project - no repeat charge after refresh. */
+  appliedTemplateIds?: string[];
+  /** Current template applied to this project (serializable, persists with project). */
+  currentTemplate?: CurrentTemplateContext;
+  /** Pro workspace export mode: quick (prompt only) or package (prompt+refs). Persists with project. */
+  proExportMode?: ProExportMode;
+};
+
+/** Continuity config from template apply; matches TemplateContinuity. */
+export type ProjectContinuity = {
+  enabled?: boolean;
+  characterCarryOver?: boolean;
+  directionCarryOver?: boolean;
+  cameraCarryOver?: boolean;
+  bgCarryOver?: boolean;
+  referenceSlots?: unknown[];
+};
+
 export type Project = {
   project: { mode: Mode; mediaType?: MediaType; shotPlan?: ShotPlan; creativeContext?: ProjectCreativeContext };
   scenes: Scene[];
+  meta?: ProjectMeta;
+  /** From payload.continuity when template applied. */
+  continuity?: ProjectContinuity;
 };
 
 const MEDIA_MARK = "media:";
@@ -424,6 +470,49 @@ export function sanitizeProject(p: Project): Project {
       s.transitionType = transition ?? "cut";
     }
   });
+
+  // project.meta - appliedTemplateIds + currentTemplate
+  const metaRaw = (p as any).meta;
+  if (metaRaw && typeof metaRaw === "object") {
+    const appliedIds = Array.isArray(metaRaw.appliedTemplateIds)
+      ? (metaRaw.appliedTemplateIds as unknown[])
+          .filter((id): id is string => typeof id === "string" && id.length > 0)
+          .slice(0, 500)
+      : [];
+    let currentTpl: CurrentTemplateContext | undefined;
+    const ct = metaRaw.currentTemplate;
+    if (ct && typeof ct === "object" && typeof ct.templateId === "string" && ct.templateId.length > 0) {
+      currentTpl = {
+        templateId: String(ct.templateId),
+        familyId: String(ct.familyId ?? ""),
+        familyNameZh: String(ct.familyNameZh ?? ""),
+        familyNameEn: String(ct.familyNameEn ?? ""),
+        variantId: String(ct.variantId ?? ""),
+        variantNameZh: ct.variantNameZh != null ? String(ct.variantNameZh) : undefined,
+        variantNameEn: ct.variantNameEn != null ? String(ct.variantNameEn) : undefined,
+        titleZh: String(ct.titleZh ?? ""),
+        titleEn: String(ct.titleEn ?? ""),
+        category: String(ct.category ?? ""),
+        domain: String(ct.domain ?? ""),
+        tier: ct.tier != null ? String(ct.tier) : undefined,
+        cost: Number(ct.cost) || 0,
+        isFree: Boolean(ct.isFree),
+        applyMode:
+          ct.applyMode === "layout_plus_style"
+            ? "layout_plus_style"
+            : ct.applyMode === "full_workflow"
+              ? "full_workflow"
+              : "layout_only",
+        appliedAt: typeof ct.appliedAt === "number" ? ct.appliedAt : undefined,
+        fromTemplateWorkspace: ct.fromTemplateWorkspace === true
+      };
+    }
+    const proExportMode: ProExportMode = metaRaw.proExportMode === "package" ? "package" : "prompt_only";
+    p.meta = { appliedTemplateIds: appliedIds, currentTemplate: currentTpl, proExportMode };
+  } else {
+    p.meta = { appliedTemplateIds: [], proExportMode: "prompt_only" as ProExportMode };
+  }
+
   p.scenes = scenes;
   return p;
 }

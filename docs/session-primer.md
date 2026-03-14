@@ -14,6 +14,12 @@
 
 ## 近期完成（2026-03-14 附近）
 
+### 快捷工作台删除
+- Quick Workspace 前台主入口已删除，默认工作台统一为 Pro
+- 删除 `quick-workspace/`、`quickWorkspacePromptV3.ts`、`ResultConsole.tsx`
+- `exportMode.quick` → `prompt_only`，`TemplateQuickEntry` → `TemplateSidebarEntry`
+- Landing、App、文档、skills 已同步更新；genMode quick 保留（场景级）
+
 ### 模板系统重构 Step 3
 - 新增 200 个连续叙事模板（100 网剧 + 100 动漫）
 - 网剧 20 家族×5 变体，动漫 20 家族×5 变体

@@ -1,6 +1,7 @@
 /**
- * Apply template to current project.
- * Minimal implementation: clone scene from SceneTemplate and update project.
+ * @deprecated 主流程已改用 template-engine applyPayloadToProject。
+ * 仅保留供历史兼容，禁止新逻辑调用。
+ * Apply template to current project (legacy - use template-engine instead).
  */
 
 import type { Project, Scene } from "../model";
