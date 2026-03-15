@@ -15,18 +15,18 @@ Last updated: 2026-03-13
 - `develop`: 测试环境主分支（持续联调）
 - `main`: 正式环境主分支（只放已验收版本）
 
-### 发布流程
-1. 开发分支合并到 `develop`，自动部署测试服。
-2. 测试通过后将 `develop` 合并到 `main`，自动部署正式服。
+### 发布流程（2026-03-15 起，快捷优先）
+1. push **develop** → 自动部署 **develop 服务器**（scene-pilot-test，域名 scene-pilot-test.pages.dev）。
+2. 确认 develop 服务器无误后，merge 到 main 并 push **main** → 自动部署正式服（scene-pilot-prod）。允许直接 push，不强制 PR。
 
-### Cloudflare Pages 建议项目
-- `scene-pilot-test` -> Production branch: `develop`
-- `scene-pilot-prod` -> Production branch: `main`
+### Cloudflare Pages 项目
+- `scene-pilot-test` → Production branch: `develop`（develop 服务器，域名 scene-pilot-test.pages.dev）
+- `scene-pilot-prod` → Production branch: `main`（正式服）
 
 ## 当前发布状态（2026-03-13）
 
 - 代码侧：登录回跳、fail-closed、`/api/auth/password/sign-in`、`AUTH_DEV_CODE_EXPOSE` 默认关闭，已完成。
-- 测试服：`https://scene-pilot-test.pages.dev` 冒烟通过（`/api/generation/providers=401`、`/api/billing/me=401`、`/api/paddle/checkout=503`）。
+- develop 服务器：`https://scene-pilot-test.pages.dev` 冒烟通过（`/api/generation/providers=401`、`/api/billing/me=401`、`/api/paddle/checkout=503`）。
 - 预正式服：`https://scene-pilot-prod.pages.dev` 冒烟通过（同上）。
 - 生产域名：`https://www.scenepilotix.com` 已绑定 `scene-pilot-prod` 并通过最终冒烟（`200/401/503`）。
 - 结论：Stage-1 发布链路收口完成（支付仍按 `BILLING_ENABLED=0` 关闭，待 Paddle 正式联调再开启）。

@@ -169,7 +169,17 @@
 
 ---
 
-## 8. Template 系统可用性判断
+## 8. Help System
+
+| 项目 | 状态 |
+|------|------|
+| **状态** | **FROZEN** |
+| **说明** | Help 重构 V2 完成（Stage 1–5）。14 section、helpContent、helpGroups、HelpModal/Layout/Sidebar/Panel 为正式架构。 |
+| **约束** | 不允许回退到 App 内联 Help、placeholder、quick_start/pro_motion 等旧 section；见 `docs/help-system-final.md`、AGENTS.md Help 规则。 |
+
+---
+
+## 9. Template 系统可用性判断
 
 ### 是否可以冻结架构
 
@@ -189,7 +199,7 @@
 
 ---
 
-## 9. 风险等级
+## 10. 风险等级
 
 **MEDIUM**
 
@@ -199,7 +209,7 @@
 
 ---
 
-## 10. 总结
+## 11. 总结
 
 ### 当前系统是否可以进入 Template Workspace 开发阶段
 

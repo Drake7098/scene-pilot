@@ -1,31 +1,19 @@
 /**
- * Help Center — layout: sidebar + scroll panel.
+ * Help Center — layout: fixed sidebar + scrollable panel (Stage 3).
+ * Panel scrolls; modal does not. Desktop: sidebar 200px, panel flex. Narrow: section dropdown + panel.
  */
 
 import React from "react";
 import type { HelpSectionId } from "./types";
 import { HelpSidebar } from "./HelpSidebar";
 import { HelpPanel, type HelpPanelFeedbackProps } from "./HelpPanel";
+import { HELP_GROUPS } from "./helpGroups";
+import { getHelpSections } from "./helpSections";
+import { helpModalStyles, helpColors } from "./helpStyles";
 
 type Lang = "zh" | "en";
 
-const styles = {
-  body: {
-    marginTop: 10,
-    display: "grid" as const,
-    gridTemplateColumns: "180px minmax(0,1fr)",
-    gap: 10,
-    minHeight: 0,
-    overflow: "hidden" as const
-  },
-  bodyNarrow: {
-    gridTemplateColumns: "1fr" as const
-  },
-  navWrap: {
-    minHeight: 0,
-    overflow: "hidden" as const
-  }
-};
+const allSectionIds: HelpSectionId[] = HELP_GROUPS.flatMap((g) => g.sections);
 
 export function HelpLayout({
   sectionId,
@@ -41,16 +29,40 @@ export function HelpLayout({
   feedbackProps?: HelpPanelFeedbackProps | null;
 }) {
   const narrow = viewportWidth < 760;
+  const sectionLabels = React.useMemo(
+    () => Object.fromEntries(getHelpSections(lang).map((s) => [s.id, s.label])),
+    [lang]
+  );
+
   return (
-    <div
-      style={{
-        ...styles.body,
-        ...(narrow ? styles.bodyNarrow : {})
-      }}
-    >
-      <div style={styles.navWrap}>
+    <div style={helpModalStyles.body}>
+      {!narrow ? (
         <HelpSidebar sectionId={sectionId} onSelect={setSectionId} lang={lang} />
-      </div>
+      ) : (
+        <div style={{ padding: "8px 0 12px", borderBottom: `1px solid ${helpColors.border}`, marginBottom: 8 }}>
+          <select
+            data-testid="help-center-section-select"
+            value={sectionId}
+            onChange={(e) => setSectionId(e.target.value as HelpSectionId)}
+            style={{
+              width: "100%",
+              padding: "8px 10px",
+              borderRadius: 8,
+              border: `1px solid ${helpColors.border}`,
+              background: helpColors.bg,
+              color: helpColors.text,
+              fontSize: 12,
+              fontWeight: 600
+            }}
+          >
+            {allSectionIds.map((id) => (
+              <option key={id} value={id}>
+                {sectionLabels[id] ?? id}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <HelpPanel sectionId={sectionId} lang={lang} feedbackProps={feedbackProps} />
     </div>
   );

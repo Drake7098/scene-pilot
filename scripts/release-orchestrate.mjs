@@ -60,7 +60,7 @@ function runStep(label, command, args, options = {}) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
-  const targetAppUrl = args.appUrl || (args.target === "test" ? "https://scene-pilot-12y.pages.dev" : "https://www.scenepilotix.com");
+  const targetAppUrl = args.appUrl || (args.target === "test" ? "https://scene-pilot-test.pages.dev" : "https://www.scenepilotix.com");
 
   console.log(JSON.stringify({
     target: args.target,

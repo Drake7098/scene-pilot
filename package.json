@@ -82,6 +82,7 @@
     "release:secrets:clear": "bash scripts/release-secrets-keychain.sh clear",
     "release:safe": "bash scripts/release-safe.sh",
     "release:orchestrate": "node scripts/release-orchestrate.mjs",
+    "deploy:prod": "git checkout main && git merge develop && git push origin main && git checkout develop",
     "template-assets:images": "npx tsx scripts/template-assets/render-images.ts",
     "template-assets:videos": "npx tsx scripts/template-assets/render-videos.ts",
     "template-assets:score": "npx tsx scripts/template-assets/score-assets.ts",

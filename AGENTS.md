@@ -83,3 +83,12 @@
 - 涉及提示词生成、场景调度、平台适配、genMode quick/pro 提示词差异、creative context 路由、provider 路由时，必须先使用仓库内 skill：`/Users/dk/scene-pilot/.codex/skills/prompt-engine-architecture/SKILL.md`
 - 这类任务必须先判断改动属于：结构层、适配层还是执行层。
 - 不允许把平台适配、provider 执行、UI 文案和 prompt 结构改动混在一起不加区分。
+
+## Help System
+- Help 架构已冻结；见 `docs/help-system-final.md`、`docs/help-ui-structure-v1.md`。
+- **不允许**在 App.tsx 中写 Help 内容或 Help 专用 JSX（如按 helpCenterSection 分支渲染正文）。
+- Help **内容**必须写在 `src/features/help-center/helpContent.ts`；不得用 placeholder 或临时占位正文。
+- **Section** 必须在 `helpSections.ts` 定义（id + labelZh/labelEn）；不得恢复 quick_start、pro_motion_beginner、pro_motion_advanced 等旧 id 作为主 Help 来源。
+- Help **UI** 必须在 `src/features/help-center`（HelpModal、HelpLayout、HelpSidebar、HelpPanel、helpStyles）；不得在 App 中增加 help 专用样式或内联 Help 布局。
+- **不允许** placeholder 式 Help（无 getPlaceholderContent、无占位 section）。
+- **不允许** legacy Help JSX 或 quick_start 写回。

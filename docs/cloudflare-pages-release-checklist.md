@@ -1,12 +1,18 @@
 # Cloudflare Pages 上线配置清单（并行开发版）
 
-Last updated: 2026-03-13
+Last updated: 2026-03-15
+
+## 当前拓扑
+
+- **develop 服务器**：Cloudflare 项目名 **scene-pilot-test**，域名 scene-pilot-test.pages.dev，部署分支 develop。
+- **正式服**：scene-pilot-prod，部署分支 main。
+- push **develop** → scene-pilot-test 自动部署；push **main** → scene-pilot-prod 自动部署。允许直接 push，不强制 PR。
 
 ## 目标
 
-- 在并行线程持续开发时，保证测试服与正式服配置可控，不被未收口改动污染上线结果。
+- 保证 develop 与正式服配置可控；发布顺序推荐先 push develop，确认后再 push main 更新 prod。
 
-## A. 先做隔离检查（本地）
+## A. 先做隔离检查（本地，可选）
 
 1. `npm run release:readiness -- --target test`
 2. `npm run release:readiness -- --target prod`
@@ -17,9 +23,9 @@ Last updated: 2026-03-13
 - `parallel_active_tasks:*`
 - `branch_mismatch:*`
 
-## B. Cloudflare Pages 测试服（develop）
+## B. Cloudflare Pages develop 服务器（develop）
 
-项目：`scene-pilot-test`
+项目：`scene-pilot-test`，Production branch: `develop`，域名：scene-pilot-test.pages.dev
 
 ### Build 环境变量（前端）
 
@@ -27,7 +33,7 @@ Last updated: 2026-03-13
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_APP_BASE_URL=https://scene-pilot-test.pages.dev`
 - `VITE_BILLING_ENABLED=0`
-- `VITE_AUTH_MOCK_FALLBACK=0`（测试服建议关闭，避免误判）
+- `VITE_AUTH_MOCK_FALLBACK=0`
 
 ### Functions 环境变量（服务端）
 
@@ -38,9 +44,7 @@ Last updated: 2026-03-13
 - `BILLING_ENABLED=0`
 - `AUTH_DEV_CODE_EXPOSE=0`
 
-审计命令（需 API token）：
-
-- `CF_API_TOKEN=... CF_ACCOUNT_ID=... npm run release:cloudflare:audit`
+审计命令（需 API token）：`CF_API_TOKEN=... CF_ACCOUNT_ID=... npm run release:cloudflare:audit`
 
 ## C. Cloudflare Pages 正式服（main）
 
@@ -87,7 +91,7 @@ Last updated: 2026-03-13
 
 也可一键编排：
 
-- 测试服：`npm run release:orchestrate -- --target test --app-url https://scene-pilot-test.pages.dev`
+- develop 服务器：`npm run release:orchestrate -- --target test --app-url https://scene-pilot-test.pages.dev`
 - 正式服：`npm run release:orchestrate -- --target prod --app-url https://scene-pilot-prod.pages.dev`
 
 通过标准：

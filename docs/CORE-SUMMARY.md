@@ -13,11 +13,11 @@
 | **支付** | Paddle | checkout / customer-portal / webhook |
 | **本地 DB（开发）** | Cloudflare D1 | `wrangler.toml` 绑定 `scene-pilot-db` |
 
-### 环境 URL
+### 环境 URL（2026-03-15：develop 服务器 = scene-pilot-test.pages.dev，正式服 = prod）
 
 | 环境 | 项目名 | URL | 分支 |
 |------|--------|-----|------|
-| 测试服 | scene-pilot-test | https://scene-pilot-test.pages.dev | develop |
+| develop 服务器 | scene-pilot-test | https://scene-pilot-test.pages.dev | develop |
 | 正式服 | scene-pilot-prod | https://scene-pilot-prod.pages.dev | main |
 | 正式域名 | scene-pilot-prod | https://www.scenepilotix.com | main |
 
@@ -56,22 +56,21 @@ npm run db:query:local -- "SELECT ..."
 
 ## 三、Git 规则
 
-### 分支策略
+### 分支策略（快捷优先，允许直接 push）
 
 | 分支 | 用途 | 自动部署 |
 |------|------|----------|
-| develop | 测试环境、持续联调 | scene-pilot-test |
-| main | 正式环境、已验收版本 | scene-pilot-prod |
+| develop | develop 服务器、先更新 | scene-pilot-test |
+| main | 正式服、确认 develop 后再更新 | scene-pilot-prod |
 
-### 合并流程
+### 发布流程
 
 ```
-local → develop（PR）→ main（PR）
+push develop → develop 服务器更新 → 确认后 push main → 正式服更新
 ```
 
-- `develop`、`main` 默认只允许 PR 合并，不允许直接 push
-- PR 闸门：`.github/workflows/pr-gate.yml`
-- 上线前必须：`npm run release:readiness -- --target test|prod`
+- 允许直接 push develop / main，不强制 PR；推荐先 push develop，再 push main。
+- 可选：PR 闸门 `.github/workflows/pr-gate.yml`；`npm run release:readiness -- --target test|prod`。
 
 ### 并行开发防污染
 

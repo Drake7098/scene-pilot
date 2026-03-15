@@ -2,7 +2,7 @@
 
 Last updated: 2026-03-13
 
-## 测试环境（scene-pilot-test / develop）
+## develop 服务器（scene-pilot-test / develop，域名 scene-pilot-test.pages.dev）
 
 ### 前端（公开变量）
 - `VITE_SUPABASE_URL=https://sampclwsqputkeswqbbu.supabase.co`
@@ -117,7 +117,7 @@ Last updated: 2026-03-13
 
 ## 可复制模板（体验优先）
 
-### Test Functions（scene-pilot-test）
+### develop 服务器 Functions（scene-pilot-test）
 
 ```bash
 SUPABASE_URL=https://sampclwsqputkeswqbbu.supabase.co

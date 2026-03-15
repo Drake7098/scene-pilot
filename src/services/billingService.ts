@@ -36,11 +36,11 @@ export const PRICING_V2_PLAN_PACKS: CreditPackConfig[] = [
   { id: "plan_1200", name: "1200 credits", usdPrice: 60, credits: 1200, priceId: (import.meta.env.VITE_PADDLE_PRICE_PLAN_1200 as string | undefined)?.trim(), enabled: true },
 ];
 
-/** Pricing Final: $3/150, $8/420, $15/800 */
+/** Pricing Final: $3→150, $8→420, $15→800 */
 export const PRICING_FINAL_CREDIT_PACKS: CreditPackConfig[] = [
-  { id: "pack_150", name: "150 Credits", usdPrice: 3, credits: 150, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_150 as string | undefined)?.trim(), enabled: true },
-  { id: "pack_420", name: "420 Credits", usdPrice: 8, credits: 420, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_420 as string | undefined)?.trim(), enabled: true },
-  { id: "pack_800", name: "800 Credits", usdPrice: 15, credits: 800, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_800 as string | undefined)?.trim(), enabled: true },
+  { id: "pack_3", name: "150 Credits", usdPrice: 3, credits: 150, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_3 as string | undefined)?.trim(), enabled: true },
+  { id: "pack_8", name: "420 Credits", usdPrice: 8, credits: 420, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_8 as string | undefined)?.trim(), enabled: true },
+  { id: "pack_15", name: "800 Credits", usdPrice: 15, credits: 800, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_15 as string | undefined)?.trim(), enabled: true },
 ];
 
 /** All credit packs (legacy + V2 + final) for checkout lookup */

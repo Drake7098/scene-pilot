@@ -161,17 +161,12 @@ Last updated: 2026-03-13
 - 本地运行健康检查统一命令：`npm run health:local`
 
 ## Infra Migration (Stage-1 Active)
-- 目标架构切换为：Cloudflare Pages（前端）+ Supabase Auth/Postgres（登录与主库）+ Paddle（支付）。
-- 发布拓扑切换为双分支双环境：
-- `develop` -> 测试服
-- `main` -> 正式服（`www.scenepilotix.com`）
-- 当前 Cloudflare Pages 项目：
-- `scene-pilot-test` -> `https://scene-pilot-test.pages.dev`
-- `scene-pilot-prod` -> `https://scene-pilot-prod.pages.dev`
-- 合并策略统一为三级流转：
-- `local -> develop(测试服) -> main(正式服)`
-- `develop`、`main` 默认只允许 PR 合并，不允许直接 push。
-- PR 合并闸门见：`/Users/dk/scene-pilot/.github/workflows/pr-gate.yml`
+- 目标架构：Cloudflare Pages（前端）+ Supabase Auth/Postgres（登录与主库）+ Paddle（支付）。
+- **当前发布拓扑（2026-03-15 起，快捷优先）**：删除了 test（scene-pilot-test）；保留 **develop 服务器** + **prod 正式服**。
+- `develop` -> develop 服务器（scene-pilot-test）：`https://scene-pilot-test.pages.dev`，push develop 即更新。
+- `main` -> 正式服（scene-pilot-prod）：`https://scene-pilot-prod.pages.dev` / `www.scenepilotix.com`，push main 即更新。
+- **允许直接 push**：不要求必须 PR 合并；推荐先 push develop，确认 develop 服务器无误后再 push main 更新 prod。安全闸门（PR/审批）以后再加。
+- PR 闸门（可选）：`.github/workflows/pr-gate.yml` 仍可对 PR 跑检查；分支保护不强制开启，可直接 push。
 - 支付环境保险已启用：
 - 前端：`VITE_BILLING_MODE` + `VITE_BILLING_LIVE_ALLOWED` + `VITE_BILLING_ALLOW_MOCK_FALLBACK`
 - 服务端：`BILLING_MODE` + `BILLING_LIVE_ALLOWED`

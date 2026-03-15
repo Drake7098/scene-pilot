@@ -5585,51 +5585,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: UI_PALETTE.text.primary,
     opacity: 0.96
   },
-  helpCenterHead: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8
-  },
-  helpCenterBody: {
-    marginTop: 10,
-    display: "grid",
-    gridTemplateColumns: "180px minmax(0,1fr)",
-    gap: 10,
-    minHeight: 0,
-    overflow: "hidden"
-  },
-  helpCenterNav: {
-    display: "grid",
-    gap: 6,
-    alignContent: "start",
-    minHeight: 0,
-    overflowY: "auto",
-    paddingRight: 4
-  },
-  helpCenterNavBtn: {
-    textAlign: "left",
-    padding: "8px 10px",
-    borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
-    color: UI_PALETTE.text.primary,
-    fontSize: 12,
-    fontWeight: 800,
-    cursor: "pointer"
-  },
-  helpCenterNavBtnOn: {
-    border: `1px solid ${UI_PALETTE.border.active}`,
-    background: UI_PALETTE.surface.surfaceActive
-  },
-  helpCenterPanel: {
-    minHeight: 280,
-    border: `1px solid ${UI_PALETTE.border.soft}`,
-    borderRadius: UI_RADIUS.control,
-    background: UI_PALETTE.surface.surface1,
-    padding: "10px 12px",
-    overflow: "auto"
-  },
   wizardBrand: {
     fontSize: 11,
     letterSpacing: 1,

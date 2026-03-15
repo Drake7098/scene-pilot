@@ -246,16 +246,17 @@ function variantRatio(v: TemplateVariant): UnifiedTemplate["ratio"] {
   return "16:9";
 }
 
+/** Template cost: 0=free, 1=basic, 2=advanced, 3=director/continuity/multi-shot. */
 function templateCost(family: (typeof FAMILIES)[0], variant: TemplateVariant): number {
   if (variant === "free_starter") return 0;
-  if (variant === "multi_object" || variant === "advanced_motion") return 5;
-  if (family.category === "continuous") return 5;
-  return 3;
+  if (family.category === "continuous") return 3;
+  if (variant === "multi_object" || variant === "advanced_motion") return 2;
+  return 1;
 }
 
 function computeAdvancedTags(family: (typeof FAMILIES)[0], variant: TemplateVariant, cost: number): string[] {
   const tags: string[] = [];
-  if (cost >= 5) tags.push("advanced_camera");
+  if (cost >= 2) tags.push("advanced_camera");
   if (family.category === "continuous") tags.push("continuity");
   if (family.storyPlan === "multi_cam") tags.push("multi_scene");
   if (variant === "cinematic") tags.push("cinematic_mode");

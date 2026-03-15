@@ -1,7 +1,8 @@
 /**
- * LEGACY Help content — preserved for Stage 2 migration reference.
- * Do not render in new Help UI. Old section ids: quick_start, pro_motion_beginner,
- * pro_motion_advanced, export, troubleshoot, feedback, about.
+ * LEGACY Help content — preserved for reference only (Stage 4).
+ * Do not import this file. New Help uses helpContent.ts + 14-section structure.
+ * Old section ids: quick_start, pro_motion_beginner, pro_motion_advanced,
+ * export, troubleshoot, feedback, about.
  */
 
 export type LegacyHelpSectionId =

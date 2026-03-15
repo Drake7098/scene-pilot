@@ -16,22 +16,23 @@ Last updated: 2026-03-15
 
 1. Header — 进入工作台 (top CTA)
 2. 方案分层 — Free / Pro / Enterprise 三列
-3. Credits 充值 — Starter $3/20, Standard $8/60, Creator $18/160
-4. Credits 如何使用 — 普通 3 / 高级 5 / 连续 5
+3. Credits 充值 — $3→150, $8→420, $15→800（pack_3, pack_8, pack_15）
+4. Credits 如何使用 — 模板 cost 0=免费 / 1=基础 / 2=高级 / 3=导演级·连续·多镜
 5. 未来生成费用说明
 6. FAQ
 7. 底部 CTA — 结构化创作，不是反复碰运气...
 
 ## Credit packs (final)
 
-| Tier     | USD | Credits |
-|----------|-----|---------|
-| Starter  | $3  | 20      |
-| Standard | $8  | 60      |
-| Creator  | $18 | 160     |
+| Product id | USD | Credits |
+|------------|-----|---------|
+| pack_3     | $3  | 150     |
+| pack_8     | $8  | 420     |
+| pack_15    | $15 | 800     |
 
 ## Template cost
 
-- 普通模板: 3 Credits / 次
-- 高级模板: 5 Credits / 次
-- 连续镜头模板: 5 Credits / 次
+- 0 = 免费
+- 1 = 基础模板
+- 2 = 高级模板
+- 3 = 导演级 / 多镜 / 连续 / 隐藏语言
