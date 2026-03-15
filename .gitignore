@@ -39,3 +39,4 @@ artifacts/template-assets/
 
 # Prompt batch test outputs
 artifacts/prompt-batch/
+package-lock.json
