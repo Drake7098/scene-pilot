@@ -162,16 +162,18 @@ Last updated: 2026-03-13
 
 ## Infra Migration (Stage-1 Active)
 - 目标架构：Cloudflare Pages（前端）+ Supabase Auth/Postgres（登录与主库）+ Paddle（支付）。
-- **当前发布拓扑（2026-03-15 起，快捷优先）**：删除了 test（scene-pilot-test）；保留 **develop 服务器** + **prod 正式服**。
-- `develop` -> develop 服务器（scene-pilot-test）：`https://scene-pilot-test.pages.dev`，push develop 即更新。
-- `main` -> 正式服（scene-pilot-prod）：`https://scene-pilot-prod.pages.dev` / `www.scenepilotix.com`，push main 即更新。
-- **允许直接 push**：不要求必须 PR 合并；推荐先 push develop，确认 develop 服务器无误后再 push main 更新 prod。安全闸门（PR/审批）以后再加。
+- **当前发布拓扑（2026-03-15 起）**：**develop 服务器**（scene-pilot-test）+ **prod 正式服**（scene-pilot-prod）。
+- **约定**：在 develop 开发时，**push 只更新测试服**（scene-pilot-test）；**要更新正式服必须执行 `npm run deploy:prod`**（合并 develop 到 main 并 push main）。流程与补足清单见 **docs/deploy-flow-develop-main.md**。
+- `develop` -> scene-pilot-test：`https://scene-pilot-test.pages.dev`，push develop 即更新测试站（需 CF 连 Git 或 GitHub Actions 已配置）。
+- `main` -> scene-pilot-prod：`https://scene-pilot-prod.pages.dev` / www.scenepilotix.com，push main（或 `npm run deploy:prod`）即更新正式站。
+- **允许直接 push**：不要求 PR；推荐先 push develop，确认测试站后再 `npm run deploy:prod` 更新 prod。安全闸门（PR/审批）以后再加。
 - PR 闸门（可选）：`.github/workflows/pr-gate.yml` 仍可对 PR 跑检查；分支保护不强制开启，可直接 push。
 - 支付环境保险已启用：
 - 前端：`VITE_BILLING_MODE` + `VITE_BILLING_LIVE_ALLOWED` + `VITE_BILLING_ALLOW_MOCK_FALLBACK`
 - 服务端：`BILLING_MODE` + `BILLING_LIVE_ALLOWED`
 - 命中 `live + not allowed` 时，`checkout/customer-portal/webhook` 统一返回 `billing_live_blocked`。
 - Stage-1 交付文档：
+- `/Users/dk/scene-pilot/docs/deploy-flow-develop-main.md`（develop/main 发布流程与 CF 补足清单）
 - `/Users/dk/scene-pilot/docs/supabase-cloudflare-stage1-runbook.md`
 - `/Users/dk/scene-pilot/docs/supabase-env-matrix.md`
 - `/Users/dk/scene-pilot/docs/cloudflare-pages-release-checklist.md`
