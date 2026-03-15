@@ -10,23 +10,26 @@ import type { TemplateWorkspaceState } from "../state/templateWorkspaceState";
 
 export function useTemplateWorkspace(state: TemplateWorkspaceState) {
   const indexList = useMemo(() => getTemplateIndex(), []);
-  const filtered = useMemo(
-    () =>
-      filterTemplateIndex(
-        indexList,
-        state.scope,
-        state.selectedCategory,
-        state.filters,
-        state.searchQuery
-      ),
-    [
+  const filtered = useMemo(() => {
+    let list = filterTemplateIndex(
       indexList,
       state.scope,
       state.selectedCategory,
       state.filters,
       state.searchQuery
-    ]
-  );
+    );
+    if (state.selectedFamilyId) {
+      list = list.filter((t) => t.familyId === state.selectedFamilyId);
+    }
+    return list;
+  }, [
+    indexList,
+    state.scope,
+    state.selectedCategory,
+    state.selectedFamilyId,
+    state.filters,
+    state.searchQuery
+  ]);
   const selectedTemplate = useMemo(
     () =>
       state.selectedTemplateId

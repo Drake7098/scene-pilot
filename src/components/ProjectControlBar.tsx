@@ -1,3 +1,7 @@
+/**
+ * ProjectControlBar: project-name dropdown (topbar/sidebar variant).
+ * Step1: 未启用备用实现。当前唯一项目动作为 Sidebar 项目区块；本组件保留但不挂载，不接入渲染树。
+ */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "../i18n";
 import {
@@ -5,8 +9,10 @@ import {
   Copy,
   Download,
   FilePlus2,
+  FileText,
   FolderOpen,
   Layout,
+  Package,
   PencilLine,
   Save
 } from "lucide-react";
@@ -23,7 +29,14 @@ type Props = {
   onNewProject: () => void;
   onSaveProject: () => void;
   onSaveAs: () => void;
+  onDuplicateProject?: () => void;
+  onSaveAsTemplate?: () => void;
   onCopyPrompt: () => void;
+  /** Export prompt as .txt */
+  onExportPromptTxt?: () => void;
+  /** Export prompt + refs (zip) */
+  onExportPromptPlusRefs?: () => void;
+  /** Export project package */
   onExportProject: () => void;
   onOpenLibrary: () => void;
 };
@@ -40,7 +53,11 @@ export function ProjectControlBar(props: Props) {
     onNewProject,
     onSaveProject,
     onSaveAs,
+    onDuplicateProject,
+    onSaveAsTemplate,
     onCopyPrompt,
+    onExportPromptTxt,
+    onExportPromptPlusRefs,
     onExportProject,
     onOpenLibrary
   } = props;
@@ -53,7 +70,9 @@ export function ProjectControlBar(props: Props) {
     open: isMac ? "⌘O" : "Ctrl+O",
     save: isMac ? "⌘S" : "Ctrl+S",
     saveAs: isMac ? "⇧⌘S" : "Ctrl+Shift+S",
-    newProject: isMac ? "⌘N" : "Ctrl+N"
+    newProject: isMac ? "⌘N" : "Ctrl+N",
+    copyPrompt: isMac ? "⇧⌘C" : "Ctrl+Shift+C",
+    export: isMac ? "⌘E" : "Ctrl+E"
   }), [isMac]);
 
   function closeMenus() {
@@ -122,53 +141,7 @@ export function ProjectControlBar(props: Props) {
 
         {projectMenuOpen ? (
           <div className={menuClass} style={isPro ? { ...styles.menu, ...styles.menuPro } : styles.menu} data-testid="project-menu">
-            <button style={styles.menuItem} data-testid="project-menu-save" type="button" onClick={() => { closeMenus(); onSaveProject(); }}>
-              <span style={styles.menuItemLabel}>
-                <Save size={menuIconSize} />
-                <span>{lang === "zh" ? "保存项目…" : "Save Project..."}</span>
-              </span>
-              <span style={styles.menuShortcut}>{shortcuts.save}</span>
-            </button>
-            <button style={styles.menuItem} data-testid="project-menu-copy-prompt" type="button" onClick={() => { closeMenus(); onCopyPrompt(); }}>
-              <span style={styles.menuItemLabel}>
-                <Copy size={menuIconSize} />
-                <span>{lang === "zh" ? "复制提示词" : "Copy Prompt"}</span>
-              </span>
-            </button>
-            <button style={styles.menuItem} data-testid="project-menu-export" type="button" onClick={() => { closeMenus(); onExportProject(); }}>
-              <span style={styles.menuItemLabel}>
-                <Download size={menuIconSize} />
-                <span>{lang === "zh" ? "导出…" : "Export..."}</span>
-              </span>
-            </button>
-            <div style={styles.menuSep} />
-            <button style={styles.menuItem} data-testid="project-menu-open" type="button" onClick={() => { closeMenus(); onOpenProject(); }}>
-              <span style={styles.menuItemLabel}>
-                <FolderOpen size={menuIconSize} />
-                <span>{lang === "zh" ? "打开项目" : "Open Project"}</span>
-              </span>
-              <span style={styles.menuShortcut}>{shortcuts.open}</span>
-            </button>
-            <button style={styles.menuItem} data-testid="project-menu-library" type="button" onClick={() => { closeMenus(); onOpenLibrary(); }}>
-              <span style={styles.menuItemLabel}>
-                <FolderOpen size={menuIconSize} />
-                <span>{lang === "zh" ? "项目库" : "Project Library"}</span>
-              </span>
-            </button>
-            <button style={styles.menuItem} data-testid="project-menu-rename" type="button" onClick={() => { closeMenus(); onRenameProject(); }}>
-              <span style={styles.menuItemLabel}>
-                <PencilLine size={menuIconSize} />
-                <span>{lang === "zh" ? "重命名项目" : "Rename Project"}</span>
-              </span>
-            </button>
-            <button style={styles.menuItem} data-testid="project-menu-save-as" type="button" onClick={() => { closeMenus(); onSaveAs(); }}>
-              <span style={styles.menuItemLabel}>
-                <Save size={menuIconSize} />
-                <span>{lang === "zh" ? "另存项目…" : "Save Project As..."}</span>
-              </span>
-              <span style={styles.menuShortcut}>{shortcuts.saveAs}</span>
-            </button>
-            <div style={styles.menuSep} />
+            {/* Group 1: File */}
             <button style={styles.menuItem} data-testid="project-menu-new" type="button" onClick={() => { closeMenus(); onNewProject(); }}>
               <span style={styles.menuItemLabel}>
                 <FilePlus2 size={menuIconSize} />
@@ -176,6 +149,91 @@ export function ProjectControlBar(props: Props) {
               </span>
               <span style={styles.menuShortcut}>{shortcuts.newProject}</span>
             </button>
+            <button style={styles.menuItem} data-testid="project-menu-open" type="button" onClick={() => { closeMenus(); onOpenProject(); }}>
+              <span style={styles.menuItemLabel}>
+                <FolderOpen size={menuIconSize} />
+                <span>{lang === "zh" ? "打开项目" : "Open Project"}</span>
+              </span>
+              <span style={styles.menuShortcut}>{shortcuts.open}</span>
+            </button>
+            <button style={styles.menuItem} data-testid="project-menu-save" type="button" onClick={() => { closeMenus(); onSaveProject(); }}>
+              <span style={styles.menuItemLabel}>
+                <Save size={menuIconSize} />
+                <span>{lang === "zh" ? "保存项目" : "Save Project"}</span>
+              </span>
+              <span style={styles.menuShortcut}>{shortcuts.save}</span>
+            </button>
+            <button style={styles.menuItem} data-testid="project-menu-save-as" type="button" onClick={() => { closeMenus(); onSaveAs(); }}>
+              <span style={styles.menuItemLabel}>
+                <Save size={menuIconSize} />
+                <span>{lang === "zh" ? "另存项目" : "Save Project As"}</span>
+              </span>
+              <span style={styles.menuShortcut}>{shortcuts.saveAs}</span>
+            </button>
+            <div style={styles.menuSep} />
+            {/* Group 2: Project */}
+            <button style={styles.menuItem} data-testid="project-menu-rename" type="button" onClick={() => { closeMenus(); onRenameProject(); }}>
+              <span style={styles.menuItemLabel}>
+                <PencilLine size={menuIconSize} />
+                <span>{lang === "zh" ? "重命名项目" : "Rename Project"}</span>
+              </span>
+            </button>
+            {onDuplicateProject ? (
+              <button style={styles.menuItem} data-testid="project-menu-duplicate" type="button" onClick={() => { closeMenus(); onDuplicateProject(); }}>
+                <span style={styles.menuItemLabel}>
+                  <Copy size={menuIconSize} />
+                  <span>{lang === "zh" ? "复制为新项目" : "Duplicate Project"}</span>
+                </span>
+              </button>
+            ) : null}
+            <button style={styles.menuItem} data-testid="project-menu-library" type="button" onClick={() => { closeMenus(); onOpenLibrary(); }}>
+              <span style={styles.menuItemLabel}>
+                <FolderOpen size={menuIconSize} />
+                <span>{lang === "zh" ? "项目库" : "Project Library"}</span>
+              </span>
+            </button>
+            <div style={styles.menuSep} />
+            {/* Group 3: Export */}
+            <button style={styles.menuItem} data-testid="project-menu-copy-prompt" type="button" onClick={() => { closeMenus(); onCopyPrompt(); }}>
+              <span style={styles.menuItemLabel}>
+                <Copy size={menuIconSize} />
+                <span>{lang === "zh" ? "复制提示词" : "Copy Prompt"}</span>
+              </span>
+              <span style={styles.menuShortcut}>{shortcuts.copyPrompt}</span>
+            </button>
+            {onExportPromptTxt ? (
+              <button style={styles.menuItem} data-testid="project-menu-export-prompt-txt" type="button" onClick={() => { closeMenus(); onExportPromptTxt(); }}>
+                <span style={styles.menuItemLabel}>
+                  <FileText size={menuIconSize} />
+                  <span>{lang === "zh" ? "导出提示词" : "Export Prompt"}</span>
+                </span>
+              </button>
+            ) : null}
+            {onExportPromptPlusRefs ? (
+              <button style={styles.menuItem} data-testid="project-menu-export-prompt-refs" type="button" onClick={() => { closeMenus(); onExportPromptPlusRefs(); }}>
+                <span style={styles.menuItemLabel}>
+                  <Download size={menuIconSize} />
+                  <span>{lang === "zh" ? "导出提示词 + 参考图" : "Export Prompt + Refs"}</span>
+                </span>
+              </button>
+            ) : null}
+            <button style={styles.menuItem} data-testid="project-menu-export" type="button" onClick={() => { closeMenus(); onExportProject(); }}>
+              <span style={styles.menuItemLabel}>
+                <Package size={menuIconSize} />
+                <span>{lang === "zh" ? "导出项目包" : "Export Project Package"}</span>
+              </span>
+              <span style={styles.menuShortcut}>{shortcuts.export}</span>
+            </button>
+            <div style={styles.menuSep} />
+            {/* Group 4: Template */}
+            {onSaveAsTemplate ? (
+              <button style={styles.menuItem} data-testid="project-menu-save-as-template" type="button" onClick={() => { closeMenus(); onSaveAsTemplate(); }}>
+                <span style={styles.menuItemLabel}>
+                  <Layout size={menuIconSize} />
+                  <span>{lang === "zh" ? "保存为模板" : "Save as Template"}</span>
+                </span>
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>

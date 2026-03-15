@@ -56,7 +56,7 @@ import { useProCollapseSections } from "../hooks/useProCollapseSections";
 import { EditorSection, EditorSelect, EditorInput, EditorCheckbox } from "./ui";
 import { ContinuityPanel } from "./ContinuityPanel";
 import { editorTheme } from "../theme/editorTheme";
-import { Film, LayoutGrid, Layers, Camera, Settings, Play, Plus, Minus, ChevronDown, ChevronRight, Save, Copy, Download, FilePlus2, FolderOpen, PencilLine, Sun } from "lucide-react";
+import { Film, FileText, Layout, LayoutGrid, Layers, Camera, Settings, Play, Plus, Minus, ChevronDown, ChevronRight, Save, Copy, Download, FilePlus2, FolderOpen, PencilLine, Sun } from "lucide-react";
 
 type Props = {
   lang: Lang;
@@ -81,7 +81,11 @@ type Props = {
   onNewProject?: () => void;
   onSaveProject?: () => void;
   onSaveAs?: () => void;
+  onDuplicateProject?: () => void;
+  onSaveAsTemplate?: () => void;
   onCopyPrompt?: () => void;
+  onExportPromptTxt?: () => void;
+  onExportPromptPlusRefs?: () => void;
   onExportProject?: () => void;
   onOpenLibrary?: () => void;
   onOpenTemplateWorkspace?: () => void;
@@ -274,7 +278,11 @@ export function Sidebar(props: Props) {
     onNewProject,
     onSaveProject,
     onSaveAs,
+    onDuplicateProject,
+    onSaveAsTemplate,
     onCopyPrompt,
+    onExportPromptTxt,
+    onExportPromptPlusRefs,
     onExportProject,
     onOpenLibrary,
     onOpenTemplateWorkspace,
@@ -1185,7 +1193,7 @@ export function Sidebar(props: Props) {
         overflow: "auto"
       }}
     >
-      {/* Project (collapsible section, same style as other sidebar sections) */}
+      {/* Step1: 唯一项目动作入口 — 四组 File / Project / Export / Template，Figma Section 风格 */}
       {projectLabel != null && onSaveProject && (
         <EditorSection
           title={(projectLabel || (lang === "zh" ? "未命名项目" : "Untitled Project")).trim() || (lang === "zh" ? "未命名项目" : "Untitled Project")}
@@ -1197,40 +1205,69 @@ export function Sidebar(props: Props) {
           }}
         >
         <div style={styles.projectSectionBody}>
-          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onSaveProject?.()}>
-            <Save size={12} />
-            <span>{lang === "zh" ? "保存项目…" : "Save Project..."}</span>
-          </button>
-          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onCopyPrompt?.()}>
-            <Copy size={12} />
-            <span>{lang === "zh" ? "复制提示词" : "Copy Prompt"}</span>
-          </button>
-          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onExportProject?.()}>
-            <Download size={12} />
-            <span>{lang === "zh" ? "导出…" : "Export..."}</span>
-          </button>
-          <div style={styles.projectActionSep} />
-          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onOpenProject?.()}>
-            <FolderOpen size={12} />
-            <span>{lang === "zh" ? "打开项目" : "Open Project"}</span>
-          </button>
-          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onOpenLibrary?.()}>
-            <FolderOpen size={12} />
-            <span>{lang === "zh" ? "项目库" : "Project Library"}</span>
-          </button>
-          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onRenameProject?.()}>
-            <PencilLine size={12} />
-            <span>{lang === "zh" ? "重命名项目" : "Rename Project"}</span>
-          </button>
-          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onSaveAs?.()}>
-            <Save size={12} />
-            <span>{lang === "zh" ? "另存项目…" : "Save Project As..."}</span>
-          </button>
-          <div style={styles.projectActionSep} />
+          {/* Group 1: File */}
           <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onNewProject?.()}>
             <FilePlus2 size={12} />
             <span>{lang === "zh" ? "新建项目" : "New Project"}</span>
           </button>
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onOpenProject?.()}>
+            <FolderOpen size={12} />
+            <span>{lang === "zh" ? "打开项目" : "Open Project"}</span>
+          </button>
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onSaveProject?.()}>
+            <Save size={12} />
+            <span>{lang === "zh" ? "保存项目" : "Save Project"}</span>
+          </button>
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onSaveAs?.()}>
+            <Save size={12} />
+            <span>{lang === "zh" ? "另存项目" : "Save Project As"}</span>
+          </button>
+          <div style={styles.projectActionSep} />
+          {/* Group 2: Project */}
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onRenameProject?.()}>
+            <PencilLine size={12} />
+            <span>{lang === "zh" ? "重命名项目" : "Rename Project"}</span>
+          </button>
+          {onDuplicateProject ? (
+            <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onDuplicateProject()}>
+              <Copy size={12} />
+              <span>{lang === "zh" ? "复制为新项目" : "Duplicate Project"}</span>
+            </button>
+          ) : null}
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onOpenLibrary?.()}>
+            <FolderOpen size={12} />
+            <span>{lang === "zh" ? "项目库" : "Project Library"}</span>
+          </button>
+          <div style={styles.projectActionSep} />
+          {/* Group 3: Export */}
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onCopyPrompt?.()}>
+            <Copy size={12} />
+            <span>{lang === "zh" ? "复制提示词" : "Copy Prompt"}</span>
+          </button>
+          {onExportPromptTxt ? (
+            <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onExportPromptTxt()}>
+              <FileText size={12} />
+              <span>{lang === "zh" ? "导出提示词" : "Export Prompt"}</span>
+            </button>
+          ) : null}
+          {onExportPromptPlusRefs ? (
+            <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onExportPromptPlusRefs()}>
+              <Download size={12} />
+              <span>{lang === "zh" ? "导出提示词 + 参考图" : "Export Prompt + Refs"}</span>
+            </button>
+          ) : null}
+          <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onExportProject?.()}>
+            <Download size={12} />
+            <span>{lang === "zh" ? "导出项目包" : "Export Project Package"}</span>
+          </button>
+          <div style={styles.projectActionSep} />
+          {/* Group 4: Template */}
+          {onSaveAsTemplate ? (
+            <button type="button" className="pro-project-action" style={styles.projectAction} onClick={() => onSaveAsTemplate()}>
+              <Layout size={12} />
+              <span>{lang === "zh" ? "保存为模板" : "Save as Template"}</span>
+            </button>
+          ) : null}
         </div>
         </EditorSection>
       )}
@@ -1970,9 +2007,9 @@ export function Sidebar(props: Props) {
       </div>
       </EditorSection>
 
-      {/* Camera Control - 景别、运动、镜头语言、转场 */}
+      {/* Camera & Lighting - 景别、运动、镜头语言、转场 (Figma: Camera & Lighting) */}
       <EditorSection
-        title={lang === "zh" ? "镜头控制" : "Camera Control"}
+        title={lang === "zh" ? "镜头控制" : "Camera & Lighting"}
         icon={Camera}
         open={!sidebarCollapsed.has("camera_control")}
         onOpenChange={(open) => {
@@ -1980,9 +2017,10 @@ export function Sidebar(props: Props) {
           if (open !== currentlyOpen) toggleSidebar("camera_control");
         }}
       >
-      <div style={styles.section}>
-        <div style={styles.proDirectorBlock} data-testid="pro-shot-recipe-select">
+      <div style={styles.cameraSection}>
+        <div style={styles.proCameraBlock} data-testid="pro-shot-recipe-select">
           <EditorSelect
+            compact
             label={isVideoProject ? tt("camera.shot") : (lang === "zh" ? "构图景别" : "Framing")}
             options={shotOptions.map((o) => ({ label: o.label, value: o.v }))}
             value={visibleShot}
@@ -1990,6 +2028,7 @@ export function Sidebar(props: Props) {
           />
           {isVideoProject ? (
             <EditorSelect
+              compact
               label={tt("camera.movement")}
               options={moveOptions.map((o) => ({ label: o.label, value: o.v }))}
               value={visibleMovement}
@@ -1997,8 +2036,9 @@ export function Sidebar(props: Props) {
             />
           ) : null}
         </div>
-        <div style={styles.proDirectorBlock} data-testid="pro-camera-language-style">
+        <div style={styles.proCameraBlock} data-testid="pro-camera-language-style">
           <EditorSelect
+            compact
             label={lang === "zh" ? "镜头语言" : "Camera Language"}
             options={getUserVisibleCameraLanguageOptions().map((o) => ({
               label: lang === "zh" ? o.labelZh : o.labelEn,
@@ -2016,67 +2056,12 @@ export function Sidebar(props: Props) {
             }}
           />
         </div>
-        {isVideoProject ? (
-          <div style={styles.proMotionBlock} data-testid="pro-motion-block">
-            <div style={{ ...styles.proDirectorTitle, color: ec.text }}>{lang === "zh" ? "专业运镜" : "Pro Motion"}</div>
-            <div style={styles.proMotionPanel} data-testid="pro-motion-plus-panel">
-              <div ref={videoProMenuRef} style={styles.proMotionSelectShell}>
-                <div style={{ marginBottom: editorTheme.spacing.fieldMarginBottom }}>
-                  <label style={{ display: "block", fontSize: editorTheme.typography.labelSize, fontWeight: editorTheme.typography.labelWeight, color: ec.textMuted, marginBottom: 4 }}>
-                    {lang === "zh" ? "专业运镜" : "Pro Motion"}
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <button
-                      ref={videoProTriggerRef}
-                      type="button"
-                      data-testid="pro-plus-trigger"
-                      data-open={videoProMenuOpen ? "true" : undefined}
-                      onClick={() => {
-                        setVideoProMenuOpen((prev) => !prev);
-                        setVideoProCategoryHover(null);
-                      }}
-                      style={{
-                        ...styles.proShotLanguageBtn,
-                        borderColor: videoProMenuOpen ? ec.accent : undefined,
-                        transition: `border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!videoProMenuOpen) e.currentTarget.style.borderColor = ec.textMuted;
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!videoProMenuOpen) e.currentTarget.style.borderColor = ec.border;
-                      }}
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderColor = ec.accent;
-                      }}
-                      onBlur={(e) => {
-                        if (!videoProMenuOpen) e.currentTarget.style.borderColor = ec.border;
-                      }}
-                    >
-                      <span style={styles.proShotLanguageValue}>{currentVideoProMenuLabel()}</span>
-                      <ChevronDown
-                        size={editorTheme.sizing.selectArrowSize}
-                        style={{
-                          flexShrink: 0,
-                          color: ec.textMuted,
-                          opacity: videoProMenuOpen ? 1 : 0.85,
-                          transform: videoProMenuOpen ? "rotate(180deg)" : "none",
-                          transition: `transform ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
-                        }}
-                        aria-hidden
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
+        {!isVideoProject ? (
           <div style={styles.proMotionBlock} data-testid="pro-image-block">
             <div style={styles.proMotionPanel}>
               <div ref={imageProMenuRef} style={styles.proMotionSelectShell}>
-                <div style={{ marginBottom: editorTheme.spacing.fieldMarginBottom }}>
-                  <label style={{ display: "block", fontSize: editorTheme.typography.labelSize, fontWeight: editorTheme.typography.labelWeight, color: ec.textMuted, marginBottom: 4 }}>
+                <div style={{ marginBottom: editorTheme.spacing.fieldMarginBottomCompact }}>
+                  <label style={{ display: "block", fontSize: editorTheme.typography.labelSize, fontWeight: editorTheme.typography.labelWeight, color: ec.textMuted, marginBottom: editorTheme.spacing.labelToControl }}>
                     {lang === "zh" ? "画面语言" : "Visual Language"}
                   </label>
                   <div style={{ position: "relative" }}>
@@ -2125,7 +2110,7 @@ export function Sidebar(props: Props) {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
         {isVideoProject && projectShotPlan !== "single" ? (
           <EditorSelect
             label={lang === "zh" ? "衔接方式" : "Transition"}
@@ -2202,28 +2187,31 @@ const styles: Record<string, React.CSSProperties> = {
     background: "var(--pro-bg-panel)",
     borderRight: "1px solid var(--pro-border-soft)"
   },
+  /** Project block body: Figma Section body alignment (px-3 pt-1 pb-3 via EditorSection; gap 0, sep between groups) */
   projectSectionBody: {
     display: "flex",
     flexDirection: "column",
     gap: 0
   },
+  /** Single project action row: Figma Section item (px-2 py-1.5 = 8px 6px, rounded, text-xs, hover bg #343942) */
   projectAction: {
     display: "flex",
     alignItems: "center",
     gap: 8,
     width: "100%",
-    padding: "6px 0",
+    padding: "6px 8px",
     border: "none",
     background: "transparent",
     color: editorTheme.colors.text,
-    fontSize: PRO_TYPO.xs,
-    fontWeight: PRO_TYPO.weightMedium,
+    fontSize: editorTheme.typography.bodySize,
+    fontWeight: editorTheme.typography.bodyWeight,
     fontFamily: PRO_TYPO.fontFamily,
     cursor: "pointer",
     textAlign: "left",
-    borderRadius: 6,
-    transition: "background 150ms ease"
+    borderRadius: editorTheme.radius.button,
+    transition: `background-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
   },
+  /** Group separator: Figma border #3a3f46, vertical margin 6px */
   projectActionSep: {
     height: 1,
     margin: "6px 0",
@@ -2236,6 +2224,24 @@ const styles: Record<string, React.CSSProperties> = {
     background: "transparent",
     padding: UI_SPACE.sm,
     boxShadow: "none"
+  },
+  /** Tighter section for camera control (aligns with Figma section density) */
+  cameraSection: {
+    border: "none",
+    borderRadius: UI_RADIUS.panel,
+    background: "transparent",
+    padding: `${editorTheme.spacing.labelToControl}px ${UI_SPACE.sm}`,
+    boxShadow: "none"
+  },
+  /** Tighter block for camera control fields */
+  proCameraBlock: {
+    display: "grid",
+    gap: editorTheme.spacing.labelToControl,
+    marginBottom: editorTheme.spacing.labelToControl,
+    padding: `${editorTheme.spacing.labelToControl}px 10px`,
+    borderRadius: 14,
+    border: "none",
+    background: "transparent"
   },
   /** Section for scene/object lists: no horizontal padding so plus/minus column aligns with header */
   sectionListOnly: {
@@ -2892,9 +2898,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   proMotionBlock: {
     display: "grid",
-    gap: 6,
-    marginBottom: 8,
-    padding: "8px 10px",
+    gap: editorTheme.spacing.labelToControl,
+    marginBottom: editorTheme.spacing.fieldMarginBottomCompact,
+    padding: `${editorTheme.spacing.labelToControl}px 10px`,
     borderRadius: 12,
     border: "none",
     background: "transparent"
@@ -2965,7 +2971,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   proMotionPanel: {
     display: "grid",
-    gap: 12
+    gap: editorTheme.spacing.fieldMarginBottomCompact
   },
   proPlusGroup: {
     display: "grid",
@@ -3025,9 +3031,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   proDirectorBlock: {
     display: "grid",
-    gap: 12,
-    marginBottom: 12,
-    padding: "10px 12px",
+    gap: editorTheme.spacing.fieldMarginBottomCompact,
+    marginBottom: editorTheme.spacing.fieldMarginBottomCompact,
+    padding: "6px 12px",
     borderRadius: 14,
     border: "none",
     background: "transparent"

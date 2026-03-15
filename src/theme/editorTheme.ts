@@ -22,6 +22,8 @@ export const editorSpacing = {
   sectionBodyTop: 4,
   sectionBodyBottom: 12,
   fieldMarginBottom: 12,
+  /** Denser rhythm for camera / layout control blocks (aligns with Figma Object Layers space-y) */
+  fieldMarginBottomCompact: 6,
   labelToControl: 4,
   inputPaddingX: 10,
   inputPaddingY: 6,
@@ -52,6 +54,10 @@ export const editorSizing = {
   sectionHeaderHeight: 32,
   chevronSize: 14,
   selectArrowSize: 12,
+  /** Left nav / family list width - aligns with Figma 260px */
+  navWidth: 260,
+  /** Right rail / status rail width - aligns with Figma 260px */
+  railWidth: 260,
 } as const;
 
 export const editorTransition = {

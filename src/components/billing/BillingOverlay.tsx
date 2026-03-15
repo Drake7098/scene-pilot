@@ -145,7 +145,7 @@ export function BillingOverlay(props: Props) {
                   <li>Scene structure editor</li>
                   <li>Basic storyboard</li>
                   <li>Object placement</li>
-                  <li>Prompt export (free for first 7 days)</li>
+                  <li>Prompt export (free)</li>
                 </ul>
                 <div style={styles.blockTitle}>Limits</div>
                 <ul style={styles.listMuted}>
@@ -195,7 +195,7 @@ export function BillingOverlay(props: Props) {
             <div style={styles.noteCard} data-testid="upgrade-credits-note">
               <div>AI image and video generation uses credits.</div>
               <div>Credits are included with Pro and can be purchased separately.</div>
-              <div>Prompt export is free for the first 7 days after registration, then 2 credits per export.</div>
+              <div>Prompt export is free. Credits are used for AI generation and paid templates only.</div>
             </div>
 
             <div style={styles.localTestCard} data-testid="billing-local-test-card">
@@ -345,7 +345,7 @@ export function BillingOverlay(props: Props) {
                 <li>1 image = 1 credit</li>
                 <li>HD image = 3 credits</li>
                 <li>Video = 20 credits</li>
-                <li>Prompt export after day 7 = 2 credits</li>
+                <li>Paid templates = credits per template</li>
               </ul>
             </div>
 

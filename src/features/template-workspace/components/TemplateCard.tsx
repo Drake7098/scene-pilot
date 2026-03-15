@@ -1,12 +1,16 @@
 /**
  * Single template card - grid or list view.
+ * Uses pricing resolver: pricingBucket, capabilityTags. No template.cost / template.isFree.
  */
 
 import React from "react";
 import { Star } from "lucide-react";
 import type { Lang } from "../../../i18n";
 import type { TemplateIndex } from "../model/templateIndex";
+import type { UserPrivateTemplate } from "../../../lib/userTemplatesStore";
 import { PRO_TYPO } from "../../../uiTokens";
+import { formatPricingBucketForDisplay } from "../../../pricing";
+import type { TemplatePricingResult } from "../../../pricing/templatePricingTypes";
 
 const colors = {
   panel: "#24262b",
@@ -17,15 +21,24 @@ const colors = {
   accent: "#f59e0b"
 };
 
+/** Type guard: user-private template (My Templates > 我创建的). Accepts unknown so callers can pass TemplateWorkspaceItem. */
+export function isUserPrivateTemplate(item: unknown): item is UserPrivateTemplate {
+  return item != null && typeof item === "object" && "originType" in item && (item as UserPrivateTemplate).originType === "user_private";
+}
+
 type Props = {
   lang: Lang;
-  item: TemplateIndex;
+  item: TemplateIndex | UserPrivateTemplate;
   view: "grid" | "list";
   selected: boolean;
   onSelect: () => void;
   onUse?: () => void;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
+  /** From resolveTemplatePricing (market only). null = loading or user_private. */
+  pricing?: TemplatePricingResult | null;
+  /** Market: isTemplateOwned; user_private: always true. */
+  owned?: boolean;
 };
 
 export function TemplateCard({
@@ -36,11 +49,23 @@ export function TemplateCard({
   onSelect,
   onUse,
   isFavorite,
-  onToggleFavorite
+  onToggleFavorite,
+  pricing = null,
+  owned = false
 }: Props) {
   const t = (zh: string, en: string) => (lang === "zh" ? zh : en);
-  const name = lang === "zh" ? item.nameZh : item.nameEn;
-  const desc = lang === "zh" ? (item.descriptionZh ?? item.descriptionEn) : item.descriptionEn;
+  const isPrivate = isUserPrivateTemplate(item);
+  const name = isPrivate ? item.name : (lang === "zh" ? item.nameZh : item.nameEn);
+  const desc = isPrivate ? "" : (lang === "zh" ? (item.descriptionZh ?? item.descriptionEn) : item.descriptionEn);
+  const priceLabel =
+    pricing !== undefined && pricing !== null
+      ? formatPricingBucketForDisplay(pricing.pricingBucket, lang)
+      : "…";
+  const tags = pricing?.capabilityTags?.slice(0, 4) ?? [];
+  const familyLabel = isPrivate ? t("我创建的", "Created by me") : (lang === "zh" ? item.familyNameZh : item.familyNameEn);
+  const showOwned = isPrivate || owned;
+  const mediaType = isPrivate ? "video" : item.mediaType;
+  const preview = isPrivate ? undefined : item.preview;
   return (
     <button
       type="button"
@@ -51,18 +76,18 @@ export function TemplateCard({
       onClick={onSelect}
     >
       <div style={view === "list" ? { ...styles.cardThumb, width: 80, minWidth: 80 } : styles.cardThumb}>
-        {item.preview ? (
-          <img src={item.preview} alt="" style={styles.thumbImg} />
+        {preview ? (
+          <img src={preview} alt="" style={styles.thumbImg} />
         ) : (
           <span style={styles.thumbPlaceholder}>
-            {item.mediaType === "video" ? "▶" : "📷"}
+            {mediaType === "video" ? "▶" : "📷"}
           </span>
         )}
       </div>
       <div style={styles.cardInfo}>
         <div style={styles.cardHeader}>
           <div style={styles.cardName}>{name}</div>
-          {onToggleFavorite && (
+          {onToggleFavorite && !isPrivate && (
             <button
               type="button"
               style={{ ...styles.favBtn, ...(isFavorite ? styles.favBtnOn : {}) }}
@@ -80,15 +105,15 @@ export function TemplateCard({
             </button>
           )}
         </div>
-        <div style={styles.cardFamily}>{lang === "zh" ? item.familyNameZh : item.familyNameEn}</div>
+        <div style={styles.cardFamily}>{familyLabel}</div>
         {desc ? (
           <div style={styles.cardDesc} title={desc}>
             {desc.length > 48 ? desc.slice(0, 48) + "…" : desc}
           </div>
         ) : null}
-        {item.tags?.length ? (
+        {tags.length > 0 ? (
           <div style={styles.cardTags}>
-            {item.tags.slice(0, 3).map((tag) => (
+            {tags.map((tag) => (
               <span key={tag} style={styles.cardTag}>
                 {tag}
               </span>
@@ -96,7 +121,11 @@ export function TemplateCard({
           </div>
         ) : null}
         <div style={styles.cardCost}>
-          {item.isFree ? t("免费", "Free") : `${item.cost} ${t("积分", "credits")}`}
+          {showOwned ? (
+            <span style={styles.ownedBadge}>{t("已拥有", "Owned")}</span>
+          ) : (
+            priceLabel
+          )}
         </div>
         {onUse ? (
           <button
@@ -187,6 +216,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: colors.textMuted
   },
   cardCost: { fontSize: PRO_TYPO["2xs"], fontWeight: PRO_TYPO.weightMedium, fontFamily: PRO_TYPO.fontFamily, color: colors.accent, marginTop: 6 },
+  ownedBadge: { color: colors.textMuted, fontWeight: PRO_TYPO.weightRegular },
   cardUseBtn: {
     marginTop: 8,
     padding: "4px 10px",

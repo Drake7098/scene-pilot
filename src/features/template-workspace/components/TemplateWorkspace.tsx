@@ -1,32 +1,42 @@
 /**
  * Template Workspace - standalone feature module.
- * Manages its own search, category, detail, view. Covers Stage + Props when open.
+ * View: market (全部模板) | my_templates (我的模板). My: owned | created.
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import type { Lang } from "../../../i18n";
 import type { TemplateIndex } from "../model/templateIndex";
 import type { TemplateWorkspaceState } from "../state/templateWorkspaceState";
 import type { ApplyTemplateMode } from "../model/templateFilter";
 import { useTemplateWorkspace } from "../hooks/useTemplateWorkspace";
 import { useTemplateFavorites } from "../hooks/useTemplateFavorites";
+import { useTemplatePricingMap } from "../hooks/useTemplatePricingMap";
 import { addToRecent } from "../../../data/templateWorkspaceData";
+import { getUserPrivateTemplates } from "../../../lib/userTemplatesStore";
+import type { UserPrivateTemplate } from "../../../lib/userTemplatesStore";
+import { isUserPrivateTemplate } from "./TemplateCard";
 import { TemplateWorkspaceHeader } from "./TemplateWorkspaceHeader";
-import { TemplateWorkspaceSidebar } from "./TemplateWorkspaceSidebar";
+import { TemplateFamilyList } from "./TemplateFamilyList";
 import { TemplateGridContainer } from "./TemplateGridContainer";
 import { TemplateWorkspaceDetail } from "./TemplateWorkspaceDetail";
 
-const colors = {
-  bg: "#1f2125",
-  border: "#3a3f46"
-};
+import { editorTheme } from "../../../theme/editorTheme";
+
+const colors = editorTheme.colors;
 
 export type TemplateWorkspaceProps = {
   lang: Lang;
   state: TemplateWorkspaceState;
   onStateChange: (s: TemplateWorkspaceState) => void;
   onClose: () => void;
-  onUseTemplate: (index: TemplateIndex, applyMode: ApplyTemplateMode) => void;
+  onUseTemplate: (index: TemplateIndex | UserPrivateTemplate, applyMode: ApplyTemplateMode) => void;
+  project?: import("../../../model").Project | null;
+  userCredits?: number;
+  /** For owned badge and no repeat charge. */
+  userId?: string | null;
+  isTemplateOwned?: (templateId: string) => boolean;
+  /** Increment to refresh "我创建的" list (e.g. after save as template). */
+  templatesRefresh?: number;
 };
 
 export function TemplateWorkspace({
@@ -34,10 +44,42 @@ export function TemplateWorkspace({
   state,
   onStateChange,
   onClose,
-  onUseTemplate
+  onUseTemplate,
+  project = null,
+  userCredits = 0,
+  userId = null,
+  isTemplateOwned,
+  templatesRefresh = 0
 }: TemplateWorkspaceProps) {
-  const { filtered, selectedTemplate, stats } = useTemplateWorkspace(state);
+  const { indexList, filtered, selectedTemplate: selectedMarketTemplate, stats } = useTemplateWorkspace(state);
   const { toggleFavorite, isFavorite } = useTemplateFavorites();
+  const createdList = useMemo(
+    () => getUserPrivateTemplates(userId ?? ""),
+    [userId, templatesRefresh]
+  );
+  const ownedFiltered = useMemo(
+    () =>
+      indexList.filter(
+        (t) => t.isFree || (isTemplateOwned?.(t.id) ?? false)
+      ),
+    [indexList, isTemplateOwned]
+  );
+  const displayList = useMemo(() => {
+    if (state.templateWorkspaceView === "market") return filtered;
+    if (state.myTemplateSection === "owned") return ownedFiltered;
+    return createdList;
+  }, [state.templateWorkspaceView, state.myTemplateSection, filtered, ownedFiltered, createdList]);
+  const pricingMap = useTemplatePricingMap(
+    displayList.filter((i): i is TemplateIndex => !isUserPrivateTemplate(i)).map((i) => i.id)
+  );
+  const selectedTemplate = useMemo((): TemplateIndex | UserPrivateTemplate | null => {
+    const id = state.selectedTemplateId;
+    if (!id) return null;
+    if (state.templateWorkspaceView === "my_templates" && state.myTemplateSection === "created") {
+      return createdList.find((t) => t.id === id) ?? null;
+    }
+    return indexList.find((t) => t.id === id) ?? null;
+  }, [state.selectedTemplateId, state.templateWorkspaceView, state.myTemplateSection, indexList, createdList]);
 
   const update = useCallback(
     (patch: Partial<TemplateWorkspaceState>) => {
@@ -47,10 +89,10 @@ export function TemplateWorkspace({
   );
 
   const handleUse = useCallback(
-    (template?: TemplateIndex) => {
+    (template?: TemplateIndex | UserPrivateTemplate) => {
       const target = template ?? selectedTemplate;
       if (target) {
-        addToRecent(target.id);
+        if (!isUserPrivateTemplate(target)) addToRecent(target.id);
         onUseTemplate(target, state.applyMode);
         onClose();
       }
@@ -62,6 +104,10 @@ export function TemplateWorkspace({
     <div style={styles.wrap}>
       <TemplateWorkspaceHeader
         lang={lang}
+        templateWorkspaceView={state.templateWorkspaceView}
+        onTemplateWorkspaceViewChange={(v) => update({ templateWorkspaceView: v })}
+        myTemplateSection={state.myTemplateSection}
+        onMyTemplateSectionChange={(s) => update({ myTemplateSection: s })}
         searchQuery={state.searchQuery}
         onSearchChange={(q) => update({ searchQuery: q })}
         filters={state.filters}
@@ -69,18 +115,19 @@ export function TemplateWorkspace({
         onClose={onClose}
         totalCount={stats.total}
         freeCount={stats.free}
+        ownedCount={ownedFiltered.length}
+        createdCount={createdList.length}
       />
       <div style={styles.body}>
-        <TemplateWorkspaceSidebar
+        <TemplateFamilyList
           lang={lang}
-          scope={state.scope}
-          category={state.selectedCategory}
-          onScopeChange={(s) => update({ scope: s, selectedCategory: null })}
-          onCategoryChange={(c) => update({ selectedCategory: c, scope: "all" })}
+          items={state.templateWorkspaceView === "market" ? indexList : []}
+          selectedFamilyId={state.selectedFamilyId}
+          onSelectFamily={(id) => update({ selectedFamilyId: id })}
         />
         <TemplateGridContainer
           lang={lang}
-          items={filtered}
+          items={displayList}
           view={state.view}
           onViewChange={(v) => update({ view: v })}
           selectedId={state.selectedTemplateId}
@@ -88,6 +135,8 @@ export function TemplateWorkspace({
           onUse={(item) => handleUse(item)}
           isFavorite={isFavorite}
           onToggleFavorite={toggleFavorite}
+          pricingMap={pricingMap}
+          isTemplateOwned={isTemplateOwned}
         />
         <TemplateWorkspaceDetail
           lang={lang}
@@ -95,8 +144,20 @@ export function TemplateWorkspace({
           applyMode={state.applyMode}
           onApplyModeChange={(m) => update({ applyMode: m })}
           onUse={() => handleUse()}
-          isFavorite={selectedTemplate ? isFavorite(selectedTemplate.id) : false}
+          isFavorite={selectedTemplate && !isUserPrivateTemplate(selectedTemplate) ? isFavorite(selectedTemplate.id) : false}
           onToggleFavorite={toggleFavorite}
+          project={project}
+          userCredits={userCredits}
+          isTemplateOwned={isTemplateOwned}
+          relatedTemplates={
+            state.templateWorkspaceView === "market" &&
+            selectedTemplate &&
+            !isUserPrivateTemplate(selectedTemplate)
+              ? indexList.filter(
+                  (t) => t.familyId === (selectedTemplate as TemplateIndex).familyId && t.id !== selectedTemplate.id
+                ).slice(0, 4)
+              : []
+          }
         />
       </div>
     </div>

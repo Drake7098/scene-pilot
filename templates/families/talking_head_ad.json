@@ -1,0 +1,57 @@
+{
+  "id": "talking_head_ad",
+  "name": "Talking Head Ad",
+  "nameZh": "\u53e3\u64ad\u5e7f\u544a",
+  "category": "ad",
+  "description": "Talking head advertisement",
+  "descriptionZh": "\u53e3\u64ad\u5e7f\u544a",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": [
+    "mcu",
+    "cu",
+    "ms"
+  ],
+  "movementRange": [
+    "static",
+    "slow_push_in"
+  ],
+  "cameraLanguageRange": [
+    "commercial_ad",
+    "dialogue_cover"
+  ],
+  "lightingRange": {
+    "time": [
+      "day"
+    ],
+    "keyDir": [
+      "top_left",
+      "top_right"
+    ],
+    "mood": [
+      "bright",
+      "warm"
+    ]
+  },
+  "compositionRange": [
+    "rule_of_thirds",
+    "center_pressure"
+  ],
+  "objectTypes": [
+    "character",
+    "product"
+  ],
+  "advancedTags": [
+    "multi_object"
+  ],
+  "variants": [
+    "talking_head_ad_free_starter",
+    "talking_head_ad_basic_wide",
+    "talking_head_ad_basic_medium",
+    "talking_head_ad_basic_close",
+    "talking_head_ad_cinematic",
+    "talking_head_ad_vertical",
+    "talking_head_ad_multi_object"
+  ]
+}

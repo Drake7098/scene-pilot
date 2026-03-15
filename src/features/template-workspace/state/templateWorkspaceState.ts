@@ -8,10 +8,21 @@ import type {
   ApplyTemplateMode
 } from "../model/templateFilter";
 
+/** Top-level view: market (all templates) vs my templates. */
+export type TemplateWorkspaceView = "market" | "my_templates";
+
+/** Within my_templates: owned (marketplace unlocked) vs created (user private). */
+export type MyTemplateSection = "owned" | "created";
+
 export type TemplateWorkspaceState = {
+  /** "全部模板" | "我的模板" */
+  templateWorkspaceView: TemplateWorkspaceView;
+  /** When my_templates: "已拥有" | "我创建的" */
+  myTemplateSection: MyTemplateSection;
   view: "grid" | "list";
   scope: TemplateWorkspaceScope;
   selectedCategory: string | null;
+  selectedFamilyId: string | null;
   selectedTemplateId: string | null;
   searchQuery: string;
   filters: TemplateWorkspaceFilters;
@@ -19,9 +30,12 @@ export type TemplateWorkspaceState = {
 };
 
 export const DEFAULT_TEMPLATE_WORKSPACE_STATE: TemplateWorkspaceState = {
+  templateWorkspaceView: "market",
+  myTemplateSection: "owned",
   view: "grid",
-  scope: "recommended",
+  scope: "all",
   selectedCategory: null,
+  selectedFamilyId: null,
   selectedTemplateId: null,
   searchQuery: "",
   filters: {

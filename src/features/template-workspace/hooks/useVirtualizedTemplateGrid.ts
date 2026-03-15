@@ -6,17 +6,18 @@
 
 import { useMemo, useRef } from "react";
 import type { TemplateIndex } from "../model/templateIndex";
+import type { UserPrivateTemplate } from "../../../lib/userTemplatesStore";
 import { GRID_VIRTUALIZATION_THRESHOLD } from "../constants/gridStrategy";
 
 export type UseVirtualizedTemplateGridOptions = {
-  items: TemplateIndex[];
+  items: (TemplateIndex | UserPrivateTemplate)[];
   itemHeight?: number;
   containerHeight?: number;
 };
 
 export type UseVirtualizedTemplateGridResult = {
   /** Items to render. Normal mode: all items. Virtual mode: visible slice. */
-  visibleItems: TemplateIndex[];
+  visibleItems: (TemplateIndex | UserPrivateTemplate)[];
   /** Start index for virtual mode (for offset/spacer). Normal mode: 0. */
   startIndex: number;
   /** Total count for scroll height. */

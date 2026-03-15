@@ -358,6 +358,26 @@ button:focus-visible {
   background: rgba(255, 255, 255, 0.62);
 }
 
+/* Pro workspace rail scroll (Figma: scrollbar-thumb #3a3f46) */
+.pro-rail-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #3a3f46 transparent;
+}
+.pro-rail-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.pro-rail-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.pro-rail-scroll::-webkit-scrollbar-thumb {
+  background: #3a3f46;
+  border-radius: 999px;
+}
+.pro-rail-scroll::-webkit-scrollbar-thumb:hover {
+  background: #343942;
+}
+
 /* --- Pro workspace (Figma theme) overrides --- */
 /* Pro typography: unified font for zh/en (SF Pro / PingFang SC) */
 [data-workspace="pro"],
@@ -739,3 +759,13 @@ button:focus-visible {
 /* NOTE:
    Do NOT globally nuke :focus / :focus-visible.
    Inputs/selects need focus to be readable, and it can cause weird focus state leaks. */
+
+/* Landing page (design reference: #1f2125 bg, #24262b panel, #3a3f46 border, #e5e7eb text, #9ca3af muted, #f59e0b accent) */
+.landing-page header a:hover,
+.landing-page header button:not([data-testid]):hover {
+  color: #e5e7eb;
+  background: #343942;
+}
+.landing-page footer a:hover {
+  color: #e5e7eb;
+}

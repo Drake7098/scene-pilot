@@ -1,10 +1,18 @@
 import type { UserState } from "../types/account";
 
+/** Local dev only: when set, always show Pro workspace layout (e.g. when auth not loaded or free tier). */
+function isProConsoleDevOverride(): boolean {
+  if (typeof import.meta === "undefined" || !import.meta.env?.DEV) return false;
+  const v = String(import.meta.env.VITE_PRO_CONSOLE_DEV || "").trim().toLowerCase();
+  return ["1", "true", "yes"].includes(v);
+}
+
 export function canUseHostedGeneration(user: UserState | null) {
   return Boolean(user && user.tier === "pro");
 }
 
 export function canUseProConsole(user: UserState | null) {
+  if (isProConsoleDevOverride()) return true;
   return Boolean(user?.proConsoleEnabled);
 }
 

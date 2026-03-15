@@ -1,0 +1,34 @@
+{
+  "projectDefaults": {
+    "mediaType": "video",
+    "storyPlan": "single",
+    "aspectRatio": "9:16",
+    "sceneCount": 1
+  },
+  "scenes": [
+    {
+      "nameZh": "\u5bf9\u5cd9\u573a\u666f",
+      "nameEn": "Faceoff Scene",
+      "duration": 4,
+      "classicShot": "mcu",
+      "cameraLanguage": "dialogue_cover",
+      "raw": {
+        "id": "s1",
+        "name": "Faceoff Scene",
+        "duration_s": 4,
+        "camera": {
+          "shot": "mcu",
+          "movement": "static",
+          "keyframes": []
+        },
+        "lighting": {
+          "time": "day",
+          "key_dir": "top_left",
+          "mood": "warm"
+        },
+        "layers": [],
+        "notes": "camera_language: dialogue_cover\nmedia: video"
+      }
+    }
+  ]
+}

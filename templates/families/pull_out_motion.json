@@ -1,0 +1,56 @@
+{
+  "id": "pull_out_motion",
+  "name": "Pull Out Motion",
+  "nameZh": "\u62c9\u955c",
+  "category": "camera_move",
+  "description": "Pull-out camera movement",
+  "descriptionZh": "\u62c9\u955c\u8fd0\u52a8",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": [
+    "cu",
+    "mcu",
+    "ms",
+    "fs"
+  ],
+  "movementRange": [
+    "slow_pull_out",
+    "fast_pull_out"
+  ],
+  "cameraLanguageRange": [
+    "cinematic_narrative"
+  ],
+  "lightingRange": {
+    "time": [
+      "day"
+    ],
+    "keyDir": [
+      "top_left"
+    ],
+    "mood": [
+      "cinematic"
+    ]
+  },
+  "compositionRange": [
+    "center_pressure",
+    "rule_of_thirds"
+  ],
+  "objectTypes": [
+    "character",
+    "product"
+  ],
+  "advancedTags": [
+    "advanced_camera",
+    "drama_mode"
+  ],
+  "variants": [
+    "pull_out_motion_free_starter",
+    "pull_out_motion_basic_wide",
+    "pull_out_motion_basic_medium",
+    "pull_out_motion_basic_close",
+    "pull_out_motion_cinematic",
+    "pull_out_motion_vertical",
+    "pull_out_motion_advanced_motion"
+  ]
+}

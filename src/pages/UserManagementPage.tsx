@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { CheckCircle2, Copy, CreditCard, ExternalLink, KeyRound, LogOut, ShieldCheck, UserRound, Wallet } from "lucide-react";
-import { loadLang } from "../utils/storage";
 import type { Lang } from "../i18n";
+import { useLocalLang } from "../hooks/useLocalLang";
+import { StandalonePageChrome } from "../components/StandalonePageChrome";
 import type { UserSession, UserState } from "../types/account";
 import type { ApiCredentialState } from "../types/account";
 import type { CreditLedgerEntry, SubscriptionState, WalletState } from "../types/billing";
@@ -100,7 +101,7 @@ async function loadSnapshot(): Promise<PageSnapshot> {
 }
 
 export default function UserManagementPage() {
-  const [lang] = useState<Lang>(() => loadLang());
+  const [lang, setLang] = useLocalLang();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<"" | "pro" | "credits" | "portal" | "logout" | "copy">("");
   const [billingConsent, setBillingConsent] = useState(false);
@@ -267,10 +268,13 @@ export default function UserManagementPage() {
     return (
       <div style={page} data-testid="user-management-page">
         <div style={shell}>
-          <div style={topRow}>
-            <a href="/app" style={ghostLink}>{t(lang, "返回工作台", "Back to Workspace")}</a>
-          </div>
-          <div style={loadingCard}>{t(lang, "正在加载用户信息…", "Loading account data...")}</div>
+          <StandalonePageChrome
+            lang={lang}
+            setLang={setLang}
+            extraLinks={[{ href: "/pricing", labelZh: "会员价格", labelEn: "Pricing" }]}
+          >
+            <div style={loadingCard}>{t(lang, "正在加载用户信息…", "Loading account data...")}</div>
+          </StandalonePageChrome>
         </div>
       </div>
     );
@@ -279,11 +283,12 @@ export default function UserManagementPage() {
   return (
     <div style={page} data-testid="user-management-page">
       <div style={shell}>
-        <div style={topRow}>
-          <a href="/app" style={ghostLink}>{t(lang, "返回工作台", "Back to Workspace")}</a>
-          <a href="/pricing" style={ghostLink}>{t(lang, "价格", "Pricing")}</a>
-        </div>
-
+        <StandalonePageChrome
+          lang={lang}
+          setLang={setLang}
+          extraLinks={[{ href: "/pricing", labelZh: "会员价格", labelEn: "Pricing" }]}
+          showFooter
+        >
         <header style={header}>
           <div style={eyebrow}>{t(lang, "用户管理", "User Management")}</div>
           <h1 style={title}>{t(lang, "账户与订阅中心", "Account & Subscription Center")}</h1>
@@ -404,7 +409,7 @@ export default function UserManagementPage() {
                     </div>
                   ))}
                 </div>
-                <div style={mutedText}>{t(lang, "提示词导出：注册 7 天内免费，之后每次 2 credits。", "Prompt export: free in first 7 days, then 2 credits each.")}</div>
+                <div style={mutedText}>{t(lang, "提示词导出免费；点数用于生成与付费模板。", "Prompt export is free; credits for generation and paid templates.")}</div>
               </article>
             </section>
 
@@ -457,6 +462,7 @@ export default function UserManagementPage() {
             <span>{hint}</span>
           </div>
         ) : null}
+        </StandalonePageChrome>
       </div>
     </div>
   );
@@ -472,13 +478,6 @@ const shell: CSSProperties = {
   maxWidth: 1120,
   margin: "0 auto",
   padding: "28px 20px 56px"
-};
-
-const topRow: CSSProperties = {
-  display: "flex",
-  gap: 10,
-  justifyContent: "flex-end",
-  marginBottom: 12
 };
 
 const ghostLink: CSSProperties = {

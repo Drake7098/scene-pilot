@@ -142,10 +142,10 @@ export async function ensureBillingTables(db: DbLike) {
 export async function seedDefaultProducts(db: DbLike) {
   if (!db) return;
   const defaults = [
-    { code: "credit_100", kind: "credit_pack", name: "100 credits / $3", credits: 100, monthly: null, amount: 3, priceId: envOr("PADDLE_PRICE_CREDIT_100") },
-    { code: "credit_500", kind: "credit_pack", name: "500 credits / $12", credits: 500, monthly: null, amount: 12, priceId: envOr("PADDLE_PRICE_CREDIT_500") },
-    { code: "credit_2000", kind: "credit_pack", name: "2000 credits / $40", credits: 2000, monthly: null, amount: 40, priceId: envOr("PADDLE_PRICE_CREDIT_2000") },
-    { code: "pro_monthly", kind: "subscription", name: "Pro Monthly", credits: null, monthly: 500, amount: 12, priceId: envOr("PADDLE_PRICE_PRO_MONTHLY") }
+    { code: "pack_150", kind: "credit_pack", name: "150 Credits", credits: 150, monthly: null, amount: 3, priceId: envOr("PADDLE_PRICE_PACK_150") },
+    { code: "pack_420", kind: "credit_pack", name: "420 Credits", credits: 420, monthly: null, amount: 8, priceId: envOr("PADDLE_PRICE_PACK_420") },
+    { code: "pack_800", kind: "credit_pack", name: "800 Credits", credits: 800, monthly: null, amount: 15, priceId: envOr("PADDLE_PRICE_PACK_800") },
+    { code: "pro_monthly", kind: "subscription", name: "Pro Monthly", credits: null, monthly: 700, amount: 12, priceId: envOr("PADDLE_PRICE_PRO_MONTHLY") }
   ];
 
   for (const item of defaults) {

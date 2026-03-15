@@ -120,6 +120,14 @@ If any answer is unclear, simplify before adding UI.
 - Disable actions that are part of the product model but temporarily unavailable.
 - Never keep a dead action visible just because it existed historically.
 
+### Standalone pages (full-site standard)
+
+- **Back / return**: All “back” or “go to workspace” actions live in **one place**: the top-right chrome.
+- **Language**: **One** language toggle button (e.g. shows “EN” when current is zh, “中文” when current is en), in the **top-right** next to the back link. Use `useLocalLang` and persist to `scenepilot_lang`.
+- **Chrome**: Use `StandalonePageChrome`: top-right = [Lang button] [Back / 返回工作台] [optional extra links]. No duplicate lang or back controls elsewhere on the page.
+- **Long pages**: Add a **footer** with a single button/link “返回工作台” / “Back to Workspace” (or the page’s back target). Use `showFooter` on `StandalonePageChrome`.
+- **Implementation**: `src/hooks/useLocalLang.ts`, `src/components/StandalonePageChrome.tsx`. New standalone pages (pricing, legal, account, product intro, etc.) must use this chrome and hook.
+
 ## Expected Implementation Pattern
 
 When touching affected areas:

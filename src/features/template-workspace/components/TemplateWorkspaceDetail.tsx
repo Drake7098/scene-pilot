@@ -1,31 +1,35 @@
 /**
- * Template detail panel - uses TemplateIndex.
+ * Template detail panel - TemplateIndex or UserPrivateTemplate.
+ * Blocks: Access/Ownership, Reuse copy, Capability tags, Related (market only).
  */
 
 import React from "react";
 import { Star } from "lucide-react";
 import { PRO_TYPO } from "../../../uiTokens";
+import { editorTheme } from "../../../theme/editorTheme";
 import type { Lang } from "../../../i18n";
 import type { TemplateIndex } from "../model/templateIndex";
+import type { UserPrivateTemplate } from "../../../lib/userTemplatesStore";
+import { isUserPrivateTemplate } from "./TemplateCard";
 import type { ApplyTemplateMode } from "../model/templateFilter";
+import { formatPricingBucketForDisplay } from "../../../pricing";
+import { useTemplatePricing } from "../hooks/useTemplatePricing";
 
-const colors = {
-  panel: "#24262b",
-  border: "#3a3f46",
-  bg: "#1f2125",
-  text: "#e5e7eb",
-  textMuted: "#9ca3af",
-  accent: "#f59e0b"
-};
+const { colors } = editorTheme;
 
 type Props = {
   lang: Lang;
-  template: TemplateIndex | null;
+  template: TemplateIndex | UserPrivateTemplate | null;
   applyMode: ApplyTemplateMode;
   onApplyModeChange: (m: ApplyTemplateMode) => void;
   onUse: () => void;
   isFavorite?: boolean;
   onToggleFavorite?: (templateId: string) => void;
+  project?: import("../../../model").Project | null;
+  userCredits?: number;
+  isTemplateOwned?: (templateId: string) => boolean;
+  /** Same-family templates for Related block (market only). */
+  relatedTemplates?: TemplateIndex[];
 };
 
 export function TemplateWorkspaceDetail({
@@ -35,20 +39,57 @@ export function TemplateWorkspaceDetail({
   onApplyModeChange,
   onUse,
   isFavorite = false,
-  onToggleFavorite
+  onToggleFavorite,
+  project = null,
+  userCredits = 0,
+  isTemplateOwned,
+  relatedTemplates = []
 }: Props) {
   const t = (zh: string, en: string) => (lang === "zh" ? zh : en);
+  const isPrivate = template ? isUserPrivateTemplate(template) : false;
+  const { pricing, loading } = useTemplatePricing(
+    template && !isPrivate ? (template as TemplateIndex).id : null
+  );
   if (!template) {
     return (
-      <div style={styles.wrap}>
+      <div className="pro-rail-scroll" style={styles.wrap}>
         <div style={styles.empty}>{t("选择模板查看详情", "Select a template to view details")}</div>
       </div>
     );
   }
-  const name = lang === "zh" ? template.nameZh : template.nameEn;
-  const desc = lang === "zh" ? (template.descriptionZh ?? template.descriptionEn) : template.descriptionEn;
+  const name = isPrivate ? (template as UserPrivateTemplate).name : (lang === "zh" ? (template as TemplateIndex).nameZh : (template as TemplateIndex).nameEn);
+  const desc = isPrivate ? "" : (lang === "zh" ? ((template as TemplateIndex).descriptionZh ?? (template as TemplateIndex).descriptionEn) : (template as TemplateIndex).descriptionEn);
+  const owned = isPrivate || (isTemplateOwned?.(template.id) ?? false);
+  const priceLabel = loading ? "…" : pricing ? formatPricingBucketForDisplay(pricing.pricingBucket, lang) : "—";
+  const capabilityTags = pricing?.capabilityTags?.slice(0, 4) ?? [];
+  const insufficient = !isPrivate && !owned && (pricing?.creditPrice ?? 0) > 0 && userCredits < (pricing?.creditPrice ?? 0);
+
+  if (isPrivate) {
+    return (
+      <div className="pro-rail-scroll" style={styles.wrap}>
+        <div style={styles.section}>
+          <h3 style={styles.title}>{name}</h3>
+          <div style={styles.row}>
+            <span style={styles.label}>{t("来源", "Source")}</span>
+            <span style={styles.value}>{t("我创建的", "Created by me")}</span>
+          </div>
+          <div style={styles.reuseBlock}>
+            <div style={styles.reuseTitle}>{t("已拥有", "Owned")}</div>
+            <div style={styles.reuseText}>{t("可免费重复使用，每次使用将创建新项目。", "Reuse freely. Using creates a new editable project.")}</div>
+          </div>
+        </div>
+        <div style={styles.actions}>
+          <button type="button" style={styles.useBtn} onClick={onUse}>
+            {t("使用模板", "Use Template")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const marketTemplate = template as TemplateIndex;
   return (
-    <div style={styles.wrap}>
+    <div className="pro-rail-scroll" style={styles.wrap}>
       <div style={styles.section}>
         <div style={styles.titleRow}>
           <h3 style={styles.title}>{name}</h3>
@@ -69,37 +110,77 @@ export function TemplateWorkspaceDetail({
         </div>
         <div style={styles.row}>
           <span style={styles.label}>{t("家族", "Family")}</span>
-          <span style={styles.value}>{lang === "zh" ? template.familyNameZh : template.familyNameEn}</span>
+          <span style={styles.value}>{lang === "zh" ? marketTemplate.familyNameZh : marketTemplate.familyNameEn}</span>
         </div>
         {desc && <div style={styles.desc}>{desc}</div>}
-        {template.tags?.length ? (
+      </div>
+
+      <div style={styles.section}>
+        <div style={styles.blockTitle}>{t("价格 / 权限", "Access")}</div>
+        <div style={styles.row}>
+          <span style={styles.label}>{t("定价", "Pricing")}</span>
+          <span style={styles.value}>{owned ? t("已拥有", "Owned") : priceLabel}</span>
+        </div>
+        {owned && (
+          <div style={styles.ownedHint}>
+            {t("已在「我的模板」中，可免费重复使用。", "Already in My Templates. Reuse freely.")}
+          </div>
+        )}
+        {insufficient ? (
+          <div style={styles.insufficientHint}>
+            {t("需要", "Need")} {pricing?.creditPrice ?? 0} {t("积分，当前余额不足", "credits, balance insufficient")}
+          </div>
+        ) : null}
+      </div>
+
+      <div style={styles.section}>
+        <div style={styles.reuseBlock}>
+          <div style={styles.reuseTitle}>{t("使用说明", "Reuse")}</div>
+          <div style={styles.reuseText}>
+            {t("解锁一次，可重复使用。使用模板将创建新的可编辑项目。", "Unlock once. Reuse freely. Using a template creates a new editable project.")}
+          </div>
+        </div>
+      </div>
+
+      {capabilityTags.length > 0 ? (
+        <div style={styles.section}>
+          <div style={styles.blockTitle}>{t("能力标签", "Capability tags")}</div>
           <div style={styles.tags}>
-            {template.tags.map((tag) => (
+            {capabilityTags.map((tag) => (
               <span key={tag} style={styles.tag}>
                 {tag}
               </span>
             ))}
           </div>
-        ) : null}
-      </div>
-      <div style={styles.section}>
-        <div style={styles.row}>
-          <span style={styles.label}>{t("定价", "Pricing")}</span>
-          <span style={styles.value}>
-            {template.isFree ? t("免费", "Free") : `${template.cost} ${t("积分", "credits")}`}
-          </span>
         </div>
+      ) : null}
+
+      <div style={styles.section}>
         <div style={styles.row}>
           <span style={styles.label}>{t("媒体类型", "Media")}</span>
           <span style={styles.value}>
-            {template.mediaType === "image" ? t("图片", "Image") : t("视频", "Video")}
+            {marketTemplate.mediaType === "image" ? t("图片", "Image") : t("视频", "Video")}
           </span>
         </div>
         <div style={styles.row}>
           <span style={styles.label}>{t("场景类型", "Scene")}</span>
-          <span style={styles.value}>{template.storyPlan}</span>
+          <span style={styles.value}>{marketTemplate.storyPlan}</span>
         </div>
       </div>
+
+      {relatedTemplates.length > 0 ? (
+        <div style={styles.section}>
+          <div style={styles.blockTitle}>{t("同系列 / 相似", "Related")}</div>
+          <div style={styles.relatedList}>
+            {relatedTemplates.slice(0, 4).map((t) => (
+              <div key={t.id} style={styles.relatedItem}>
+                {lang === "zh" ? t.nameZh : t.nameEn}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div style={styles.section}>
         <div style={styles.modeLabel}>{t("应用模式", "Apply mode")}</div>
         <div style={styles.modeGroup}>
@@ -137,7 +218,7 @@ export function TemplateWorkspaceDetail({
       </div>
       <div style={styles.actions}>
         <button type="button" style={styles.useBtn} onClick={onUse}>
-          {t("使用", "Use")}
+          {owned ? t("使用模板", "Use Template") : pricing?.creditPrice ? t("购买并使用", "Buy & Use Template") : t("使用模板", "Use Template")}
         </button>
       </div>
     </div>
@@ -146,9 +227,9 @@ export function TemplateWorkspaceDetail({
 
 const styles: Record<string, React.CSSProperties> = {
   wrap: {
-    width: 280,
+    width: editorTheme.sizing.railWidth,
     flexShrink: 0,
-    padding: 16,
+    padding: editorTheme.spacing.panelPadding,
     background: colors.panel,
     borderLeft: `1px solid ${colors.border}`,
     overflowY: "auto"
@@ -195,6 +276,44 @@ const styles: Record<string, React.CSSProperties> = {
   },
   label: { color: colors.textMuted },
   value: { color: colors.text },
+  blockTitle: {
+    fontSize: PRO_TYPO["2xs"],
+    fontWeight: PRO_TYPO.weightMedium,
+    fontFamily: PRO_TYPO.fontFamily,
+    color: colors.textMuted,
+    marginBottom: 6
+  },
+  ownedHint: {
+    marginTop: 4,
+    fontSize: PRO_TYPO["2xs"],
+    color: colors.textMuted
+  },
+  reuseBlock: { marginTop: 4 },
+  reuseTitle: {
+    fontSize: PRO_TYPO["2xs"],
+    fontWeight: PRO_TYPO.weightMedium,
+    fontFamily: PRO_TYPO.fontFamily,
+    color: colors.textMuted,
+    marginBottom: 2
+  },
+  reuseText: {
+    fontSize: PRO_TYPO["2xs"],
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily,
+    color: colors.textMuted,
+    lineHeight: 1.4
+  },
+  relatedList: { display: "flex", flexDirection: "column", gap: 4 },
+  relatedItem: {
+    fontSize: PRO_TYPO["2xs"],
+    color: colors.text,
+    fontFamily: PRO_TYPO.fontFamily
+  },
+  insufficientHint: {
+    marginTop: 6,
+    fontSize: PRO_TYPO["2xs"],
+    color: "#f59e0b"
+  },
   desc: {
     fontSize: PRO_TYPO.xs,
     fontWeight: PRO_TYPO.weightRegular,
@@ -242,10 +361,10 @@ const styles: Record<string, React.CSSProperties> = {
     background: colors.accent,
     border: "none",
     borderRadius: 8,
-    color: "#1f2125",
+    color: colors.bg,
     fontSize: PRO_TYPO.sm,
     fontWeight: PRO_TYPO.weightMedium,
     fontFamily: PRO_TYPO.fontFamily,
     cursor: "pointer"
-  }
+  },
 };

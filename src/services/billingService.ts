@@ -22,19 +22,49 @@ export const CREDIT_PACKS: CreditPackConfig[] = [
   { id: "credit_2000", name: "2000 credits / $40", usdPrice: 40, credits: 2000, priceId: (import.meta.env.VITE_PADDLE_PRICE_CREDIT_2000 as string | undefined)?.trim(), enabled: true }
 ];
 
+/** V2 Pricing: Quick credit packs ($3→20, $5→40, $10→90) */
+export const PRICING_V2_QUICK_PACKS: CreditPackConfig[] = [
+  { id: "quick_20", name: "20 credits", usdPrice: 3, credits: 20, priceId: (import.meta.env.VITE_PADDLE_PRICE_QUICK_20 as string | undefined)?.trim(), enabled: true },
+  { id: "quick_40", name: "40 credits", usdPrice: 5, credits: 40, priceId: (import.meta.env.VITE_PADDLE_PRICE_QUICK_40 as string | undefined)?.trim(), enabled: true },
+  { id: "quick_90", name: "90 credits", usdPrice: 10, credits: 90, priceId: (import.meta.env.VITE_PADDLE_PRICE_QUICK_90 as string | undefined)?.trim(), enabled: true },
+];
+
+/** V2 Pricing: Plan credit packs ($15→200, $30→500, $60→1200) */
+export const PRICING_V2_PLAN_PACKS: CreditPackConfig[] = [
+  { id: "plan_200", name: "200 credits", usdPrice: 15, credits: 200, priceId: (import.meta.env.VITE_PADDLE_PRICE_PLAN_200 as string | undefined)?.trim(), enabled: true },
+  { id: "plan_500", name: "500 credits", usdPrice: 30, credits: 500, priceId: (import.meta.env.VITE_PADDLE_PRICE_PLAN_500 as string | undefined)?.trim(), enabled: true },
+  { id: "plan_1200", name: "1200 credits", usdPrice: 60, credits: 1200, priceId: (import.meta.env.VITE_PADDLE_PRICE_PLAN_1200 as string | undefined)?.trim(), enabled: true },
+];
+
+/** Pricing Final: $3/150, $8/420, $15/800 */
+export const PRICING_FINAL_CREDIT_PACKS: CreditPackConfig[] = [
+  { id: "pack_150", name: "150 Credits", usdPrice: 3, credits: 150, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_150 as string | undefined)?.trim(), enabled: true },
+  { id: "pack_420", name: "420 Credits", usdPrice: 8, credits: 420, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_420 as string | undefined)?.trim(), enabled: true },
+  { id: "pack_800", name: "800 Credits", usdPrice: 15, credits: 800, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_800 as string | undefined)?.trim(), enabled: true },
+];
+
+/** All credit packs (legacy + V2 + final) for checkout lookup */
+const ALL_CREDIT_PACKS = [
+  ...CREDIT_PACKS,
+  ...PRICING_V2_QUICK_PACKS,
+  ...PRICING_V2_PLAN_PACKS,
+  ...PRICING_FINAL_CREDIT_PACKS,
+];
+
 export const PRO_PLAN: ProPlanConfig = {
   id: "pro_monthly",
   name: "Pro",
   monthlyUsdPrice: 12,
-  monthlyCredits: 500,
+  monthlyCredits: 700,
   priceId: (import.meta.env.VITE_PADDLE_PRICE_PRO_MONTHLY as string | undefined)?.trim(),
   enabled: true
 };
 
 export const HOSTED_ACTIONS: HostedActionConfig[] = [
-  { id: "image_standard", mediaType: "image", qualityTier: "standard", creditsCost: 1, enabled: true },
-  { id: "image_hd", mediaType: "image", qualityTier: "hd", creditsCost: 3, enabled: true },
-  { id: "video_standard", mediaType: "video", qualityTier: "video", creditsCost: 20, enabled: true }
+  { id: "image_standard", mediaType: "image", qualityTier: "standard", creditsCost: 3, enabled: true },
+  { id: "image_hd", mediaType: "image", qualityTier: "hd", creditsCost: 5, enabled: true },
+  { id: "video_standard", mediaType: "video", qualityTier: "video", creditsCost: 5, enabled: true },
+  { id: "video_hq", mediaType: "video", qualityTier: "video_hq", creditsCost: 12, enabled: true }
 ];
 
 type MockCheckoutSession = {
@@ -61,9 +91,10 @@ function nowIso() {
 
 function buildMockCheckoutResult(input: CheckoutRequest): CheckoutResult {
   const sessionId = makeId("checkout");
+  const pack = input.kind === "credits" ? ALL_CREDIT_PACKS.find((item) => item.id === input.productId) : null;
   const items = input.kind === "pro"
     ? [{ priceId: PRO_PLAN.priceId, quantity: 1 }]
-    : [{ priceId: CREDIT_PACKS.find((item) => item.id === input.productId)?.priceId, quantity: 1 }];
+    : [{ priceId: pack?.priceId, quantity: 1 }];
   mockSessions.set(sessionId, {
     id: sessionId,
     userId: input.userId,
@@ -132,6 +163,32 @@ export function creditCostFor(mediaType: HostedMediaType, qualityTier: HostedQua
   return action.creditsCost * Math.max(1, outputs);
 }
 
+/** Generation profile (UI-facing). Four tiers: image standard/hq, video standard/hq. */
+export type GenerationProfileId = "image_standard" | "image_hq" | "video_standard" | "video_hq";
+
+export function creditCostForProfile(profile: GenerationProfileId, videoSeconds = 1): number {
+  switch (profile) {
+    case "image_standard":
+      return creditCostFor("image", "standard", 1);
+    case "image_hq":
+      return creditCostFor("image", "hd", 1);
+    case "video_standard":
+      return creditCostFor("video", "video", Math.max(1, Math.ceil(videoSeconds)));
+    case "video_hq":
+      return creditCostFor("video", "video_hq", Math.max(1, Math.ceil(videoSeconds)));
+    default:
+      return 0;
+  }
+}
+
+/** For cost preview: human-readable label and cost (Hosted only). */
+export const GENERATION_PROFILE_LABELS: Record<GenerationProfileId, { labelEn: string; labelZh: string; creditsEn: string; creditsZh: string }> = {
+  image_standard: { labelEn: "Standard Image", labelZh: "标准图像", creditsEn: "3 Credits", creditsZh: "3 Credits" },
+  image_hq: { labelEn: "High Quality Image", labelZh: "高质量图像", creditsEn: "5 Credits", creditsZh: "5 Credits" },
+  video_standard: { labelEn: "Standard Video", labelZh: "标准视频", creditsEn: "5 Credits / second", creditsZh: "5 Credits / 秒" },
+  video_hq: { labelEn: "High Quality Video", labelZh: "高质量视频", creditsEn: "12 Credits / second", creditsZh: "12 Credits / 秒" },
+};
+
 export async function createCheckoutSession(input: CheckoutRequest): Promise<CheckoutResult> {
   if (!BILLING_ENABLED) {
     throw new Error("billing_disabled");
@@ -159,7 +216,7 @@ export async function completeMockCheckout(sessionId: string) {
   const session = mockSessions.get(sessionId);
   if (!session) throw new Error("checkout_not_found");
   if (session.kind === "credits") {
-    const pack = CREDIT_PACKS.find((item) => item.id === session.productId && item.enabled);
+    const pack = ALL_CREDIT_PACKS.find((item) => item.id === session.productId && item.enabled);
     if (!pack) throw new Error("credit_pack_not_found");
     await grantCredits(session.userId, pack.credits, "purchase");
   } else {

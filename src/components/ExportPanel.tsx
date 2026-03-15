@@ -27,7 +27,7 @@ type Props = {
   sceneIdx: number;
   platformId?: PlatformPresetId;
   openExportNonce?: number;
-  openExportAction?: "open" | "copy" | "package";
+  openExportAction?: "open" | "copy" | "package" | "prompt_txt" | "prompt_plus_refs";
   promptExportNote?: string;
   onPreparePromptExport?: (action: PromptExportAction) => Promise<PromptExportTicket>;
   onSettlePromptExport?: (reservationId: string | undefined, committed: boolean) => Promise<void>;
@@ -39,6 +39,8 @@ type Props = {
   /** Controlled export mode (quick/package) - when provided, syncs with Platform Mode */
   exportMode?: ExportMode;
   onExportModeChange?: (m: ExportMode) => void;
+  /** Optional: called with a short message when an export/copy action succeeds (e.g. for FeedbackBar). */
+  onFeedbackMessage?: (msg: string) => void;
 };
 
 function clampInt(v: number, a: number, b: number) {
@@ -232,11 +234,12 @@ export function ExportPanel({
   exportScope: controlledExportScope,
   onExportScopeChange,
   exportMode: controlledExportMode,
-  onExportModeChange
+  onExportModeChange,
+  onFeedbackMessage
 }: Props) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
-  const [pendingConflictAction, setPendingConflictAction] = useState<null | "copy" | "save" | "prompt_plus_refs">(null);
+  const [pendingConflictAction, setPendingConflictAction] = useState<null | "copy" | "save" | "prompt_txt" | "prompt_plus_refs">(null);
   const [pendingConflicts, setPendingConflicts] = useState<PromptConflict[]>([]);
   const [actionHint, setActionHint] = useState("");
   const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
@@ -293,6 +296,20 @@ export function ExportPanel({
     resetExportState();
     if (openExportAction === "copy") {
       void guardBeforeExport("copy");
+      return;
+    }
+    if (openExportAction === "prompt_txt") {
+      void guardBeforeExportTxt();
+      return;
+    }
+    if (openExportAction === "prompt_plus_refs") {
+      if (sceneConflicts.length) {
+        setPendingConflictAction("prompt_plus_refs");
+        setPendingConflicts(sceneConflicts);
+        setShowConflictModal(true);
+      } else {
+        void runExportPromptPlusRefs();
+      }
       return;
     }
     if (openExportAction === "package") {
@@ -417,6 +434,7 @@ export function ExportPanel({
       committed = true;
       setCopyDone(true);
       setActionHint(lang === "zh" ? "已复制当前提示词" : "Current prompt copied");
+      onFeedbackMessage?.(lang === "zh" ? "已复制提示词" : "Prompt copied");
     } finally {
       if (onSettlePromptExport) {
         await onSettlePromptExport(ticket.reservationId, committed);
@@ -437,6 +455,42 @@ export function ExportPanel({
       return;
     }
     setPendingConflictAction(action);
+    setPendingConflicts(sceneConflicts);
+    setShowConflictModal(true);
+  }
+
+  /** Unified export: download prompt.txt only. Used by openExportAction "prompt_txt". */
+  async function runExportTxt(): Promise<void> {
+    let ticket: PromptExportTicket = { allowed: true };
+    if (onPreparePromptExport) {
+      ticket = await onPreparePromptExport("pro_export_prompt");
+      if (!ticket.allowed) return;
+    }
+    setExporting(true);
+    let committed = false;
+    try {
+      const res = await downloadQuickPromptFile();
+      committed = res.ok;
+      if (res.ok) {
+        setActionHint(lang === "zh" ? "prompt.txt 下载成功" : "prompt.txt downloaded");
+        onFeedbackMessage?.(lang === "zh" ? "已导出 TXT" : "Exported TXT");
+      } else {
+        setActionHint(res.fileLabel || (lang === "zh" ? "导出失败" : "Export failed"));
+      }
+    } finally {
+      setExporting(false);
+      if (onSettlePromptExport) {
+        await onSettlePromptExport(ticket.reservationId, committed);
+      }
+    }
+  }
+
+  async function guardBeforeExportTxt() {
+    if (!sceneConflicts.length) {
+      await runExportTxt();
+      return;
+    }
+    setPendingConflictAction("prompt_txt");
     setPendingConflicts(sceneConflicts);
     setShowConflictModal(true);
   }
@@ -902,6 +956,7 @@ export function ExportPanel({
       committed = res.ok;
       if (res.ok) {
         setActionHint(lang === "zh" ? "提示词 + 参考图已导出" : "Prompt + refs exported");
+        onFeedbackMessage?.(lang === "zh" ? "已导出 ZIP" : "Exported ZIP");
       } else {
         setActionHint(res.fileLabel || (lang === "zh" ? "导出失败" : "Export failed"));
       }
@@ -1199,6 +1254,7 @@ export function ExportPanel({
                   onClick={async () => {
                     await copy(manualSaveGuide);
                     setActionHint(lang === "zh" ? "已复制手动建目录流程" : "Manual workflow copied");
+                    onFeedbackMessage?.(lang === "zh" ? "已复制流程" : "Workflow copied");
                   }}
                 >
                   {lang === "zh" ? "复制手动建目录流程" : "Copy Manual Workflow"}
@@ -1228,6 +1284,7 @@ export function ExportPanel({
                     if (res.ok) {
                       setActionHint(lang === "zh" ? "prompt.txt 下载成功" : "prompt.txt downloaded");
                       setShowExportModal(false);
+                      onFeedbackMessage?.(lang === "zh" ? "已导出 TXT" : "Exported TXT");
                     } else {
                       setActionHint(res.fileLabel || (lang === "zh" ? "导出失败" : "Export failed"));
                     }
@@ -1247,6 +1304,7 @@ export function ExportPanel({
                   if (res.ok) {
                     setActionHint(lang === "zh" ? `项目包已导出：${res.folderLabel}` : `Project package exported: ${res.folderLabel}`);
                     setShowExportModal(false);
+                    onFeedbackMessage?.(lang === "zh" ? "已导出项目" : "Exported project");
                   } else {
                     setActionHint(res.folderLabel || (lang === "zh" ? "保存失败" : "Save failed"));
                   }
@@ -1256,6 +1314,7 @@ export function ExportPanel({
                   if (zip.ok) {
                     setActionHint(lang === "zh" ? "项目包 ZIP 已下载" : "Project package ZIP downloaded");
                     setShowExportModal(false);
+                    onFeedbackMessage?.(lang === "zh" ? "已导出项目 ZIP" : "Exported project ZIP");
                   } else {
                     setActionHint(zip.fileLabel || (lang === "zh" ? "ZIP 下载失败" : "ZIP download failed"));
                   }
@@ -1336,6 +1395,7 @@ export function ExportPanel({
                   setShowConflictModal(false);
                   if (action === "copy") await runCopyPrompt();
                   if (action === "save") runOpenSaveModal();
+                  if (action === "prompt_txt") await runExportTxt();
                   if (action === "prompt_plus_refs") await runExportPromptPlusRefs(true);
                 }}
               >

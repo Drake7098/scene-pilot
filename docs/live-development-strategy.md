@@ -84,6 +84,20 @@ Last updated: 2026-03-13
 - 项目库主存储格式：单文件 JSON。
 - 项目 JSON 含 `meta`（`proExportMode`、`currentTemplate` 等）；`loadProject` 及打开/上传项目均经 `sanitizeProject` 规范化，旧项目可安全降级。
 
+### Billing (Template Charges)
+- 模板第一次解锁时扣费；解锁后进入“已拥有模板”，可无限次免费创建新项目。
+- 打开已有项目、从已拥有模板创建新项目均不再扣费。
+- 免费=0，普通=3，高级/连续=5 credits；cost 来自模板元数据，不从 UI 临时算。
+- 已拥有状态：前端 `ownedTemplatesStore`（localStorage，按 userId）；后续可改为后端同步。
+- `project.meta.billing.appliedTemplateCharges` 仍可持久化；`sanitizeProject` 保留 billing。
+- 详见 `docs/billing-system-v1.md`、`docs/template-billing-rules.md`。
+
+### Template vs Project (Use Template / Save As)
+- 模板为只读母版；不能直接编辑模板，只能“从模板创建项目”。
+- **Use Template**：永远创建全新项目（不 append、不覆盖当前项目）；未拥有时先扣费并标记已拥有，再创建。
+- **Save As / Duplicate**：基于当前项目创建新的项目副本（新 id、新名称），与原项目完全分离，不重新扣模板费。
+- 项目元数据：`sourceType`（blank | template | duplicate）、`sourceTemplateId`/`sourceTemplateSlug`、`basedOnProjectId`；项目有 `id`、`name`，默认命名见 `projectCreation.generateNextProjectName`。
+
 ### Export
 - 主动作：`复制提示词`（纯文本）、`导出提示词 + 参考图`（ZIP，当前范围）。
 - 次级动作（更多导出）：`下载 prompt.txt`、`完整项目包`。

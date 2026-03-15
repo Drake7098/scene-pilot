@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { CheckCircle2, CreditCard, Crown, KeyRound, LogOut, Sparkles, UserRound, Wallet, X } from "lucide-react";
-import type { AccountCenterSection, ApiCredentialState, ApiProviderId, ApiProviderMode, UserState } from "../types/account";
+import { AlertCircle, CheckCircle2, CreditCard, Crown, KeyRound, LogOut, Sparkles, UserRound, Wallet, X } from "lucide-react";
+import type { AccountCenterSection, ApiCredentialState, ApiProviderId, ApiProviderMode, ProviderConnectionStatus, UserState } from "../types/account";
 import type { CreditLedgerEntry, CreditPackConfig, ProPlanConfig, SubscriptionState } from "../types/billing";
 import type { Lang } from "../i18n";
 import { LEGAL_DOCS, legalText, type LegalDocId } from "../content/legal";
@@ -95,18 +95,18 @@ export function AccountCenterModal(props: Props) {
     onOpenCustomerPortal,
     onSaveApiCredentials
   } = props;
-  const [apiDraft, setApiDraft] = useState<ApiCredentialState>(() => normalizeApiCredentials(apiCredentials));
+  const [apiDraft, setApiDraft] = useState<ApiCredentialState>(() => normalizeApiCredentialsForForm(apiCredentials));
   const [activeLegalDoc, setActiveLegalDoc] = useState<LegalDocId | null>(null);
 
   useEffect(() => {
-    setApiDraft(normalizeApiCredentials(apiCredentials));
+    setApiDraft(normalizeApiCredentialsForForm(apiCredentials));
   }, [apiCredentials, open, section]);
 
   const title = useMemo(() => {
     if (!user) return t(lang, "注册 / 登录", "Sign Up / Sign In");
     if (section === "credits") return t(lang, "点数与充值", "Credits");
     if (section === "pro") return "Pro";
-    if (section === "api") return t(lang, "自带 API", "Bring Your Own API");
+    if (section === "api") return t(lang, "AI Providers", "AI Providers");
     return t(lang, "我的账户", "My Account");
   }, [lang, section, user]);
   const authConsentLine1 = t(
@@ -167,11 +167,9 @@ export function AccountCenterModal(props: Props) {
             <button type="button" style={{ ...styles.tab, ...(section === "pro" ? styles.tabOn : null) }} onClick={() => onSectionChange("pro")}>
               <Crown size={14} />Pro
             </button>
-            {user?.tier === "pro" ? (
-              <button type="button" style={{ ...styles.tab, ...(section === "api" ? styles.tabOn : null) }} onClick={() => onSectionChange("api")}>
-                <KeyRound size={14} />API
-              </button>
-            ) : null}
+            <button type="button" style={{ ...styles.tab, ...(section === "api" ? styles.tabOn : null) }} onClick={() => onSectionChange("api")}>
+              <KeyRound size={14} />{t(lang, "AI Providers", "AI Providers")}
+            </button>
           </div>
         ) : null}
 
@@ -387,8 +385,8 @@ export function AccountCenterModal(props: Props) {
                 <div style={styles.muted}>
                   {t(
                     lang,
-                    "提示词导出：注册后 7 天内免费，之后每次消耗 2 点。",
-                    "Prompt export: free for 7 days after registration, then 2 credits per export."
+                    "提示词导出免费。点数仅用于生成与部分付费模板。",
+                    "Prompt export is free. Credits are used for generation and paid templates only."
                   )}
                 </div>
                 <div style={styles.blockTitle}>{t(lang, "最近流水", "Recent Ledger")}</div>
@@ -456,20 +454,41 @@ export function AccountCenterModal(props: Props) {
               </div>
             ) : null}
 
+            {section === "api" && user.tier !== "pro" ? (
+              <div style={styles.panel}>
+                <div style={styles.upgradeCard}>
+                  <Crown size={24} style={{ color: "var(--pro-accent)", flexShrink: 0 }} />
+                  <div>
+                    <div style={styles.packTitle}>{t(lang, "配置自己的 API 接口", "Configure your own API endpoint")}</div>
+                    <div style={styles.apiMeta}>
+                      {t(
+                        lang,
+                        "Pro 权益：可配置自己的 API 接口，生成不扣 ScenePilot 点数；模板仍按规则扣费。",
+                        "Pro benefit: configure your own API endpoint; generation does not use ScenePilot credits; templates still apply."
+                      )}
+                    </div>
+                    <button type="button" style={styles.primaryBtn} onClick={onUpgradePro} data-testid="account-ai-providers-upgrade">
+                      {t(lang, "升级 Pro", "Upgrade to Pro")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {section === "api" && user.tier === "pro" ? (
               <div style={styles.panel}>
-                <div style={styles.blockTitle}>{t(lang, "生成接口", "Generation APIs")}</div>
+                <div style={styles.blockTitle}>{t(lang, "AI Providers", "AI Providers")}</div>
                 <div style={styles.muted}>
                   {t(
                     lang,
-                    "在这里管理 fal 和 Runway。平台模式使用 ScenePilot credits，自带 API 适合 Pro 用户接入自己的 key。",
-                    "Manage fal and Runway here. Platform mode uses ScenePilot credits, while personal API mode lets Pro users connect their own keys."
+                    "Pro 权益：可配置自己的 API 接口。平台模式使用 ScenePilot 点数；我的 API 使用自填 key，生成不扣点数。",
+                    "Pro benefit: configure your own API endpoint. Platform mode uses ScenePilot credits; My API uses your key and does not consume credits."
                   )}
                 </div>
                 <div style={styles.apiDefaultCard}>
                   <div>
                     <div style={styles.packTitle}>{t(lang, "默认提供商", "Default provider")}</div>
-                    <div style={styles.apiMeta}>{t(lang, "决定 Pro 工作台优先使用哪个生成接口。", "Controls which provider Pro uses first.")}</div>
+                    <div style={styles.apiMeta}>{t(lang, "Pro 工作台优先使用的生成接口。", "Default provider for generation in Pro workspace.")}</div>
                   </div>
                   <select
                     value={apiDraft.defaultProvider}
@@ -486,19 +505,21 @@ export function AccountCenterModal(props: Props) {
                     lang,
                     providerId: "fal",
                     title: "fal",
-                    subtitle: t(lang, "适合平台默认图像/视频生成", "Best for platform default image and video generation"),
+                    subtitle: t(lang, "图像/视频生成", "Image and video generation"),
                     docsMeta: "queue.fal.run / fal.run",
                     draft: apiDraft,
-                    setDraft: setApiDraft
+                    setDraft: setApiDraft,
+                    savedCredentials: apiCredentials
                   })}
                   {renderProviderCard({
                     lang,
                     providerId: "runway",
                     title: "Runway",
-                    subtitle: t(lang, "适合高质量专业视频生成", "Best for high-end professional video generation"),
+                    subtitle: t(lang, "高质量视频生成", "High-quality video generation"),
                     docsMeta: "api.dev.runwayml.com",
                     draft: apiDraft,
-                    setDraft: setApiDraft
+                    setDraft: setApiDraft,
+                    savedCredentials: apiCredentials
                   })}
                 </div>
                 <div style={styles.actions}>
@@ -564,6 +585,13 @@ export function AccountCenterModal(props: Props) {
   );
 }
 
+function maskSecret(secret: string): string {
+  if (!secret || secret.length === 0) return "";
+  if (secret.length <= 8) return "••••••••";
+  return `${secret.slice(0, 4)}••••••••${secret.slice(-4)}`;
+}
+
+/** Normalize for storage/display; keeps full structure. */
 function normalizeApiCredentials(input: ApiCredentialState | null): ApiCredentialState {
   return input ?? {
     defaultProvider: "fal",
@@ -587,6 +615,16 @@ function normalizeApiCredentials(input: ApiCredentialState | null): ApiCredentia
   };
 }
 
+/** For form draft: never put raw key in state; keys cleared so UI never displays plaintext. */
+function normalizeApiCredentialsForForm(input: ApiCredentialState | null): ApiCredentialState {
+  const base = normalizeApiCredentials(input);
+  return {
+    ...base,
+    fal: { ...base.fal, apiKey: "" },
+    runway: { ...base.runway, apiKey: "" }
+  };
+}
+
 function updateProviderDraft(
   draft: ApiCredentialState,
   providerId: ApiProviderId,
@@ -605,6 +643,18 @@ function providerModeLabel(lang: Lang, mode: ApiProviderMode) {
   return mode === "platform" ? t(lang, "平台模式", "Platform mode") : t(lang, "我的 API", "My API");
 }
 
+function providerStatusLabel(lang: Lang, status: ProviderConnectionStatus | null | undefined): string {
+  if (!status) return "";
+  const map: Record<ProviderConnectionStatus, string> = {
+    connected: lang === "zh" ? "已连接" : "Connected",
+    invalid_key: lang === "zh" ? "Key 无效" : "Invalid key",
+    quota_issue: lang === "zh" ? "配额问题" : "Quota issue",
+    model_access_issue: lang === "zh" ? "模型权限问题" : "Model access issue",
+    network_error: lang === "zh" ? "网络错误" : "Network error"
+  };
+  return map[status];
+}
+
 function renderProviderCard(input: {
   lang: Lang;
   providerId: ApiProviderId;
@@ -613,9 +663,16 @@ function renderProviderCard(input: {
   docsMeta: string;
   draft: ApiCredentialState;
   setDraft: React.Dispatch<React.SetStateAction<ApiCredentialState>>;
+  savedCredentials: ApiCredentialState | null;
 }) {
-  const { lang, providerId, title, subtitle, docsMeta, draft, setDraft } = input;
+  const { lang, providerId, title, subtitle, docsMeta, draft, setDraft, savedCredentials } = input;
   const provider = draft[providerId];
+  const saved = savedCredentials?.[providerId];
+  const savedHasKey = Boolean(saved?.apiKey?.trim());
+  const status = saved?.status ?? provider.status;
+  const lastCheckedAt = saved?.lastCheckedAt ?? provider.lastCheckedAt;
+  const isError = status && status !== "connected";
+
   return (
     <article style={styles.providerCard} data-testid={`account-api-provider-${providerId}`}>
       <div style={styles.providerHead}>
@@ -625,9 +682,19 @@ function renderProviderCard(input: {
             {draft.defaultProvider === providerId ? (
               <span style={styles.defaultBadge}><CheckCircle2 size={12} />{t(lang, "默认", "Default")}</span>
             ) : null}
+            {status === "connected" ? (
+              <span style={styles.connectedBadge}><CheckCircle2 size={12} />{providerStatusLabel(lang, status)}</span>
+            ) : isError ? (
+              <span style={styles.errorBadge}><AlertCircle size={12} />{providerStatusLabel(lang, status)}</span>
+            ) : null}
           </div>
           <div style={styles.apiMeta}>{subtitle}</div>
           <div style={styles.providerMeta}>{docsMeta}</div>
+          {lastCheckedAt && status ? (
+            <div style={styles.lastChecked}>
+              {t(lang, "检查于", "Checked")} {new Date(lastCheckedAt).toLocaleString(lang === "zh" ? "zh-CN" : "en-US", { dateStyle: "short", timeStyle: "short" })}
+            </div>
+          ) : null}
         </div>
         <label style={styles.checkboxRow}>
           <input
@@ -639,6 +706,13 @@ function renderProviderCard(input: {
           <span>{t(lang, "启用", "Enabled")}</span>
         </label>
       </div>
+
+      {isError && provider.mode === "personal" ? (
+        <div style={styles.errorActions}>
+          <span style={styles.errorDetail}>{t(lang, "请检查 key 或重试", "Check key or try again")}</span>
+          <span style={styles.errorHint}>{t(lang, "保存后将重新检查连接", "Connection is rechecked on save.")}</span>
+        </div>
+      ) : null}
 
       <div style={styles.modeRow}>
         {(["platform", "personal"] as ApiProviderMode[]).map((mode) => (
@@ -681,19 +755,24 @@ function renderProviderCard(input: {
         <label style={styles.fieldStack}>
           <span style={styles.fieldLabel}>API Key</span>
           <input
+            type="password"
+            autoComplete="off"
             value={provider.apiKey}
             onChange={(e) => setDraft((current) => updateProviderDraft(current, providerId, { apiKey: e.target.value }))}
-            placeholder={providerId === "fal" ? "Key ..." : "Bearer token"}
+            placeholder={savedHasKey ? "••••••••••••" : (providerId === "fal" ? "Key ..." : "Bearer token")}
             style={styles.input}
             data-testid={`account-api-provider-key-${providerId}`}
           />
+          {savedHasKey && !provider.apiKey ? (
+            <span style={styles.fieldHint}>{t(lang, "留空则保留当前 key", "Leave blank to keep current key")}</span>
+          ) : null}
         </label>
       ) : (
         <div style={styles.apiHint} data-testid={`account-api-provider-platform-${providerId}`}>
           {t(
             lang,
-            "平台模式下使用 ScenePilot credits 和服务端代理，不需要在这里填 key。",
-            "Platform mode uses ScenePilot credits and server-side proxying, so no key is needed here."
+            "平台模式使用 ScenePilot Credits 和服务端代理，无需填写 key。",
+            "Platform mode uses ScenePilot Credits and server-side proxy; no key needed."
           )}
         </div>
       )}
@@ -1073,6 +1152,65 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#c9dcff",
     fontSize: 11,
     fontWeight: 700
+  },
+  connectedBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    padding: "2px 8px",
+    borderRadius: 999,
+    border: "1px solid rgba(34,197,94,0.4)",
+    background: "rgba(34,197,94,0.15)",
+    color: "#86efac",
+    fontSize: 11,
+    fontWeight: 600
+  },
+  errorBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    padding: "2px 8px",
+    borderRadius: 999,
+    border: "1px solid rgba(239,68,68,0.4)",
+    background: "rgba(239,68,68,0.12)",
+    color: "#fca5a5",
+    fontSize: 11,
+    fontWeight: 600
+  },
+  lastChecked: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.45)",
+    marginTop: 4
+  },
+  errorActions: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    padding: "8px 10px",
+    borderRadius: 8,
+    background: "rgba(239,68,68,0.08)",
+    border: "1px solid rgba(239,68,68,0.2)"
+  },
+  errorDetail: {
+    fontSize: 12,
+    color: "#fca5a5"
+  },
+  errorHint: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.5)"
+  },
+  fieldHint: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.5)"
+  },
+  upgradeCard: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 16,
+    padding: 20,
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.04)"
   },
   modeRow: {
     display: "flex",

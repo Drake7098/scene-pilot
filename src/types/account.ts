@@ -28,12 +28,27 @@ export type UserState = {
 export type ApiProviderId = "fal" | "runway";
 export type ApiProviderMode = "platform" | "personal";
 
+/** Result of health check after save; do not log plain key. */
+export type ProviderConnectionStatus =
+  | "connected"
+  | "invalid_key"
+  | "quota_issue"
+  | "model_access_issue"
+  | "network_error";
+
 export type ProviderApiConfig = {
   enabled: boolean;
   mode: ApiProviderMode;
   apiKey: string;
   baseUrl: string;
   preferredModel: string;
+  /** Optional: organization / workspace for provider */
+  organization?: string;
+  workspace?: string;
+  preferredRegion?: string;
+  /** Set after save + health check; do not log or store plain key. */
+  status?: ProviderConnectionStatus | null;
+  lastCheckedAt?: string | null;
   updatedAt: string | null;
 };
 

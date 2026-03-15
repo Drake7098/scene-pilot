@@ -1,0 +1,58 @@
+{
+  "id": "social_vertical_ad",
+  "name": "Social Vertical Ad",
+  "nameZh": "\u793e\u5a92\u7ad6\u7248\u5e7f\u544a",
+  "category": "social",
+  "description": "Social media vertical advertisement",
+  "descriptionZh": "\u793e\u5a92\u7ad6\u7248\u5e7f\u544a",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": [
+    "mcu",
+    "cu",
+    "ms"
+  ],
+  "movementRange": [
+    "static",
+    "slow_push_in"
+  ],
+  "cameraLanguageRange": [
+    "commercial_ad",
+    "social_native"
+  ],
+  "lightingRange": {
+    "time": [
+      "day"
+    ],
+    "keyDir": [
+      "top_left",
+      "top_right"
+    ],
+    "mood": [
+      "bright",
+      "warm"
+    ]
+  },
+  "compositionRange": [
+    "rule_of_thirds",
+    "center_pressure"
+  ],
+  "objectTypes": [
+    "character",
+    "product"
+  ],
+  "advancedTags": [
+    "multi_object",
+    "vertical"
+  ],
+  "variants": [
+    "social_vertical_ad_free_starter",
+    "social_vertical_ad_basic_wide",
+    "social_vertical_ad_basic_medium",
+    "social_vertical_ad_basic_close",
+    "social_vertical_ad_cinematic",
+    "social_vertical_ad_vertical",
+    "social_vertical_ad_multi_object"
+  ]
+}

@@ -1,16 +1,17 @@
-# Template600 Progress — Spec 构建阶段
+# Template600 Progress — Batch 2
 
-**Stage:** Template600 Spec Build
+**Stage:** Template600 Spec Build — Batch 2
 
-**Families:** 10  
-**Variants:** 47  
-**Payloads:** 47  
+**Families:** 20  
+**Variants:** 120  
+**Payloads:** 120  
 
 **Schema check:** pass  
 **符合 spec:** yes  
 **修改架构:** no  
+**修改 engine:** no  
 
-**Stop:** Phase 1 complete, awaiting next phase
+**Stop:** Batch 2 complete, variants ≥ 120
 
 ---
 
@@ -18,74 +19,67 @@
 
 | 类型 | 数量 |
 |------|------|
-| families | 10 |
-| variants | 47 |
-| payloads | 47 |
+| families | 20 |
+| variants | 120 |
+| payloads | 120 |
 
 ---
 
-## Families (10)
+## Families (20)
 
-| id | category | mediaType | variants |
-|----|----------|-----------|----------|
-| product_hero | product | image | 5 |
-| dialogue_duo | dialogue | video | 5 |
-| opening_shot | short_video | video | 5 |
-| push_in_motion | camera_move | video | 5 |
-| center_composition | composition | image | 4 |
-| selling_point_ad | ad | image | 4 |
-| solo_speaker | dialogue | video | 5 |
-| product_center_display | product | image | 4 |
-| tracking_motion | camera_move | video | 5 |
-| emotional_peak | short_video | video | 5 |
-
----
-
-## Schema Check
-
-- **Family spec:** id, name, nameZh, category, description, mediaType, storyPlan, shotRange, movementRange, cameraLanguageRange, lightingRange, compositionRange, objectTypes, advancedTags, variants[] — 均来自 template-family-spec / template-spec-schema
-- **Variant spec:** id, familyId, name, nameZh, applyMode, tags, payloadRef — 符合要求
-- **Payload spec:** projectDefaults, scenes[] — 符合 template-payload-schema-v2
-- **applyMode:** layout_only | layout_plus_style | full_workflow 仅使用既有取值
-
----
-
-## 是否符合 spec
-
-**是**
-
-- 字段来自 template-spec-schema-v1, template-payload-schema-v2, template-family-spec
-- 分类来自 market-technique-corpus, template-family-spec README
-- 取值来自 market-technique-corpus canonical_id
+| id | category | mediaType |
+|----|----------|-----------|
+| product_hero | product | image |
+| product_center_display | product | image |
+| product_compare | product | image |
+| dialogue_duo | dialogue | video |
+| solo_speaker | dialogue | video |
+| interview_layout | dialogue | video |
+| faceoff_scene | dialogue | video |
+| selling_point_ad | ad | image |
+| talking_head_ad | ad | video |
+| social_vertical_ad | social | video |
+| opening_shot | short_video | video |
+| emotional_peak | short_video | video |
+| character_entrance | short_video | video |
+| turning_point_shot | short_video | video |
+| push_in_motion | camera_move | video |
+| pull_out_motion | camera_move | video |
+| pan_motion | camera_move | video |
+| tracking_motion | camera_move | video |
+| center_composition | composition | image |
+| symmetry_composition | composition | image |
 
 ---
 
-## 是否修改架构
+## 分类覆盖
+
+| 要求 | 映射 |
+|------|------|
+| product | product_hero, product_center_display, product_compare |
+| dialogue | dialogue_duo, solo_speaker, interview_layout, faceoff_scene |
+| motion | camera_move (push, pull, pan, tracking) |
+| composition | center_composition, symmetry_composition |
+| camera | camera_move |
+| emotion | short_video (emotional_peak, turning_point_shot) |
+| ad | selling_point_ad, talking_head_ad |
+| shortvideo | opening_shot, emotional_peak, character_entrance, turning_point_shot |
+| cinema | cinematic variants |
+| 直播 | social_vertical_ad |
+| 口播 | solo_speaker, talking_head_ad |
+| 剧情 | turning_point_shot, emotional_peak |
+| 商品 | product families |
+| 特写 | basic_close, insert_closeup variants |
+| 转场 | camera_move (push/pull motion) |
+
+---
+
+## 是否改 schema
 
 **否**
 
-- 未新增字段
-- 未新增 taxonomy
-- 未修改 schema
-- 未修改 template engine / prompt engine / rule engine
-- 未修改 compileV2 / resolveSceneStrategy
-- 仅新增 `templates/` 目录下 spec 数据文件
-
 ---
 
-## 目录结构
+## 是否改 engine
 
-```
-templates/
-  families/    10 × .json
-  variants/    47 × .json
-  payloads/    47 × .json
-```
-
----
-
-## 阶段停止条件
-
-- 已生成 ~50 templates
-- 结构已验证
-- 等待下一阶段指令
+**否**

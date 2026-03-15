@@ -19,6 +19,8 @@ type Props = {
   onRenameLayer: (oldId: string, newId: string) => void;
   editT: 0 | 1;
   setEditT: (t: 0 | 1) => void;
+  /** Optional slot rendered at top of scroll area (e.g. prompt preview section), same flow as other sections */
+  topSection?: React.ReactNode;
   /** Optional slot rendered at bottom of panel (e.g. generate button) */
   bottomSlot?: React.ReactNode;
   project?: Project | null;
@@ -359,7 +361,7 @@ function buildShapePresets(lang: Lang, typeKey: TypeKey) {
 }
 
 export function PropsPanel(props: Props) {
-  const { lang, scene, selectedLayerId, onUpdateScene, onRenameLayer, editT, setEditT, bottomSlot, project, onUpdateProject, platformId, onPlatformChange, exportMode, onExportModeChange } = props;
+  const { lang, scene, selectedLayerId, onUpdateScene, onRenameLayer, editT, setEditT, topSection, bottomSlot, project, onUpdateProject, platformId, onPlatformChange, exportMode, onExportModeChange } = props;
   const tt = useMemo(() => (key: string) => t(lang, key), [lang]);
 
   const mediaMode: MediaMode = useMemo(() => parseMediaModeFromNotes(scene?.notes), [scene?.notes]);
@@ -848,6 +850,7 @@ const typePresets = useMemo(
   return (
     <div className="pro-props-panel" style={{ ...styles.wrap, ...styles.wrapPro }}>
       <div style={styles.scrollArea}>
+      {topSection}
       {/* Scene Background */}
       <ProCollapseSection
         title={lang === "zh" ? "分镜背景" : "Scene Background"}

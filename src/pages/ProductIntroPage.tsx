@@ -1,155 +1,150 @@
-import { useMemo, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useLocalLang } from "../hooks/useLocalLang";
+import { StandalonePageChrome } from "../components/StandalonePageChrome";
+import { getCurrentUser } from "../services/authService";
+import type { UserState } from "../types/account";
 import PublicFooter from "../components/PublicFooter";
 
-type Locale = "zh" | "en";
-const LANDING_LANG_KEY = "sp_landing_lang";
+const WORKSPACE_MODE_KEY = "sp_workspace_mode";
+const WORKSPACE_ENTRY_GUIDE_KEY = "sp_workspace_entry_guide_done_v1";
 
-function detectLocale(): Locale {
-  try {
-    const saved = localStorage.getItem(LANDING_LANG_KEY);
-    if (saved === "zh" || saved === "en") return saved;
-  } catch {
-    /* ignore */
+function routeToSignIn(mode?: "results" | "pro") {
+  if (mode) {
+    try {
+      localStorage.setItem(WORKSPACE_MODE_KEY, mode);
+      localStorage.setItem(WORKSPACE_ENTRY_GUIDE_KEY, "1");
+    } catch {
+      /* ignore */
+    }
   }
-  if (typeof navigator === "undefined") return "en";
-  return /^zh(?:-|$)/i.test(navigator.language || "") ? "zh" : "en";
+  window.location.href = "/signin";
 }
 
-type Module = {
-  id: string;
-  title: string;
-  bullets: string[];
-};
-
-const MODULES = {
-  zh: [
-    {
-      id: "overview",
-      title: "产品定位",
-      bullets: [
-        "工作台：结构编辑、模板驱动、导出验证",
-        "稳做交付，适合商业交付与协作复用"
-      ]
-    },
-    {
-      id: "quick_start",
-      title: "快速开始",
-      bullets: [
-        "1) 创建项目：先选图片或视频，确定单张结构还是逐镜编辑",
-        "2) 搭结构：确定分镜数量、时长、镜头关系，提示词节奏与连续性提前锁定",
-        "3) 编对象：逐镜调整对象位置、大小、层级、参考图，先对齐结构再补风格",
-        "4) 导出验证：先看提示词，再复制或导出到目标模型平台，快速判断方向是否达标"
-      ]
-    },
-    {
-      id: "method",
-      title: "核心方法",
-      bullets: [
-        "先结构，后生成",
-        "先关系，后细节",
-        "先定方向，再放大"
-      ]
-    },
-    {
-      id: "export",
-      title: "导出能力",
-      bullets: [
-        "快速导出：当前提示词送大模型，先测方向与构图",
-        "交付包：提示词 + 参考图 + 说明，适合交接与复用",
-        "当前分镜 / 连续序列：按需选择导出范围"
-      ]
-    },
-    {
-      id: "fit",
-      title: "适合谁",
-      bullets: [
-        "创作者与小团队",
-        "营销与品牌内容组",
-        "商业交付项目"
-      ]
-    }
-  ] as Module[],
-  en: [
-    {
-      id: "overview",
-      title: "Positioning",
-      bullets: [
-        "Workspace: structure editing, template-driven flow, export validation",
-        "Stable delivery, commercial handoff, reuse"
-      ]
-    },
-    {
-      id: "quick_start",
-      title: "Quick Start",
-      bullets: [
-        "1) Create Project: choose Image or Video; lock single-image or shot-by-shot flow",
-        "2) Build Structure: set shot count, duration, relationships; define pacing and continuity",
-        "3) Edit Objects: tune position, size, layer, references; structure first, style second",
-        "4) Export & Validate: review prompt, copy/export to model platform; verify direction"
-      ]
-    },
-    {
-      id: "method",
-      title: "Core Method",
-      bullets: [
-        "Structure first, then generate",
-        "Relationships before details",
-        "Direction before scale"
-      ]
-    },
-    {
-      id: "export",
-      title: "Export",
-      bullets: [
-        "Prompt TXT Export: send prompt to model platform, test direction and composition",
-        "Package: prompt + refs + readme, for handoff and reuse",
-        "Current Scene / Continuity Sequence: choose export scope"
-      ]
-    },
-    {
-      id: "fit",
-      title: "Best For",
-      bullets: [
-        "Creators and small teams",
-        "Marketing and brand workflows",
-        "Commercial delivery projects"
-      ]
-    }
-  ] as Module[]
+const COPY = {
+  zh: {
+    back: "返回首页",
+    title: "结构化提示词工作台",
+    subtitleLine1: "用模板、分镜结构和镜头语言",
+    subtitleLine2: "让大模型真正理解你的创作意图",
+    core: "不再反复重试提示词。通过结构化场景、对象布局和导演级镜头控制，更稳定生成图片和视频，并支持多模型输出。",
+    featuresTitle: "功能亮点",
+    features: [
+      "模板驱动创作（600+ 场景模板）",
+      "分镜式编辑，控制对象位置与运动",
+      "专业镜头语言 / 运镜 / 光影氛围",
+      "支持图片与视频生成流程",
+      "可导出 Prompt / 参考图 / 结构包",
+      "兼容多种生成模型（Fal / Runway / 等）",
+    ],
+    cta: "进入工作台",
+    ctaHint: "模板驱动 · 分镜编辑 · 稳定生成 · 多模型输出 · Prompt + 参考图导出",
+    lang: "EN",
+  },
+  en: {
+    back: "Back to Home",
+    title: "Structured Prompt Workspace",
+    subtitleLine1: "Use templates, scene structure, and cinematic language",
+    subtitleLine2: "to make AI truly understand what you want to create",
+    core: "Stop retrying prompts again and again. Build scenes with layout, objects, and camera control for more stable image and video generation across models.",
+    featuresTitle: "Features",
+    features: [
+      "Template-driven workflow (600+ scene templates)",
+      "Storyboard-style scene editor",
+      "Professional camera / motion / lighting control",
+      "Works for both image and video generation",
+      "Export Prompt / References / Structure pack",
+      "Compatible with multiple engines (Fal / Runway / etc.)",
+    ],
+    cta: "Enter Workspace",
+    ctaHint: "Templates · Storyboard · Stable Generation · Multi-Model · Prompt + Reference Export",
+    lang: "中文",
+  },
 } as const;
 
 export default function ProductIntroPage() {
-  const locale = useMemo(() => detectLocale(), []);
-  const t = MODULES[locale];
-  const copy = useMemo(
-    () => (locale === "zh"
-      ? { back: "返回首页", title: "产品介绍", lead: "结构化提示词工作台，用更少试错获得更稳定输出。" }
-      : { back: "Back to Home", title: "Product Overview", lead: "A structured prompt workspace for faster direction and steadier delivery." }),
-    [locale]
-  );
+  const [lang, setLang] = useLocalLang();
+  const [accountUser, setAccountUser] = useState<UserState | null>(null);
+  const [ctaHover, setCtaHover] = useState(false);
+  const t = useMemo(() => COPY[lang], [lang]);
+  const isZh = lang === "zh";
+
+  useEffect(() => {
+    let alive = true;
+    void getCurrentUser()
+      .then((user) => {
+        if (!alive) return;
+        setAccountUser(user);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setAccountUser(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   return (
     <div style={page}>
       <div style={shell}>
-        <header style={head}>
-          <a href="/" style={backLink}>{copy.back}</a>
-          <h1 style={title}>{copy.title}</h1>
-          <p style={lead}>{copy.lead}</p>
-        </header>
-
+        <StandalonePageChrome
+          lang={lang}
+          setLang={setLang}
+          backHref="/"
+          backLabelZh="返回首页"
+          backLabelEn="Back to Home"
+          showFooter
+        >
         <main style={main}>
-          {t.map((mod) => (
-            <section key={mod.id} id={mod.id} style={sectionStyle}>
-              <h2 style={sectionTitle}>{mod.title}</h2>
-              <ul style={list}>
-                {mod.bullets.map((b) => (
-                  <li key={b} style={itemStyle}>{b}</li>
-                ))}
-              </ul>
-            </section>
-          ))}
+          <h1 style={title}>{t.title}</h1>
+          <p style={subtitle}>
+            <span style={subtitleLine}>{t.subtitleLine1}</span>
+            <span style={subtitleLine}>{t.subtitleLine2}</span>
+          </p>
+          <p style={coreText}>{t.core}</p>
+
+          <section style={featuresSection}>
+            <h2 style={featuresTitle}>{t.featuresTitle}</h2>
+            <ul style={featuresList}>
+              {t.features.map((item) => (
+                <li key={item} style={featureItem}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <div style={ctaWrap}>
+            {accountUser ? (
+              <a
+                href="/app"
+                style={{ ...ctaBtn, ...(isZh ? ctaBtnZh : null), textDecoration: "none" }}
+                onMouseEnter={() => setCtaHover(true)}
+                onMouseLeave={() => setCtaHover(false)}
+              >
+                {t.cta}
+              </a>
+            ) : (
+              <button
+                type="button"
+                style={{
+                  ...ctaBtn,
+                  ...(isZh ? ctaBtnZh : null),
+                  backgroundColor: ctaHover ? "#d97706" : undefined,
+                }}
+                onMouseEnter={() => setCtaHover(true)}
+                onMouseLeave={() => setCtaHover(false)}
+                onClick={() => routeToSignIn("pro")}
+              >
+                {t.cta}
+              </button>
+            )}
+            <p style={ctaHint}>{t.ctaHint}</p>
+          </div>
         </main>
 
         <PublicFooter compact />
+        </StandalonePageChrome>
       </div>
     </div>
   );
@@ -159,71 +154,101 @@ const page: CSSProperties = {
   minHeight: "100%",
   color: "var(--spx-text-1)",
   background:
-    "radial-gradient(860px 460px at 0% -20%, rgba(57,180,120,0.14), transparent 62%), radial-gradient(740px 420px at 100% -18%, rgba(88,138,232,0.14), transparent 62%), #080c12"
+    "radial-gradient(860px 460px at 0% -20%, rgba(57,180,120,0.14), transparent 62%), radial-gradient(740px 420px at 100% -18%, rgba(88,138,232,0.14), transparent 62%), #080c12",
 };
 
 const shell: CSSProperties = {
   maxWidth: 980,
   margin: "0 auto",
-  padding: "28px 20px 44px"
+  padding: "28px 20px 44px",
 };
 
-const head: CSSProperties = {
+const main: CSSProperties = {
   display: "grid",
-  gap: 12
-};
-
-const backLink: CSSProperties = {
-  width: "fit-content",
-  color: "rgba(160,233,194,0.9)",
-  textDecoration: "none",
-  fontSize: 13.5,
-  fontWeight: 640
+  gap: 20,
 };
 
 const title: CSSProperties = {
   margin: 0,
   fontSize: "clamp(30px, 5vw, 56px)",
   lineHeight: 1.08,
-  letterSpacing: "-0.02em"
+  letterSpacing: "-0.02em",
 };
 
-const lead: CSSProperties = {
+const subtitle: CSSProperties = {
   margin: 0,
   color: "var(--spx-text-2)",
-  fontSize: 16,
+  fontSize: "clamp(15px, 1.8vw, 17px)",
+  lineHeight: 1.6,
+};
+
+const subtitleLine: CSSProperties = {
+  display: "block",
+};
+
+const coreText: CSSProperties = {
+  margin: 0,
+  color: "var(--spx-text-2)",
+  fontSize: "clamp(14px, 1.6vw, 16px)",
   lineHeight: 1.72,
-  maxWidth: 820
+  maxWidth: 820,
 };
 
-const main: CSSProperties = {
-  marginTop: 28,
-  display: "grid",
-  gap: 20
-};
-
-const sectionStyle: CSSProperties = {
-  paddingTop: 18,
+const featuresSection: CSSProperties = {
+  paddingTop: 20,
   borderTop: "1px solid rgba(188,214,242,0.14)",
   display: "grid",
-  gap: 10
+  gap: 12,
 };
 
-const sectionTitle: CSSProperties = {
+const featuresTitle: CSSProperties = {
   margin: 0,
-  fontSize: 20,
-  fontWeight: 760
+  fontSize: 18,
+  fontWeight: 700,
 };
 
-const list: CSSProperties = {
+const featuresList: CSSProperties = {
   margin: 0,
   paddingLeft: 20,
   display: "grid",
-  gap: 8
+  gap: 8,
 };
 
-const itemStyle: CSSProperties = {
+const featureItem: CSSProperties = {
   color: "var(--spx-text-2)",
   fontSize: 14.5,
-  lineHeight: 1.62
+  lineHeight: 1.62,
+};
+
+const ctaWrap: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: 10,
+  paddingTop: 8,
+};
+
+const ctaBtn: CSSProperties = {
+  minHeight: 48,
+  border: "none",
+  borderRadius: 12,
+  background: "#fcd34d",
+  color: "#1f2125",
+  fontSize: 15,
+  fontWeight: 700,
+  padding: "0 48px",
+  cursor: "pointer",
+  transition: "background-color 180ms ease",
+};
+
+const ctaBtnZh: CSSProperties = {
+  minHeight: 50,
+  fontSize: 16,
+};
+
+const ctaHint: CSSProperties = {
+  margin: 0,
+  color: "var(--spx-text-3)",
+  fontSize: 13,
+  lineHeight: 1.5,
 };

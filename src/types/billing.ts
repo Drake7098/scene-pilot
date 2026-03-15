@@ -1,6 +1,6 @@
 export type WalletCurrency = "credits" | "usd";
 export type HostedMediaType = "image" | "video";
-export type HostedQualityTier = "standard" | "hd" | "video";
+export type HostedQualityTier = "standard" | "hd" | "video" | "video_hq";
 
 export type WalletState = {
   creditsBalance: number;

@@ -81,7 +81,18 @@
     "release:secrets:status": "bash scripts/release-secrets-keychain.sh status",
     "release:secrets:clear": "bash scripts/release-secrets-keychain.sh clear",
     "release:safe": "bash scripts/release-safe.sh",
-    "release:orchestrate": "node scripts/release-orchestrate.mjs"
+    "release:orchestrate": "node scripts/release-orchestrate.mjs",
+    "template-assets:images": "npx tsx scripts/template-assets/render-images.ts",
+    "template-assets:videos": "npx tsx scripts/template-assets/render-videos.ts",
+    "template-assets:score": "npx tsx scripts/template-assets/score-assets.ts",
+    "pricing:audit": "npx tsx scripts/template-pricing-audit.ts",
+    "template-assets:retry": "npx tsx scripts/template-assets/retry-failed.ts",
+    "template-assets:manifest": "npx tsx scripts/template-assets/save-asset-manifest.ts",
+    "template-assets:phase-a": "npm run template-assets:images 10 && npm run template-assets:videos 3 && npm run template-assets:score && npm run template-assets:manifest",
+    "prompt-batch": "npx tsx scripts/prompt-batch/run-batch.ts",
+    "prompt-batch:check": "npx tsx scripts/prompt-batch/check-existing.ts",
+    "prompt-batch:report": "npx tsx scripts/prompt-batch/print-report.ts",
+    "prompt-batch:analyze": "npx tsx scripts/prompt-batch/analyze-prompts.ts"
   },
   "dependencies": {
     "lucide-react": "^0.575.0",
@@ -99,6 +110,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "tsx": "^4.19.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
     "vite": "^7.3.1"

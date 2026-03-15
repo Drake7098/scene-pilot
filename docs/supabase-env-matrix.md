@@ -86,17 +86,17 @@ Last updated: 2026-03-13
 - `PADDLE_API_KEY=<PADDLE_API_KEY>`
 - `PADDLE_WEBHOOK_SECRET=<PADDLE_WEBHOOK_SECRET>`
 - `PADDLE_PRICE_PRO_MONTHLY=<price_id>`
-- `PADDLE_PRICE_CREDIT_100=<price_id>`
-- `PADDLE_PRICE_CREDIT_500=<price_id>`
-- `PADDLE_PRICE_CREDIT_2000=<price_id>`
+- `PADDLE_PRICE_PACK_150=<price_id>` ($3 = 150 Credits)
+- `PADDLE_PRICE_PACK_420=<price_id>` ($8 = 420 Credits)
+- `PADDLE_PRICE_PACK_800=<price_id>` ($15 = 800 Credits)
 
 ### 前端
 - `VITE_PADDLE_ENV=production`
 - `VITE_PADDLE_CLIENT_TOKEN=<PADDLE_CLIENT_TOKEN>`
 - `VITE_PADDLE_PRICE_PRO_MONTHLY=<price_id>`
-- `VITE_PADDLE_PRICE_CREDIT_100=<price_id>`
-- `VITE_PADDLE_PRICE_CREDIT_500=<price_id>`
-- `VITE_PADDLE_PRICE_CREDIT_2000=<price_id>`
+- `VITE_PADDLE_PRICE_PACK_150=<price_id>`
+- `VITE_PADDLE_PRICE_PACK_420=<price_id>`
+- `VITE_PADDLE_PRICE_PACK_800=<price_id>`
 
 ## Google 登录（Supabase OAuth）
 

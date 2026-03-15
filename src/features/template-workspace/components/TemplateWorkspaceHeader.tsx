@@ -1,23 +1,29 @@
 /**
- * Template workspace header - search + filters + close.
+ * Template workspace header - view switch, search + filters + close.
  */
 
 import React from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, LayoutGrid, User } from "lucide-react";
 import { PRO_TYPO } from "../../../uiTokens";
 import type { Lang } from "../../../i18n";
 import type { TemplateWorkspaceFilters } from "../model/templateFilter";
+import type { TemplateWorkspaceView, MyTemplateSection } from "../state/templateWorkspaceState";
 
 const colors = {
   panel: "#24262b",
   border: "#3a3f46",
   bg: "#1f2125",
   text: "#e5e7eb",
-  textMuted: "#9ca3af"
+  textMuted: "#9ca3af",
+  accent: "#f59e0b"
 };
 
 type Props = {
   lang: Lang;
+  templateWorkspaceView: TemplateWorkspaceView;
+  onTemplateWorkspaceViewChange: (v: TemplateWorkspaceView) => void;
+  myTemplateSection?: MyTemplateSection;
+  onMyTemplateSectionChange?: (s: MyTemplateSection) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
   filters: TemplateWorkspaceFilters;
@@ -25,22 +31,80 @@ type Props = {
   onClose: () => void;
   totalCount?: number;
   freeCount?: number;
+  ownedCount?: number;
+  createdCount?: number;
 };
 
 export function TemplateWorkspaceHeader({
   lang,
+  templateWorkspaceView,
+  onTemplateWorkspaceViewChange,
+  myTemplateSection = "owned",
+  onMyTemplateSectionChange,
   searchQuery,
   onSearchChange,
   filters,
   onFiltersChange,
   onClose,
   totalCount,
-  freeCount
+  freeCount,
+  ownedCount,
+  createdCount
 }: Props) {
   const t = (zh: string, en: string) => (lang === "zh" ? zh : en);
   return (
     <div style={styles.wrap}>
-      {totalCount != null ? (
+      <div style={styles.viewSwitch}>
+        <button
+          type="button"
+          style={{
+            ...styles.viewBtn,
+            ...(templateWorkspaceView === "market" ? styles.viewBtnActive : {})
+          }}
+          onClick={() => onTemplateWorkspaceViewChange("market")}
+        >
+          <LayoutGrid size={14} />
+          <span>{t("全部模板", "All Templates")}</span>
+        </button>
+        <button
+          type="button"
+          style={{
+            ...styles.viewBtn,
+            ...(templateWorkspaceView === "my_templates" ? styles.viewBtnActive : {})
+          }}
+          onClick={() => onTemplateWorkspaceViewChange("my_templates")}
+        >
+          <User size={14} />
+          <span>{t("我的模板", "My Templates")}</span>
+        </button>
+      </div>
+      {templateWorkspaceView === "my_templates" && onMyTemplateSectionChange ? (
+        <div style={styles.sectionSwitch}>
+          <button
+            type="button"
+            style={{
+              ...styles.sectionBtn,
+              ...(myTemplateSection === "owned" ? styles.sectionBtnActive : {})
+            }}
+            onClick={() => onMyTemplateSectionChange("owned")}
+          >
+            {t("已拥有", "Owned")}
+            {ownedCount != null ? ` (${ownedCount})` : ""}
+          </button>
+          <button
+            type="button"
+            style={{
+              ...styles.sectionBtn,
+              ...(myTemplateSection === "created" ? styles.sectionBtnActive : {})
+            }}
+            onClick={() => onMyTemplateSectionChange("created")}
+          >
+            {t("我创建的", "Created by me")}
+            {createdCount != null ? ` (${createdCount})` : ""}
+          </button>
+        </div>
+      ) : null}
+      {totalCount != null && templateWorkspaceView === "market" ? (
         <span style={styles.countBadge}>
           {totalCount} {t("模板", "templates")}
           {freeCount != null ? ` · ${freeCount} ${t("免费", "free")}` : ""}
@@ -128,12 +192,54 @@ const styles: Record<string, React.CSSProperties> = {
   countBadge: { fontSize: PRO_TYPO["2xs"], fontWeight: PRO_TYPO.weightRegular, fontFamily: PRO_TYPO.fontFamily, color: colors.textMuted },
   wrap: {
     display: "flex",
+    flexWrap: "wrap",
     alignItems: "center",
     gap: 12,
     padding: "8px 12px",
     background: colors.panel,
     borderBottom: `1px solid ${colors.border}`,
     flexShrink: 0
+  },
+  viewSwitch: {
+    display: "flex",
+    gap: 4
+  },
+  viewBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "6px 10px",
+    background: colors.bg,
+    border: `1px solid ${colors.border}`,
+    borderRadius: 8,
+    color: colors.textMuted,
+    fontSize: PRO_TYPO["2xs"],
+    fontWeight: PRO_TYPO.weightRegular,
+    fontFamily: PRO_TYPO.fontFamily,
+    cursor: "pointer"
+  },
+  viewBtnActive: {
+    background: colors.panel,
+    borderColor: colors.accent,
+    color: colors.accent
+  },
+  sectionSwitch: {
+    display: "flex",
+    gap: 4
+  },
+  sectionBtn: {
+    padding: "4px 8px",
+    background: "transparent",
+    border: "none",
+    borderRadius: 6,
+    color: colors.textMuted,
+    fontSize: PRO_TYPO["2xs"],
+    fontFamily: PRO_TYPO.fontFamily,
+    cursor: "pointer"
+  },
+  sectionBtnActive: {
+    color: colors.text,
+    background: colors.bg
   },
   searchWrap: {
     flex: 1,

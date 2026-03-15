@@ -25,6 +25,8 @@ export type EditorSelectProps = {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  /** Use compact spacing (for camera/layout control blocks) */
+  compact?: boolean;
 };
 
 export function EditorSelect({
@@ -36,6 +38,7 @@ export function EditorSelect({
   disabled = false,
   placeholder,
   className,
+  compact = false,
 }: EditorSelectProps) {
   const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue ?? "");
   const isControlled = controlledValue !== undefined;
@@ -51,8 +54,9 @@ export function EditorSelect({
     [isControlled, onChange]
   );
 
+  const marginBottom = compact ? spacing.fieldMarginBottomCompact : spacing.fieldMarginBottom;
   return (
-    <div className={className} style={{ marginBottom: spacing.fieldMarginBottom }}>
+    <div className={className} style={{ marginBottom }}>
       {label != null && (
         <label
           style={{

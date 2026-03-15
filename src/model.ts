@@ -142,14 +142,47 @@ export type CurrentTemplateContext = {
 
 export type ProExportMode = "prompt_only" | "package";
 
+/** How this project was created. */
+export type ProjectSourceType = "blank" | "template" | "duplicate";
+
 /** Project-level metadata for billing, tracking, future backend sync. */
 export type ProjectMeta = {
-  /** Template IDs already charged in this project - no repeat charge after refresh. */
+  /** How the project was created. */
+  sourceType?: ProjectSourceType;
+  /** Template id when sourceType is template. */
+  sourceTemplateId?: string;
+  /** Template slug for naming (e.g. premium-product). */
+  sourceTemplateSlug?: string;
+  /** Original project id when sourceType is duplicate. */
+  basedOnProjectId?: string;
+  /** True if template was already owned when project was created (no charge). */
+  templateOwnedAtCreation?: boolean;
+  /** Pricing bucket at creation (F0/C1/C2/P2/P3) when sourceType is template. */
+  pricingBucketAtCreation?: string;
+  /** @deprecated Use meta.billing.appliedTemplateCharges. Kept for migration. */
   appliedTemplateIds?: string[];
   /** Current template applied to this project (serializable, persists with project). */
   currentTemplate?: CurrentTemplateContext;
   /** Pro workspace export mode: quick (prompt only) or package (prompt+refs). Persists with project. */
   proExportMode?: ProExportMode;
+  /** Detailed billing records - source of truth for no-repeat-charge. */
+  billing?: {
+    appliedTemplateCharges: Array<{
+      templateId: string;
+      familyId?: string;
+      variantId?: string;
+      cost: number;
+      chargedAt: string;
+      chargeType: "template_apply";
+    }>;
+    generationCharges: Array<{
+      sceneId?: string;
+      platformId?: string;
+      cost: number;
+      chargedAt: string;
+      chargeType: "generate_image" | "generate_video";
+    }>;
+  };
 };
 
 /** Continuity config from template apply; matches TemplateContinuity. */
@@ -163,6 +196,10 @@ export type ProjectContinuity = {
 };
 
 export type Project = {
+  /** Stable project id (set on create/duplicate). */
+  id?: string;
+  /** Display name (set on create/duplicate, user can rename). */
+  name?: string;
   project: { mode: Mode; mediaType?: MediaType; shotPlan?: ShotPlan; creativeContext?: ProjectCreativeContext };
   scenes: Scene[];
   meta?: ProjectMeta;
@@ -471,7 +508,7 @@ export function sanitizeProject(p: Project): Project {
     }
   });
 
-  // project.meta - appliedTemplateIds + currentTemplate
+  // project.meta - appliedTemplateIds + currentTemplate + billing
   const metaRaw = (p as any).meta;
   if (metaRaw && typeof metaRaw === "object") {
     const appliedIds = Array.isArray(metaRaw.appliedTemplateIds)
@@ -508,9 +545,85 @@ export function sanitizeProject(p: Project): Project {
       };
     }
     const proExportMode: ProExportMode = metaRaw.proExportMode === "package" ? "package" : "prompt_only";
-    p.meta = { appliedTemplateIds: appliedIds, currentTemplate: currentTpl, proExportMode };
+    const billingRaw = metaRaw.billing;
+    const billing =
+      billingRaw && typeof billingRaw === "object"
+        ? {
+            appliedTemplateCharges: Array.isArray(billingRaw.appliedTemplateCharges)
+              ? (billingRaw.appliedTemplateCharges as unknown[])
+                  .filter(
+                    (c): c is { templateId: string; cost: number; chargedAt: string; chargeType: string } =>
+                      c != null &&
+                      typeof c === "object" &&
+                      typeof (c as any).templateId === "string" &&
+                      typeof (c as any).cost === "number" &&
+                      typeof (c as any).chargedAt === "string" &&
+                      (c as any).chargeType === "template_apply"
+                  )
+                  .map((c) => ({
+                    templateId: String((c as any).templateId),
+                    familyId: typeof (c as any).familyId === "string" ? (c as any).familyId : undefined,
+                    variantId: typeof (c as any).variantId === "string" ? (c as any).variantId : undefined,
+                    cost: Number((c as any).cost) || 0,
+                    chargedAt: String((c as any).chargedAt),
+                    chargeType: "template_apply" as const
+                  }))
+                  .slice(0, 500)
+              : [],
+            generationCharges: Array.isArray(billingRaw.generationCharges)
+              ? (billingRaw.generationCharges as unknown[])
+                  .filter(
+                    (c): c is { cost: number; chargedAt: string; chargeType: string } =>
+                      c != null &&
+                      typeof c === "object" &&
+                      typeof (c as any).cost === "number" &&
+                      typeof (c as any).chargedAt === "string"
+                  )
+                  .map((c) => ({
+                    sceneId: typeof (c as any).sceneId === "string" ? (c as any).sceneId : undefined,
+                    platformId: typeof (c as any).platformId === "string" ? (c as any).platformId : undefined,
+                    cost: Number((c as any).cost) || 0,
+                    chargedAt: String((c as any).chargedAt),
+                    chargeType:
+                      (c as any).chargeType === "generate_video"
+                        ? ("generate_video" as const)
+                        : ("generate_image" as const)
+                  }))
+                  .slice(0, 200)
+              : []
+          }
+        : undefined;
+    const sourceType =
+      metaRaw.sourceType === "template" || metaRaw.sourceType === "duplicate"
+        ? metaRaw.sourceType
+        : metaRaw.sourceType === "blank"
+          ? "blank"
+          : undefined;
+    const pricingBucketAtCreation =
+      typeof metaRaw.pricingBucketAtCreation === "string" && /^(F0|C1|C2|P2|P3)$/.test(metaRaw.pricingBucketAtCreation)
+        ? metaRaw.pricingBucketAtCreation
+        : undefined;
+    p.meta = {
+      sourceType,
+      sourceTemplateId: typeof metaRaw.sourceTemplateId === "string" ? metaRaw.sourceTemplateId : undefined,
+      sourceTemplateSlug: typeof metaRaw.sourceTemplateSlug === "string" ? metaRaw.sourceTemplateSlug : undefined,
+      basedOnProjectId: typeof metaRaw.basedOnProjectId === "string" ? metaRaw.basedOnProjectId : undefined,
+      templateOwnedAtCreation: metaRaw.templateOwnedAtCreation === true,
+      pricingBucketAtCreation,
+      appliedTemplateIds: appliedIds,
+      currentTemplate: currentTpl,
+      proExportMode,
+      ...(billing ? { billing } : {})
+    };
   } else {
     p.meta = { appliedTemplateIds: [], proExportMode: "prompt_only" as ProExportMode };
+  }
+
+  if (typeof (p as any).id === "string" && (p as any).id.length > 0) {
+    (p as Project).id = (p as any).id;
+  }
+  if (typeof (p as any).name === "string") {
+    (p as Project).name = (p as any).name;
   }
 
   p.scenes = scenes;

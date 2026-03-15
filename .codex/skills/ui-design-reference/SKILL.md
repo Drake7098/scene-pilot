@@ -14,6 +14,11 @@ Use this skill whenever you modify user-facing UI in ScenePilotix: layout, heigh
 
 This file defines the canonical Figma/SceneMaker theme and component structure. All UI changes must align with it.
 
+**强制规则：**
+- 本阶段所有 UI 结构、布局层级、信息密度、分栏逻辑、交互组织，必须统一参考该文件
+- 允许基于业务做内容适配
+- **不允许脱离该参考源单独设计新的 UI 体系**
+
 ## Design Reference Contents
 
 - **Colors**: `#1f2125` (bg), `#24262b` (panel), `#3a3f46` (border), `#343942` (hover), `#e5e7eb` (text), `#9ca3af` (text muted), `#f59e0b` (accent)

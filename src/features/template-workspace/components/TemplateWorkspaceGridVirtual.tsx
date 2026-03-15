@@ -8,7 +8,9 @@ import React from "react";
 import { LayoutGrid, List } from "lucide-react";
 import type { Lang } from "../../../i18n";
 import type { TemplateIndex } from "../model/templateIndex";
-import { TemplateCard } from "./TemplateCard";
+import type { UserPrivateTemplate } from "../../../lib/userTemplatesStore";
+import type { TemplatePricingResult } from "../../../pricing/templatePricingTypes";
+import { TemplateCard, isUserPrivateTemplate } from "./TemplateCard";
 import { useVirtualizedTemplateGrid } from "../hooks/useVirtualizedTemplateGrid";
 import { PRO_TYPO } from "../../../uiTokens";
 
@@ -22,14 +24,16 @@ const colors = {
 
 type Props = {
   lang: Lang;
-  items: TemplateIndex[];
+  items: (TemplateIndex | UserPrivateTemplate)[];
   view: "grid" | "list";
   onViewChange: (v: "grid" | "list") => void;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-  onUse?: (item: TemplateIndex) => void;
+  onUse?: (item: TemplateIndex | UserPrivateTemplate) => void;
   isFavorite?: (id: string) => boolean;
   onToggleFavorite?: (id: string) => void;
+  pricingMap?: Record<string, TemplatePricingResult | null>;
+  isTemplateOwned?: (templateId: string) => boolean;
 };
 
 export function TemplateWorkspaceGridVirtual({
@@ -41,7 +45,9 @@ export function TemplateWorkspaceGridVirtual({
   onSelect,
   onUse,
   isFavorite,
-  onToggleFavorite
+  onToggleFavorite,
+  pricingMap = {},
+  isTemplateOwned
 }: Props) {
   const t = (zh: string, en: string) => (lang === "zh" ? zh : en);
   const { visibleItems, containerRef } = useVirtualizedTemplateGrid({ items });
@@ -83,6 +89,8 @@ export function TemplateWorkspaceGridVirtual({
               onUse={onUse ? () => onUse(item) : undefined}
               isFavorite={isFavorite?.(item.id)}
               onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(item.id) : undefined}
+              pricing={pricingMap[item.id] ?? null}
+              owned={isUserPrivateTemplate(item) || (isTemplateOwned?.(item.id) ?? false)}
             />
           ))
         )}

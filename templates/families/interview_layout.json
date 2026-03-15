@@ -1,0 +1,59 @@
+{
+  "id": "interview_layout",
+  "name": "Interview Layout",
+  "nameZh": "\u8bbf\u8c08\u5e03\u5c40",
+  "category": "dialogue",
+  "description": "Interview style dialogue layout",
+  "descriptionZh": "\u8bbf\u8c08\u5bf9\u8bdd\u5e03\u5c40",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": [
+    "mcu",
+    "ms",
+    "cu",
+    "over_shoulder"
+  ],
+  "movementRange": [
+    "static",
+    "slow_push_in"
+  ],
+  "cameraLanguageRange": [
+    "dialogue_cover",
+    "cinematic_narrative"
+  ],
+  "lightingRange": {
+    "time": [
+      "day"
+    ],
+    "keyDir": [
+      "top_left",
+      "top_right"
+    ],
+    "mood": [
+      "warm",
+      "cinematic"
+    ]
+  },
+  "compositionRange": [
+    "rule_of_thirds",
+    "eyeline_tension"
+  ],
+  "objectTypes": [
+    "character",
+    "prop"
+  ],
+  "advancedTags": [
+    "director_preset"
+  ],
+  "variants": [
+    "interview_layout_free_starter",
+    "interview_layout_basic_wide",
+    "interview_layout_basic_medium",
+    "interview_layout_basic_close",
+    "interview_layout_cinematic",
+    "interview_layout_vertical",
+    "interview_layout_multi_object",
+    "interview_layout_advanced_motion"
+  ]
+}

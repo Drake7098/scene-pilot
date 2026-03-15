@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { UserRound, X } from "lucide-react";
-import { PUBLIC_CONTACT_CHANNELS } from "../config/contactChannels";
+import { UserRound } from "lucide-react";
 import { getCurrentUser } from "../services/authService";
 import type { UserState } from "../types/account";
+import { PUBLIC_CONTACT_CHANNELS } from "../config/contactChannels";
 
 const WORKSPACE_MODE_KEY = "sp_workspace_mode";
 const WORKSPACE_ENTRY_GUIDE_KEY = "sp_workspace_entry_guide_done_v1";
@@ -54,16 +54,14 @@ const COPY = {
     accountPage: "账户设置",
     logOut: "退出登录",
     title: "结构化提示词工作台",
-    subtitle: "",
-    subtitleLine1: "我们通过场景结构化 镜头语言和导演风格包",
-    subtitleLine2: "让大模型更准确理解创作意图 提升效率并加速有效生成",
+    subtitleLine1: "用模板、分镜结构和镜头语言",
+    subtitleLine2: "让大模型准确理解你的创作意图",
+    tagline: "更稳定生成 · 更少重试 · 更快出结果",
     workspaceBtn: "进入工作台",
-    workspaceHint: ["模板驱动", "结构化编辑与导出"],
-    service: "服务协议",
+    workspaceHint: "模板驱动 · 分镜编辑 · 多模型生成 · Prompt + 参考图导出",
+    terms: "服务协议",
     privacy: "隐私协议",
     contact: "联系我们",
-    support: "支持",
-    business: "商务"
   },
   en: {
     intro: "Product",
@@ -76,24 +74,21 @@ const COPY = {
     accountPage: "Account Settings",
     logOut: "Log Out",
     title: "Structured Prompt Workspace",
-    subtitle:
-      "We use scene structure, camera language, and director packs to improve model understanding, increase efficiency, and accelerate valid generation.",
-    subtitleLine1: "",
-    subtitleLine2: "",
+    subtitleLine1: "Use templates, storyboard structure, and camera language",
+    subtitleLine2: "to help the model accurately understand your creative intent.",
+    tagline: "More stable generation · Fewer retries · Faster results",
     workspaceBtn: "Enter Workspace",
-    workspaceHint: ["Template-driven", "Structure editing & export"],
-    service: "Terms",
+    workspaceHint: "Template-driven · Storyboard editing · Multi-model generation · Prompt + reference export",
+    terms: "Terms",
     privacy: "Privacy",
     contact: "Contact",
-    support: "Support",
-    business: "Business"
   }
 } as const;
 
 export default function LandingPage() {
   const [locale, setLocale] = useState<LandingLocale>(() => detectLocale());
-  const [contactOpen, setContactOpen] = useState(false);
   const [accountUser, setAccountUser] = useState<UserState | null>(null);
+  const [ctaHover, setCtaHover] = useState(false);
   const t = useMemo(() => COPY[locale], [locale]);
   const isZh = locale === "zh";
   const userEntryLabel = accountUser ? t.account : t.signInUp;
@@ -120,9 +115,7 @@ export default function LandingPage() {
     saveLocale(next);
   };
   return (
-    <div style={page}>
-      <div style={glowLeft} />
-      <div style={glowRight} />
+    <div className="landing-page" style={page}>
       <div style={shell}>
         <header style={header}>
           <div style={logoWrap}>
@@ -137,7 +130,7 @@ export default function LandingPage() {
               {accountUser ? (
                 <a
                   href="/app"
-                  style={{ ...signBtn, ...(isZh ? signBtnZh : null), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}
+                  style={{ ...signBtn, ...workspaceEntryBtn, ...(isZh ? signBtnZh : null), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}
                   data-testid="landing-user-entry"
                 >
                   <span style={avatarDot}>
@@ -168,112 +161,53 @@ export default function LandingPage() {
 
         <main style={{ ...main, ...(isZh ? mainZh : null) }}>
           <h1 style={title}>{t.title}</h1>
-          {isZh ? (
-            <p style={{ ...subtitle, ...subtitleZh }}>
-              <span style={subtitleLine}>{t.subtitleLine1}</span>
-              <span style={subtitleLine}>{t.subtitleLine2}</span>
-            </p>
-          ) : (
-            <p style={subtitle}>{t.subtitle}</p>
-          )}
+          <p style={{ ...subtitle, ...subtitleZh }}>
+            <span style={subtitleLine}>{t.subtitleLine1}</span>
+            <span style={subtitleLine}>{t.subtitleLine2}</span>
+          </p>
+          <p style={{ ...tagline, ...(isZh ? taglineZh : null) }}>{t.tagline}</p>
 
           <div style={ctaGrid}>
             <div style={ctaCol}>
-              <button type="button" style={{ ...proBtn, ...(isZh ? ctaBtnZh : null) }} onClick={() => routeToSignIn("pro")} data-testid="landing-start-workspace">
+              <button
+                type="button"
+                style={{
+                  ...proBtn,
+                  ...(isZh ? ctaBtnZh : null),
+                  backgroundColor: ctaHover ? "#d97706" : undefined
+                }}
+                onMouseEnter={() => setCtaHover(true)}
+                onMouseLeave={() => setCtaHover(false)}
+                onClick={() => routeToSignIn("pro")}
+                data-testid="landing-start-workspace"
+              >
                 {t.workspaceBtn}
               </button>
               <div style={ctaHintWrap}>
-                {t.workspaceHint.map((line) => (
-                  <div key={line} style={{ ...ctaHintLine, ...(isZh ? ctaHintLineZh : null) }}>{line}</div>
-                ))}
+                <span style={{ ...ctaHintLine, ...(isZh ? ctaHintLineZh : null) }}>{t.workspaceHint}</span>
               </div>
             </div>
           </div>
         </main>
-      </div>
 
-      <footer style={footer}>
-        <div style={footerLinks}>
-          <a href="/terms" style={{ ...footerLink, ...(isZh ? footerLinkZh : null) }}>{t.service}</a>
+        <footer style={footerWrap}>
+          <a href="/terms" style={{ ...footerLink, ...(isZh ? footerLinkZh : null) }}>{t.terms}</a>
           <a href="/privacy" style={{ ...footerLink, ...(isZh ? footerLinkZh : null) }}>{t.privacy}</a>
-          <div style={contactWrap}>
-            <button type="button" style={{ ...footerBtn, ...(isZh ? footerBtnZh : null) }} onClick={() => setContactOpen(true)}>
-              {t.contact}
-            </button>
-          </div>
-        </div>
-      </footer>
-
-      {contactOpen ? (
-        <div
-          style={contactModalMask}
-          onMouseDown={() => setContactOpen(false)}
-          role="presentation"
-          data-testid="landing-contact-modal-mask"
-        >
-          <div
-            style={contactModal}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-            data-testid="landing-contact-modal"
-          >
-            <div style={contactModalHead}>
-              <div style={{ ...contactModalTitle, ...(isZh ? contactModalTitleZh : null) }}>{t.contact}</div>
-              <button
-                type="button"
-                style={contactCloseBtn}
-                aria-label="Close contact modal"
-                onClick={() => setContactOpen(false)}
-              >
-                <X size={14} />
-              </button>
-            </div>
-            <a href={`mailto:${PUBLIC_CONTACT_CHANNELS.support}`} style={footerMail}>
-              {t.support}: {PUBLIC_CONTACT_CHANNELS.support}
-            </a>
-            <a href={`mailto:${PUBLIC_CONTACT_CHANNELS.business}`} style={footerMail}>
-              {t.business}: {PUBLIC_CONTACT_CHANNELS.business}
-            </a>
-          </div>
-        </div>
-      ) : null}
+          <a href={`mailto:${PUBLIC_CONTACT_CHANNELS.business}`} style={{ ...footerLink, ...(isZh ? footerLinkZh : null) }}>{t.contact}</a>
+        </footer>
+      </div>
 
     </div>
   );
 }
 
+/* Design reference: bg #1f2125, panel #24262b, border #3a3f46, text #e5e7eb, textMuted #9ca3af, accent #f59e0b */
 const page: CSSProperties = {
   minHeight: "100%",
-  background: "radial-gradient(920px 520px at 0% -20%, rgba(90,140,220,0.16), transparent 62%), #090d15",
-  color: "var(--spx-text-1)",
+  background: "#1f2125",
+  color: "#e5e7eb",
   position: "relative",
   overflowX: "hidden"
-};
-
-const glowLeft: CSSProperties = {
-  position: "fixed",
-  top: -220,
-  left: -180,
-  width: 620,
-  height: 620,
-  borderRadius: "50%",
-  background: "radial-gradient(circle, rgba(88,152,238,0.2) 0%, transparent 66%)",
-  filter: "blur(18px)",
-  pointerEvents: "none"
-};
-
-const glowRight: CSSProperties = {
-  position: "fixed",
-  top: -220,
-  right: -180,
-  width: 620,
-  height: 620,
-  borderRadius: "50%",
-  background: "radial-gradient(circle, rgba(76,196,214,0.14) 0%, transparent 66%)",
-  filter: "blur(18px)",
-  pointerEvents: "none"
 };
 
 const shell: CSSProperties = {
@@ -281,15 +215,20 @@ const shell: CSSProperties = {
   zIndex: 1,
   maxWidth: 1040,
   margin: "0 auto",
-  padding: "24px 20px 148px"
+  padding: "0 20px 80px"
 };
 
 const header: CSSProperties = {
+  height: 48,
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: 12,
-  flexWrap: "wrap"
+  flexWrap: "wrap",
+  borderBottom: "1px solid #3a3f46",
+  backgroundColor: "#24262b",
+  margin: "0 -20px",
+  padding: "0 20px"
 };
 
 const logoWrap: CSSProperties = {
@@ -302,7 +241,7 @@ const logoDot: CSSProperties = {
   width: 10,
   height: 10,
   borderRadius: "50%",
-  background: "linear-gradient(145deg, #68d49f, #6ba7ff)"
+  background: "#f59e0b"
 };
 
 const logoText: CSSProperties = {
@@ -324,7 +263,7 @@ const topActions: CSSProperties = {
 const textBtn: CSSProperties = {
   border: "none",
   background: "transparent",
-  color: "var(--spx-text-2)",
+  color: "#9ca3af",
   fontSize: 13,
   fontWeight: 620,
   padding: 0,
@@ -338,7 +277,7 @@ const textBtnZh: CSSProperties = {
 };
 
 const textLink: CSSProperties = {
-  color: "var(--spx-text-2)",
+  color: "#9ca3af",
   textDecoration: "none",
   fontSize: 13,
   fontWeight: 620
@@ -350,7 +289,7 @@ const textLinkZh: CSSProperties = {
 const signBtn: CSSProperties = {
   border: "none",
   background: "transparent",
-  color: "#f4fbff",
+  color: "#e5e7eb",
   fontSize: 14,
   fontWeight: 720,
   padding: 0,
@@ -377,8 +316,8 @@ const avatarDot: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  background: "linear-gradient(145deg, rgba(108,168,245,0.82), rgba(84,203,169,0.78))",
-  color: "#f4fbff"
+  background: "#343942",
+  color: "#e5e7eb"
 };
 
 const userAvatarImage: CSSProperties = {
@@ -408,7 +347,7 @@ const title: CSSProperties = {
 
 const subtitle: CSSProperties = {
   margin: "16px auto 0",
-  color: "var(--spx-text-2)",
+  color: "#9ca3af",
   fontSize: "clamp(14px, 1.7vw, 16px)",
   lineHeight: 1.62,
   maxWidth: 920
@@ -423,57 +362,65 @@ const subtitleLine: CSSProperties = {
   display: "block"
 };
 
+const tagline: CSSProperties = {
+  margin: "12px auto 0",
+  color: "#9ca3af",
+  fontSize: "clamp(13px, 1.5vw, 15px)",
+  lineHeight: 1.5,
+  maxWidth: 920
+};
+const taglineZh: CSSProperties = {
+  fontSize: "clamp(14px, 1.7vw, 16px)"
+};
+
 const ctaGrid: CSSProperties = {
-  marginTop: 30,
-  display: "grid",
-  gap: 14,
-  gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-  alignItems: "start"
+  marginTop: 28,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: 10
 };
 
 const ctaCol: CSSProperties = {
-  display: "grid",
-  gap: 8,
-  alignContent: "start"
-};
-
-const quickBtn: CSSProperties = {
-  minHeight: 56,
-  border: "none",
-  borderRadius: 14,
-  background: "linear-gradient(180deg, rgba(76,133,214,0.95), rgba(53,99,169,0.98))",
-  color: "#eef5ff",
-  fontSize: 15,
-  fontWeight: 740,
-  padding: "0 16px",
-  cursor: "pointer"
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: 10
 };
 
 const proBtn: CSSProperties = {
-  minHeight: 56,
+  minHeight: 48,
   border: "none",
-  borderRadius: 14,
-  background: "linear-gradient(180deg, rgba(46,78,128,0.98), rgba(32,56,94,0.99))",
-  color: "#edf4ff",
-  fontSize: 15,
-  fontWeight: 740,
-  padding: "0 16px",
-  cursor: "pointer"
+  borderRadius: 12,
+  background: "#fcd34d",
+  color: "#1f2125",
+  fontSize: 14,
+  fontWeight: 700,
+  padding: "0 40px",
+  cursor: "pointer",
+  transition: "background-color 180ms ease",
+  width: "fit-content"
 };
 const ctaBtnZh: CSSProperties = {
-  minHeight: 62,
-  fontSize: 17
+  minHeight: 50,
+  fontSize: 15
+};
+
+const workspaceEntryBtn: CSSProperties = {
+  background: "rgba(252,211,77,0.5)",
+  borderRadius: 10,
+  padding: "0 24px",
+  minHeight: 40,
 };
 
 const ctaHintWrap: CSSProperties = {
-  display: "grid",
-  gap: 2
+  marginTop: 10
 };
 
 const ctaHintLine: CSSProperties = {
-  color: "var(--spx-text-2)",
-  fontSize: 13,
-  lineHeight: 1.45,
+  color: "#9ca3af",
+  fontSize: 12,
+  lineHeight: 1.5,
   textAlign: "center"
 };
 const ctaHintLineZh: CSSProperties = {
@@ -481,102 +428,22 @@ const ctaHintLineZh: CSSProperties = {
   lineHeight: 1.56
 };
 
-const footer: CSSProperties = {
-  position: "fixed",
+const footerWrap: CSSProperties = {
+  position: "absolute",
+  bottom: 20,
   right: 20,
-  bottom: 16,
-  zIndex: 2
-};
-
-const footerLinks: CSSProperties = {
-  display: "inline-flex",
+  display: "flex",
   alignItems: "center",
-  gap: 10,
-  flexWrap: "wrap",
-  justifyContent: "flex-end",
-  position: "relative"
+  gap: 16
 };
 
 const footerLink: CSSProperties = {
-  color: "var(--spx-text-3)",
+  color: "#9ca3af",
   textDecoration: "none",
-  fontSize: 12.5,
+  fontSize: 13,
   fontWeight: 620
 };
 const footerLinkZh: CSSProperties = {
-  fontSize: 13.5
+  fontSize: 14
 };
 
-const footerBtn: CSSProperties = {
-  border: "none",
-  background: "transparent",
-  color: "var(--spx-text-3)",
-  fontSize: 12.5,
-  fontWeight: 620,
-  padding: 0,
-  cursor: "pointer"
-};
-const footerBtnZh: CSSProperties = {
-  fontSize: 13.5
-};
-
-const contactWrap: CSSProperties = {
-  position: "relative"
-};
-
-const contactModalMask: CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(2,6,14,0.54)",
-  backdropFilter: "blur(6px)",
-  zIndex: 12,
-  display: "grid",
-  placeItems: "center",
-  padding: 16
-};
-
-const contactModal: CSSProperties = {
-  width: "min(360px, calc(100vw - 32px))",
-  borderRadius: 14,
-  background: "rgba(11,17,28,0.97)",
-  boxShadow: "0 20px 46px rgba(0,0,0,0.48)",
-  padding: 12,
-  display: "grid",
-  gap: 8
-};
-
-const contactModalHead: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 10
-};
-
-const contactModalTitle: CSSProperties = {
-  color: "var(--spx-text-1)",
-  fontSize: 13.5,
-  fontWeight: 680
-};
-const contactModalTitleZh: CSSProperties = {
-  fontSize: 14.5
-};
-
-const contactCloseBtn: CSSProperties = {
-  width: 24,
-  height: 24,
-  borderRadius: 7,
-  border: "none",
-  background: "rgba(255,255,255,0.09)",
-  color: "var(--spx-text-2)",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer"
-};
-
-const footerMail: CSSProperties = {
-  color: "var(--spx-text-2)",
-  textDecoration: "none",
-  fontSize: 12.5,
-  fontWeight: 560
-};

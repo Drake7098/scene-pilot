@@ -24,7 +24,7 @@ dist-ssr
 *.sw?
 
 # Local version backups (tarballs)
-backup/*.tar.gz
+backups/
 
 # Robot test generated artifacts (keep scripts/configs under tests/robots tracked)
 tests/robots/artifacts/
@@ -33,3 +33,9 @@ tests/ab/outputs/
 tests/local-ab/dist/
 tests/local-ab/outputs/
 tests/intent-benchmark/dist/
+
+# Template asset pipeline outputs
+artifacts/template-assets/
+
+# Prompt batch test outputs
+artifacts/prompt-batch/

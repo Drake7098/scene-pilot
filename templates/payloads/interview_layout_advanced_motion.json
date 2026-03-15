@@ -1,0 +1,24 @@
+{
+  "projectDefaults": {
+    "mediaType": "video",
+    "storyPlan": "single",
+    "aspectRatio": "16:9",
+    "sceneCount": 1
+  },
+  "scenes": [{
+    "nameZh": "采访结构",
+    "nameEn": "Interview Layout",
+    "duration": 6,
+    "classicShot": "mcu",
+    "cameraLanguage": "dialogue_cover",
+    "raw": {
+      "id": "s1",
+      "name": "Interview Layout",
+      "duration_s": 6,
+      "camera": { "shot": "mcu", "movement": "slow_push_in", "keyframes": [] },
+      "lighting": { "time": "day", "key_dir": "top_left", "mood": "warm" },
+      "layers": [],
+      "notes": "camera_language: dialogue_cover\nmedia: video"
+    }
+  }]
+}

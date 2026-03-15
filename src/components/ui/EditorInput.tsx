@@ -16,6 +16,8 @@ export type EditorInputProps = Omit<
   type?: "text" | "number";
   disabled?: boolean;
   className?: string;
+  /** Use compact spacing (for camera/layout control blocks) */
+  compact?: boolean;
 };
 
 export function EditorInput({
@@ -28,6 +30,7 @@ export function EditorInput({
   type = "text",
   disabled = false,
   className,
+  compact = false,
   onFocus,
   onBlur,
   ...rest
@@ -61,8 +64,9 @@ export function EditorInput({
     [isControlled, onChange]
   );
 
+  const marginBottom = compact ? spacing.fieldMarginBottomCompact : spacing.fieldMarginBottom;
   return (
-    <div className={className} style={{ marginBottom: spacing.fieldMarginBottom }}>
+    <div className={className} style={{ marginBottom }}>
       {label != null && (
         <label
           style={{

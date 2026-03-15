@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal, flushSync } from "react-dom";
+import { flushSync } from "react-dom";
 import type { Lang } from "./i18n";
 import { defaultProject, resolveSceneConfig, sanitizeProject } from "./model";
 import type { Project, Scene, ShotPlan, TransitionType } from "./model";
@@ -46,7 +46,7 @@ import {
   type LocalProviderStatus
 } from "./utils/localGeneration";
 
-import { CircleHelp, FolderOpen, Image as ImageIcon, Languages, Layout, MoreHorizontal, X } from "lucide-react";
+import { ChevronDown, ChevronRight, CircleHelp, FolderOpen, Image as ImageIcon, Languages, Layout, MoreHorizontal } from "lucide-react";
 import { CreditCard, Crown, KeyRound, LogOut, UserRound, Wallet } from "lucide-react";
 import { AccountCenterModal } from "./components/AccountCenterModal";
 import { BillingOverlay } from "./components/billing/BillingOverlay";
@@ -61,9 +61,8 @@ import {
   signInWithGoogle,
   verifyCode
 } from "./services/authService";
-import { CREDIT_PACKS, creditCostFor, getBillingSnapshot, launchCheckout, openCustomerPortal, PRO_PLAN } from "./services/billingService";
+import { CREDIT_PACKS, creditCostFor, creditCostForProfile, GENERATION_PROFILE_LABELS, getBillingSnapshot, launchCheckout, openCustomerPortal, PRO_PLAN, type GenerationProfileId } from "./services/billingService";
 import { finalizeReservedCredits, getCreditLedger, getWalletState, reserveCredits, rollbackReservedCredits } from "./services/creditService";
-import { getPromptExportPolicy, PROMPT_EXPORT_CREDITS_COST } from "./services/promptExportPolicy";
 import { recordLegalConsent, syncPendingLegalConsents } from "./services/legalConsentService";
 import { getApiCredentials, setApiCredentials } from "./services/mockAccountStore";
 import { createTemplateFromScene, saveUserTemplate } from "./lib/templateStore";
@@ -73,22 +72,29 @@ import {
   DEFAULT_TEMPLATE_WORKSPACE_STATE,
   getTemplateMetadataFromIndex,
   getTemplateIndex,
-  applyTemplateFromIndex,
   type TemplateIndex
 } from "./features/template-workspace";
+import { applyTemplateCharge } from "./features/billing";
+import { getTemplatePricingForTemplate } from "./pricing";
+import { createProjectFromTemplate, createProjectFromUserTemplate, duplicateProject } from "./lib/projectCreation";
+import { isTemplateOwned, markTemplateOwned } from "./lib/ownedTemplatesStore";
+import { saveCurrentProjectAsTemplate } from "./lib/userTemplatesStore";
+import type { UserPrivateTemplate } from "./lib/userTemplatesStore";
+import { isUserPrivateTemplate } from "./features/template-workspace/components/TemplateCard";
+import { FeedbackBar, OutputConsole, ProWorkspaceShell, PromptMiniPreview, type FeedbackBarApi } from "./features/pro-workspace";
 import { addToRecent, type TemplateWorkspaceItem, type ApplyTemplateMode } from "./data/templateWorkspaceData";
 import type { ExportMode } from "./utils/exportViewModel";
+import type { PromptExportScope } from "./types/export";
+import { detectSceneConflicts } from "./utils/conflictRules";
 import { canOpenCustomerPortal, canUseBringYourOwnApi, canUseHostedGeneration, canUseProConsole, canUseUnlimitedTemplates } from "./utils/entitlement";
-import { PRO_PLUS_MOTION_CATEGORIES } from "./content/proCameraPresets";
 import {
-  advancedCreativeTutorialBlocks,
-  beginnerCreativeTutorialBlocks,
-  getImageClassicModes,
-  getImageProEffectsByCategory,
-  getVideoClassicModes,
-  getVisibleVideoProPlusPresets,
-  IMAGE_PRO_CATEGORIES
-} from "./content/proCreativeModes";
+  loadGenerationPreferences,
+  saveGenerationPreferences,
+  currentProfileForMedia,
+  type StoredGenerationPrefs,
+  type GenerationProfile,
+} from "./features/pro-workspace/utils/generationPreferences";
+import { HelpModal, DEFAULT_HELP_SECTION, type HelpSectionId } from "./features/help-center";
 import type { PromptExportAction, PromptExportTicket } from "./types/promptExport";
 import { PUBLIC_CONTACT_CHANNELS, SYSTEM_NOTIFICATION_MAILBOX } from "./config/contactChannels";
 import { BILLING_ENABLED, BILLING_LIVE_BLOCKED } from "./config/billingFlags";
@@ -109,7 +115,7 @@ type FSDirectoryHandle = any;
 type LibraryEntry = { name: string; kind: "file" | "directory"; label: string };
 type SavePlatformId = PlatformPresetId;
 type SavePlatformPickMode = "save" | "save_as" | "save_all";
-type ExportPanelOpenAction = "open" | "copy" | "package";
+type ExportPanelOpenAction = "open" | "copy" | "package" | "prompt_txt" | "prompt_plus_refs";
 type TestBridge = {
   skipHandlePersistence?: boolean;
   showDirectoryPicker?: (options?: { mode?: "read" | "readwrite"; id?: string }) => Promise<any>;
@@ -210,14 +216,6 @@ async function loadPersistedLibraryRootHandle(): Promise<any | null> {
   });
 }
 
-type HelpCenterSection =
-  | "quick_start"
-  | "pro_motion_beginner"
-  | "pro_motion_advanced"
-  | "export"
-  | "troubleshoot"
-  | "feedback"
-  | "about";
 const ONBOARDING_KEY = "sp_onboarding_done";
 const SAVE_PLATFORM_KEY = "sp_save_prompt_platform";
 const WORKSPACE_MODE_KEY = "sp_workspace_mode";
@@ -404,7 +402,7 @@ export default function App() {
   const [creditPacks] = useState<CreditPackConfig[]>(CREDIT_PACKS);
   const [proPlan] = useState<ProPlanConfig | null>(PRO_PLAN);
   const [billingPage, setBillingPage] = useState<"upgrade" | "credits" | null>(null);
-  const [, setTemplatesRefresh] = useState(0);
+  const [templatesRefresh, setTemplatesRefresh] = useState(0);
   const [billingLocalHint, setBillingLocalHint] = useState("");
   const [resultToast, setResultToast] = useState<string | null>(null);
   const [insufficientCreditsOpen, setInsufficientCreditsOpen] = useState(false);
@@ -438,9 +436,13 @@ export default function App() {
   const [drawThingsPack, setDrawThingsPack] = useState<DrawThingsQueuePack | null>(null);
   const [comfyStatus, setComfyStatus] = useState<LocalProviderStatus>({ provider: "comfyui", state: "idle" });
   const [drawThingsStatus, setDrawThingsStatus] = useState<LocalProviderStatus>({ provider: "drawthings", state: "idle" });
+  const [proGenPrefs, setProGenPrefs] = useState<StoredGenerationPrefs>(() => loadGenerationPreferences(null));
   const [proGenerationSource, setProGenerationSource] = useState<ProGenerationSource>("hosted");
   const [proGenerateBusy, setProGenerateBusy] = useState(false);
   const [proGenerateHint, setProGenerateHint] = useState("");
+  const [proAdvancedSettingsOpen, setProAdvancedSettingsOpen] = useState(false);
+  const [proProfileDropdownOpen, setProProfileDropdownOpen] = useState(false);
+  const proProfileDropdownRef = useRef<HTMLDivElement | null>(null);
   const [proAssetsBySceneId, setProAssetsBySceneId] = useState<Record<string, ProGeneratedAsset[]>>({});
   const [proActiveAssetBySceneId, setProActiveAssetBySceneId] = useState<Record<string, string>>({});
   const [proAssetMenuId, setProAssetMenuId] = useState<string | null>(null);
@@ -469,9 +471,9 @@ export default function App() {
     manualDurations: [12]
   });
 
-  // ✅ Help Center
+  // ✅ Help Center (Stage 1: new 14-section structure, see features/help-center)
   const [helpCenterOpen, setHelpCenterOpen] = useState(false);
-  const [helpCenterSection, setHelpCenterSection] = useState<HelpCenterSection>("quick_start");
+  const [helpCenterSection, setHelpCenterSection] = useState<HelpSectionId>(DEFAULT_HELP_SECTION);
   const [feedbackText, setFeedbackText] = useState("");
 
   // ✅ 反馈发送状态
@@ -514,23 +516,30 @@ export default function App() {
   );
   const [openExportNonce, setOpenExportNonce] = useState(0);
   const [openExportAction, setOpenExportAction] = useState<ExportPanelOpenAction>("open");
+  const [miniPreviewCollapsed, setMiniPreviewCollapsed] = useState(true);
   const [proExportMode, setProExportMode] = useState<ExportMode>("prompt_only");
+  const [proExportScope, setProExportScope] = useState<PromptExportScope>("current_scene");
   const [workspaceSwitchShield, setWorkspaceSwitchShield] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
     typeof window !== "undefined" ? window.innerWidth : 1440
   );
   const savePlatformResolverRef = useRef<((id: SavePlatformId | null) => void) | null>(null);
+  const feedbackBarRef = useRef<FeedbackBarApi | null>(null);
   const proAssetsRef = useRef<Record<string, ProGeneratedAsset[]>>({});
   const shortcutActionsRef = useRef<{
     openProject: () => void;
     newProject: () => void;
     save: () => void;
     saveAs: () => void;
+    copyPrompt: () => void;
+    exportProject: () => void;
   }>({
     openProject: () => undefined,
     newProject: () => undefined,
     save: () => undefined,
-    saveAs: () => undefined
+    saveAs: () => undefined,
+    copyPrompt: () => undefined,
+    exportProject: () => undefined
   });
 
 
@@ -579,6 +588,20 @@ export default function App() {
   function openExportPanel(action: ExportPanelOpenAction) {
     setOpenExportAction(action);
     setOpenExportNonce((v) => v + 1);
+  }
+
+  /** Unified handlers for Prompt/Export convergence. All copy/export flows go through ExportPanel pipeline. */
+  function handleCopyPrompt() {
+    openExportPanel("copy");
+  }
+  function handleExportTxt() {
+    openExportPanel("prompt_txt");
+  }
+  function handleExportZip() {
+    openExportPanel("prompt_plus_refs");
+  }
+  function handleExportProject() {
+    openExportPanel("open");
   }
 
   function handleProExportModeChange(mode: ExportMode) {
@@ -649,6 +672,32 @@ export default function App() {
   }, [safeProject, sceneIdx]);
   const sceneNo = useMemo(() => clampInt(sceneIdx, 0, Math.max(0, safeProject.scenes.length - 1)) + 1, [sceneIdx, safeProject.scenes.length]);
   const sceneAssetKey = scene.id || `scene_${sceneNo}`;
+  /** Prompt for Mini Preview only; reuses buildPromptForScene, no extra engine. */
+  const promptForMiniPreview = useMemo(() => {
+    try {
+      const preset = getPlatformPreset(savePlatformId);
+      const out = buildPromptForScene({
+        project: safeProject,
+        scene,
+        lang,
+        platformId: savePlatformId,
+        profile: preset?.baseProfile,
+        workspace: "pro",
+      });
+      return out?.finalCopyPrompt?.trim() ?? "";
+    } catch {
+      return "";
+    }
+  }, [safeProject, scene, lang, savePlatformId]);
+  const sceneConflicts = useMemo(() => detectSceneConflicts(scene, lang), [scene, lang]);
+  const feedbackBarPlatformLabel = useMemo(
+    () => (lang === "zh" ? getPlatformPreset(savePlatformId).labelZh : getPlatformPreset(savePlatformId).labelEn),
+    [savePlatformId, lang]
+  );
+  const feedbackBarScopeLabel = useMemo(
+    () => (proExportScope === "continuous_sequence" ? (lang === "zh" ? "连续序列" : "Continuity Sequence") : lang === "zh" ? "当前分镜" : "Current Scene"),
+    [proExportScope, lang]
+  );
   const currentLibrarySnapshot = useMemo(() => JSON.stringify({ project: safeProject, fileLabel: fileLabel || "" }), [safeProject, fileLabel]);
   const [lastLibrarySavedSnapshot, setLastLibrarySavedSnapshot] = useState<string>("");
   const hasUnsavedLibraryChanges = currentLibrarySnapshot !== lastLibrarySavedSnapshot;
@@ -669,6 +718,46 @@ export default function App() {
   useEffect(() => {
     if (mediaMode === "image" && editT !== 0) setEditT(0);
   }, [mediaMode, editT]);
+
+  // Load and persist generation preferences (last profile + provider mode)
+  useEffect(() => {
+    const userId = accountUser?.id ?? null;
+    const prefs = loadGenerationPreferences(userId);
+    setProGenPrefs(prefs);
+    setProGenerationSource(prefs.lastProviderMode);
+  }, [accountUser?.id]);
+
+  const setProGenerationSourceAndPersist = (source: ProGenerationSource) => {
+    setProGenerationSource(source);
+    saveGenerationPreferences(accountUser?.id ?? null, { lastProviderMode: source });
+    setProGenPrefs((prev) => ({ ...prev, lastProviderMode: source }));
+  };
+
+  const currentGenProfile = currentProfileForMedia(proGenPrefs, mediaMode) as GenerationProfileId;
+  const videoSeconds = Math.max(1, Math.ceil(Number(scene?.duration_s) || 5));
+  const hostedCostPreview = creditCostForProfile(currentGenProfile, mediaMode === "video" ? videoSeconds : 1);
+
+  const setGenerationProfile = (profile: GenerationProfile) => {
+    if (profile === "image_standard" || profile === "image_hq") {
+      saveGenerationPreferences(accountUser?.id ?? null, { lastImageProfile: profile });
+      setProGenPrefs((prev) => ({ ...prev, lastImageProfile: profile }));
+    } else {
+      saveGenerationPreferences(accountUser?.id ?? null, { lastVideoProfile: profile });
+      setProGenPrefs((prev) => ({ ...prev, lastVideoProfile: profile }));
+    }
+    setProProfileDropdownOpen(false);
+  };
+
+  useEffect(() => {
+    if (!proProfileDropdownOpen) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (proProfileDropdownRef.current && !proProfileDropdownRef.current.contains(e.target as Node)) {
+        setProProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [proProfileDropdownOpen]);
 
   // ---------------------- Telemetry boot (最小新增) ----------------------
   useEffect(() => {
@@ -744,6 +833,16 @@ export default function App() {
       if (key === "s" && !e.shiftKey) {
         e.preventDefault();
         shortcutActionsRef.current.save();
+        return;
+      }
+      if (key === "c" && e.shiftKey) {
+        e.preventDefault();
+        shortcutActionsRef.current.copyPrompt();
+        return;
+      }
+      if (key === "e" && !e.shiftKey) {
+        e.preventDefault();
+        shortcutActionsRef.current.exportProject();
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -1092,10 +1191,10 @@ export default function App() {
     const prompt = buildScenePromptText(scene, strategyPlatformId);
     const resolution = resultModeResolution("16:9", mediaMode);
     const seed = 101 + currentSceneAssets.length;
-    const cost = mediaMode === "video"
-      ? creditCostFor("video", "video", 1)
-      : creditCostFor("image", "standard", 1);
+    const videoSec = Math.max(1, Math.ceil(Number(scene?.duration_s) || 5));
+    const cost = requestedSource === "hosted" ? creditCostForProfile(currentGenProfile, mediaMode === "video" ? videoSec : 1) : 0;
     let reservedEntryId = "";
+    const startMs = Date.now();
 
     setProGenerateBusy(true);
     setProAssetMenuId(null);
@@ -1103,8 +1202,10 @@ export default function App() {
     try {
       if (requestedSource === "hosted" && accountUser) {
         if (accountCredits < cost) {
+          setProGenerateBusy(false);
           openNotEnoughCredits(`Not enough credits. Need ${cost}, available ${accountCredits}.`);
           openBillingPage("credits");
+          trackProjectFlow("pro_generate", { generation_mode: "hosted", generation_profile: currentGenProfile, success: false, reason: "insufficient_credits", credits_required: cost }, lang);
           return;
         }
         const reserved = await reserveCredits(accountUser.id, cost, `pro_generate_${mediaMode}`);
@@ -1163,12 +1264,32 @@ export default function App() {
         await refreshAccountState();
       }
 
+      const latencyMs = Date.now() - startMs;
+      trackProjectFlow("pro_generate", {
+        generation_mode: requestedSource,
+        generation_profile: currentGenProfile,
+        provider: strategyPlatformId,
+        credits_charged: requestedSource === "hosted" ? cost : 0,
+        success: true,
+        latency_ms: latencyMs,
+      }, lang);
+
       setProGenerateHint(
         requestedSource === "hosted"
           ? (lang === "zh" ? "已生成新结果" : "New result generated")
           : (lang === "zh" ? "已用我的 API 生成结果" : "Generated with your API")
       );
     } catch (error) {
+      const latencyMs = Date.now() - startMs;
+      trackProjectFlow("pro_generate", {
+        generation_mode: requestedSource,
+        generation_profile: currentGenProfile,
+        provider: strategyPlatformId,
+        credits_charged: 0,
+        success: false,
+        latency_ms: latencyMs,
+        error: error instanceof Error ? error.message : String(error),
+      }, lang);
       if (requestedSource === "hosted" && accountUser && reservedEntryId) {
         await rollbackReservedCredits(accountUser.id, reservedEntryId);
         await refreshAccountState();
@@ -1327,10 +1448,25 @@ export default function App() {
     setBillingPage(null);
   }
 
+  /** Use Template = always create a new project (never append). Market: pricing resolver; user_private: free. */
   async function handleUseTemplateFromWorkspace(
-    indexOrItem: TemplateIndex | TemplateWorkspaceItem,
-    applyMode?: ApplyTemplateMode
+    indexOrItem: TemplateIndex | TemplateWorkspaceItem | UserPrivateTemplate,
+    _applyMode?: ApplyTemplateMode
   ) {
+    if (indexOrItem && isUserPrivateTemplate(indexOrItem)) {
+      const userTpl = indexOrItem as UserPrivateTemplate;
+      const newProject = createProjectFromUserTemplate(userTpl);
+      updateProject(newProject);
+      setSceneIdx(0);
+      setSelectedLayerId(null);
+      const name = (newProject as Project & { name?: string }).name ?? defaultProjectName(lang);
+      setFileLabel(name);
+      setLabelPersist(name);
+      setIsTemplateWorkspaceOpen(false);
+      feedbackBarRef.current?.pushMessage(lang === "zh" ? "已应用模板" : "Template applied");
+      return;
+    }
+
     const index: TemplateIndex | null =
       "familyId" in indexOrItem
         ? (indexOrItem as TemplateIndex)
@@ -1344,78 +1480,78 @@ export default function App() {
     const meta = getTemplateMetadataFromIndex(index);
     addToRecent(meta.id);
 
-    const appliedIds = safeProject?.meta?.appliedTemplateIds ?? [];
-    const effectiveApplyMode = applyMode ?? "layout_only";
+    const pricing = await getTemplatePricingForTemplate(index.id);
+    if (import.meta.env?.DEV && pricing.debugReasons?.length) {
+      console.log("[template pricing]", index.id, pricing.debugReasons);
+    }
 
-    const doApply = async (recordCharged?: boolean) => {
-      const result = await applyTemplateFromIndex(index, safeProject, true, effectiveApplyMode);
-      if (result.success && result.appliedProject) {
-        let nextProject = result.appliedProject;
-        const nextMeta = { ...nextProject.meta };
-        nextMeta.appliedTemplateIds =
-          recordCharged && !appliedIds.includes(meta.id)
-            ? [...appliedIds, meta.id]
-            : (nextProject.meta?.appliedTemplateIds ?? appliedIds);
-        nextMeta.currentTemplate = {
-          templateId: index.id,
-          familyId: index.familyId,
-          familyNameZh: index.familyNameZh ?? "",
-          familyNameEn: index.familyNameEn ?? "",
-          variantId: index.variantId ?? "",
-          variantNameZh: index.variant ? String(index.variant) : undefined,
-          variantNameEn: index.variant ? String(index.variant) : undefined,
-          titleZh: index.nameZh ?? "",
-          titleEn: index.nameEn ?? "",
-          category: index.category ?? "",
-          domain: index.domain ?? "",
-          cost: index.cost ?? 0,
-          isFree: index.isFree ?? false,
-          applyMode: effectiveApplyMode,
-          appliedAt: Date.now(),
-          fromTemplateWorkspace: true
-        };
-        nextProject = { ...nextProject, meta: nextMeta };
-        updateProject(nextProject);
-        setSceneIdx(nextProject.scenes.length - 1);
-        setSelectedLayerId(null);
-        setIsTemplateWorkspaceOpen(false);
+    const owned = Boolean(accountUser && isTemplateOwned(accountUser.id, index.id));
+    const freeOrUnlimited = pricing.creditPrice <= 0 || canUseUnlimitedTemplates(accountUser);
+
+    if (!owned && pricing.accessTier === "pro_credits" && !canUseProConsole(accountUser)) {
+      openBillingPage("upgrade");
+      return;
+    }
+
+    if (!freeOrUnlimited && !owned) {
+      if (!accountUser) {
+        setTemplateCreditsNeeded(pricing.creditPrice);
+        setTemplateCreditsHave(0);
+        setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
+        setTemplateCreditsInsufficientOpen(true);
+        return;
       }
-    };
-
-    if (meta.isFree || meta.cost <= 0 || canUseUnlimitedTemplates(accountUser)) {
-      await doApply(false);
-      return;
-    }
-
-    if (appliedIds.includes(meta.id)) {
-      await doApply(false);
-      return;
-    }
-
-    const cost = meta.cost;
-    const have = accountUser ? accountCredits : 0;
-    if (have < cost || !accountUser) {
-      setTemplateCreditsNeeded(cost);
-      setTemplateCreditsHave(have);
-      setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
-      setTemplateCreditsInsufficientOpen(true);
-      return;
-    }
-
-    try {
-      const reserved = await reserveCredits(accountUser.id, cost, `template_${meta.id}`);
-      await doApply(true);
-      await finalizeReservedCredits(accountUser.id, reserved.id);
-      await refreshAccountState();
-    } catch (err) {
-      const code = err instanceof Error ? err.message : String(err);
-      if (code === "insufficient_credits") {
-        setTemplateCreditsNeeded(cost);
+      if (accountCredits < pricing.creditPrice) {
+        setTemplateCreditsNeeded(pricing.creditPrice);
         setTemplateCreditsHave(accountCredits);
         setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
         setTemplateCreditsInsufficientOpen(true);
+        return;
       }
     }
+
+    let newProject = await createProjectFromTemplate(index, {
+      templateOwnedAtCreation: freeOrUnlimited || owned,
+      pricingBucketAtCreation: pricing.pricingBucket
+    });
+
+    if (!freeOrUnlimited && !owned && accountUser) {
+      const chargeResult = await applyTemplateCharge(
+        accountUser.id,
+        newProject,
+        index,
+        pricing.creditPrice
+      );
+      if (!chargeResult.success) {
+        setTemplateCreditsNeeded(pricing.creditPrice);
+        setTemplateCreditsHave(accountCredits);
+        setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
+        setTemplateCreditsInsufficientOpen(true);
+        return;
+      }
+      newProject = chargeResult.project;
+      markTemplateOwned(accountUser.id, index.id);
+      await refreshAccountState();
+    }
+
+    updateProject(newProject);
+    setSceneIdx(0);
+    setSelectedLayerId(null);
+    const name = (newProject as Project & { name?: string }).name ?? defaultProjectName(lang);
+    setFileLabel(name);
+    setLabelPersist(name);
+    setIsTemplateWorkspaceOpen(false);
+    feedbackBarRef.current?.pushMessage(lang === "zh" ? "已应用模板" : "Template applied");
+  }
+
+  /** Proxy: duplicate via unified runProjectAction. */
+  function handleDuplicateProject() {
+    runProjectAction("duplicate");
+  }
+
+  /** Proxy: save as template via unified runProjectAction. */
+  function handleSaveAsTemplate() {
+    runProjectAction("save_as_template");
   }
 
 
@@ -1740,8 +1876,34 @@ export default function App() {
 
   function handleSaveApiCredentials(next: ApiCredentialState) {
     if (!accountUser || !canUseBringYourOwnApi(accountUser)) return;
-    setApiCredentials(accountUser.id, next);
-    setAccountApiCredentials(next);
+    const current = getApiCredentials(accountUser.id);
+    const now = new Date().toISOString();
+    const effectiveFalKey = next.fal.mode === "personal" && next.fal.apiKey?.trim() ? next.fal.apiKey : (next.fal.mode === "personal" ? current.fal.apiKey : "");
+    const effectiveRunwayKey = next.runway.mode === "personal" && next.runway.apiKey?.trim() ? next.runway.apiKey : (next.runway.mode === "personal" ? current.runway.apiKey : "");
+    const withStatus: ApiCredentialState = {
+      ...next,
+      fal: {
+        ...next.fal,
+        apiKey: effectiveFalKey,
+        status: next.fal.mode === "personal"
+          ? (effectiveFalKey ? "connected" : "invalid_key")
+          : undefined,
+        lastCheckedAt: next.fal.mode === "personal" ? now : undefined,
+        updatedAt: now
+      },
+      runway: {
+        ...next.runway,
+        apiKey: effectiveRunwayKey,
+        status: next.runway.mode === "personal"
+          ? (effectiveRunwayKey ? "connected" : "invalid_key")
+          : undefined,
+        lastCheckedAt: next.runway.mode === "personal" ? now : undefined,
+        updatedAt: now
+      },
+      updatedAt: now
+    };
+    setApiCredentials(accountUser.id, withStatus);
+    setAccountApiCredentials(withStatus);
   }
 
   function openNotEnoughCredits(message: string) {
@@ -1749,64 +1911,17 @@ export default function App() {
     setInsufficientCreditsOpen(true);
   }
 
-  const promptExportPolicy = useMemo(
-    () => getPromptExportPolicy(accountUser?.createdAt),
-    [accountUser?.createdAt]
-  );
+  /** Prompt export is free; no charge. Empty note. */
+  const promptExportNote = useMemo(() => "", []);
 
-  const promptExportNote = useMemo(() => {
-    if (!accountUser) {
-      return lang === "zh"
-        ? `登录后享 7 天免费导出，后续每次 ${PROMPT_EXPORT_CREDITS_COST} credits`
-        : `Sign in for 7 days of free prompt export, then ${PROMPT_EXPORT_CREDITS_COST} credits each`;
-    }
-    if (promptExportPolicy.trialActive) {
-      return lang === "zh"
-        ? `导出提示词免费试用中 · 剩余 ${promptExportPolicy.remainingTrialDays} 天`
-        : `Prompt export trial active · ${promptExportPolicy.remainingTrialDays} day(s) left`;
-    }
-    return lang === "zh"
-      ? `导出提示词每次 ${PROMPT_EXPORT_CREDITS_COST} credits`
-      : `Prompt export costs ${PROMPT_EXPORT_CREDITS_COST} credits each`;
-  }, [accountUser, lang, promptExportPolicy.remainingTrialDays, promptExportPolicy.trialActive]);
-
-  const preparePromptExport = useCallback(async (action: PromptExportAction): Promise<PromptExportTicket> => {
+  /** Prompt export is always free; no credit reserve or paywall. */
+  const preparePromptExport = useCallback(async (_action: PromptExportAction): Promise<PromptExportTicket> => {
     if (!accountUser) {
       openAccountCenter("auth");
       return { allowed: false };
     }
-
-    const policy = getPromptExportPolicy(accountUser.createdAt);
-    if (policy.trialActive) {
-      return { allowed: true };
-    }
-
-    try {
-      const reserved = await reserveCredits(
-        accountUser.id,
-        PROMPT_EXPORT_CREDITS_COST,
-        `prompt_export_${action}`
-      );
-      return { allowed: true, reservationId: reserved.id };
-    } catch (error) {
-      const code = error instanceof Error ? error.message : String(error);
-      if (code === "insufficient_credits") {
-        openNotEnoughCredits(
-          lang === "zh"
-            ? `提示词导出每次需要 ${PROMPT_EXPORT_CREDITS_COST} credits，当前余额不足。`
-            : `Prompt export needs ${PROMPT_EXPORT_CREDITS_COST} credits each, but your balance is too low.`
-        );
-        openBillingPage("credits");
-      } else {
-        openNotEnoughCredits(
-          lang === "zh"
-            ? "提示词导出失败，请稍后重试。"
-            : "Prompt export failed. Please try again."
-        );
-      }
-      return { allowed: false };
-    }
-  }, [accountUser, lang]);
+    return { allowed: true };
+  }, [accountUser]);
 
   const settlePromptExport = useCallback(async (reservationId: string | undefined, committed: boolean) => {
     if (!accountUser || !reservationId) return;
@@ -1879,20 +1994,80 @@ export default function App() {
     resolver?.(result);
   }
 
+  /** Unified project action entry. All Rename/Save/SaveAs/Duplicate/SaveAsTemplate go through here. */
+  function runProjectAction(
+    action: "rename_confirm" | "save" | "save_as" | "duplicate" | "save_as_template",
+    payload?: { renameDraft?: string }
+  ): void | Promise<boolean> {
+    if (action === "rename_confirm" && payload?.renameDraft != null) {
+      const trimmed = payload.renameDraft.trim() || defaultProjectName(lang);
+      updateProject({ ...safeProject, name: trimmed });
+      setFileLabel(trimmed);
+      setLabelPersist(trimmed);
+      setRenameProjectOpen(false);
+      feedbackBarRef.current?.pushMessage(lang === "zh" ? "已重命名项目" : "Project renamed");
+      return;
+    }
+    if (action === "save") {
+      const p = saveToDisk();
+      if (p && typeof p.then === "function") {
+        p.then((ok) => {
+          if (ok) feedbackBarRef.current?.pushMessage(lang === "zh" ? "已保存项目" : "Project saved");
+        });
+      }
+      return p;
+    }
+    if (action === "save_as") {
+      const p = saveAsToDisk();
+      if (p && typeof p.then === "function") {
+        p.then((ok) => {
+          if (ok) feedbackBarRef.current?.pushMessage(lang === "zh" ? "已另存项目" : "Project saved as");
+        });
+      }
+      return p;
+    }
+    if (action === "duplicate") {
+      const dup = duplicateProject(safeProject);
+      updateProject(dup);
+      setSceneIdx(0);
+      setSelectedLayerId(null);
+      const name = (dup as Project & { name?: string }).name ?? defaultProjectName(lang);
+      setFileLabel(name);
+      setLabelPersist(name);
+      feedbackBarRef.current?.pushMessage(lang === "zh" ? "已复制项目" : "Project duplicated");
+      return;
+    }
+    if (action === "save_as_template") {
+      const uid = accountUser?.id ?? "guest";
+      const t = saveCurrentProjectAsTemplate(uid, safeProject);
+      setLibraryHint(lang === "zh" ? `已保存为模板：${t.name}` : `Saved as template: ${t.name}`);
+      setTemplatesRefresh((r) => r + 1);
+      setIsTemplateWorkspaceOpen(true);
+      setTemplateWorkspaceState((s) => ({
+        ...s,
+        templateWorkspaceView: "my_templates",
+        myTemplateSection: "created",
+        selectedTemplateId: t.id
+      }));
+      feedbackBarRef.current?.pushMessage(lang === "zh" ? "已保存为模板" : "Saved as template");
+      return;
+    }
+  }
+
   function requestRenameProject() {
     setRenameProjectDraft(fileLabel || defaultProjectName(lang));
     setRenameProjectOpen(true);
   }
 
+  /** Proxy: applies rename via unified entry and syncs project.name + fileLabel + labelPersist. */
   function confirmRenameProject() {
-    setLabelPersist(renameProjectDraft.trim() || defaultProjectName(lang));
-    setRenameProjectOpen(false);
+    runProjectAction("rename_confirm", { renameDraft: renameProjectDraft });
   }
 
   async function createNewProjectAfterSave() {
     setNewProjectConfirmBusy(true);
     try {
-      const ok = await saveToDisk();
+      const ok = await (runProjectAction("save") as Promise<boolean>);
       if (!ok) return;
       if (!requestProAccess("pro")) return;
       setNewProjectConfirmOpen(false);
@@ -2654,8 +2829,10 @@ export default function App() {
   shortcutActionsRef.current = {
     openProject: () => fileInputRef.current?.click(),
     newProject: requestNewProject,
-    save: () => { void saveToDisk(); },
-    saveAs: () => { void saveAsToDisk(); }
+    save: () => { void runProjectAction("save"); },
+    saveAs: () => { void runProjectAction("save_as"); },
+    copyPrompt: handleCopyPrompt,
+    exportProject: handleExportProject
   };
 
   async function writeTextToDirectory(dirHandle: any, filename: string, content: string) {
@@ -2964,7 +3141,7 @@ export default function App() {
         : "Current project has unsaved changes. Click OK to save the whole project before opening a library project."
     );
     if (askSave) {
-      return await saveToDisk();
+      return await (runProjectAction("save") as Promise<boolean>);
     }
     return window.confirm(
       lang === "zh"
@@ -3123,94 +3300,129 @@ export default function App() {
     }
   }
 
-  const helpMenuItems = [
-    {
-      key: "account",
-      label: accountUser ? (lang === "zh" ? "账户与会员" : "Account & Plan") : (lang === "zh" ? "登录 / 注册" : "Sign In"),
-      icon: <UserRound size={UI_MENU.item.iconSize} />,
-      onClick: () => {
-        setAccountMenuOpen(false);
-        openAccountCenter(accountUser ? "overview" : "auth");
-      }
-    },
-    ...(!accountUser ? [{
-      key: "pricing",
-      label: lang === "zh" ? "价格" : "Pricing",
-      icon: <CreditCard size={UI_MENU.item.iconSize} />,
-      onClick: () => {
-        setAccountMenuOpen(false);
-        window.location.assign("/pricing");
-      }
-    }] : [{
-      key: "user_management",
-      label: lang === "zh" ? "用户管理页面" : "User Management",
-      icon: <UserRound size={UI_MENU.item.iconSize} />,
-      onClick: () => {
-        setAccountMenuOpen(false);
-        window.location.assign("/account");
-      }
-    }]),
-    {
-      key: "credits",
-      label: lang === "zh" ? "充值 Credits" : "Buy Credits",
-      icon: <Wallet size={UI_MENU.item.iconSize} />,
-      onClick: () => {
-        setAccountMenuOpen(false);
-        openBillingPage("credits");
-      }
-    },
-    ...(!accountUser || !canUseProConsole(accountUser) ? [{
-      key: "upgrade",
-      label: lang === "zh" ? "升级会员" : "Upgrade",
-      icon: <Crown size={UI_MENU.item.iconSize} />,
-      onClick: () => {
-        setAccountMenuOpen(false);
-        openBillingPage("upgrade");
-      }
-    }] : []),
-    {
-      key: "manage_billing",
-      label: lang === "zh" ? "管理订阅" : "Manage Billing",
-      icon: <CreditCard size={UI_MENU.item.iconSize} />,
-      onClick: () => {
-        setAccountMenuOpen(false);
-        if (!accountUser) {
-          openAccountCenter("auth");
-          return;
+  /** Top-right account menu: grouped (Identity / Account | Plan & API | Help). Logged-out: minimal. Logged-in: account first, then plan/API, then help. */
+  const accountMenuEntries: Array<
+    | { key: string; isGroupLabel: true; label: string }
+    | { key: string; label: string; icon: React.ReactNode; onClick: () => void }
+  > = accountUser
+    ? [
+        { key: "g_account", isGroupLabel: true, label: lang === "zh" ? "账户" : "Account" },
+        {
+          key: "account_center",
+          label: lang === "zh" ? "账户中心" : "Account Center",
+          icon: <UserRound size={UI_MENU.item.iconSize} />,
+          onClick: () => {
+            setAccountMenuOpen(false);
+            openAccountCenter("overview");
+          }
+        },
+        {
+          key: "user_management",
+          label: lang === "zh" ? "用户管理" : "User Management",
+          icon: <UserRound size={UI_MENU.item.iconSize} />,
+          onClick: () => {
+            setAccountMenuOpen(false);
+            window.location.assign("/account");
+          }
+        },
+        {
+          key: "logout",
+          label: lang === "zh" ? "退出登录" : "Log Out",
+          icon: <LogOut size={UI_MENU.item.iconSize} />,
+          onClick: () => {
+            setAccountMenuOpen(false);
+            void handleLogout();
+          }
+        },
+        { key: "g_plan_api", isGroupLabel: true, label: lang === "zh" ? "会员与 API" : "Plan & API" },
+        {
+          key: "upgrade",
+          label: lang === "zh" ? "升级会员" : "Upgrade",
+          icon: <CreditCard size={UI_MENU.item.iconSize} />,
+          onClick: () => {
+            setAccountMenuOpen(false);
+            window.location.assign("/pricing");
+          }
+        },
+        {
+          key: "credits",
+          label: lang === "zh" ? "充值 Credits" : "Buy Credits",
+          icon: <Wallet size={UI_MENU.item.iconSize} />,
+          onClick: () => {
+            setAccountMenuOpen(false);
+            openBillingPage("credits");
+          }
+        },
+        {
+          key: "manage_billing",
+          label: lang === "zh" ? "管理订阅" : "Manage Billing",
+          icon: <CreditCard size={UI_MENU.item.iconSize} />,
+          onClick: () => {
+            setAccountMenuOpen(false);
+            void handleOpenCustomerPortal();
+          }
+        },
+        ...(canUseBringYourOwnApi(accountUser)
+          ? [
+              {
+                key: "api",
+                label: lang === "zh" ? "自带 API" : "Bring Your Own API",
+                icon: <KeyRound size={UI_MENU.item.iconSize} />,
+                onClick: () => {
+                  setAccountMenuOpen(false);
+                  openAccountCenter("api");
+                }
+              } as const
+            ]
+          : []),
+        { key: "g_help", isGroupLabel: true, label: lang === "zh" ? "帮助" : "Help" },
+        {
+          key: "help_center",
+          label: lang === "zh" ? "帮助中心" : "Help Center",
+          icon: <CircleHelp size={UI_MENU.item.iconSize} />,
+          onClick: () => {
+            setAccountMenuOpen(false);
+            setFeedbackSent("");
+            setHelpCenterSection(DEFAULT_HELP_SECTION);
+            setHelpCenterOpen(true);
+          }
         }
-        void handleOpenCustomerPortal();
-      }
-    },
-    ...(canUseBringYourOwnApi(accountUser) ? [{
-      key: "api",
-      label: lang === "zh" ? "自带 API" : "Bring Your Own API",
-      icon: <KeyRound size={UI_MENU.item.iconSize} />,
-      onClick: () => {
-        setAccountMenuOpen(false);
-        openAccountCenter("api");
-      }
-    }] : []),
-    {
-      key: "help_center",
-      label: lang === "zh" ? "帮助中心" : "Help Center",
-      icon: <CircleHelp size={UI_MENU.item.iconSize} />,
-      onClick: () => {
-        setAccountMenuOpen(false);
-        setFeedbackSent("");
-        setHelpCenterSection("quick_start");
-        setHelpCenterOpen(true);
-      }
-    },
-    ...(accountUser ? [{
-      key: "logout",
-      label: lang === "zh" ? "退出登录" : "Log Out",
-      icon: <LogOut size={UI_MENU.item.iconSize} />,
-      onClick: () => {
-        setAccountMenuOpen(false);
-        void handleLogout();
-      }
-    }] : [])
-  ];
+      ]
+    : [
+        { key: "g_identity", isGroupLabel: true, label: lang === "zh" ? "身份入口" : "Identity" },
+        {
+          key: "signin",
+          label: lang === "zh" ? "登录 / 注册" : "Sign In / Sign Up",
+          icon: <UserRound size={UI_MENU.item.iconSize} />,
+          onClick: () => {
+            setAccountMenuOpen(false);
+            openAccountCenter("auth");
+          }
+        },
+        { key: "g_membership", isGroupLabel: true, label: lang === "zh" ? "会员入口" : "Membership" },
+        {
+          key: "upgrade",
+          label: lang === "zh" ? "升级会员" : "Upgrade",
+          icon: <CreditCard size={UI_MENU.item.iconSize} />,
+          onClick: () => {
+            setAccountMenuOpen(false);
+            window.location.assign("/pricing");
+          }
+        },
+        { key: "g_help", isGroupLabel: true, label: lang === "zh" ? "帮助" : "Help" },
+        {
+          key: "help_center",
+          label: lang === "zh" ? "帮助中心" : "Help Center",
+          icon: <CircleHelp size={UI_MENU.item.iconSize} />,
+          onClick: () => {
+            setAccountMenuOpen(false);
+            setFeedbackSent("");
+            setHelpCenterSection(DEFAULT_HELP_SECTION);
+            setHelpCenterOpen(true);
+          }
+        }
+      ];
+
   const _accountMenuItems = accountUser
     ? [
       {
@@ -3252,8 +3464,8 @@ export default function App() {
         }
       },
       {
-        key: "pricing",
-        label: lang === "zh" ? "价格" : "Pricing",
+        key: "membership_pricing",
+        label: lang === "zh" ? "升级会员" : "Upgrade",
         icon: <CreditCard size={UI_MENU.item.iconSize} />,
         onClick: () => {
           setAccountMenuOpen(false);
@@ -3261,16 +3473,6 @@ export default function App() {
         }
       }
     ];
-
-  const helpSections: Array<{ id: HelpCenterSection; label: string }> = [
-    { id: "quick_start", label: lang === "zh" ? "快速开始" : "Quick Start" },
-    { id: "pro_motion_beginner", label: lang === "zh" ? "新手教程" : "Beginner Motion" },
-    { id: "pro_motion_advanced", label: lang === "zh" ? "进阶专业教程" : "Advanced Motion" },
-    { id: "export", label: lang === "zh" ? "导出说明" : "Export Guide" },
-    { id: "troubleshoot", label: lang === "zh" ? "排错" : "Troubleshooting" },
-    { id: "feedback", label: lang === "zh" ? "反馈" : "Feedback" },
-    { id: "about", label: lang === "zh" ? "关于" : "About" }
-  ];
 
   // ---------------------- UI ----------------------
   return (
@@ -3336,20 +3538,31 @@ export default function App() {
 
       {accountMenuOpen ? (
         <div style={styles.helpMenu} data-testid="top-account-menu">
-          {helpMenuItems.map((item) => (
-            <button
-              key={item.key}
-              data-testid={`top-help-item-${item.key}`}
-              style={styles.helpMenuItem}
-              type="button"
-              onClick={item.onClick}
-            >
-              <span style={styles.helpMenuItemLabel}>
-                {item.icon}
-                <span>{item.label}</span>
-              </span>
-            </button>
-          ))}
+          {accountMenuEntries.map((entry) =>
+            "isGroupLabel" in entry && entry.isGroupLabel ? (
+              <div key={entry.key} style={styles.helpMenuGroupLabel} data-testid={`top-menu-group-${entry.key}`}>
+                {entry.label}
+              </div>
+            ) : (
+              (() => {
+                const item = entry as { key: string; label: string; icon: React.ReactNode; onClick: () => void };
+                return (
+                  <button
+                    key={item.key}
+                    data-testid={`top-help-item-${item.key}`}
+                    style={styles.helpMenuItem}
+                    type="button"
+                    onClick={item.onClick}
+                  >
+                    <span style={styles.helpMenuItemLabel}>
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </span>
+                  </button>
+                );
+              })()
+            )
+          )}
         </div>
       ) : null}
 
@@ -3577,10 +3790,14 @@ export default function App() {
             onOpenProject={() => fileInputRef.current?.click()}
             onRenameProject={requestRenameProject}
             onNewProject={requestNewProject}
-            onSaveProject={() => void saveToDisk()}
-            onSaveAs={() => saveAsToDisk()}
-            onCopyPrompt={() => openExportPanel("copy")}
-            onExportProject={() => openExportPanel("open")}
+            onSaveProject={() => void runProjectAction("save")}
+            onSaveAs={() => runProjectAction("save_as")}
+            onDuplicateProject={handleDuplicateProject}
+            onSaveAsTemplate={handleSaveAsTemplate}
+            onCopyPrompt={handleCopyPrompt}
+            onExportPromptTxt={() => openExportPanel("prompt_txt")}
+            onExportPromptPlusRefs={() => openExportPanel("prompt_plus_refs")}
+            onExportProject={handleExportProject}
             onOpenLibrary={() => {
               setLibraryOpen(true);
               setLibraryProjectName(null);
@@ -3624,7 +3841,12 @@ export default function App() {
             }}
             onOpenTemplateWorkspace={() => setIsTemplateWorkspaceOpen(true)}
             onOpenTemplateWorkspaceWithTemplate={(templateId) => {
-              setTemplateWorkspaceState((s) => ({ ...s, selectedTemplateId: templateId }));
+              const index = getTemplateIndex().find((t) => t.id === templateId);
+              setTemplateWorkspaceState((s) => ({
+                ...s,
+                selectedTemplateId: templateId,
+                selectedFamilyId: index?.familyId ?? s.selectedFamilyId
+              }));
               setIsTemplateWorkspaceOpen(true);
             }}
             onUseTemplateFromEntry={(item) => void handleUseTemplateFromWorkspace(item, "layout_only")}
@@ -3648,6 +3870,289 @@ export default function App() {
                   onStateChange={setTemplateWorkspaceState}
                   onClose={() => setIsTemplateWorkspaceOpen(false)}
                   onUseTemplate={handleUseTemplateFromWorkspace}
+                  project={safeProject}
+                  userCredits={accountCredits}
+                  userId={accountUser?.id ?? null}
+                  isTemplateOwned={(id: string) => isTemplateOwned(accountUser?.id ?? "", id)}
+                  templatesRefresh={templatesRefresh}
+                />
+              </div>
+            ) : canUseProConsole(accountUser) ? (
+              <div style={{ gridColumn: "1 / -1", minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
+                <ProWorkspaceShell
+                  lang={lang}
+                  project={safeProject}
+                  scene={scene}
+                  sceneIdx={sceneIdx}
+                  selectedLayerId={selectedLayerId}
+                  onSelectLayer={(id) => {
+                    setSelectedLayerId(id);
+                    setEditT(0);
+                  }}
+                  onUpdateScene={(s) => {
+                    updateScene(s);
+                    trackEditorChange("scene", "update", { idx: sceneIdx }, lang);
+                  }}
+                  onRenameLayer={(oldId, newId) => {
+                    if (selectedLayerId === oldId) setSelectedLayerId(newId);
+                    trackEditorChange("layer", "rename", { oldId, newId }, lang);
+                  }}
+                  editT={effectiveEditT}
+                  setEditT={(t) => {
+                    if (mediaMode === "image" && t === 1) return;
+                    setEditT(t);
+                    trackEditorChange("timeline", "set_t", { t }, lang);
+                  }}
+                  platformId={savePlatformId}
+                  onJumpToConflict={(layerId) => {
+                    if (layerId) setSelectedLayerId(layerId);
+                  }}
+                  onPlatformChange={(id) => syncSavePlatform(id as SavePlatformId)}
+                  exportMode={proExportMode}
+                  onExportModeChange={handleProExportModeChange}
+                  generationSource={proGenerationSource}
+                  onGenerationSourceChange={setProGenerationSourceAndPersist}
+                  canUseByo={canUseBringYourOwnApi(accountUser)}
+                  onCopyPrompt={handleCopyPrompt}
+                  onExport={handleExportProject}
+                  onGenerate={() => void generateProAsset()}
+                  generateBusy={proGenerateBusy}
+                  bottomSlot={
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                        {proGenerateHint ? (
+                          <div style={{ fontSize: 12, color: "var(--pro-text-muted)" }}>{proGenerateHint}</div>
+                        ) : null}
+                        <div style={{ display: "flex", alignItems: "stretch", gap: 0 }}>
+                          <button
+                            type="button"
+                            className="pro-btn-ghost"
+                            style={styles.proGenerateBtnSecondary}
+                            onClick={() => void generateProAsset()}
+                            disabled={proGenerateBusy}
+                            title={lang === "zh" ? "主生成区在下方" : "Main generate is below"}
+                          >
+                            {proGenerateBusy
+                              ? (lang === "zh" ? "生成中…" : "Generating…")
+                              : (lang === "zh" ? "生成" : "Generate")}
+                          </button>
+                          <div ref={proProfileDropdownRef} style={{ position: "relative" }}>
+                            <button
+                              type="button"
+                              className="pro-btn-ghost"
+                              style={{ ...styles.proGenerateBtnSecondary, minWidth: 32, paddingLeft: 8, paddingRight: 8 }}
+                              onClick={() => setProProfileDropdownOpen((o) => !o)}
+                              disabled={proGenerateBusy}
+                              aria-expanded={proProfileDropdownOpen}
+                              aria-haspopup="listbox"
+                            >
+                              <ChevronDown size={14} style={{ opacity: 0.9 }} />
+                            </button>
+                            {proProfileDropdownOpen ? (
+                              <div
+                                role="listbox"
+                                style={{
+                                  position: "absolute",
+                                  left: 0,
+                                  bottom: "100%",
+                                  marginBottom: 4,
+                                  background: "var(--pro-bg-panel)",
+                                  border: "1px solid var(--pro-border)",
+                                  borderRadius: 8,
+                                  boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                                  zIndex: 100,
+                                  minWidth: 200,
+                                  overflow: "hidden",
+                                }}
+                              >
+                                {mediaMode === "image"
+                                  ? (["image_standard", "image_hq"] as const).map((id) => {
+                                      const meta = GENERATION_PROFILE_LABELS[id];
+                                      const label = lang === "zh" ? meta.labelZh : meta.labelEn;
+                                      const credits = lang === "zh" ? meta.creditsZh : meta.creditsEn;
+                                      return (
+                                        <button
+                                          key={id}
+                                          type="button"
+                                          role="option"
+                                          aria-selected={currentGenProfile === id}
+                                          style={{
+                                            display: "block",
+                                            width: "100%",
+                                            padding: "10px 14px",
+                                            textAlign: "left",
+                                            border: "none",
+                                            background: currentGenProfile === id ? "rgba(255,255,255,0.08)" : "transparent",
+                                            color: "var(--pro-text-primary)",
+                                            fontSize: 12,
+                                            cursor: "pointer",
+                                          }}
+                                          onClick={() => setGenerationProfile(id)}
+                                        >
+                                          {label} ({credits})
+                                        </button>
+                                      );
+                                    })
+                                  : (["video_standard", "video_hq"] as const).map((id) => {
+                                      const meta = GENERATION_PROFILE_LABELS[id];
+                                      const label = lang === "zh" ? meta.labelZh : meta.labelEn;
+                                      const credits = lang === "zh" ? meta.creditsZh : meta.creditsEn;
+                                      return (
+                                        <button
+                                          key={id}
+                                          type="button"
+                                          role="option"
+                                          aria-selected={currentGenProfile === id}
+                                          style={{
+                                            display: "block",
+                                            width: "100%",
+                                            padding: "10px 14px",
+                                            textAlign: "left",
+                                            border: "none",
+                                            background: currentGenProfile === id ? "rgba(255,255,255,0.08)" : "transparent",
+                                            color: "var(--pro-text-primary)",
+                                            fontSize: 12,
+                                            cursor: "pointer",
+                                          }}
+                                          onClick={() => setGenerationProfile(id)}
+                                        >
+                                          {label} ({credits})
+                                        </button>
+                                      );
+                                    })}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="pro-btn-ghost"
+                          onClick={handleCopyPrompt}
+                          style={{ padding: "8px 12px", fontSize: 12 }}
+                        >
+                          {lang === "zh" ? "复制提示词" : "Copy Prompt"}
+                        </button>
+                        <button
+                          type="button"
+                          className="pro-btn-ghost"
+                          onClick={handleExportProject}
+                          style={{ padding: "8px 12px", fontSize: 12 }}
+                        >
+                          {lang === "zh" ? "导出" : "Export"}
+                        </button>
+                      </div>
+                      {/* Advanced Settings (collapsed by default) */}
+                      <div style={{ borderTop: "1px solid var(--pro-border)", paddingTop: 8 }}>
+                        <button
+                          type="button"
+                          className="pro-btn-ghost"
+                          style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", fontSize: 11, color: "var(--pro-text-muted)" }}
+                          onClick={() => setProAdvancedSettingsOpen((o) => !o)}
+                        >
+                          {proAdvancedSettingsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                          {lang === "zh" ? "高级设置" : "Advanced Settings"}
+                        </button>
+                        {proAdvancedSettingsOpen ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={{ fontSize: 11, color: "var(--pro-text-muted)" }}>{lang === "zh" ? "生成源" : "Provider"}</span>
+                              {canUseBringYourOwnApi(accountUser) ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    style={{
+                                      padding: "4px 10px",
+                                      borderRadius: 6,
+                                      border: `1px solid ${proGenerationSource === "hosted" ? "var(--pro-accent)" : "var(--pro-border)"}`,
+                                      background: proGenerationSource === "hosted" ? "rgba(84,145,232,0.2)" : "transparent",
+                                      color: "var(--pro-text-primary)",
+                                      fontSize: 11,
+                                      cursor: "pointer",
+                                    }}
+                                    onClick={() => setProGenerationSourceAndPersist("hosted")}
+                                  >
+                                    {lang === "zh" ? "平台生成" : "Hosted"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    style={{
+                                      padding: "4px 10px",
+                                      borderRadius: 6,
+                                      border: `1px solid ${proGenerationSource === "byo" ? "var(--pro-accent)" : "var(--pro-border)"}`,
+                                      background: proGenerationSource === "byo" ? "rgba(84,145,232,0.2)" : "transparent",
+                                      color: "var(--pro-text-primary)",
+                                      fontSize: 11,
+                                      cursor: "pointer",
+                                    }}
+                                    onClick={() => setProGenerationSourceAndPersist("byo")}
+                                  >
+                                    {lang === "zh" ? "我的 API" : "My API"}
+                                  </button>
+                                </>
+                              ) : (
+                                <div style={{ fontSize: 11, color: "var(--pro-text-muted)" }}>
+                                  {lang === "zh" ? "Pro 可连接自己的 API" : "Pro unlocks My API"}
+                                  <button type="button" className="pro-btn-ghost" style={{ marginLeft: 8, fontSize: 11 }} onClick={() => openBillingPage("upgrade")}>
+                                    {lang === "zh" ? "升级" : "Upgrade"}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            {proGenerationSource === "hosted" ? (
+                              <div style={{ fontSize: 11, color: "var(--pro-text-muted)" }}>
+                                {lang === "zh" ? "费用预览" : "Cost"}: {currentGenProfile.startsWith("image") ? `${hostedCostPreview} Credits` : `${hostedCostPreview} Credits (${videoSeconds}s)`}
+                              </div>
+                            ) : canUseBringYourOwnApi(accountUser) ? (
+                              <div style={{ fontSize: 11, color: "var(--pro-text-muted)" }}>
+                                {lang === "zh" ? "生成不扣 Credits，模板仍扣" : "Generation does not consume Credits; templates still do."}
+                              </div>
+                            ) : null}
+                            <div style={{ fontSize: 10, color: "var(--pro-text-muted)", display: "flex", flexWrap: "wrap", gap: 6 }}>
+                              <span>{lang === "zh" ? "支持参考图" : "supports references"}</span>
+                              <span>·</span>
+                              <span>{lang === "zh" ? "支持连续镜头" : "supports continuity"}</span>
+                              <span>·</span>
+                              <span>{lang === "zh" ? "多分镜" : "multi-shot"}</span>
+                              <span>·</span>
+                              <span>{lang === "zh" ? "风格一致" : "style consistency"}</span>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  }
+                  exportPanelSlot={
+                    <div style={{ position: "fixed", left: 0, top: 0, width: 0, height: 0, overflow: "hidden", visibility: "hidden", pointerEvents: "none", zIndex: -1 }}>
+                      <ExportPanel
+                        lang={lang}
+                        project={safeProject}
+                        projectLabel={fileLabel}
+                        sceneIdx={sceneIdx}
+                        platformId={savePlatformId}
+                        openExportNonce={openExportNonce}
+                        openExportAction={openExportAction}
+                        promptExportNote=""
+                        onPreparePromptExport={preparePromptExport}
+                        onSettlePromptExport={settlePromptExport}
+                        onPlatformChange={(id) => {
+                          syncSavePlatform(id as SavePlatformId);
+                          feedbackBarRef.current?.pushMessage(lang === "zh" ? "已切换平台" : "Platform changed");
+                        }}
+                        exportScope={proExportScope}
+                        onExportScopeChange={(scope) => {
+                          setProExportScope(scope);
+                          feedbackBarRef.current?.pushMessage(lang === "zh" ? "已切换导出范围" : "Export scope changed");
+                        }}
+                        exportMode={proExportMode}
+                        onExportModeChange={handleProExportModeChange}
+                        selectedLayerId={selectedLayerId}
+                        onJumpToConflict={(layerId) => {
+                          if (layerId) setSelectedLayerId(layerId);
+                        }}
+                        onFeedbackMessage={(msg) => feedbackBarRef.current?.pushMessage(msg)}
+                      />
+                    </div>
+                  }
                 />
               </div>
             ) : (
@@ -3811,30 +4316,36 @@ export default function App() {
               </div>
             </div>
 
-            <div style={styles.proPromptZone}>
-              <ExportPanel
-                lang={lang}
-                project={safeProject}
-                projectLabel={fileLabel}
-                sceneIdx={sceneIdx}
-                platformId={savePlatformId}
-                openExportNonce={openExportNonce}
-                openExportAction={openExportAction}
-                promptExportNote=""
-                onPreparePromptExport={preparePromptExport}
-                onSettlePromptExport={settlePromptExport}
-                onPlatformChange={(id) => syncSavePlatform(id as SavePlatformId)}
-                exportMode={proExportMode}
-                onExportModeChange={handleProExportModeChange}
-                selectedLayerId={selectedLayerId}
-                onJumpToConflict={(layerId) => {
-                  if (layerId) setSelectedLayerId(layerId);
-                }}
-              />
-            </div>
+            {/* Feedback bar + output console placeholders: reserve space so canvas is one grid unit up. */}
+            <FeedbackBar
+              ref={feedbackBarRef}
+              lang={lang}
+              platformLabel={feedbackBarPlatformLabel}
+              exportScopeLabel={feedbackBarScopeLabel}
+              statusLabel={lang === "zh" ? "可生成" : "Ready"}
+              conflictCount={sceneConflicts.length}
+            />
+            <OutputConsole
+              lang={lang}
+              onGenerate={generateProAsset}
+              generateBusy={proGenerateBusy}
+              onCopyPrompt={handleCopyPrompt}
+            />
           </div>
 
-          <PropsPanel
+          <div style={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+            <PropsPanel
+            topSection={
+              <PromptMiniPreview
+                lang={lang}
+                prompt={promptForMiniPreview}
+                collapsed={miniPreviewCollapsed}
+                onToggleCollapse={() => setMiniPreviewCollapsed((v) => !v)}
+                onCopyPrompt={handleCopyPrompt}
+                onOpenExport={() => openExportPanel("open")}
+                embedded
+              />
+            }
             lang={lang}
             scene={scene}
             selectedLayerId={selectedLayerId}
@@ -3868,22 +4379,13 @@ export default function App() {
                 ) : null}
                 <div style={{ ...styles.proCanvasFooter, justifyContent: "center" }}>
                   <div style={styles.proGenerateHandle}>
-                    {canUseBringYourOwnApi(accountUser) ? (
-                      <select
-                        value={proGenerationSource}
-                        onChange={(e) => setProGenerationSource(e.target.value as ProGenerationSource)}
-                        style={styles.proSourceSelect}
-                      >
-                        <option value="hosted">{lang === "zh" ? "平台生成" : "Hosted"}</option>
-                        <option value="byo">{lang === "zh" ? "我的 API" : "My API"}</option>
-                      </select>
-                    ) : null}
                     <button
                       type="button"
-                      className="pro-btn pro-generate-btn"
-                      style={styles.proGenerateBtn}
+                      className="pro-btn-ghost"
+                      style={styles.proGenerateBtnSecondary}
                       onClick={() => void generateProAsset()}
                       disabled={proGenerateBusy}
+                      title={lang === "zh" ? "主生成区在下方" : "Main generate is below"}
                     >
                       {proGenerateBusy
                         ? (lang === "zh" ? "生成中…" : "Generating…")
@@ -3894,6 +4396,38 @@ export default function App() {
               </div>
             }
           />
+          </div>
+
+          <div style={{ position: "fixed", left: 0, top: 0, width: 0, height: 0, overflow: "hidden", visibility: "hidden", pointerEvents: "none", zIndex: -1 }}>
+            <ExportPanel
+              lang={lang}
+              project={safeProject}
+              projectLabel={fileLabel}
+              sceneIdx={sceneIdx}
+              platformId={savePlatformId}
+              openExportNonce={openExportNonce}
+              openExportAction={openExportAction}
+              promptExportNote=""
+              onPreparePromptExport={preparePromptExport}
+              onSettlePromptExport={settlePromptExport}
+              onPlatformChange={(id) => {
+                syncSavePlatform(id as SavePlatformId);
+                feedbackBarRef.current?.pushMessage(lang === "zh" ? "已切换平台" : "Platform changed");
+              }}
+              exportScope={proExportScope}
+              onExportScopeChange={(scope) => {
+                setProExportScope(scope);
+                feedbackBarRef.current?.pushMessage(lang === "zh" ? "已切换导出范围" : "Export scope changed");
+              }}
+              exportMode={proExportMode}
+              onExportModeChange={handleProExportModeChange}
+              selectedLayerId={selectedLayerId}
+              onJumpToConflict={(layerId) => {
+                if (layerId) setSelectedLayerId(layerId);
+              }}
+              onFeedbackMessage={(msg) => feedbackBarRef.current?.pushMessage(msg)}
+            />
+          </div>
               </>
             )}
           </div>
@@ -4018,18 +4552,16 @@ export default function App() {
             data-testid="template-credits-insufficient-modal"
           >
             <div style={styles.modalTitle}>
-              {lang === "zh" ? "积分不足" : "Not enough credits"}
+              {lang === "zh" ? "Credits 不足" : "Not enough credits"}
             </div>
             <div style={styles.modalText}>
-              {templateCreditsName ? (
-                lang === "zh"
-                  ? `模板「${templateCreditsName}」需要 ${templateCreditsNeeded} credits，当前剩余 ${templateCreditsHave}。`
-                  : `Template "${templateCreditsName}" needs ${templateCreditsNeeded} credits. You have ${templateCreditsHave}.`
-              ) : (
-                lang === "zh"
-                  ? `该模板需要 ${templateCreditsNeeded} credits，当前剩余 ${templateCreditsHave}。`
-                  : `This template needs ${templateCreditsNeeded} credits. You have ${templateCreditsHave}.`
-              )}
+              {templateCreditsName
+                ? (lang === "zh"
+                    ? `此模板需要 ${templateCreditsNeeded} Credits，你当前余额不足。购买 Credits 后可继续使用。`
+                    : `This template needs ${templateCreditsNeeded} Credits. Your balance is insufficient. Buy credits to continue.`)
+                : (lang === "zh"
+                    ? `此模板需要 ${templateCreditsNeeded} Credits，你当前余额不足。购买 Credits 后可继续使用。`
+                    : `This template needs ${templateCreditsNeeded} Credits. Your balance is insufficient. Buy credits to continue.`)}
             </div>
             <div style={styles.modalBtns}>
               <button
@@ -4037,7 +4569,7 @@ export default function App() {
                 type="button"
                 onClick={() => setTemplateCreditsInsufficientOpen(false)}
               >
-                {lang === "zh" ? "关闭" : "Close"}
+                {lang === "zh" ? "取消" : "Cancel"}
               </button>
               <button
                 style={styles.modalBtn}
@@ -4049,7 +4581,7 @@ export default function App() {
                 disabled={!billingRuntimeEnabled}
                 data-testid="template-credits-buy"
               >
-                {lang === "zh" ? "去购买点数" : "Buy credits"}
+                {lang === "zh" ? "购买 Credits" : "Buy Credits"}
               </button>
             </div>
           </div>
@@ -4116,257 +4648,33 @@ export default function App() {
         onSaveApiCredentials={handleSaveApiCredentials}
       />
 
-      {helpCenterOpen && createPortal(
-        <div
-          data-testid="help-center-mask"
-          style={styles.modalMask}
-          onMouseDown={() => setHelpCenterOpen(false)}
-          role="presentation"
-        >
-          <div
-            data-testid="help-center-modal"
-            style={{
-              ...styles.modal,
-              width: "min(820px, calc(100vw - 32px))",
-              maxHeight: "min(82vh, 760px)",
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden"
-            }}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          >
-            <div style={styles.helpCenterHead}>
-              <div style={styles.modalTitle}>{lang === "zh" ? "帮助中心" : "Help Center"}</div>
-              <button
-                data-testid="help-center-close-top"
-                style={styles.modalIconBtn}
-                type="button"
-                onClick={() => setHelpCenterOpen(false)}
-                aria-label={lang === "zh" ? "关闭帮助中心" : "Close help center"}
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div style={{ ...styles.helpCenterBody, gridTemplateColumns: viewportWidth < 760 ? "1fr" : "180px minmax(0,1fr)" }}>
-              <div style={styles.helpCenterNav}>
-                {helpSections.map((section) => (
-                  <button
-                    key={section.id}
-                    data-testid={`help-center-tab-${section.id}`}
-                    type="button"
-                    style={{ ...styles.helpCenterNavBtn, ...(helpCenterSection === section.id ? styles.helpCenterNavBtnOn : {}) }}
-                    onClick={() => setHelpCenterSection(section.id)}
-                  >
-                    {section.label}
-                  </button>
-                ))}
-              </div>
-              <div style={styles.helpCenterPanel}>
-                {helpCenterSection === "quick_start" ? (
-                  <>
-                    <div style={styles.tutBlockTitle}>{lang === "zh" ? "快速开始" : "Quick Start"}</div>
-                    <div style={styles.tutText}>
-                      {lang === "zh"
-                        ? "1) 创建项目：先选图片或视频；结果：确定是单张结构（图片）还是逐镜编辑（视频）。\n2) 搭结构：确定分镜数量、时长、镜头关系；结果：提示词的节奏与连续性被提前锁定。\n3) 编对象：逐镜调整对象位置、大小、层级、参考图；结果：先把结构对齐，再补风格，减少生成漂移。\n4) 导出验证：先看当前提示词，再复制或导出到目标模型平台；结果：快速判断方向、构图和主体关系是否达标。"
-                        : "1) Create Project: choose Image or Video first; result: you lock single-image structure (Image) or shot-by-shot editing flow (Video).\n2) Build Structure: set shot count, duration, and shot relationships; result: prompt pacing and continuity are defined before generation.\n3) Edit Objects: tune position, size, layer order, and references shot by shot; result: structure is fixed first, style is added second, reducing drift.\n4) Export & Validate: review current prompt first, then copy/export to the target model platform; result: you can quickly verify direction, composition, and subject relationships."}
-                    </div>
-                  </>
-                ) : null}
-
-                {helpCenterSection === "pro_motion_beginner" ? (
-                  <>
-                    <div style={styles.tutBlockTitle}>{lang === "zh" ? "新手教程：先用经典模式" : "Beginner Tutorial: Start with Classic Modes"}</div>
-                    {beginnerCreativeTutorialBlocks(lang).map((block) => (
-                      <div key={block.title} style={styles.tutSectionBlock}>
-                        <div style={styles.tutSectionTitle}>{block.title}</div>
-                        <div style={styles.tutText}>{block.body}</div>
-                      </div>
-                    ))}
-                    <div style={styles.tutSectionBlock}>
-                      <div style={styles.tutSectionTitle}>{lang === "zh" ? "视频经典模式" : "Video Classic Modes"}</div>
-                      <div style={styles.tutMotionGrid}>
-                        {getVideoClassicModes().map((item) => (
-                          <div key={item.id} style={styles.tutMotionItem}>
-                            <div style={styles.tutMotionTitle}>{lang === "zh" ? item.nameZh : item.nameEn}</div>
-                            <div style={styles.tutMotionText}>{lang === "zh" ? item.effectZh : item.effectEn}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div style={styles.tutSectionBlock}>
-                      <div style={styles.tutSectionTitle}>{lang === "zh" ? "图片经典模式" : "Image Classic Modes"}</div>
-                      <div style={styles.tutMotionGrid}>
-                        {getImageClassicModes().map((item) => (
-                          <div key={item.id} style={styles.tutMotionItem}>
-                            <div style={styles.tutMotionTitle}>{lang === "zh" ? item.nameZh : item.nameEn}</div>
-                            <div style={styles.tutMotionText}>{lang === "zh" ? item.effectZh : item.effectEn}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                ) : null}
-
-                {helpCenterSection === "pro_motion_advanced" ? (
-                  <>
-                    <div style={styles.tutBlockTitle}>{lang === "zh" ? "进阶专业教程：PRO+ 与专业图片" : "Advanced Tutorial: PRO+ and Professional Image"}</div>
-                    {advancedCreativeTutorialBlocks(lang).map((block) => (
-                      <div key={block.title} style={styles.tutSectionBlock}>
-                        <div style={styles.tutSectionTitle}>{block.title}</div>
-                        <div style={styles.tutText}>{block.body}</div>
-                      </div>
-                    ))}
-                    {PRO_PLUS_MOTION_CATEGORIES.map((category) => {
-                      const items = getVisibleVideoProPlusPresets(category.id as any);
-                      return (
-                        <div key={category.id} style={styles.tutSectionBlock}>
-                          <div style={styles.tutSectionTitle}>{lang === "zh" ? category.labelZh : category.labelEn}</div>
-                          <div style={styles.tutMotionGrid}>
-                            {items.map((item) => (
-                              <div key={item.id} style={styles.tutMotionItem}>
-                                <div style={styles.tutMotionTitle}>{lang === "zh" ? item.labelZh : item.labelEn}</div>
-                                <div style={styles.tutMotionText}>{lang === "zh" ? item.descZh : item.descEn}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {IMAGE_PRO_CATEGORIES.map((category) => {
-                      const items = getImageProEffectsByCategory(category.id);
-                      return (
-                        <div key={category.id} style={styles.tutSectionBlock}>
-                          <div style={styles.tutSectionTitle}>{lang === "zh" ? category.labelZh : category.labelEn}</div>
-                          <div style={styles.tutMotionGrid}>
-                            {items.map((item) => (
-                              <div key={item.id} style={styles.tutMotionItem}>
-                                <div style={styles.tutMotionTitle}>{lang === "zh" ? item.labelZh : item.labelEn}</div>
-                                <div style={styles.tutMotionText}>{lang === "zh" ? item.descZh : item.descEn}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </>
-                ) : null}
-
-                {helpCenterSection === "export" ? (
-                  <>
-                    <div style={styles.tutBlockTitle}>{lang === "zh" ? "导出说明" : "Export Guide"}</div>
-                    <div style={styles.tutText}>
-                      {lang === "zh"
-                        ? "提示词 TXT 导出：适合快速把当前提示词送到大模型平台，先测试初步效果与方向是否正确；重点验证方向是否对、构图是否对、主体关系是否对。\nPackage Export（交付包导出）：适合正式交付，包含提示词、参考图、说明文件等完整内容；适用于交接、存档和稳定复用。\nCurrent Scene（当前分镜）：只导出当前分镜，适合单镜验证。\nContinuity Sequence（连续序列）：导出当前镜头及后续连续镜头，适合验证镜头衔接和连续性。\nTarget Model（目标模型）：会影响输出文案和结构更偏向哪个模型；不同模型理解方式不同，结果可能存在差异。"
-                        : "Prompt TXT Export: best when you need to send the current prompt to a model platform quickly and test whether the initial direction is correct. Use it to validate direction, composition, and subject relationships first.\nPackage Export: best for formal delivery. It includes prompt, references, and instruction files as a complete bundle for handoff, archiving, and stable reuse.\nCurrent Scene: exports only the current shot, ideal for single-shot validation.\nContinuity Sequence: exports the current shot plus following continuous shots, ideal for checking transition quality and sequence continuity.\nTarget Model: changes wording and structure bias toward a selected model profile. Different models may produce different results even with the same project."}
-                    </div>
-                  </>
-                ) : null}
-
-                {helpCenterSection === "troubleshoot" ? (
-                  <>
-                    <div style={styles.tutBlockTitle}>{lang === "zh" ? "排错顺序" : "Troubleshooting Order"}</div>
-                    <div style={styles.tutText}>
-                      {lang === "zh"
-                        ? "1) 先看冲突。\n2) 再看对象数量/位置。\n3) 最后调风格和光照词。"
-                        : "1) Check conflicts first.\n2) Verify object count and layout.\n3) Tune style and lighting words last."}
-                    </div>
-                  </>
-                ) : null}
-
-                {helpCenterSection === "feedback" ? (
-                  <>
-                    <div style={styles.tutBlockTitle}>{lang === "zh" ? "反馈" : "Feedback"}</div>
-                    <div style={styles.modalText}>
-                      {lang === "zh"
-                        ? "你可以直接发送反馈，也可以复制模板提交。"
-                        : "You can send feedback directly, or copy the template."}
-                      <div style={{ marginTop: 8, opacity: 0.76 }}>
-                        {lang === "zh"
-                          ? `客服支持：${PUBLIC_CONTACT_CHANNELS.support} ｜ 商务合作：${PUBLIC_CONTACT_CHANNELS.business}`
-                          : `Support: ${PUBLIC_CONTACT_CHANNELS.support} | Business: ${PUBLIC_CONTACT_CHANNELS.business}`}
-                      </div>
-                    </div>
-                    <div style={styles.feedbackTpl}>
-                      <div style={styles.feedbackTplLine}>{lang === "zh" ? "【问题】" : "[Issue]"}</div>
-                      <div style={styles.feedbackTplLine}>{lang === "zh" ? "【复现步骤】1) 2) 3)" : "[Steps] 1) 2) 3)"}</div>
-                      <div style={styles.feedbackTplLine}>{lang === "zh" ? "【期望】" : "[Expected]"}</div>
-                      <div style={styles.feedbackTplLine}>{lang === "zh" ? "【实际】" : "[Actual]"}</div>
-                      <div style={styles.feedbackTplLine}>{lang === "zh" ? "【环境】浏览器/系统" : "[Env] Browser/OS"}</div>
-                    </div>
-                    <textarea
-                      value={feedbackText}
-                      onChange={(e) => setFeedbackText(e.target.value)}
-                      placeholder={
-                        lang === "zh"
-                          ? "把你的反馈写在这里（可选），然后点“发送”或“复制”"
-                          : "Write your feedback here (optional), then click Send or Copy"
-                      }
-                      style={styles.feedbackArea}
-                    />
-                    {feedbackSent && (
-                      <div style={{ marginTop: 8, fontSize: 12, opacity: 0.82 }}>
-                        {feedbackSent === "ok"
-                          ? lang === "zh"
-                            ? "✅ 已发送"
-                            : "✅ Sent"
-                          : lang === "zh"
-                            ? "❌ 发送失败（可能是未部署 telemetry worker 或网络问题）"
-                            : "❌ Failed (worker not deployed or network issue)"}
-                      </div>
-                    )}
-                    <div style={styles.modalBtns}>
-                      <button
-                        style={styles.modalBtnGhost}
-                        onClick={async () => {
-                          const text =
-                            feedbackText.trim() ||
-                            (lang === "zh"
-                              ? "【问题】\n【复现步骤】1) \n【期望】\n【实际】\n【环境】"
-                              : "[Issue]\n[Steps] 1)\n[Expected]\n[Actual]\n[Env]");
-                          await copyToClipboard(text);
-                          trackUiAction("feedback", "copy", "template", { len: text.length }, lang);
-                        }}
-                        type="button"
-                      >
-                        {lang === "zh" ? "复制" : "Copy"}
-                      </button>
-                      <button style={styles.modalBtn} onClick={submitFeedback} type="button" disabled={feedbackSending}>
-                        {feedbackSending ? (lang === "zh" ? "发送中…" : "Sending…") : lang === "zh" ? "发送" : "Send"}
-                      </button>
-                    </div>
-                  </>
-                ) : null}
-
-                {helpCenterSection === "about" ? (
-                  <>
-                    <div style={styles.tutBlockTitle}>{lang === "zh" ? "关于" : "About"}</div>
-                    <div style={styles.modalText}>
-                      <div style={{ fontWeight: 900, opacity: 0.95 }}>ScenePilotix</div>
-                      <div style={{ marginTop: 6, opacity: 0.82, lineHeight: 1.55 }}>
-                        {lang === "zh"
-                          ? "一个用于“分镜结构 + 精准构图 + 运动轨迹”提示词生成的工具。目标：让大模型更稳定地理解你想要的画面位置、尺寸和运动。"
-                          : "A tool for storyboard structure + precise composition + motion paths prompt generation. Goal: make models follow layout/scale/motion more reliably."}
-                      </div>
-                      <div style={{ marginTop: 10, opacity: 0.7 }}>
-                        {lang === "zh" ? "Version: 1.05 (Universal)" : "Version: 1.05 (Universal)"}
-                      </div>
-                      <div style={{ marginTop: 10, opacity: 0.82, lineHeight: 1.55 }}>
-                        <div>{lang === "zh" ? `客服支持：${PUBLIC_CONTACT_CHANNELS.support}` : `Support: ${PUBLIC_CONTACT_CHANNELS.support}`}</div>
-                        <div>{lang === "zh" ? `商务合作：${PUBLIC_CONTACT_CHANNELS.business}` : `Business: ${PUBLIC_CONTACT_CHANNELS.business}`}</div>
-                        <div>{lang === "zh" ? `系统通知：${SYSTEM_NOTIFICATION_MAILBOX}（请勿直接回复）` : `System notifications: ${SYSTEM_NOTIFICATION_MAILBOX} (do not reply)`}</div>
-                      </div>
-                    </div>
-                  </>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <HelpModal
+        open={helpCenterOpen}
+        onClose={() => setHelpCenterOpen(false)}
+        sectionId={helpCenterSection}
+        setSectionId={setHelpCenterSection}
+        lang={lang}
+        viewportWidth={viewportWidth}
+        feedbackProps={{
+          feedbackText,
+          setFeedbackText,
+          feedbackSending,
+          feedbackSent,
+          onCopyTemplate: async () => {
+            const text =
+              feedbackText.trim() ||
+              (lang === "zh"
+                ? "【问题】\n【复现步骤】1) \n【期望】\n【实际】\n【环境】"
+                : "[Issue]\n[Steps] 1)\n[Expected]\n[Actual]\n[Env]");
+            await copyToClipboard(text);
+            trackUiAction("feedback", "copy", "template", { len: text.length }, lang);
+          },
+          onSubmitFeedback: submitFeedback,
+          supportChannel: PUBLIC_CONTACT_CHANNELS.support,
+          businessChannel: PUBLIC_CONTACT_CHANNELS.business,
+          systemMailbox: SYSTEM_NOTIFICATION_MAILBOX
+        }}
+      />
     </div>
   );
 }
@@ -4760,6 +5068,25 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 0,
     display: "flex"
   },
+  /** Reserves space for FeedbackBar (80px) + output console so canvas shifts up. */
+  centerFeedbackBarPlaceholder: {
+    flexShrink: 0,
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column"
+  },
+  centerOutputConsolePlaceholder: {
+    flexShrink: 0,
+    height: 56,
+    minHeight: 56,
+    borderTop: "1px solid var(--pro-border)",
+    background: "var(--pro-bg-panel)",
+    display: "flex",
+    alignItems: "center",
+    padding: "0 12px",
+    fontSize: 11,
+    color: "var(--pro-text-muted)"
+  },
   proResultTab: {
     position: "relative",
     zIndex: 1,
@@ -4961,13 +5288,22 @@ const styles: Record<string, React.CSSProperties> = {
     paddingLeft: 20,
     paddingRight: 20
   },
+  /** Right-column generate entry: de-emphasized; main generate is in OutputConsole below */
+  proGenerateBtnSecondary: {
+    fontSize: 11,
+    color: "var(--pro-text-muted)",
+    minWidth: 0,
+    paddingLeft: 10,
+    paddingRight: 10
+  },
   proPromptZone: {
     marginTop: 0,
     background: "var(--pro-bg-panel)",
     borderTop: "1px solid var(--pro-border)",
-    minHeight: 140,
+    minHeight: 100,
     display: "flex",
-    flexDirection: "column"
+    flexDirection: "column",
+    opacity: 0.96
   },
   proAssetStage: {
     flex: 1,
@@ -5115,6 +5451,14 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: UI_MENU.panel.shadow,
     overflow: "hidden",
     backdropFilter: "blur(20px)"
+  },
+  helpMenuGroupLabel: {
+    padding: "6px 10px 2px",
+    fontSize: 10,
+    fontWeight: 600,
+    color: UI_PALETTE.text.secondary,
+    textTransform: "uppercase",
+    letterSpacing: "0.04em"
   },
   accountMenu: {
     position: "absolute",
