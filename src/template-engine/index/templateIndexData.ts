@@ -8,6 +8,7 @@ import { buildTemplateIndexFrom400 } from "../data/families/indexAdapter";
 import { buildWebdramaIndex } from "../data/families/continuity-webdrama/indexBuilder";
 import { buildAnimeIndex } from "../data/families/continuity-anime/indexBuilder";
 import { registerTemplate400BasesAndPatches } from "../data/families/register400";
+import { getCuratedPhase1Index } from "../../data/curatedTemplates_phase1_CL";
 
 let _cached: TemplateIndex[] | null = null;
 let _initDone = false;
@@ -24,7 +25,8 @@ export function getTemplateIndex(): TemplateIndex[] {
   _cached = [
     ...buildTemplateIndexFrom400(),
     ...buildWebdramaIndex(),
-    ...buildAnimeIndex()
+    ...buildAnimeIndex(),
+    ...getCuratedPhase1Index()
   ];
   return _cached;
 }

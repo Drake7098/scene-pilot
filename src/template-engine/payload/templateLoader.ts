@@ -6,6 +6,7 @@ import type { TemplatePayload } from "../types/templatePayload";
 import type { TemplateIndex } from "../types/templateIndex";
 import { getTemplateIndexById, getTemplateIndex } from "../index/templateIndexData";
 import { buildTemplatePayload } from "../factory/buildTemplatePayload";
+import { getCuratedPhase1Payload } from "../../data/curatedTemplates_phase1_CL";
 
 const payloadCache = new Map<string, TemplatePayload>();
 
@@ -31,6 +32,12 @@ export async function loadTemplatePayload(
 }
 
 export async function loadTemplatePayloadById(id: string): Promise<TemplatePayload | null> {
+  // 精选模板：直接从本地表返回 payload
+  if (id.startsWith("curated_")) {
+    const curated = getCuratedPhase1Payload(id);
+    if (curated) return curated;
+  }
+
   const index = getTemplateIndexById(id);
   if (!index) return null;
 
