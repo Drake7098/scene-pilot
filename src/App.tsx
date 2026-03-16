@@ -128,6 +128,7 @@ const LIB_DB_VER = 1;
 const LIB_ROOT_KEY = "root";
 const LIB_INIT_KEY = "spx_library_initialized";
 const AUTH_LEGAL_CONSENT_KEY = "sp_auth_legal_consent_v1";
+const AUTH_EMAIL_DRAFT_KEY = "sp_auth_email_draft_v1";
 const BILLING_LEGAL_CONSENT_KEY = "sp_billing_legal_consent_v1";
 const PROJECT_SAVE_PLATFORM_LOCK_KEY = "sp_project_save_platform_locked";
 const GUEST_AVATAR_COLOR_KEY = "sp_guest_avatar_color_v1";
@@ -384,7 +385,9 @@ export default function App() {
   const [authBusy, setAuthBusy] = useState(false);
   const [billingBusy, setBillingBusy] = useState(false);
   const [authStep, setAuthStep] = useState<"email" | "code">("email");
-  const [authEmail, setAuthEmail] = useState("");
+  const [authEmail, setAuthEmail] = useState(() => {
+    try { return localStorage.getItem(AUTH_EMAIL_DRAFT_KEY) || ""; } catch { return ""; }
+  });
   const [authPassword, setAuthPassword] = useState("");
   const [authCode, setAuthCode] = useState("");
   const [authHint, setAuthHint] = useState("");
@@ -1560,36 +1563,7 @@ export default function App() {
   }
 
 
-  useEffect(() => {
-    try {
-      const url = new URL(window.location.href);
-      const signin = String(url.searchParams.get(SIGNIN_QUERY_KEY) || "").trim().toLowerCase();
-      const requestedRedirect = normalizePostAuthRedirect(url.searchParams.get(REDIRECT_QUERY_KEY));
-      const signinRequested = ["1", "true", "yes"].includes(signin);
-
-      if (requestedRedirect) {
-        savePostAuthRedirect(requestedRedirect);
-        setPostAuthRedirect(requestedRedirect);
-      }
-      if (!signinRequested && !requestedRedirect) return;
-
-      if (signinRequested) {
-        setAuthStep("email");
-        setAuthCode("");
-        setAuthHint("");
-        setAccountCenterSection("auth");
-        setAccountCenterOpen(true);
-        url.searchParams.delete(SIGNIN_QUERY_KEY);
-      }
-      if (requestedRedirect) {
-        url.searchParams.delete(REDIRECT_QUERY_KEY);
-      }
-      const nextUrl = `${url.pathname}${url.search ? url.search : ""}${url.hash}`;
-      window.history.replaceState({}, "", nextUrl);
-    } catch {
-      // ignore query parse failures
-    }
-  }, []);
+  // No protocol interception: initial auth state from localStorage only; no ?signin / ?redirect URL handling.
 
   function providerReadyText(provider: LocalTestImageProvider, status: LocalProviderStatus) {
     const providerLabel = provider === "comfyui" ? "ComfyUI" : "Draw Things";
@@ -1690,11 +1664,7 @@ export default function App() {
       const result = await sendCode(authEmail);
       setLastSentCode(result.devCode);
       setAuthStep("code");
-      setAuthHint(
-        lang === "zh"
-          ? "验证码已发送，请输入验证码。"
-          : "Code sent. Enter the verification code."
-      );
+      setAuthHint("");
     } catch (error) {
       setAuthHint(authErrorText(error));
     } finally {
@@ -1964,6 +1934,15 @@ export default function App() {
       // ignore localStorage errors
     }
   }, [authLegalAccepted]);
+
+  useEffect(() => {
+    try {
+      if (authEmail.trim()) localStorage.setItem(AUTH_EMAIL_DRAFT_KEY, authEmail.trim());
+      else localStorage.removeItem(AUTH_EMAIL_DRAFT_KEY);
+    } catch {
+      // ignore localStorage errors
+    }
+  }, [authEmail]);
 
   useEffect(() => {
     try {
@@ -4646,6 +4625,10 @@ export default function App() {
         onPasswordSignIn={() => void handlePasswordSignIn()}
         onSendCode={() => void handleSendAuthCode()}
         onVerifyCode={() => void handleVerifyAuthCode()}
+        onBackToEmail={() => {
+          setAuthStep("email");
+          setAuthCode("");
+        }}
         onLogout={() => void handleLogout()}
         onPurchasePack={(packId) => void handlePurchaseCredits(packId)}
         onUpgradePro={() => void handleUpgradePro()}

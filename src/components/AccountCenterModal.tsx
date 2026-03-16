@@ -46,6 +46,7 @@ type Props = {
   onPasswordSignIn: () => void;
   onSendCode: () => void;
   onVerifyCode: () => void;
+  onBackToEmail?: () => void;
   onLogout: () => void;
   onPurchasePack: (packId: string) => void;
   onUpgradePro: () => void;
@@ -89,6 +90,7 @@ export function AccountCenterModal(props: Props) {
     onPasswordSignIn,
     onSendCode,
     onVerifyCode,
+    onBackToEmail,
     onLogout,
     onPurchasePack,
     onUpgradePro,
@@ -194,105 +196,135 @@ export function AccountCenterModal(props: Props) {
         {!user ? (
           <div style={styles.authPanel} data-testid="account-auth-panel">
 
-            {/* 标题区 */}
+            {/* ── 标题 ── */}
             <div style={styles.authHero}>
-              <div style={styles.authHeroTitle}>{t(lang, "欢迎使用 ScenePilotix", "Welcome to ScenePilotix")}</div>
+              <div style={styles.authHeroTitle}>
+                {authStep === "code"
+                  ? t(lang, "请查收验证码", "Check your email")
+                  : t(lang, "欢迎使用 ScenePilotix", "Welcome to ScenePilotix")}
+              </div>
               <div style={styles.authHeroSub}>
-                {t(lang, "还没有账号？", "Don't have an account?")}
-                <button
-                  type="button"
-                  style={styles.authHeroLink}
-                  disabled={authBusy || !googleSignInEnabled}
-                  onClick={() => {
-                    if (!authLegalAccepted) { shakeConsent(); return; }
-                    onSendCode();
-                  }}
-                >
-                  {t(lang, "免费注册", "Sign up for free")}
-                </button>
+                {authStep === "code"
+                  ? t(lang, `验证码已发送至 ${authEmail}`, `We sent a code to ${authEmail}`)
+                  : t(lang, "登录或注册，新用户自动创建账号", "Sign in or sign up — new users are registered automatically")}
               </div>
             </div>
 
-            {/* 服务不可用提示 */}
+            {/* ── 服务不可用提示 ── */}
             {!googleSignInEnabled ? (
               <div style={styles.authEnvHint} data-testid="account-auth-env-hint">
-                {lang === "zh"
-                  ? "登录服务暂时不可用，请稍后重试。"
-                  : "Sign-in is temporarily unavailable. Please try again later."}
+                {lang === "zh" ? "登录服务暂时不可用，请稍后重试。" : "Sign-in is temporarily unavailable. Please try again later."}
               </div>
             ) : null}
 
-            {/* 邮箱 + 密码 */}
-            <input
-              value={authEmail}
-              onChange={(e) => onAuthEmailChange(e.target.value)}
-              placeholder={t(lang, "用户名或邮箱", "Username or Email")}
-              style={styles.authInput}
-              autoComplete="email"
-              type="email"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (!authLegalAccepted) { shakeConsent(); return; }
-                  onPasswordSignIn();
-                }
-              }}
-            />
-            <input
-              value={authPassword}
-              onChange={(e) => onAuthPasswordChange(e.target.value)}
-              placeholder={t(lang, "密码", "Password")}
-              style={styles.authInput}
-              autoComplete="current-password"
-              type="password"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (!authLegalAccepted) { shakeConsent(); return; }
-                  onPasswordSignIn();
-                }
-              }}
-            />
+            {/* ── 第一步：输入邮箱 ── */}
+            {authStep === "email" ? (
+              <>
+                <input
+                  value={authEmail}
+                  onChange={(e) => onAuthEmailChange(e.target.value)}
+                  placeholder={t(lang, "你的邮箱", "Your email address")}
+                  style={styles.authInput}
+                  autoComplete="email"
+                  type="email"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      if (!authLegalAccepted) shakeConsent();
+                      onSendCode();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  style={styles.authPrimaryBtn}
+                  onClick={() => {
+                    if (!authLegalAccepted) shakeConsent();
+                    onSendCode();
+                  }}
+                  disabled={authBusy}
+                  data-testid="account-auth-send-code"
+                >
+                  {authBusy ? t(lang, "发送中…", "Sending…") : t(lang, "继续", "Continue")}
+                </button>
 
-            {/* 登录按钮 */}
-            <button
-              type="button"
-              style={styles.authPrimaryBtn}
-              onClick={() => {
-                if (!authLegalAccepted) { shakeConsent(); return; }
-                onPasswordSignIn();
-              }}
-              disabled={authBusy}
-              data-testid="account-auth-send-code"
-            >
-              {authBusy ? t(lang, "处理中...", "Processing...") : t(lang, "登录", "Log in")}
-            </button>
+                {/* OR + Google */}
+                <div style={styles.authOrRow} aria-hidden="true">
+                  <span style={styles.authOrLine} />
+                  <span style={styles.authOrText}>OR</span>
+                  <span style={styles.authOrLine} />
+                </div>
+                <button
+                  type="button"
+                  style={styles.authGoogleBtn}
+                  onClick={() => {
+                    if (!authLegalAccepted) shakeConsent();
+                    onGoogleSignIn();
+                  }}
+                  disabled={authBusy || !googleSignInEnabled}
+                  title={!googleSignInEnabled ? (lang === "zh" ? "认证服务未配置" : "Auth not configured") : undefined}
+                  data-testid="account-auth-google"
+                >
+                  <span style={styles.authGoogleGlyph}>G</span>
+                  <span>{authBusy ? t(lang, "登录中…", "Signing in…") : t(lang, "使用 Google 登录", "Log in with Google")}</span>
+                </button>
+              </>
+            ) : (
+              /* ── 第二步：输入验证码 ── */
+              <>
+                <input
+                  value={authCode}
+                  onChange={(e) => onAuthCodeChange(e.target.value)}
+                  placeholder={t(lang, "6 位验证码", "6-digit code")}
+                  style={{ ...styles.authInput, textAlign: "center", letterSpacing: "0.25em", fontSize: 22, fontWeight: 700 }}
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
+                  maxLength={6}
+                  autoFocus
+                  onKeyDown={(e) => { if (e.key === "Enter" && authCode.trim().length >= 4) onVerifyCode(); }}
+                />
+                {lastSentCode ? (
+                  <div style={{ textAlign: "center", fontSize: 11, color: "rgba(20,26,38,0.35)" }}>
+                    {t(lang, `开发码：${lastSentCode}`, `Dev: ${lastSentCode}`)}
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  style={styles.authPrimaryBtn}
+                  onClick={onVerifyCode}
+                  disabled={authBusy || authCode.trim().length < 4}
+                  data-testid="account-auth-verify-code"
+                >
+                  {authBusy ? t(lang, "验证中…", "Verifying…") : t(lang, "登录", "Sign in")}
+                </button>
+                <div style={{ textAlign: "center" }}>
+                  <button
+                    type="button"
+                    style={styles.authSecondaryLink}
+                    onClick={onSendCode}
+                    disabled={authBusy}
+                  >
+                    {t(lang, "重新发送验证码", "Resend code")}
+                  </button>
+                  <span style={{ color: "rgba(20,26,38,0.25)", margin: "0 10px" }}>·</span>
+                  <button
+                    type="button"
+                    style={styles.authSecondaryLink}
+                    onClick={() => {
+                      onAuthCodeChange("");
+                      onBackToEmail?.();
+                    }}
+                    disabled={authBusy}
+                  >
+                    {t(lang, "更换邮箱", "Change email")}
+                  </button>
+                </div>
+              </>
+            )}
 
-            {/* OR 分割线 */}
-            <div style={styles.authOrRow} aria-hidden="true">
-              <span style={styles.authOrLine} />
-              <span style={styles.authOrText}>OR</span>
-              <span style={styles.authOrLine} />
-            </div>
-
-            {/* Google 登录 */}
-            <button
-              type="button"
-              style={styles.authGoogleBtn}
-              onClick={() => {
-                if (!authLegalAccepted) { shakeConsent(); return; }
-                onGoogleSignIn();
-              }}
-              disabled={authBusy || !googleSignInEnabled}
-              title={!googleSignInEnabled ? (lang === "zh" ? "认证服务未配置" : "Auth not configured") : undefined}
-              data-testid="account-auth-google"
-            >
-              <span style={styles.authGoogleGlyph}>G</span>
-              <span>{authBusy ? t(lang, "登录中…", "Signing in…") : t(lang, "Log in with Google", "Log in with Google")}</span>
-            </button>
-
-            {/* 错误/提示信息 */}
+            {/* ── 错误提示 ── */}
             {authHint ? <div style={styles.authHint}>{authHint}</div> : null}
 
-            {/* 协议 — 底部小字，不拦截，点按钮未勾则抖动 */}
+            {/* ── 协议：底部小字，点按钮未勾则抖动 ── */}
             <div
               ref={consentRef}
               style={{
@@ -304,10 +336,7 @@ export function AccountCenterModal(props: Props) {
               <label style={{ ...styles.authCheckboxRow, ...(lang === "zh" ? styles.authCheckboxRowZh : null) }}>
                 <input
                   type="checkbox"
-                  style={{
-                    ...styles.authCheckboxInput,
-                    ...(authLegalAccepted ? styles.authCheckboxInputOn : null)
-                  }}
+                  style={{ ...styles.authCheckboxInput, ...(authLegalAccepted ? styles.authCheckboxInputOn : null) }}
                   checked={authLegalAccepted}
                   onChange={(e) => onAuthLegalAcceptedChange(e.target.checked)}
                   data-testid="account-auth-legal-consent"
@@ -1001,6 +1030,15 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#ffffff",
     fontSize: 15,
     fontWeight: 700,
+    cursor: "pointer"
+  },
+  authSecondaryLink: {
+    border: "none",
+    padding: 0,
+    background: "transparent",
+    color: "#2f5fbf",
+    fontSize: 13,
+    fontWeight: 600,
     cursor: "pointer"
   },
   authOrRow: {
