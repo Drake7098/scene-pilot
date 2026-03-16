@@ -104,3 +104,5 @@ Notes:
 - Crash/error events are aggregated into `error_fingerprints` for de-duplicated monitoring.
 - For existing databases created before `props_json/device_id`, the collect endpoint auto-heals schema on write.
 - Use `/api/maintenance/prune` for retention cleanup (supports `dry_run=1`).
+
+- 
