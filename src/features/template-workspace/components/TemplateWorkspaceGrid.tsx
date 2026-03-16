@@ -72,7 +72,7 @@ export function TemplateWorkspaceGrid({
       <div style={view === "grid" ? styles.grid : styles.list}>
         {items.length === 0 ? (
           <div style={styles.empty}>{t("暂无模板", "No templates")}</div>
-        ) : (
+        ) : view === "list" ? (
           items.map((item) => (
             <TemplateCard
               key={item.id}
@@ -88,7 +88,48 @@ export function TemplateWorkspaceGrid({
               owned={isUserPrivateTemplate(item) || (isTemplateOwned?.(item.id) ?? false)}
             />
           ))
-        )}
+        ) : (() => {
+          // 按 family 分组，相同 family 的模板归并到同一标题下
+          const groups: Array<{ familyId: string; familyName: string; items: typeof items }> = [];
+          const seen = new Map<string, number>();
+          for (const item of items) {
+            const familyId = isUserPrivateTemplate(item) ? "__mine__" : (item as import("../model/templateIndex").TemplateIndex).familyId ?? "__other__";
+            const familyName = isUserPrivateTemplate(item)
+              ? t("我的模板", "My Templates")
+              : ((lang === "zh"
+                  ? (item as import("../model/templateIndex").TemplateIndex).familyNameZh
+                  : (item as import("../model/templateIndex").TemplateIndex).familyNameEn)
+                ?? familyId);
+            if (seen.has(familyId)) {
+              groups[seen.get(familyId)!].items.push(item);
+            } else {
+              seen.set(familyId, groups.length);
+              groups.push({ familyId, familyName, items: [item] });
+            }
+          }
+          return groups.map((group) => (
+            <div key={group.familyId} style={styles.familyGroup}>
+              <div style={styles.familyGroupTitle}>{group.familyName}</div>
+              <div style={styles.familyGroupGrid}>
+                {group.items.map((item) => (
+                  <TemplateCard
+                    key={item.id}
+                    lang={lang}
+                    item={item}
+                    view={view}
+                    selected={selectedId === item.id}
+                    onSelect={() => onSelect(item.id)}
+                    onUse={onUse ? () => onUse(item) : undefined}
+                    isFavorite={isFavorite?.(item.id)}
+                    onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(item.id) : undefined}
+                    pricing={pricingMap[item.id] ?? null}
+                    owned={isUserPrivateTemplate(item) || (isTemplateOwned?.(item.id) ?? false)}
+                  />
+                ))}
+              </div>
+            </div>
+          ));
+        })()}
       </div>
     </div>
   );
@@ -121,13 +162,29 @@ const styles: Record<string, React.CSSProperties> = {
     background: colors.hover,
     color: colors.accent
   },
+  familyGroup: {
+    marginBottom: 20
+  },
+  familyGroupTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#9ca3af",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    padding: "6px 0 8px",
+    borderBottom: "1px solid #3a3f46",
+    marginBottom: 10
+  },
+  familyGroupGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+    gap: 10
+  },
   grid: {
     flex: 1,
     overflowY: "auto",
-    padding: 12,
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-    gap: 12
+    padding: "12px 12px 24px",
+    display: "block"
   },
   list: {
     flex: 1,

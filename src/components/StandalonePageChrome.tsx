@@ -1,77 +1,43 @@
-/**
- * Full-site standard for standalone pages:
- * - Top-right: one language toggle button + back/workspace link (and optional extra links).
- * - Optional footer for long pages: button to return or go to workspace.
- */
-
 import type { CSSProperties } from "react";
 import type { Lang } from "../i18n";
 
 export type StandalonePageChromeProps = {
   lang: Lang;
   setLang: (next: Lang) => void;
-  /** Default /app */
   backHref?: string;
-  /** Default 返回工作台 / Back to Workspace */
   backLabelZh?: string;
   backLabelEn?: string;
-  /** Extra links in top-right after the back link (e.g. 价格 / Pricing) */
   extraLinks?: Array<{ href: string; labelZh: string; labelEn: string }>;
-  /** Show footer with back/workspace link on long pages */
   showFooter?: boolean;
   children: React.ReactNode;
 };
 
+const C = { bg: "#1f2125", panel: "#24262b", border: "#3a3f46", text: "#e5e7eb", muted: "#9ca3af", amber: "#f59e0b" };
+
 const topRow: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  gap: 12,
-  marginBottom: 20,
+  display: "flex", alignItems: "center", justifyContent: "flex-end",
+  gap: 8, marginBottom: 24, paddingBottom: 16, borderBottom: `1px solid ${C.border}`
 };
-
 const langBtn: CSSProperties = {
-  padding: "6px 12px",
-  borderRadius: 10,
-  border: "1px solid var(--spx-border-soft)",
-  background: "var(--spx-surface-2)",
-  color: "var(--spx-text-2)",
-  fontSize: 13,
-  fontWeight: 500,
-  cursor: "pointer",
+  padding: "5px 12px", borderRadius: 8, border: `1px solid ${C.border}`,
+  background: "transparent", color: C.muted, fontSize: 12, fontWeight: 600, cursor: "pointer"
 };
-
 const navLink: CSSProperties = {
-  color: "var(--spx-text-2)",
-  fontSize: 14,
-  textDecoration: "none",
-  padding: "6px 0",
+  color: C.muted, fontSize: 13, textDecoration: "none", fontWeight: 500,
+  padding: "4px 8px", borderRadius: 6
 };
-
 const footerWrap: CSSProperties = {
-  marginTop: 48,
-  paddingTop: 24,
-  borderTop: "1px solid var(--spx-border-soft)",
-  textAlign: "center",
+  marginTop: 48, paddingTop: 24, borderTop: `1px solid ${C.border}`, textAlign: "center"
 };
-
 const footerLink: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minHeight: 44,
-  padding: "0 20px",
-  borderRadius: 12,
-  background: "var(--spx-surface-2)",
-  color: "var(--spx-text-1)",
-  fontSize: 14,
-  fontWeight: 600,
-  textDecoration: "none",
+  display: "inline-flex", alignItems: "center", justifyContent: "center",
+  minHeight: 42, padding: "0 24px", borderRadius: 10,
+  border: `1px solid ${C.border}`, background: C.panel,
+  color: C.text, fontSize: 13, fontWeight: 600, textDecoration: "none"
 };
 
 export function StandalonePageChrome({
-  lang,
-  setLang,
+  lang, setLang,
   backHref = "/app",
   backLabelZh = "返回工作台",
   backLabelEn = "Back to Workspace",
@@ -81,39 +47,27 @@ export function StandalonePageChrome({
 }: StandalonePageChromeProps) {
   const backLabel = lang === "zh" ? backLabelZh : backLabelEn;
   const toggleLang = () => setLang(lang === "zh" ? "en" : "zh");
-  const langButtonLabel = lang === "zh" ? "EN" : "中文";
 
   return (
     <>
       <header style={topRow} data-testid="standalone-page-chrome">
-        <button
-          type="button"
-          style={langBtn}
-          onClick={toggleLang}
-          aria-pressed={lang === "zh"}
-          aria-label={lang === "zh" ? "Switch to English" : "切换到中文"}
-        >
-          {langButtonLabel}
+        <button type="button" style={langBtn} onClick={toggleLang}
+          aria-label={lang === "zh" ? "Switch to English" : "切换到中文"}>
+          {lang === "zh" ? "EN" : "中文"}
         </button>
-        <a href={backHref} style={navLink}>
-          {backLabel}
-        </a>
+        <a href={backHref} style={navLink}>{backLabel}</a>
         {extraLinks.map((link) => (
           <a key={link.href} href={link.href} style={navLink}>
             {lang === "zh" ? link.labelZh : link.labelEn}
           </a>
         ))}
       </header>
-
       {children}
-
-      {showFooter ? (
+      {showFooter && (
         <footer style={footerWrap}>
-          <a href={backHref} style={footerLink}>
-            {backLabel}
-          </a>
+          <a href={backHref} style={footerLink}>{backLabel}</a>
         </footer>
-      ) : null}
+      )}
     </>
   );
 }

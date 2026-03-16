@@ -6,12 +6,8 @@ import type { Scene } from "../model";
 
 export type TemplateVariant =
   | "free_starter"
-  | "basic_wide"
-  | "basic_medium"
-  | "basic_close"
   | "vertical_9_16"
   | "horizontal_16_9"
-  | "social_fast"
   | "cinematic"
   | "multi_object"
   | "advanced_motion";

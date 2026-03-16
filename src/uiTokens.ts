@@ -33,11 +33,11 @@ export const UI_SPACE = {
 
 export const UI_PALETTE = {
   bg: {
-    app: "#0a0d14",
-    toolbar: "rgba(16,22,34,0.76)",
-    sidebar: "rgba(14,19,30,0.72)",
-    inspector: "rgba(13,18,29,0.78)",
-    canvas: "rgba(9,13,24,0.72)",
+    app: "#1f2125",
+    toolbar: "#24262b",
+    sidebar: "#24262b",
+    inspector: "#24262b",
+    canvas: "#1f2125",
     overlay: "rgba(8,10,18,0.7)"
   },
   surface: {
@@ -54,16 +54,16 @@ export const UI_PALETTE = {
     inverse: "rgba(11,15,24,0.94)"
   },
   border: {
-    default: "rgba(170,193,226,0.24)",
-    soft: "rgba(170,193,226,0.16)",
-    strong: "rgba(204,220,245,0.38)",
-    active: "rgba(104,171,255,0.86)",
+    default: "#3a3f46",
+    soft: "#343942",
+    strong: "#4b525c",
+    active: "#f59e0b",
     danger: "rgba(255,124,124,0.72)"
   },
   accent: {
-    coldBlue: "rgba(104,171,255,0.86)",
+    coldBlue: "#f59e0b",
     cyan: "rgba(88,202,218,0.78)",
-    coldBlueSoft: "rgba(104,171,255,0.18)",
+    coldBlueSoft: "rgba(245,158,11,0.18)",
     dangerSoft: "rgba(255,124,124,0.18)",
     amber: "#f59e0b",
     amberHover: "#d97706",

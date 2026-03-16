@@ -35,8 +35,8 @@ type Props = {
 export function TemplateWorkspaceDetail({
   lang,
   template,
-  applyMode,
-  onApplyModeChange,
+  applyMode: _applyMode,
+  onApplyModeChange: _onApplyModeChange,
   onUse,
   isFavorite = false,
   onToggleFavorite,
@@ -186,43 +186,12 @@ export function TemplateWorkspaceDetail({
         </div>
       ) : null}
 
-      <div style={styles.section}>
-        <div style={styles.modeLabel}>{t("应用模式", "Apply mode")}</div>
-        <div style={styles.modeGroup}>
-          <label style={styles.modeOption}>
-            <input
-              type="radio"
-              name="applyMode"
-              value="layout_only"
-              checked={applyMode === "layout_only"}
-              onChange={() => onApplyModeChange("layout_only")}
-            />
-            <span>{t("仅布局", "Layout only")}</span>
-          </label>
-          <label style={styles.modeOption}>
-            <input
-              type="radio"
-              name="applyMode"
-              value="layout_plus_style"
-              checked={applyMode === "layout_plus_style"}
-              onChange={() => onApplyModeChange("layout_plus_style")}
-            />
-            <span>{t("布局+风格", "Layout + style")}</span>
-          </label>
-          <label style={styles.modeOption}>
-            <input
-              type="radio"
-              name="applyMode"
-              value="full_workflow"
-              checked={applyMode === "full_workflow"}
-              onChange={() => onApplyModeChange("full_workflow")}
-            />
-            <span>{t("完整应用", "Full workflow")}</span>
-          </label>
-        </div>
-      </div>
       <div style={styles.actions}>
-        <button type="button" style={styles.useBtn} onClick={onUse}>
+        <button
+          type="button"
+          style={styles.useBtn}
+          onClick={onUse}
+        >
           {owned ? t("使用模板", "Use Template") : pricing?.creditPrice ? t("购买并使用", "Buy & Use Template") : t("使用模板", "Use Template")}
         </button>
       </div>

@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { useLocalLang } from "../hooks/useLocalLang";
 import { StandalonePageChrome } from "../components/StandalonePageChrome";
-import { getCurrentUser } from "../services/authService";
-import type { UserState } from "../types/account";
-import PublicFooter from "../components/PublicFooter";
+import { PUBLIC_CONTACT_CHANNELS } from "../config/contactChannels";
 
 const WORKSPACE_MODE_KEY = "sp_workspace_mode";
 const WORKSPACE_ENTRY_GUIDE_KEY = "sp_workspace_entry_guide_done_v1";
@@ -13,9 +11,7 @@ function routeToSignIn(mode?: "results" | "pro") {
     try {
       localStorage.setItem(WORKSPACE_MODE_KEY, mode);
       localStorage.setItem(WORKSPACE_ENTRY_GUIDE_KEY, "1");
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
   }
   window.location.href = "/signin";
 }
@@ -23,66 +19,69 @@ function routeToSignIn(mode?: "results" | "pro") {
 const COPY = {
   zh: {
     back: "返回首页",
-    title: "结构化提示词工作台",
-    subtitleLine1: "用模板、分镜结构和镜头语言",
-    subtitleLine2: "让大模型真正理解你的创作意图",
-    core: "不再反复重试提示词。通过结构化场景、对象布局和导演级镜头控制，更稳定生成图片和视频，并支持多模型输出。",
-    featuresTitle: "功能亮点",
-    features: [
-      "模板驱动创作（600+ 场景模板）",
-      "分镜式编辑，控制对象位置与运动",
-      "专业镜头语言 / 运镜 / 光影氛围",
-      "支持图片与视频生成流程",
-      "可导出 Prompt / 参考图 / 结构包",
-      "兼容多种生成模型（Fal / Runway / 等）",
+    eyebrow: "产品介绍",
+    title: "提示词写对了，\n生成才对",
+    subtitle: "大多数生成失败，不是模型不行——是结构没说清楚。\nScenePilotix 把「主体在哪 / 镜头怎么打 / 光从哪来」变成可填的表单，\n让每一次生成都有据可查。",
+    why: "为什么需要结构化",
+    whyItems: [
+      { q: "为什么换了 Prompt 还是不对？", a: "自然语言里的空间关系太模糊。模型不知道主体在左还是右，在前景还是背景。" },
+      { q: "为什么别人的 Prompt 我用不了？", a: "Prompt 是结果，不是配方。背后的构图逻辑换了人就失效。" },
+      { q: "为什么换模型要重来？", a: "不同模型读 Prompt 的侧重点不同。结构化后只需切换导出模式。" },
     ],
-    cta: "进入工作台",
-    ctaHint: "模板驱动 · 分镜编辑 · 稳定生成 · 多模型输出 · Prompt + 参考图导出",
-    lang: "EN",
+    howTitle: "ScenePilotix 的工作方式",
+    howSteps: [
+      { num: "01", label: "选模板", desc: "600+ 场景模板覆盖产品 / 人物 / 运镜 / 对话等类型，直接套用骨架" },
+      { num: "02", label: "填结构", desc: "主体、背景、构图、镜头、光影——分层填写，每个字段都有精准语义" },
+      { num: "03", label: "导出生成", desc: "一份结构导出适配 Midjourney / Runway / fal 等主流模型的 Prompt + 参考包" },
+    ],
+    featuresTitle: "功能清单",
+    features: [
+      "600+ 场景模板（产品 / 人物 / 对话 / 运镜 / 连续镜头）",
+      "分镜式编辑器，控制对象位置与运动关键帧",
+      "专业镜头语言 · 导演运镜 · 光影情绪包",
+      "图像 + 视频双轨生成流程",
+      "支持多模型导出（Fal · Runway · Midjourney · 即梦 · 可灵等）",
+      "Prompt / 参考图 / 结构包三种导出格式",
+    ],
+    cta: "免费开始",
+    contact: "商务合作",
   },
   en: {
     back: "Back to Home",
-    title: "Structured Prompt Workspace",
-    subtitleLine1: "Use templates, scene structure, and cinematic language",
-    subtitleLine2: "to make AI truly understand what you want to create",
-    core: "Stop retrying prompts again and again. Build scenes with layout, objects, and camera control for more stable image and video generation across models.",
-    featuresTitle: "Features",
-    features: [
-      "Template-driven workflow (600+ scene templates)",
-      "Storyboard-style scene editor",
-      "Professional camera / motion / lighting control",
-      "Works for both image and video generation",
-      "Export Prompt / References / Structure pack",
-      "Compatible with multiple engines (Fal / Runway / etc.)",
+    eyebrow: "Product Overview",
+    title: "The prompt only works\nwhen the structure is right.",
+    subtitle: "Most generation failures aren't the model's fault — the structure wasn't clear.\nScenePilotix turns 'where is the subject / how is the camera framed / where is the light'\ninto a structured form. Every generation is traceable.",
+    why: "Why structure matters",
+    whyItems: [
+      { q: "Why doesn't changing the prompt fix it?", a: "Natural language is spatially vague. The model doesn't know if the subject is left or right, foreground or background." },
+      { q: "Why can't I reuse someone else's prompt?", a: "A prompt is the output, not the recipe. The underlying composition logic doesn't transfer." },
+      { q: "Why do I have to start over when switching models?", a: "Different models read prompts differently. With structure, you just change the export mode." },
     ],
-    cta: "Enter Workspace",
-    ctaHint: "Templates · Storyboard · Stable Generation · Multi-Model · Prompt + Reference Export",
-    lang: "中文",
-  },
+    howTitle: "How ScenePilotix works",
+    howSteps: [
+      { num: "01", label: "Pick a template", desc: "600+ scene templates for product / character / camera moves / dialogue — grab a skeleton and go" },
+      { num: "02", label: "Fill the structure", desc: "Subject, background, composition, camera, lighting — layered fields with precise semantic meaning" },
+      { num: "03", label: "Export and generate", desc: "One structure exports to Midjourney / Runway / fal-ready Prompts + reference packs" },
+    ],
+    featuresTitle: "What's included",
+    features: [
+      "600+ scene templates (product / character / dialogue / camera / continuity)",
+      "Storyboard editor with per-object position and motion keyframes",
+      "Professional camera language · Director motion · Lighting mood packs",
+      "Dual-track workflow for image and video generation",
+      "Multi-model export: Fal · Runway · Midjourney · Jimeng · Keling and more",
+      "Three export formats: Prompt / Reference images / Structure pack",
+    ],
+    cta: "Start Free",
+    contact: "Business Inquiry",
+  }
 } as const;
+
+const C = { bg: "#1f2125", panel: "#24262b", border: "#3a3f46", text: "#e5e7eb", muted: "#9ca3af", amber: "#f59e0b" };
 
 export default function ProductIntroPage() {
   const [lang, setLang] = useLocalLang();
-  const [accountUser, setAccountUser] = useState<UserState | null>(null);
-  const [ctaHover, setCtaHover] = useState(false);
-  const t = useMemo(() => COPY[lang], [lang]);
-  const isZh = lang === "zh";
-
-  useEffect(() => {
-    let alive = true;
-    void getCurrentUser()
-      .then((user) => {
-        if (!alive) return;
-        setAccountUser(user);
-      })
-      .catch(() => {
-        if (!alive) return;
-        setAccountUser(null);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const t = COPY[lang];
 
   return (
     <div style={page}>
@@ -91,164 +90,115 @@ export default function ProductIntroPage() {
           lang={lang}
           setLang={setLang}
           backHref="/"
-          backLabelZh="返回首页"
-          backLabelEn="Back to Home"
-          showFooter
+          backLabelZh={t.back}
+          backLabelEn={t.back}
         >
-        <main style={main}>
-          <h1 style={title}>{t.title}</h1>
-          <p style={subtitle}>
-            <span style={subtitleLine}>{t.subtitleLine1}</span>
-            <span style={subtitleLine}>{t.subtitleLine2}</span>
-          </p>
-          <p style={coreText}>{t.core}</p>
+          {/* Hero */}
+          <section style={heroWrap}>
+            <p style={eyebrow}>{t.eyebrow}</p>
+            <h1 style={heroTitle}>
+              {t.title.split("\n").map((line, i) => (
+                <span key={i} style={{ display: "block" }}>{line}</span>
+              ))}
+            </h1>
+            <p style={heroSubtitle}>
+              {t.subtitle.split("\n").map((line, i) => (
+                <span key={i} style={{ display: "block" }}>{line}</span>
+              ))}
+            </p>
+            <button
+              type="button"
+              style={ctaBtn}
+              onClick={() => routeToSignIn("pro")}
+            >
+              {t.cta}
+            </button>
+          </section>
 
-          <section style={featuresSection}>
-            <h2 style={featuresTitle}>{t.featuresTitle}</h2>
-            <ul style={featuresList}>
-              {t.features.map((item) => (
-                <li key={item} style={featureItem}>
-                  {item}
+          {/* Why */}
+          <section style={section}>
+            <h2 style={sectionTitle}>{t.why}</h2>
+            <div style={whyGrid}>
+              {t.whyItems.map((item, i) => (
+                <div key={i} style={whyCard}>
+                  <div style={whyQ}>{item.q}</div>
+                  <div style={whyA}>{item.a}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* How */}
+          <section style={section}>
+            <h2 style={sectionTitle}>{t.howTitle}</h2>
+            <div style={stepGrid}>
+              {t.howSteps.map((s, i) => (
+                <div key={i} style={stepCard}>
+                  <div style={stepNum}>{s.num}</div>
+                  <div style={stepLabel}>{s.label}</div>
+                  <div style={stepDesc}>{s.desc}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Features */}
+          <section style={section}>
+            <h2 style={sectionTitle}>{t.featuresTitle}</h2>
+            <ul style={featureList}>
+              {t.features.map((f, i) => (
+                <li key={i} style={featureItem}>
+                  <span style={featureDot} />
+                  {f}
                 </li>
               ))}
             </ul>
           </section>
 
-          <div style={ctaWrap}>
-            {accountUser ? (
-              <a
-                href="/app"
-                style={{ ...ctaBtn, ...(isZh ? ctaBtnZh : null), textDecoration: "none" }}
-                onMouseEnter={() => setCtaHover(true)}
-                onMouseLeave={() => setCtaHover(false)}
-              >
-                {t.cta}
-              </a>
-            ) : (
-              <button
-                type="button"
-                style={{
-                  ...ctaBtn,
-                  ...(isZh ? ctaBtnZh : null),
-                  backgroundColor: ctaHover ? "#d97706" : undefined,
-                }}
-                onMouseEnter={() => setCtaHover(true)}
-                onMouseLeave={() => setCtaHover(false)}
-                onClick={() => routeToSignIn("pro")}
-              >
-                {t.cta}
-              </button>
-            )}
-            <p style={ctaHint}>{t.ctaHint}</p>
-          </div>
-        </main>
-
-        <PublicFooter compact />
+          {/* Bottom CTA */}
+          <section style={bottomCta}>
+            <button type="button" style={ctaBtn} onClick={() => routeToSignIn("pro")}>
+              {t.cta}
+            </button>
+            <a href={`mailto:${PUBLIC_CONTACT_CHANNELS.business}`} style={contactLink}>
+              {t.contact}
+            </a>
+          </section>
         </StandalonePageChrome>
       </div>
     </div>
   );
 }
 
-const page: CSSProperties = {
-  minHeight: "100%",
-  color: "var(--spx-text-1)",
-  background:
-    "radial-gradient(860px 460px at 0% -20%, rgba(57,180,120,0.14), transparent 62%), radial-gradient(740px 420px at 100% -18%, rgba(88,138,232,0.14), transparent 62%), #080c12",
-};
+const page: CSSProperties = { minHeight: "100%", background: C.bg, color: C.text };
+const shell: CSSProperties = { maxWidth: 800, margin: "0 auto", padding: "24px 24px 80px" };
 
-const shell: CSSProperties = {
-  maxWidth: 980,
-  margin: "0 auto",
-  padding: "28px 20px 44px",
-};
-
-const main: CSSProperties = {
-  display: "grid",
-  gap: 20,
-};
-
-const title: CSSProperties = {
-  margin: 0,
-  fontSize: "clamp(30px, 5vw, 56px)",
-  lineHeight: 1.08,
-  letterSpacing: "-0.02em",
-};
-
-const subtitle: CSSProperties = {
-  margin: 0,
-  color: "var(--spx-text-2)",
-  fontSize: "clamp(15px, 1.8vw, 17px)",
-  lineHeight: 1.6,
-};
-
-const subtitleLine: CSSProperties = {
-  display: "block",
-};
-
-const coreText: CSSProperties = {
-  margin: 0,
-  color: "var(--spx-text-2)",
-  fontSize: "clamp(14px, 1.6vw, 16px)",
-  lineHeight: 1.72,
-  maxWidth: 820,
-};
-
-const featuresSection: CSSProperties = {
-  paddingTop: 20,
-  borderTop: "1px solid var(--spx-border-soft)",
-  display: "grid",
-  gap: 12,
-};
-
-const featuresTitle: CSSProperties = {
-  margin: 0,
-  fontSize: 18,
-  fontWeight: 700,
-};
-
-const featuresList: CSSProperties = {
-  margin: 0,
-  paddingLeft: 20,
-  display: "grid",
-  gap: 8,
-};
-
-const featureItem: CSSProperties = {
-  color: "var(--spx-text-2)",
-  fontSize: 14.5,
-  lineHeight: 1.62,
-};
-
-const ctaWrap: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  gap: 10,
-  paddingTop: 8,
-};
-
+const heroWrap: CSSProperties = { paddingTop: 40, paddingBottom: 48, textAlign: "center" };
+const eyebrow: CSSProperties = { margin: "0 0 16px", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: C.amber };
+const heroTitle: CSSProperties = { margin: 0, fontSize: "clamp(34px, 5.5vw, 56px)", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.025em" };
+const heroSubtitle: CSSProperties = { margin: "20px auto 0", maxWidth: 620, fontSize: 15, lineHeight: 1.8, color: C.muted };
 const ctaBtn: CSSProperties = {
-  minHeight: 48,
-  border: "none",
-  borderRadius: 12,
-  background: "#fcd34d",
-  color: "#1f2125",
-  fontSize: 15,
-  fontWeight: 700,
-  padding: "0 48px",
-  cursor: "pointer",
-  transition: "background-color 180ms ease",
+  marginTop: 28, minHeight: 46, padding: "0 36px", borderRadius: 10, border: "none",
+  background: C.amber, color: "#1f2125", fontSize: 14, fontWeight: 700, cursor: "pointer"
 };
 
-const ctaBtnZh: CSSProperties = {
-  minHeight: 50,
-  fontSize: 16,
-};
+const section: CSSProperties = { marginTop: 56 };
+const sectionTitle: CSSProperties = { margin: "0 0 20px", fontSize: 18, fontWeight: 700, color: C.text };
 
-const ctaHint: CSSProperties = {
-  margin: 0,
-  color: "var(--spx-text-3)",
-  fontSize: 13,
-  lineHeight: 1.5,
-};
+const whyGrid: CSSProperties = { display: "grid", gap: 12 };
+const whyCard: CSSProperties = { padding: "18px 20px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.panel };
+const whyQ: CSSProperties = { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 8 };
+const whyA: CSSProperties = { fontSize: 13, lineHeight: 1.65, color: C.muted };
+
+const stepGrid: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 };
+const stepCard: CSSProperties = { padding: "20px 20px 18px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.panel };
+const stepNum: CSSProperties = { fontSize: 11, fontWeight: 700, color: C.amber, letterSpacing: "0.08em", marginBottom: 10 };
+const stepLabel: CSSProperties = { fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 8 };
+const stepDesc: CSSProperties = { fontSize: 13, lineHeight: 1.65, color: C.muted };
+
+const featureList: CSSProperties = { margin: 0, padding: 0, listStyle: "none", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "10px 20px" };
+const featureItem: CSSProperties = { display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, lineHeight: 1.55, color: C.text };
+const featureDot: CSSProperties = { width: 6, height: 6, borderRadius: "50%", background: C.amber, flexShrink: 0, marginTop: 6 };
+
+const bottomCta: CSSProperties = { marginTop: 60, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 };
+const contactLink: CSSProperties = { color: C.muted, fontSize: 13, textDecoration: "none" };

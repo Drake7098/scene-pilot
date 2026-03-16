@@ -382,7 +382,41 @@ export default function PricingPage() {
                 "Using your own API does not consume generation Credits (templates still consume Credits when you apply them)."
               )}
             </li>
+            <li>
+              {t(
+                lang,
+                "换算参考：标准图 3 Credits/张（约 1 Credits = 1/3 张）；高清图 5 Credits/张（约 1 Credits = 1/5 张）。",
+                "Conversion reference: Standard image is 3 Credits (≈ 1 Credit = 1/3 image); HD image is 5 Credits (≈ 1 Credit = 1/5 image)."
+              )}
+            </li>
           </ul>
+          <div
+            style={{
+              marginTop: 16,
+              padding: "12px 16px",
+              borderRadius: 10,
+              border: "1px solid rgba(255,255,255,0.10)",
+              background: "rgba(255,255,255,0.03)",
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10, opacity: 0.72 }}>
+              {t(lang, "消耗参考", "Credits reference")}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 24px", fontSize: 12 }}>
+              <span style={{ opacity: 0.6 }}>{t(lang, "标准图像生成", "Standard image")}</span>
+              <span style={{ fontWeight: 700 }}>3 Credits / {t(lang, "张", "image")}</span>
+              <span style={{ opacity: 0.6 }}>{t(lang, "高质量图像生成", "HD image")}</span>
+              <span style={{ fontWeight: 700 }}>5 Credits / {t(lang, "张", "image")}</span>
+              <span style={{ opacity: 0.6 }}>{t(lang, "标准视频生成", "Standard video")}</span>
+              <span style={{ fontWeight: 700 }}>5 Credits / {t(lang, "条", "clip")}</span>
+              <span style={{ opacity: 0.6 }}>{t(lang, "高质量视频生成", "HD video")}</span>
+              <span style={{ fontWeight: 700 }}>12 Credits / {t(lang, "条", "clip")}</span>
+              <span style={{ opacity: 0.6 }}>{t(lang, "免费模板", "Free template")}</span>
+              <span style={{ fontWeight: 700 }}>0 Credits</span>
+              <span style={{ opacity: 0.6 }}>{t(lang, "付费模板（按复杂度）", "Paid template")}</span>
+              <span style={{ fontWeight: 700 }}>1 – 20 Credits</span>
+            </div>
+          </div>
         </section>
 
         {/* Template Access Levels */}

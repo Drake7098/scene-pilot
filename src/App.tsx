@@ -61,7 +61,7 @@ import {
   signInWithGoogle,
   verifyCode
 } from "./services/authService";
-import { CREDIT_PACKS, creditCostFor, creditCostForProfile, GENERATION_PROFILE_LABELS, getBillingSnapshot, launchCheckout, openCustomerPortal, PRO_PLAN, type GenerationProfileId } from "./services/billingService";
+import { CREDIT_PACKS, PRICING_FINAL_CREDIT_PACKS, creditCostFor, creditCostForProfile, GENERATION_PROFILE_LABELS, getBillingSnapshot, launchCheckout, openCustomerPortal, PRO_PLAN, type GenerationProfileId } from "./services/billingService";
 import { finalizeReservedCredits, getCreditLedger, getWalletState, reserveCredits, rollbackReservedCredits } from "./services/creditService";
 import { recordLegalConsent, syncPendingLegalConsents } from "./services/legalConsentService";
 import { getApiCredentials, setApiCredentials } from "./services/mockAccountStore";
@@ -404,7 +404,7 @@ export default function App() {
       return false;
     }
   });
-  const [creditPacks] = useState<CreditPackConfig[]>(CREDIT_PACKS);
+  const [creditPacks] = useState<CreditPackConfig[]>(PRICING_FINAL_CREDIT_PACKS);
   const [proPlan] = useState<ProPlanConfig | null>(PRO_PLAN);
   const [billingPage, setBillingPage] = useState<"upgrade" | "credits" | null>(null);
   const [templatesRefresh, setTemplatesRefresh] = useState(0);
@@ -1211,7 +1211,7 @@ export default function App() {
       if (requestedSource === "hosted" && accountUser) {
         if (accountCredits < cost) {
           setProGenerateBusy(false);
-          openNotEnoughCredits(`Not enough credits. Need ${cost}, available ${accountCredits}.`);
+          openNotEnoughCredits(lang === "zh" ? `Credits 不足。需要 ${cost}，当前余额 ${accountCredits}。` : `Not enough credits. Need ${cost}, available ${accountCredits}.`);
           openBillingPage("credits");
           trackProjectFlow("pro_generate", { generation_mode: "hosted", generation_profile: currentGenProfile, success: false, reason: "insufficient_credits", credits_required: cost }, lang);
           return;
@@ -1912,6 +1912,19 @@ export default function App() {
     void refreshAccountState();
   }, [refreshAccountState]);
 
+  // ✅ 新用户 onboarding：登录后首次进入自动弹出创建向导
+  useEffect(() => {
+    if (!accountUser) return;
+    try {
+      const done = localStorage.getItem(ONBOARDING_KEY);
+      if (!done) {
+        setWizardCancelable(false);
+        setWizardStep("welcome_1");
+        setWizardOpen(true);
+      }
+    } catch { /* ignore localStorage errors */ }
+  }, [accountUser?.id]);
+
   useEffect(() => {
     if (!accountUser) return;
     const target = postAuthRedirect || readPostAuthRedirect();
@@ -2522,7 +2535,7 @@ export default function App() {
         ? creditCostFor("video", "video", Math.max(1, plan.outputCount || 1))
         : creditCostFor("image", "standard", Math.max(1, plan.outputCount || 1));
       if (accountCredits < cost) {
-        openNotEnoughCredits(`Not enough credits. Need ${cost}, available ${accountCredits}.`);
+        openNotEnoughCredits(lang === "zh" ? `Credits 不足。需要 ${cost}，当前余额 ${accountCredits}。` : `Not enough credits. Need ${cost}, available ${accountCredits}.`);
         openBillingPage("credits");
         return;
       }
@@ -2665,7 +2678,7 @@ export default function App() {
         ? creditCostFor("video", "video", Math.max(1, refinedPlan.outputCount || 1))
         : creditCostFor("image", "standard", Math.max(1, refinedPlan.outputCount || 1));
       if (accountCredits < cost) {
-        openNotEnoughCredits(`Not enough credits. Need ${cost}, available ${accountCredits}.`);
+        openNotEnoughCredits(lang === "zh" ? `Credits 不足。需要 ${cost}，当前余额 ${accountCredits}。` : `Not enough credits. Need ${cost}, available ${accountCredits}.`);
         openBillingPage("credits");
         return;
       }
@@ -3407,56 +3420,6 @@ export default function App() {
         }
       ];
 
-  const _accountMenuItems = accountUser
-    ? [
-      {
-        key: "account_center",
-        label: lang === "zh" ? "账户中心" : "Account Center",
-        icon: <UserRound size={UI_MENU.item.iconSize} />,
-        onClick: () => {
-          setAccountMenuOpen(false);
-          openAccountCenter("overview");
-        }
-      },
-      {
-        key: "account_page",
-        label: lang === "zh" ? "用户管理页面" : "User Management",
-        icon: <Wallet size={UI_MENU.item.iconSize} />,
-        onClick: () => {
-          setAccountMenuOpen(false);
-          window.location.assign("/account");
-        }
-      },
-      {
-        key: "logout",
-        label: lang === "zh" ? "退出登录" : "Log Out",
-        icon: <LogOut size={UI_MENU.item.iconSize} />,
-        onClick: () => {
-          setAccountMenuOpen(false);
-          void handleLogout();
-        }
-      }
-    ]
-    : [
-      {
-        key: "signin",
-        label: lang === "zh" ? "登录 / 注册" : "Sign In / Sign Up",
-        icon: <UserRound size={UI_MENU.item.iconSize} />,
-        onClick: () => {
-          setAccountMenuOpen(false);
-          openAccountCenter("auth");
-        }
-      },
-      {
-        key: "membership_pricing",
-        label: lang === "zh" ? "升级会员" : "Upgrade",
-        icon: <CreditCard size={UI_MENU.item.iconSize} />,
-        onClick: () => {
-          setAccountMenuOpen(false);
-          window.location.assign("/pricing");
-        }
-      }
-    ];
 
   // ---------------------- UI ----------------------
   return (
@@ -3486,17 +3449,27 @@ export default function App() {
 
         <button
           data-testid="top-account-trigger"
-          style={styles.topAccountBtn}
+          style={{
+            ...styles.topAccountBtn,
+            ...(accountUser ? {} : {
+              background: "rgba(245,158,11,0.12)",
+              border: "1px solid rgba(245,158,11,0.35)",
+              borderRadius: 8,
+              padding: "0 12px",
+              color: "#f59e0b",
+              fontSize: 13
+            })
+          }}
           onClick={() => setAccountMenuOpen((v) => !v)}
           type="button"
           aria-label={accountUser ? (lang === "zh" ? "账户中心" : "Account Center") : (lang === "zh" ? "登录 / 注册" : "Sign In")}
           title={accountUser ? (lang === "zh" ? "账户中心" : "Account Center") : (lang === "zh" ? "登录 / 注册" : "Sign In")}
         >
-          <span style={{ ...styles.topAccountAvatar, background: accountUser ? accountAvatarColor : LOGIN_AVATAR_GRADIENT }}>
+          <span style={{ ...styles.topAccountAvatar, background: accountUser ? accountAvatarColor : "#3a3f46" }}>
             {accountUser?.avatarUrl ? (
               <img src={accountUser.avatarUrl} alt="" style={styles.topAvatarImage} />
             ) : (
-              <UserRound size={14} style={{ color: "#f4fbff" }} />
+              <UserRound size={14} style={{ color: accountUser ? "#f4fbff" : "#9ca3af" }} />
             )}
           </span>
           <span style={styles.topBtnText}>{accountEntryLabel}</span>
@@ -3702,14 +3675,19 @@ export default function App() {
             }}
           >
             <div style={styles.libraryHead}>
-              <div style={styles.modalTitle}>
-                {lang === "zh" ? "我的分镜库（项目列表）" : "My Storyboard Library (Projects)"}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+                <div style={styles.modalTitle}>
+                  {lang === "zh" ? "项目库" : "Project Library"}
+                </div>
+                {libraryRootName ? (
+                  <div style={styles.libraryPath}>{libraryRootName}</div>
+                ) : null}
               </div>
-              <div style={styles.libraryPath}>
-                {libraryRootName
-                  ? libraryRootName
-                  : (lang === "zh" ? "未选择目录" : "No directory selected")}
-              </div>
+              <button
+                type="button"
+                onClick={() => setLibraryOpen(false)}
+                style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid #3a3f46", background: "transparent", color: "#9ca3af", cursor: "pointer", fontSize: 14, fontWeight: 900, flexShrink: 0 }}
+              >×</button>
             </div>
 
             <div style={styles.libraryList}>
@@ -3720,38 +3698,40 @@ export default function App() {
               ) : (
                 libraryEntries.map((entry) => (
                   <div key={`${entry.kind}:${entry.name}`} style={styles.libraryItem}>
-                    <div style={styles.libraryItemName}>{`${entry.kind === "file" ? "📄" : "📁"} ${entry.label}`}</div>
+                    <span style={{ fontSize: 14, flexShrink: 0 }}>{entry.kind === "file" ? "📄" : "📁"}</span>
+                    <div style={styles.libraryItemName}>{entry.label}</div>
                     <button
-                      style={styles.modalBtnGhost}
+                      style={styles.libraryItemOpenBtn}
                       type="button"
                       disabled={libraryBusy}
                       onClick={() => void importLibraryEntryToEditor(entry)}
                     >
-                      {lang === "zh" ? "打开分镜库项目" : "Open Project"}
+                      {lang === "zh" ? "打开" : "Open"}
                     </button>
                     <button
-                      style={styles.modalBtnDanger}
+                      style={styles.libraryItemDeleteBtn}
                       type="button"
                       disabled={libraryBusy}
                       onClick={() => void deleteLibraryEntry(entry)}
+                      title={lang === "zh" ? "删除" : "Delete"}
                     >
-                      {lang === "zh" ? "删除" : "Delete"}
+                      ×
                     </button>
                   </div>
                 ))
               )}
             </div>
 
-            <div style={styles.modalBtns}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 12 }}>
               <button
-                style={styles.modalBtnGhost}
+                style={styles.libraryImportBtn}
                 type="button"
                 disabled={libraryBusy}
                 onClick={async () => {
                   await importLibraryFromExternalDirectory();
                 }}
               >
-                {lang === "zh" ? "导入分镜库" : "Import Library"}
+                {lang === "zh" ? "+ 导入分镜库" : "+ Import Library"}
               </button>
               <button style={styles.modalBtnGhost} type="button" onClick={() => setLibraryOpen(false)}>
                 {lang === "zh" ? "关闭" : "Close"}
@@ -4498,8 +4478,8 @@ export default function App() {
             }}
             data-testid="insufficient-credits-modal"
           >
-            <div style={styles.modalTitle}>Not enough credits</div>
-            <div style={styles.modalText}>{insufficientCreditsMessage || "You need more credits to generate images or videos."}</div>
+            <div style={styles.modalTitle}>{lang === "zh" ? "Credits 不足" : "Not enough credits"}</div>
+            <div style={styles.modalText}>{insufficientCreditsMessage || (lang === "zh" ? "Credits 不足，生成图像或视频需要更多 Credits。" : "You need more credits to generate images or videos.")}</div>
             <div style={styles.modalBtns}>
               <button
                 style={styles.modalBtnGhost}
@@ -4518,7 +4498,7 @@ export default function App() {
                 disabled={!billingRuntimeEnabled}
                 data-testid="insufficient-credits-buy"
               >
-                Buy credits
+                {lang === "zh" ? "购买 Credits" : "Buy credits"}
               </button>
             </div>
           </div>
@@ -5429,16 +5409,15 @@ const styles: Record<string, React.CSSProperties> = {
     top: 62,
     right: 12,
     zIndex: 9999,
-    width: `min(${UI_MENU.width}px, calc(100vw - 24px))`,
+    width: "min(232px, calc(100vw - 24px))",
     display: "grid",
     gap: 2,
-    padding: UI_MENU.panel.padding,
-    borderRadius: UI_MENU.panel.radius,
-    border: `1px solid ${UI_MENU.panel.border}`,
-    background: UI_MENU.panel.surface,
-    boxShadow: UI_MENU.panel.shadow,
+    padding: 6,
+    borderRadius: 12,
+    border: "1px solid #3a3f46",
+    background: "#24262b",
+    boxShadow: "0 24px 56px rgba(0,0,0,0.46)",
     overflow: "hidden",
-    backdropFilter: "blur(20px)"
   },
   helpMenuGroupLabel: {
     padding: "6px 10px 2px",
@@ -5456,13 +5435,12 @@ const styles: Record<string, React.CSSProperties> = {
     width: "min(220px, calc(100vw - 24px))",
     display: "grid",
     gap: 2,
-    padding: UI_MENU.panel.padding,
-    borderRadius: UI_MENU.panel.radius,
-    border: `1px solid ${UI_MENU.panel.border}`,
-    background: UI_MENU.panel.surface,
-    boxShadow: UI_MENU.panel.shadow,
+    padding: 6,
+    borderRadius: 12,
+    border: "1px solid #3a3f46",
+    background: "#24262b",
+    boxShadow: "0 24px 56px rgba(0,0,0,0.46)",
     overflow: "hidden",
-    backdropFilter: "blur(20px)"
   },
   helpMenuItem: {
     width: "100%",
@@ -5532,12 +5510,11 @@ const styles: Record<string, React.CSSProperties> = {
   modal: {
     width: 520,
     maxWidth: "100%",
-    borderRadius: UI_RADIUS.panel,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: `${UI_PANEL.rightGlow}, rgba(15,20,30,0.97)`,
-    boxShadow: UI_EFFECT.floatShadow,
-    padding: 14,
-    backdropFilter: "blur(18px)"
+    borderRadius: 12,
+    border: "1px solid #3a3f46",
+    background: "#24262b",
+    boxShadow: "0 24px 56px rgba(0,0,0,0.46)",
+    padding: 16,
   },
   modalIconBtn: {
     height: 30,
@@ -5555,15 +5532,14 @@ const styles: Record<string, React.CSSProperties> = {
     width: 720,
     maxWidth: "100%",
     maxHeight: "min(80vh, 760px)",
-    borderRadius: UI_RADIUS.panel,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: `${UI_PANEL.leftGlow}, rgba(15,20,30,0.97)`,
-    boxShadow: UI_EFFECT.floatShadow,
-    padding: 14,
+    borderRadius: 12,
+    border: "1px solid #3a3f46",
+    background: "#24262b",
+    boxShadow: "0 24px 56px rgba(0,0,0,0.46)",
+    padding: 16,
     display: "flex",
     flexDirection: "column",
     gap: 10,
-    backdropFilter: "blur(18px)"
   },
   modalTitle: { fontWeight: 900, fontSize: UI_TYPO.size14, opacity: 0.96 },
   modalText: {
@@ -5708,14 +5684,13 @@ const styles: Record<string, React.CSSProperties> = {
     gridTemplateColumns: "repeat(4,minmax(0,1fr))",
     gap: 8
   },
-  libraryHead: { display: "flex", alignItems: "center", gap: 10 },
+  libraryHead: { display: "flex", alignItems: "center", gap: 10, marginBottom: 4 },
   libraryPath: {
-    marginLeft: "auto",
-    fontSize: 12,
-    opacity: 0.78,
-    border: `1px solid ${UI_PALETTE.border.soft}`,
-    borderRadius: UI_RADIUS.control,
-    padding: "6px 8px"
+    fontSize: 11,
+    color: "#9ca3af",
+    border: "1px solid #3a3f46",
+    borderRadius: 6,
+    padding: "3px 8px"
   },
   libraryActions: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
   libraryHint: {
@@ -5737,7 +5712,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: `1px solid ${UI_PALETTE.border.active}`,
     borderRadius: UI_RADIUS.control,
     padding: "8px 10px",
-    background: "rgba(20,28,46,0.96)",
+    background: "#24262b",
     boxShadow: "0 10px 30px rgba(0,0,0,0.35)"
   },
   resultToast: {
@@ -5752,21 +5727,21 @@ const styles: Record<string, React.CSSProperties> = {
     border: `1px solid ${UI_PALETTE.border.active}`,
     borderRadius: UI_RADIUS.control,
     padding: "10px 14px",
-    background: "rgba(20,28,46,0.96)",
+    background: "#24262b",
     boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
-    color: "rgba(255,255,255,0.95)"
+    color: "#e5e7eb"
   },
   libraryList: {
     minHeight: 180,
     maxHeight: "min(50vh, 420px)",
     overflow: "auto",
-    border: `1px solid ${UI_PALETTE.border.soft}`,
-    borderRadius: UI_RADIUS.control,
-    background: UI_PALETTE.surface.surface1,
+    border: "1px solid #3a3f46",
+    borderRadius: 8,
+    background: "#1f2125",
     padding: 8,
     display: "flex",
     flexDirection: "column",
-    gap: 8
+    gap: 6
   },
   libraryEmpty: {
     fontSize: 12,
@@ -5777,20 +5752,57 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: 8,
-    flexWrap: "wrap",
-    border: `1px solid ${UI_PALETTE.border.soft}`,
-    borderRadius: UI_RADIUS.control,
-    padding: "8px 10px",
-    background: UI_PALETTE.surface.surface1
+    border: "1px solid #3a3f46",
+    borderRadius: 8,
+    padding: "8px 12px",
+    background: "#24262b"
   },
   libraryItemName: {
     flex: 1,
     minWidth: 0,
-    fontSize: 12,
-    fontWeight: 800,
+    fontSize: 13,
+    fontWeight: 600,
     whiteSpace: "nowrap",
     overflow: "hidden",
-    textOverflow: "ellipsis"
+    textOverflow: "ellipsis",
+    color: "#e5e7eb"
+  },
+  libraryItemOpenBtn: {
+    padding: "5px 14px",
+    borderRadius: 8,
+    border: "1px solid #f59e0b",
+    background: "rgba(245,158,11,0.1)",
+    color: "#f59e0b",
+    cursor: "pointer",
+    fontSize: 12,
+    fontWeight: 600,
+    flexShrink: 0
+  },
+  libraryItemDeleteBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    border: "1px solid #3a3f46",
+    background: "transparent",
+    color: "#9ca3af",
+    cursor: "pointer",
+    fontSize: 14,
+    fontWeight: 900,
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 0
+  },
+  libraryImportBtn: {
+    padding: "7px 16px",
+    borderRadius: 8,
+    border: "1px solid #3a3f46",
+    background: "#1f2125",
+    color: "#e5e7eb",
+    cursor: "pointer",
+    fontSize: 12,
+    fontWeight: 600
   },
 
   modalBtns: { display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", marginTop: 12 },
@@ -5804,35 +5816,34 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   modalBtn: {
-    padding: "8px 16px",
-    borderRadius: UI_RADIUS.control,
-    border: "1px solid rgba(245,158,11,0.55)",
-    background: "rgba(245,158,11,0.15)",
-    color: "#f59e0b",
+    padding: "7px 16px",
+    borderRadius: 8,
+    border: "none",
+    background: "#f59e0b",
+    color: "#1f2125",
     cursor: "pointer",
     fontSize: 12,
-    fontWeight: 900,
-    boxShadow: UI_EFFECT.insetShadow
+    fontWeight: 700
   },
   modalBtnGhost: {
-    padding: "8px 10px",
-    borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: UI_PALETTE.surface.surface2,
-    color: "inherit",
+    padding: "7px 14px",
+    borderRadius: 8,
+    border: "1px solid #3a3f46",
+    background: "transparent",
+    color: "#e5e7eb",
     cursor: "pointer",
     fontSize: 12,
-    fontWeight: 900
+    fontWeight: 600
   },
   modalBtnDanger: {
-    padding: "8px 10px",
-    borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_PALETTE.border.danger}`,
-    background: "rgba(255,124,124,0.14)",
-    color: "inherit",
+    padding: "7px 14px",
+    borderRadius: 8,
+    border: "1px solid rgba(255,100,100,0.4)",
+    background: "rgba(255,100,100,0.1)",
+    color: "rgba(255,160,160,0.9)",
     cursor: "pointer",
     fontSize: 12,
-    fontWeight: 900
+    fontWeight: 600
   },
 
   // ---- tutorial formatting ----

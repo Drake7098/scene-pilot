@@ -1617,14 +1617,15 @@ export function Sidebar(props: Props) {
             const sceneNo = String(sceneIndex).padStart(2, "0");
 
             return (
+              <div key={s.id} style={styles.sceneCardWrapper}>
               <div
-                key={s.id}
                 role="button"
                 tabIndex={0}
                 className="pro-scene-card"
                 data-active={isOn ? "true" : "false"}
                 style={{
                   ...styles.sceneCard,
+                  flex: 1,
                   background: isOn ? ec.accentSoft : "rgba(42,45,50,0.6)",
                   borderColor: isOn ? `${ec.accent}66` : ec.border,
                   boxShadow: isOn ? `0 0 15px ${ec.accent}0D` : "none"
@@ -1690,20 +1691,6 @@ export function Sidebar(props: Props) {
                       </span>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    className="pro-scene-card-delete"
-                    style={styles.sceneCardDelete}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      requestDeleteScene(i, e.currentTarget as HTMLElement);
-                    }}
-                    title={tt("sidebar.deleteScene")}
-                    disabled={scenes.length <= 1 || isImageProject}
-                  >
-                    <Minus size={14} />
-                  </button>
                 </div>
                 <div style={styles.sceneCardRow2}>
                   <span style={styles.sceneCardPill}>
@@ -1776,6 +1763,21 @@ export function Sidebar(props: Props) {
                     </span>
                   ) : null}
                 </div>
+              </div>
+              <button
+                type="button"
+                className="pro-icon-btn"
+                style={styles.sceneCardDeleteOuter}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  requestDeleteScene(i, e.currentTarget as HTMLElement);
+                }}
+                title={tt("sidebar.deleteScene")}
+                disabled={scenes.length <= 1 || isImageProject}
+              >
+                <Minus size={13} />
+              </button>
               </div>
             );
           })}
@@ -2224,31 +2226,28 @@ const styles: Record<string, React.CSSProperties> = {
   projectSectionBody: {
     display: "flex",
     flexDirection: "column",
-    gap: 0
+    gap: 1
   },
-  /** Single project action row: Figma Section item (px-2 py-1.5 = 8px 6px, rounded, text-xs, hover bg #343942) */
   projectAction: {
     display: "flex",
     alignItems: "center",
     gap: 8,
     width: "100%",
-    padding: "6px 8px",
+    padding: "7px 8px",
     border: "none",
     background: "transparent",
-    color: editorTheme.colors.text,
-    fontSize: editorTheme.typography.bodySize,
-    fontWeight: editorTheme.typography.bodyWeight,
-    fontFamily: PRO_TYPO.fontFamily,
+    color: "#e5e7eb",
+    fontSize: 12,
+    fontWeight: 500,
     cursor: "pointer",
     textAlign: "left",
-    borderRadius: editorTheme.radius.button,
-    transition: `background-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
+    borderRadius: 8,
+    transition: "background 120ms ease"
   },
-  /** Group separator: Figma border #3a3f46, vertical margin 6px */
   projectActionSep: {
     height: 1,
-    margin: "6px 0",
-    background: editorTheme.colors.border
+    margin: "5px 0",
+    background: "#3a3f46"
   },
 
   section: {
@@ -2517,6 +2516,27 @@ const styles: Record<string, React.CSSProperties> = {
 
   list: { display: "flex", flexDirection: "column", gap: 8 },
   sceneCardList: { display: "flex", flexDirection: "column", gap: 8 },
+  sceneCardWrapper: {
+    display: "flex",
+    alignItems: "center",
+    gap: 4
+  },
+  sceneCardDeleteOuter: {
+    flexShrink: 0,
+    width: 24,
+    height: 24,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "none",
+    background: "transparent",
+    color: editorTheme.colors.textMuted,
+    cursor: "pointer",
+    opacity: 0.5,
+    borderRadius: 6,
+    transition: "opacity 150ms ease, color 150ms ease, background 150ms ease",
+    padding: 0
+  },
   sceneCard: {
     position: "relative",
     padding: 12,
@@ -3169,10 +3189,10 @@ const styles: Record<string, React.CSSProperties> = {
   modal: {
     width: 420,
     maxWidth: "100%",
-    borderRadius: UI_RADIUS.panel,
-    border: `1px solid ${UI_PALETTE.border.default}`,
-    background: "rgba(12,17,27,0.96)",
-    boxShadow: UI_EFFECT.floatShadow,
+    borderRadius: 12,
+    border: "1px solid #3a3f46",
+    background: "#24262b",
+    boxShadow: "0 24px 56px rgba(0,0,0,0.46)",
     padding: 18,
     display: "flex",
     flexDirection: "column",

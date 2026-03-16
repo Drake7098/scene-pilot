@@ -13,12 +13,8 @@ import { applyCameraLanguage } from "../content/cameraLanguageLayers";
 // --- Variants (from variant rules) ---
 const VARIANTS: TemplateVariant[] = [
   "free_starter",
-  "basic_wide",
-  "basic_medium",
-  "basic_close",
   "vertical_9_16",
   "horizontal_16_9",
-  "social_fast",
   "cinematic",
   "multi_object",
   "advanced_motion"
@@ -210,8 +206,7 @@ function buildSceneFromSpec(
   let layers = baseLayers;
   let notes = `media: ${mediaType}\ngenmode: pro`;
 
-  if (variant === "basic_wide" || variant === "horizontal_16_9") shot = "wide";
-  else if (variant === "basic_close") shot = "close";
+  if (variant === "horizontal_16_9") shot = "wide";
 
   if (variant === "advanced_motion" && mediaType === "video") {
     movement = "slow_push_in";
@@ -267,12 +262,8 @@ function computeAdvancedTags(family: (typeof FAMILIES)[0], variant: TemplateVari
 
 const VARIANT_LABELS: Record<TemplateVariant, { en: string; zh: string }> = {
   free_starter: { en: "Free Starter", zh: "免费起步版" },
-  basic_wide: { en: "Basic Wide", zh: "基础广角版" },
-  basic_medium: { en: "Basic Medium", zh: "基础中景版" },
-  basic_close: { en: "Basic Close", zh: "基础近景版" },
   vertical_9_16: { en: "Vertical 9:16", zh: "竖版短视频版" },
   horizontal_16_9: { en: "Horizontal 16:9", zh: "横版标准版" },
-  social_fast: { en: "Social Fast", zh: "社媒快节奏版" },
   cinematic: { en: "Cinematic", zh: "电影质感版" },
   multi_object: { en: "Multi-Object", zh: "多对象复杂版" },
   advanced_motion: { en: "Advanced Motion", zh: "高级运动版" }

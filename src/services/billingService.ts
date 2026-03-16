@@ -16,31 +16,32 @@ import { getApiAuthHeaders } from "./authService";
 import { getSubscription, getUser, setSubscription, updateUser } from "./mockAccountStore";
 import { BILLING_ALLOW_MOCK_FALLBACK, BILLING_ENABLED, BILLING_LIVE_BLOCKED } from "../config/billingFlags";
 
+/** @deprecated 使用 PRICING_FINAL_CREDIT_PACKS。此配置仅保留用于 checkout 历史 session 查找。 */
 export const CREDIT_PACKS: CreditPackConfig[] = [
   { id: "credit_100", name: "100 credits / $3", usdPrice: 3, credits: 100, priceId: (import.meta.env.VITE_PADDLE_PRICE_CREDIT_100 as string | undefined)?.trim(), enabled: true },
   { id: "credit_500", name: "500 credits / $12", usdPrice: 12, credits: 500, priceId: (import.meta.env.VITE_PADDLE_PRICE_CREDIT_500 as string | undefined)?.trim(), enabled: true },
   { id: "credit_2000", name: "2000 credits / $40", usdPrice: 40, credits: 2000, priceId: (import.meta.env.VITE_PADDLE_PRICE_CREDIT_2000 as string | undefined)?.trim(), enabled: true }
 ];
 
-/** V2 Pricing: Quick credit packs ($3→20, $5→40, $10→90) */
+/** @deprecated */
 export const PRICING_V2_QUICK_PACKS: CreditPackConfig[] = [
   { id: "quick_20", name: "20 credits", usdPrice: 3, credits: 20, priceId: (import.meta.env.VITE_PADDLE_PRICE_QUICK_20 as string | undefined)?.trim(), enabled: true },
   { id: "quick_40", name: "40 credits", usdPrice: 5, credits: 40, priceId: (import.meta.env.VITE_PADDLE_PRICE_QUICK_40 as string | undefined)?.trim(), enabled: true },
   { id: "quick_90", name: "90 credits", usdPrice: 10, credits: 90, priceId: (import.meta.env.VITE_PADDLE_PRICE_QUICK_90 as string | undefined)?.trim(), enabled: true },
 ];
 
-/** V2 Pricing: Plan credit packs ($15→200, $30→500, $60→1200) */
+/** @deprecated */
 export const PRICING_V2_PLAN_PACKS: CreditPackConfig[] = [
   { id: "plan_200", name: "200 credits", usdPrice: 15, credits: 200, priceId: (import.meta.env.VITE_PADDLE_PRICE_PLAN_200 as string | undefined)?.trim(), enabled: true },
   { id: "plan_500", name: "500 credits", usdPrice: 30, credits: 500, priceId: (import.meta.env.VITE_PADDLE_PRICE_PLAN_500 as string | undefined)?.trim(), enabled: true },
   { id: "plan_1200", name: "1200 credits", usdPrice: 60, credits: 1200, priceId: (import.meta.env.VITE_PADDLE_PRICE_PLAN_1200 as string | undefined)?.trim(), enabled: true },
 ];
 
-/** Pricing Final: $3→150, $8→420, $15→800 */
-export const PRICING_FINAL_CREDIT_PACKS: CreditPackConfig[] = [
-  { id: "pack_3", name: "150 Credits", usdPrice: 3, credits: 150, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_3 as string | undefined)?.trim(), enabled: true },
-  { id: "pack_8", name: "420 Credits", usdPrice: 8, credits: 420, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_8 as string | undefined)?.trim(), enabled: true },
-  { id: "pack_15", name: "800 Credits", usdPrice: 15, credits: 800, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_15 as string | undefined)?.trim(), enabled: true },
+/** Pricing Final: $3→150, $8→420, $15→800. checkoutUrl = Whop 结账链接 */
+export const PRICING_FINAL_CREDIT_PACKS: (CreditPackConfig & { checkoutUrl?: string })[] = [
+  { id: "pack_3", name: "150 Credits", usdPrice: 3, credits: 150, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_3 as string | undefined)?.trim(), enabled: true, checkoutUrl: "https://whop.com/checkout/plan_S9Y9sX4nIH7M2" },
+  { id: "pack_8", name: "420 Credits", usdPrice: 8, credits: 420, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_8 as string | undefined)?.trim(), enabled: true, checkoutUrl: "https://whop.com/checkout/plan_LsyYESGY0fqI9" },
+  { id: "pack_15", name: "800 Credits", usdPrice: 15, credits: 800, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_15 as string | undefined)?.trim(), enabled: true, checkoutUrl: "https://whop.com/checkout/plan_00vbsXkjSR9jA" },
 ];
 
 /** All credit packs (legacy + V2 + final) for checkout lookup */
@@ -51,13 +52,14 @@ const ALL_CREDIT_PACKS = [
   ...PRICING_FINAL_CREDIT_PACKS,
 ];
 
-export const PRO_PLAN: ProPlanConfig = {
+export const PRO_PLAN: ProPlanConfig & { checkoutUrl?: string } = {
   id: "pro_monthly",
   name: "Pro",
   monthlyUsdPrice: 12,
   monthlyCredits: 700,
   priceId: (import.meta.env.VITE_PADDLE_PRICE_PRO_MONTHLY as string | undefined)?.trim(),
-  enabled: true
+  enabled: true,
+  checkoutUrl: "https://whop.com/checkout/plan_BD8J6nLOGIk1t"
 };
 
 export const HOSTED_ACTIONS: HostedActionConfig[] = [
@@ -253,6 +255,20 @@ export async function launchCheckout(input: CheckoutRequest) {
   if (BILLING_LIVE_BLOCKED) {
     throw new Error("billing_live_blocked");
   }
+  if (input.kind === "credits") {
+    const packId = input.productId;
+    const pack = PRICING_FINAL_CREDIT_PACKS.find((p) => p.id === packId);
+    if (pack?.checkoutUrl) {
+      window.open(pack.checkoutUrl, "_blank");
+      return { session: null, completedUser: null };
+    }
+  }
+  if (input.kind === "pro") {
+    if (PRO_PLAN.checkoutUrl) {
+      window.open(PRO_PLAN.checkoutUrl, "_blank");
+      return { session: null, completedUser: null };
+    }
+  }
   const session = await createCheckoutSession(input);
   if (!session.mock && canUsePaddleClient()) {
     const opened = await openPaddleCheckout(session);
@@ -336,7 +352,7 @@ export async function getBillingSnapshot(userId: string) {
         }
         : getSubscription(userId);
       return {
-        packs: packs.length ? packs : CREDIT_PACKS.filter((item) => item.enabled),
+        packs: packs.length ? packs : PRICING_FINAL_CREDIT_PACKS.filter((item) => item.enabled),
         proPlan: PRO_PLAN.enabled ? PRO_PLAN : null,
         subscription,
         hostedActions: HOSTED_ACTIONS.filter((item) => item.enabled)
@@ -347,7 +363,7 @@ export async function getBillingSnapshot(userId: string) {
   }
 
   return {
-    packs: CREDIT_PACKS.filter((item) => item.enabled),
+    packs: PRICING_FINAL_CREDIT_PACKS.filter((item) => item.enabled),
     proPlan: PRO_PLAN.enabled ? PRO_PLAN : null,
     subscription: getSubscription(userId),
     hostedActions: HOSTED_ACTIONS.filter((item) => item.enabled)

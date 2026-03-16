@@ -15,19 +15,13 @@ function detectLocale(): LandingLocale {
   try {
     const saved = localStorage.getItem(LANDING_LANG_KEY);
     if (saved === "zh" || saved === "en") return saved;
-  } catch {
-    // ignore localStorage failures
-  }
+  } catch { /* ignore */ }
   if (typeof navigator === "undefined") return "en";
   return /^zh(?:-|$)/i.test(navigator.language || "") ? "zh" : "en";
 }
 
 function saveLocale(lang: LandingLocale) {
-  try {
-    localStorage.setItem(LANDING_LANG_KEY, lang);
-  } catch {
-    // ignore localStorage failures
-  }
+  try { localStorage.setItem(LANDING_LANG_KEY, lang); } catch { /* ignore */ }
 }
 
 function routeToSignIn(mode?: WorkspaceMode) {
@@ -35,9 +29,7 @@ function routeToSignIn(mode?: WorkspaceMode) {
     try {
       localStorage.setItem(WORKSPACE_MODE_KEY, mode);
       localStorage.setItem(WORKSPACE_ENTRY_GUIDE_KEY, "1");
-    } catch {
-      // ignore storage failures
-    }
+    } catch { /* ignore */ }
   }
   window.location.href = "/signin";
 }
@@ -45,20 +37,32 @@ function routeToSignIn(mode?: WorkspaceMode) {
 const COPY = {
   zh: {
     intro: "产品介绍",
-    pricing: "Pricing",
+    pricing: "定价",
     lang: "EN",
-    signIn: "登录",
     signInUp: "登录 / 注册",
     account: "账户",
     openWorkspace: "进入工作台",
-    accountPage: "账户设置",
-    logOut: "退出登录",
-    title: "结构化提示词工作台",
-    subtitleLine1: "用模板、分镜结构和镜头语言",
-    subtitleLine2: "让大模型准确理解你的创作意图",
-    tagline: "更稳定生成 · 更少重试 · 更快出结果",
-    workspaceBtn: "进入工作台",
-    workspaceHint: "模板驱动 · 分镜编辑 · 多模型生成 · Prompt + 参考图导出",
+    // Hero
+    eyebrow: "AI 图像 · 视频生成工作台",
+    title: "说了十遍\n还是生成错",
+    subtitle: "提示词越写越长，结果越跑越偏。\nScenePilotix 用分镜结构替代自由文本——\n主体位置、镜头语言、光影情绪，一次说清。",
+    tagline: "首次生成成功率提升 3×",
+    ctaMain: "免费开始",
+    ctaSub: "进入工作台",
+    // Pain → Solution
+    painTitle: "你一定遇过这些",
+    pains: [
+      { icon: "↺", text: "改了五遍提示词，主体还是跑偏" },
+      { icon: "✂", text: "复制别人的 Prompt，风格完全不对" },
+      { icon: "⚡", text: "换了模型又要重新调一遍参数" },
+    ],
+    solveTitle: "ScenePilotix 怎么解决",
+    solves: [
+      { icon: "◉", label: "结构化分镜", text: "主体 / 背景 / 构图分层填写，不靠猜" },
+      { icon: "◎", label: "600+ 模板", text: "开场 · 产品 · 对话 · 运镜，直接套用" },
+      { icon: "⬡", label: "多模型一键导出", text: "Midjourney / Runway / fal，同一份结构" },
+    ],
+    // Footer
     terms: "服务协议",
     privacy: "隐私协议",
     contact: "联系我们",
@@ -67,18 +71,30 @@ const COPY = {
     intro: "Product",
     pricing: "Pricing",
     lang: "中文",
-    signIn: "Sign in",
     signInUp: "Sign In / Sign Up",
     account: "Account",
     openWorkspace: "Open Workspace",
-    accountPage: "Account Settings",
-    logOut: "Log Out",
-    title: "Structured Prompt Workspace",
-    subtitleLine1: "Use templates, storyboard structure, and camera language",
-    subtitleLine2: "to help the model accurately understand your creative intent.",
-    tagline: "More stable generation · Fewer retries · Faster results",
-    workspaceBtn: "Enter Workspace",
-    workspaceHint: "Template-driven · Storyboard editing · Multi-model generation · Prompt + reference export",
+    // Hero
+    eyebrow: "AI Image & Video Generation Workspace",
+    title: "Wrote the prompt\nten times. Still wrong.",
+    subtitle: "The longer your prompt, the further off the result.\nScenePilotix replaces free-text guessing with scene structure —\nsubject position, camera language, mood. Say it once, get it right.",
+    tagline: "3× higher first-generation success rate",
+    ctaMain: "Start Free",
+    ctaSub: "Open Workspace",
+    // Pain → Solution
+    painTitle: "Sound familiar?",
+    pains: [
+      { icon: "↺", text: "Tweaked the prompt five times. Subject still drifts." },
+      { icon: "✂", text: "Copied someone's prompt. Looks nothing like it." },
+      { icon: "⚡", text: "Switched models. Back to square one." },
+    ],
+    solveTitle: "How ScenePilotix fixes it",
+    solves: [
+      { icon: "◉", label: "Structured scenes", text: "Subject / background / composition — filled, not guessed" },
+      { icon: "◎", label: "600+ templates", text: "Opening · Product · Dialogue · Camera moves — ready to use" },
+      { icon: "⬡", label: "One structure, every model", text: "Midjourney / Runway / fal — export once, run anywhere" },
+    ],
+    // Footer
     terms: "Terms",
     privacy: "Privacy",
     contact: "Contact",
@@ -88,25 +104,17 @@ const COPY = {
 export default function LandingPage() {
   const [locale, setLocale] = useState<LandingLocale>(() => detectLocale());
   const [accountUser, setAccountUser] = useState<UserState | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [ctaHover, setCtaHover] = useState(false);
   const t = useMemo(() => COPY[locale], [locale]);
   const isZh = locale === "zh";
-  const userEntryLabel = accountUser ? t.account : t.signInUp;
 
   useEffect(() => {
     let alive = true;
     void getCurrentUser()
-      .then((user) => {
-        if (!alive) return;
-        setAccountUser(user);
-      })
-      .catch(() => {
-        if (!alive) return;
-        setAccountUser(null);
-      });
-    return () => {
-      alive = false;
-    };
+      .then((user) => { if (alive) { setAccountUser(user); setAuthLoading(false); } })
+      .catch(() => { if (alive) { setAccountUser(null); setAuthLoading(false); } });
+    return () => { alive = false; };
   }, []);
 
   const toggleLang = () => {
@@ -114,336 +122,197 @@ export default function LandingPage() {
     setLocale(next);
     saveLocale(next);
   };
+
   return (
-    <div className="landing-page" style={page}>
+    <div style={page}>
+      {/* ── Top nav ── */}
+      <header style={header}>
+        <div style={logoWrap}>
+          <span style={logoDot} />
+          <span style={logoText}>ScenePilotix</span>
+          {isZh && <span style={logoZh}>场景领航</span>}
+        </div>
+        <nav style={topActions}>
+          <a href="/product-intro" style={navLink}>{t.intro}</a>
+          <a href="/pricing" style={navLink}>{t.pricing}</a>
+          <button type="button" style={navBtn} onClick={toggleLang}>{t.lang}</button>
+          <div style={{ width: 1, height: 16, background: "#3a3f46" }} />
+          {authLoading ? (
+            <div style={{ ...userBtn, opacity: 0, pointerEvents: "none" as const }}>
+              <span style={avatarCircle}><UserRound size={13} /></span>
+              {t.signInUp}
+            </div>
+          ) : accountUser ? (
+            <a href="/app" style={{ ...userBtn, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 8, padding: "0 12px", minHeight: 32, textDecoration: "none" }} data-testid="landing-user-entry">
+              <span style={avatarCircle}>
+                {accountUser.avatarUrl
+                  ? <img src={accountUser.avatarUrl} alt="" style={avatarImg} />
+                  : <UserRound size={13} />}
+              </span>
+              {t.openWorkspace}
+            </a>
+          ) : (
+            <button type="button" style={{ ...userBtn, background: "rgba(255,255,255,0.06)", border: "1px solid #3a3f46", borderRadius: 8, padding: "0 12px", minHeight: 32 }} onClick={() => routeToSignIn()} data-testid="landing-user-entry">
+              <span style={avatarCircle}><UserRound size={13} /></span>
+              {t.signInUp}
+            </button>
+          )}
+        </nav>
+      </header>
+
       <div style={shell}>
-        <header style={header}>
-          <div style={logoWrap}>
-            <span style={logoDot} />
-            <span style={{ ...logoText, ...(isZh ? logoTextZh : null) }}>ScenePilotix</span>
-          </div>
-          <div style={topActions}>
-            <a href="/product-intro" style={{ ...textLink, ...(isZh ? textLinkZh : null) }}>{t.intro}</a>
-            <a href="/pricing" style={{ ...textLink, ...(isZh ? textLinkZh : null) }}>{t.pricing}</a>
-            <button type="button" style={{ ...textBtn, ...(isZh ? textBtnZh : null) }} onClick={toggleLang}>{t.lang}</button>
-            <div style={userEntryWrap}>
-              {accountUser ? (
-                <a
-                  href="/app"
-                  style={{ ...signBtn, ...workspaceEntryBtn, ...(isZh ? signBtnZh : null), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}
-                  data-testid="landing-user-entry"
-                >
-                  <span style={avatarDot}>
-                    {accountUser.avatarUrl ? (
-                      <img src={accountUser.avatarUrl} alt="" style={userAvatarImage} />
-                    ) : (
-                      <UserRound size={14} />
-                    )}
-                  </span>
-                  <span>{t.openWorkspace}</span>
-                </a>
-              ) : (
-                <button
-                  type="button"
-                  style={{ ...signBtn, ...(isZh ? signBtnZh : null) }}
-                  onClick={() => routeToSignIn()}
-                  data-testid="landing-user-entry"
-                >
-                  <span style={avatarDot}>
-                    <UserRound size={14} />
-                  </span>
-                  <span>{t.signInUp}</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </header>
-
-        <main style={{ ...main, ...(isZh ? mainZh : null) }}>
-          <h1 style={title}>{t.title}</h1>
-          <p style={{ ...subtitle, ...subtitleZh }}>
-            <span style={subtitleLine}>{t.subtitleLine1}</span>
-            <span style={subtitleLine}>{t.subtitleLine2}</span>
+        {/* ── Hero ── */}
+        <section style={heroSection}>
+          <p style={eyebrow}>{t.eyebrow}</p>
+          <h1 style={heroTitle}>
+            {t.title.split("\n").map((line, i) => (
+              <span key={i} style={{ display: "block" }}>{line}</span>
+            ))}
+          </h1>
+          <p style={heroSubtitle}>
+            {t.subtitle.split("\n").map((line, i) => (
+              <span key={i} style={{ display: "block" }}>{line}</span>
+            ))}
           </p>
-          <p style={{ ...tagline, ...(isZh ? taglineZh : null) }}>{t.tagline}</p>
+          <p style={heroTagline}>{t.tagline}</p>
 
-          <div style={ctaGrid}>
-            <div style={ctaCol}>
-              <button
-                type="button"
-                style={{
-                  ...proBtn,
-                  ...(isZh ? ctaBtnZh : null),
-                  backgroundColor: ctaHover ? "#d97706" : undefined
-                }}
-                onMouseEnter={() => setCtaHover(true)}
-                onMouseLeave={() => setCtaHover(false)}
-                onClick={() => routeToSignIn("pro")}
-                data-testid="landing-start-workspace"
-              >
-                {t.workspaceBtn}
-              </button>
-              <div style={ctaHintWrap}>
-                <span style={{ ...ctaHintLine, ...(isZh ? ctaHintLineZh : null) }}>{t.workspaceHint}</span>
-              </div>
-            </div>
+          <div style={ctaRow}>
+            <button
+              type="button"
+              style={{ ...ctaPrimary, ...(ctaHover ? ctaPrimaryHover : {}) }}
+              onMouseEnter={() => setCtaHover(true)}
+              onMouseLeave={() => setCtaHover(false)}
+              onClick={() => routeToSignIn("pro")}
+              data-testid="landing-start-workspace"
+            >
+              {t.ctaMain}
+            </button>
+            {accountUser && (
+              <a href="/app" style={ctaSecondary}>{t.ctaSub}</a>
+            )}
           </div>
-        </main>
+        </section>
 
+        {/* ── Pain points ── */}
+        <section style={sectionWrap}>
+          <p style={sectionLabel}>{t.painTitle}</p>
+          <div style={painGrid}>
+            {t.pains.map((p, i) => (
+              <div key={i} style={painCard}>
+                <span style={painIcon}>{p.icon}</span>
+                <span style={painText}>{p.text}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Solutions ── */}
+        <section style={sectionWrap}>
+          <p style={sectionLabel}>{t.solveTitle}</p>
+          <div style={solveGrid}>
+            {t.solves.map((s, i) => (
+              <div key={i} style={solveCard}>
+                <div style={solveIcon}>{s.icon}</div>
+                <div style={solveLabel}>{s.label}</div>
+                <div style={solveText}>{s.text}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Footer ── */}
         <footer style={footerWrap}>
-          <a href="/terms" style={{ ...footerLink, ...(isZh ? footerLinkZh : null) }}>{t.terms}</a>
-          <a href="/privacy" style={{ ...footerLink, ...(isZh ? footerLinkZh : null) }}>{t.privacy}</a>
-          <a href={`mailto:${PUBLIC_CONTACT_CHANNELS.business}`} style={{ ...footerLink, ...(isZh ? footerLinkZh : null) }}>{t.contact}</a>
+          <a href="/terms" style={footerLink}>{t.terms}</a>
+          <a href="/privacy" style={footerLink}>{t.privacy}</a>
+          <a href={`mailto:${PUBLIC_CONTACT_CHANNELS.business}`} style={footerLink}>{t.contact}</a>
         </footer>
       </div>
-
     </div>
   );
 }
 
-/* Design reference: bg #1f2125, panel #24262b, border #3a3f46, text #e5e7eb, textMuted #9ca3af, accent #f59e0b */
-const page: CSSProperties = {
-  minHeight: "100%",
-  background: "#1f2125",
-  color: "var(--spx-text-1)",
-  position: "relative",
-  overflowX: "hidden"
-};
+/* ── Styles ── */
+const C = { bg: "#1f2125", panel: "#24262b", border: "#3a3f46", text: "#e5e7eb", muted: "#9ca3af", amber: "#f59e0b", amberHover: "#d97706" };
 
-const shell: CSSProperties = {
-  position: "relative",
-  zIndex: 1,
-  maxWidth: 1040,
-  margin: "0 auto",
-  padding: "0 20px 80px"
-};
+const page: CSSProperties = { minHeight: "100%", background: C.bg, color: C.text, overflowX: "hidden" };
 
 const header: CSSProperties = {
-  height: 48,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 12,
-  flexWrap: "wrap",
-  borderBottom: "1px solid #3a3f46",
-  backgroundColor: "#24262b",
-  margin: "0 -20px",
-  padding: "0 20px"
+  height: 52, display: "flex", alignItems: "center", justifyContent: "space-between",
+  gap: 12, padding: "0 24px", background: C.panel, borderBottom: `1px solid ${C.border}`,
+  position: "sticky", top: 0, zIndex: 100
+};
+const logoWrap: CSSProperties = { display: "flex", alignItems: "center", gap: 8 };
+const logoDot: CSSProperties = { width: 8, height: 8, borderRadius: "50%", background: C.amber };
+const logoText: CSSProperties = { fontSize: 14, fontWeight: 700, letterSpacing: "0.04em" };
+const logoZh: CSSProperties = { fontSize: 12, color: C.muted, fontWeight: 500 };
+
+const topActions: CSSProperties = { display: "flex", alignItems: "center", gap: 8 };
+const navLink: CSSProperties = { color: C.muted, textDecoration: "none", fontSize: 13, fontWeight: 500, padding: "0 6px" };
+const navBtn: CSSProperties = { border: "none", background: "transparent", color: C.muted, fontSize: 13, fontWeight: 500, cursor: "pointer", padding: "0 6px" };
+const userBtn: CSSProperties = {
+  display: "inline-flex", alignItems: "center", gap: 8,
+  border: "none", background: "transparent", color: C.text,
+  fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none", padding: "0 4px"
+};
+const avatarCircle: CSSProperties = {
+  width: 22, height: 22, borderRadius: "50%", display: "inline-flex",
+  alignItems: "center", justifyContent: "center", background: "#343942", color: C.text
+};
+const avatarImg: CSSProperties = { width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" };
+
+const shell: CSSProperties = { maxWidth: 960, margin: "0 auto", padding: "0 24px 80px" };
+
+const heroSection: CSSProperties = { paddingTop: 80, paddingBottom: 64, textAlign: "center" };
+const eyebrow: CSSProperties = { margin: "0 0 20px", fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: C.amber };
+const heroTitle: CSSProperties = {
+  margin: 0, fontSize: "clamp(42px, 7vw, 80px)", fontWeight: 800,
+  lineHeight: 1.06, letterSpacing: "-0.03em", color: C.text
+};
+const heroSubtitle: CSSProperties = {
+  margin: "24px auto 0", maxWidth: 600, fontSize: "clamp(15px, 1.8vw, 17px)",
+  lineHeight: 1.75, color: C.muted
+};
+const heroTagline: CSSProperties = {
+  margin: "20px auto 0", fontSize: 13, fontWeight: 600,
+  color: C.amber, letterSpacing: "0.04em"
 };
 
-const logoWrap: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 9
+const ctaRow: CSSProperties = { marginTop: 32, display: "flex", justifyContent: "center", alignItems: "center", gap: 12, flexWrap: "wrap" };
+const ctaPrimary: CSSProperties = {
+  minHeight: 48, padding: "0 40px", borderRadius: 12, border: "none",
+  background: C.amber, color: "#1f2125", fontSize: 15, fontWeight: 700,
+  cursor: "pointer", transition: "background 150ms ease"
+};
+const ctaPrimaryHover: CSSProperties = { background: C.amberHover };
+const ctaSecondary: CSSProperties = {
+  minHeight: 48, padding: "0 28px", borderRadius: 12,
+  border: `1px solid ${C.border}`, background: "transparent",
+  color: C.text, fontSize: 14, fontWeight: 600, textDecoration: "none",
+  display: "inline-flex", alignItems: "center"
 };
 
-const logoDot: CSSProperties = {
-  width: 10,
-  height: 10,
-  borderRadius: "50%",
-  background: "#f59e0b"
+const sectionWrap: CSSProperties = { marginTop: 64 };
+const sectionLabel: CSSProperties = {
+  margin: "0 0 24px", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em",
+  textTransform: "uppercase", color: C.muted, textAlign: "center"
 };
 
-const logoText: CSSProperties = {
-  fontSize: 13,
-  fontWeight: 730,
-  letterSpacing: "0.06em"
+const painGrid: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 };
+const painCard: CSSProperties = {
+  display: "flex", alignItems: "flex-start", gap: 14, padding: "16px 18px",
+  borderRadius: 10, border: `1px solid ${C.border}`, background: C.panel
 };
-const logoTextZh: CSSProperties = {
-  fontSize: 14
-};
+const painIcon: CSSProperties = { fontSize: 18, flexShrink: 0, color: C.muted, marginTop: 1, width: 22, textAlign: "center" };
+const painText: CSSProperties = { fontSize: 14, lineHeight: 1.55, color: C.text };
 
-const topActions: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 12,
-  flexWrap: "wrap"
+const solveGrid: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 };
+const solveCard: CSSProperties = {
+  padding: "22px 22px 20px", borderRadius: 12,
+  border: `1px solid ${C.border}`, background: C.panel
 };
+const solveIcon: CSSProperties = { fontSize: 22, color: C.amber, marginBottom: 12 };
+const solveLabel: CSSProperties = { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 };
+const solveText: CSSProperties = { fontSize: 13, lineHeight: 1.6, color: C.muted };
 
-const textBtn: CSSProperties = {
-  border: "none",
-  background: "transparent",
-  color: "var(--spx-text-3)",
-  fontSize: 13,
-  fontWeight: 620,
-  padding: 0,
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 4,
-  cursor: "pointer"
-};
-const textBtnZh: CSSProperties = {
-  fontSize: 14.5
-};
-
-const textLink: CSSProperties = {
-  color: "var(--spx-text-3)",
-  textDecoration: "none",
-  fontSize: 13,
-  fontWeight: 620
-};
-const textLinkZh: CSSProperties = {
-  fontSize: 14.5
-};
-
-const signBtn: CSSProperties = {
-  border: "none",
-  background: "transparent",
-  color: "var(--spx-text-1)",
-  fontSize: 14,
-  fontWeight: 720,
-  padding: 0,
-  minHeight: 36,
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  cursor: "pointer",
-  outline: "none"
-};
-const signBtnZh: CSSProperties = {
-  fontSize: 15
-};
-
-const userEntryWrap: CSSProperties = {
-  position: "relative",
-  zIndex: 10
-};
-
-const avatarDot: CSSProperties = {
-  width: 22,
-  height: 22,
-  borderRadius: "50%",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "#343942",
-  color: "var(--spx-text-1)"
-};
-
-const userAvatarImage: CSSProperties = {
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-  borderRadius: "50%"
-};
-
-const main: CSSProperties = {
-  marginTop: 66,
-  maxWidth: 920,
-  marginInline: "auto",
-  textAlign: "center"
-};
-const mainZh: CSSProperties = {
-  marginTop: 98
-};
-
-const title: CSSProperties = {
-  margin: 0,
-  fontSize: "clamp(46px, 7.7vw, 88px)",
-  lineHeight: 1.03,
-  letterSpacing: "-0.03em",
-  fontWeight: 800
-};
-
-const subtitle: CSSProperties = {
-  margin: "16px auto 0",
-  color: "var(--spx-text-3)",
-  fontSize: "clamp(14px, 1.7vw, 16px)",
-  lineHeight: 1.62,
-  maxWidth: 920
-};
-const subtitleZh: CSSProperties = {
-  fontSize: "clamp(18px, 2.2vw, 22px)",
-  lineHeight: 1.72,
-  marginTop: 20,
-  maxWidth: 980
-};
-const subtitleLine: CSSProperties = {
-  display: "block"
-};
-
-const tagline: CSSProperties = {
-  margin: "12px auto 0",
-  color: "var(--spx-text-3)",
-  fontSize: "clamp(13px, 1.5vw, 15px)",
-  lineHeight: 1.5,
-  maxWidth: 920
-};
-const taglineZh: CSSProperties = {
-  fontSize: "clamp(14px, 1.7vw, 16px)"
-};
-
-const ctaGrid: CSSProperties = {
-  marginTop: 28,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: 10
-};
-
-const ctaCol: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: 10
-};
-
-const proBtn: CSSProperties = {
-  minHeight: 48,
-  border: "none",
-  borderRadius: 12,
-  background: "#fcd34d",
-  color: "#1f2125",
-  fontSize: 14,
-  fontWeight: 700,
-  padding: "0 40px",
-  cursor: "pointer",
-  transition: "background-color 180ms ease",
-  width: "fit-content"
-};
-const ctaBtnZh: CSSProperties = {
-  minHeight: 50,
-  fontSize: 15
-};
-
-const workspaceEntryBtn: CSSProperties = {
-  background: "rgba(252,211,77,0.5)",
-  borderRadius: 10,
-  padding: "0 24px",
-  minHeight: 40,
-};
-
-const ctaHintWrap: CSSProperties = {
-  marginTop: 10
-};
-
-const ctaHintLine: CSSProperties = {
-  color: "var(--spx-text-3)",
-  fontSize: 12,
-  lineHeight: 1.5,
-  textAlign: "center"
-};
-const ctaHintLineZh: CSSProperties = {
-  fontSize: 15.5,
-  lineHeight: 1.56
-};
-
-const footerWrap: CSSProperties = {
-  position: "absolute",
-  bottom: 20,
-  right: 20,
-  display: "flex",
-  alignItems: "center",
-  gap: 16
-};
-
-const footerLink: CSSProperties = {
-  color: "var(--spx-text-3)",
-  textDecoration: "none",
-  fontSize: 13,
-  fontWeight: 620
-};
-const footerLinkZh: CSSProperties = {
-  fontSize: 14
-};
-
+const footerWrap: CSSProperties = { marginTop: 80, paddingTop: 24, borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "center", gap: 24 };
+const footerLink: CSSProperties = { color: C.muted, textDecoration: "none", fontSize: 12 };

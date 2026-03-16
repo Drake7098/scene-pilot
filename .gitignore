@@ -25,6 +25,7 @@ dist-ssr
 
 # Local version backups (tarballs)
 backups/
+.backups/
 
 # Robot test generated artifacts (keep scripts/configs under tests/robots tracked)
 tests/robots/artifacts/
