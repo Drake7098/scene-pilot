@@ -1,7 +1,11 @@
 import type { Lang } from "../i18n";
-import type { Layer, Scene } from "../model";
+import type { Layer, Project, Scene } from "../model";
 import { resolveSceneConfig } from "../model";
 import { resolveSceneStrategy } from "./sceneStrategyResolver";
+import { parseDirectorStylePackId } from "../content/directorStylePacks";
+import { parseVideoClassicModeId, parseImageClassicModeId } from "../content/proCreativeModes";
+import { parseCameraLanguageId } from "../content/cameraLanguageLayers";
+import { parseProMotionSelection } from "../content/proCameraPresets";
 
 export type ConflictSeverity = "warning" | "high";
 export type ConflictField = "notes" | "externalPrompt" | "scene";
@@ -79,13 +83,24 @@ function zhOrEn(lang: Lang, zh: string, en: string): string {
   return lang === "zh" ? zh : en;
 }
 
-export function detectSceneConflicts(scene: Scene, lang: Lang): PromptConflict[] {
+export function detectSceneConflicts(
+  scene: Scene,
+  lang: Lang,
+  project?: Project | null
+): PromptConflict[] {
   const out: PromptConflict[] = [];
   const layers = scene.layers ?? [];
+  const notes = scene.notes ?? "";
   const mediaMode = resolveSceneConfig(scene).mediaMode;
   const sceneStrategy = resolveSceneStrategy(scene, lang, mediaMode);
   const strategyOwnsGlobalLanguage = Boolean(sceneStrategy.classicModeId || sceneStrategy.directorPackId);
-  const bgText = parseBg(scene.notes ?? "");
+  const bgText = parseBg(notes);
+  const directorPackId = parseDirectorStylePackId(notes) || sceneStrategy.directorPackId || null;
+  const cameraLanguageId = parseCameraLanguageId(notes) || null;
+  const classicModeId = mediaMode === "video"
+    ? parseVideoClassicModeId(notes)
+    : parseImageClassicModeId(notes);
+  const proMotionIds = parseProMotionSelection(notes).proPlusIds;
 
   for (const layer of layers) {
     const all = layerText(layer);
@@ -245,6 +260,76 @@ export function detectSceneConflicts(scene: Scene, lang: Lang): PromptConflict[]
         lang,
         "右栏背景描述里包含了光照词，但当前场景策略已经在左栏控制光照。建议背景只写空间和环境，不再重复写灯光。",
         "Scene background text contains lighting wording while the current scene strategy already controls lighting. Keep the background focused on place and environment."
+      )
+    });
+  }
+
+  // ── 字段组合冲突检测 ──────────────────────────────────────────────────────
+
+  if (classicModeId && directorPackId) {
+    out.push({
+      id: "field_classic_director_conflict",
+      severity: "warning",
+      scope: "scene",
+      layerId: null,
+      field: "scene",
+      title: zhOrEn(lang, "经典模式与导演包同时启用", "Classic mode and director pack both active"),
+      detail: zhOrEn(
+        lang,
+        "两者都会控制镜头语言，可能互相覆盖。建议只保留一个。",
+        "Both control cinematic language and may override each other. Keep only one."
+      )
+    });
+  }
+
+  if (cameraLanguageId && classicModeId) {
+    out.push({
+      id: "field_lens_classic_conflict",
+      severity: "warning",
+      scope: "scene",
+      layerId: null,
+      field: "scene",
+      title: zhOrEn(lang, "镜头配方与经典模式同时启用", "Lens recipe and classic mode both active"),
+      detail: zhOrEn(
+        lang,
+        "镜头配方和经典模式都在定义镜头语言，可能重复叠加。",
+        "Both define camera language and may stack redundantly."
+      )
+    });
+  }
+
+  if (cameraLanguageId && directorPackId) {
+    out.push({
+      id: "field_lens_director_conflict",
+      severity: "warning",
+      scope: "scene",
+      layerId: null,
+      field: "scene",
+      title: zhOrEn(lang, "镜头配方与导演包同时启用", "Lens recipe and director pack both active"),
+      detail: zhOrEn(
+        lang,
+        "两者都在控制高级镜头语言，建议选一个主控。",
+        "Both control advanced camera language. Pick one as the primary."
+      )
+    });
+  }
+
+  const hasContinuousShotPlan = (project?.project?.shotPlan ?? "single") === "continuous";
+  const hasJumpCutMotion = proMotionIds.some((id) =>
+    ["whip_pan", "match_cut", "jump_cut"].includes(id)
+  );
+  if (hasContinuousShotPlan && hasJumpCutMotion) {
+    out.push({
+      id: "field_continuous_jumpcut_conflict",
+      severity: "warning",
+      scope: "scene",
+      layerId: null,
+      field: "scene",
+      title: zhOrEn(lang, "连续镜头与跳切运镜冲突", "Continuous shot plan conflicts with jump-cut motion"),
+      detail: zhOrEn(
+        lang,
+        "连续镜头模式不适合跳切类运镜，会破坏时空连贯性。",
+        "Continuous shot plan is incompatible with jump-cut motions."
       )
     });
   }

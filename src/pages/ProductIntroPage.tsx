@@ -196,7 +196,7 @@ const coreText: CSSProperties = {
 
 const featuresSection: CSSProperties = {
   paddingTop: 20,
-  borderTop: "1px solid rgba(188,214,242,0.14)",
+  borderTop: "1px solid var(--spx-border-soft)",
   display: "grid",
   gap: 12,
 };

@@ -5,6 +5,7 @@
 
 import type { Project } from "../model";
 import type { TemplateIndex } from "../template-engine/types/templateIndex";
+import type { ApplyTemplateMode } from "../template-engine/types/filter";
 import type { UserPrivateTemplate } from "./userTemplatesStore";
 import { defaultProject } from "../model";
 import { applyPayloadToProject } from "../template-engine/apply/applyPayload";
@@ -90,14 +91,14 @@ export function createBlankProject(): Project {
  */
 export async function createProjectFromTemplate(
   template: TemplateIndex,
-  options?: { templateOwnedAtCreation?: boolean; pricingBucketAtCreation?: string }
+  options?: { templateOwnedAtCreation?: boolean; pricingBucketAtCreation?: string; applyMode?: ApplyTemplateMode }
 ): Promise<Project> {
   const payload = await loadTemplatePayloadById(template.id);
   if (!payload || !payload.scenes?.length) {
     throw new Error("Template not found or has no scenes");
   }
   const blank = defaultProject();
-  const result = applyPayloadToProject(payload, blank, false, "full_workflow");
+  const result = applyPayloadToProject(payload, blank, false, options?.applyMode ?? "full_workflow");
   if (!result.success || !result.appliedProject) {
     throw new Error(result.blockReason ?? "Failed to apply template");
   }
@@ -129,7 +130,7 @@ export async function createProjectFromTemplate(
         domain: template.domain,
         cost: template.cost ?? 0,
         isFree: template.isFree ?? false,
-        applyMode: "full_workflow",
+        applyMode: options?.applyMode ?? "full_workflow",
         appliedAt: Date.now(),
         fromTemplateWorkspace: true
       }

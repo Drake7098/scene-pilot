@@ -36,7 +36,7 @@ export default function AuthEntryPage() {
       minHeight: "100%",
       display: "grid",
       placeItems: "center",
-      background: "#070b12",
+      background: "var(--spx-bg-app)",
       color: "var(--spx-text-2)",
       fontSize: 14
     }}

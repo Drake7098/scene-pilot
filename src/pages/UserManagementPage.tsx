@@ -419,7 +419,7 @@ export default function UserManagementPage() {
                 {ledger.slice(0, 10).map((item) => (
                   <div key={item.id} style={ledgerRow}>
                     <span>{ledgerLabel(lang, item.kind)}</span>
-                    <strong style={{ color: item.credits >= 0 ? "#6de8b5" : "#f4f7ff" }}>
+                    <strong style={{ color: item.credits >= 0 ? "#6de8b5" : "var(--spx-text-1)" }}>
                       {item.credits > 0 ? `+${item.credits}` : item.credits}
                     </strong>
                     <span style={ledgerTime}>{formatDateTime(item.createdAt)}</span>
@@ -470,7 +470,7 @@ export default function UserManagementPage() {
 
 const page: CSSProperties = {
   minHeight: "100%",
-  background: "radial-gradient(circle at 14% -6%, rgba(82,148,236,0.2), transparent 36%), #070b12",
+  background: "radial-gradient(circle at 14% -6%, rgba(82,148,236,0.2), transparent 36%), var(--spx-bg-app)",
   color: "var(--spx-text-1)"
 };
 
@@ -492,7 +492,7 @@ const ghostLink: CSSProperties = {
   textDecoration: "none",
   fontSize: 13,
   fontWeight: 600,
-  background: "rgba(255,255,255,0.03)"
+  background: "var(--spx-surface-2)"
 };
 
 const header: CSSProperties = {
@@ -529,7 +529,7 @@ const grid2: CSSProperties = {
 const card: CSSProperties = {
   border: "1px solid var(--spx-border)",
   borderRadius: 16,
-  background: "linear-gradient(180deg, rgba(16,22,35,0.92), rgba(10,16,27,0.94))",
+  background: "var(--spx-surface-1)",
   boxShadow: "var(--spx-shadow-panel)",
   padding: 16,
   display: "grid",
@@ -568,7 +568,7 @@ const tinyBtn: CSSProperties = {
   borderRadius: 8,
   border: "1px solid var(--spx-border)",
   color: "var(--spx-text-2)",
-  background: "rgba(255,255,255,0.03)",
+  background: "var(--spx-surface-2)",
   cursor: "pointer",
   fontSize: 12.5,
   fontWeight: 600
@@ -607,7 +607,7 @@ const primaryBtn: CSSProperties = {
   borderRadius: 10,
   border: "1px solid rgba(123,181,255,0.84)",
   background: "linear-gradient(180deg, rgba(84,144,232,0.5), rgba(40,97,172,0.62))",
-  color: "#f2f7ff",
+  color: "var(--spx-text-1)",
   fontSize: 13,
   fontWeight: 650,
   cursor: "pointer"
@@ -644,7 +644,7 @@ const signInAvatarDot: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   background: "linear-gradient(145deg, rgba(108,168,245,0.82), rgba(84,203,169,0.78))",
-  color: "#f4fbff"
+  color: "var(--spx-text-1)"
 };
 
 const signInLink: CSSProperties = {
@@ -654,7 +654,7 @@ const signInLink: CSSProperties = {
   textDecoration: "none",
   border: "none",
   background: "transparent",
-  color: "#f4fbff",
+  color: "var(--spx-text-1)",
   fontSize: 14,
   fontWeight: 720,
   cursor: "pointer",
@@ -666,7 +666,7 @@ const secondaryLink: CSSProperties = {
   padding: "0 14px",
   borderRadius: 10,
   border: "1px solid var(--spx-border)",
-  background: "rgba(255,255,255,0.03)",
+  background: "var(--spx-surface-2)",
   color: "var(--spx-text-1)",
   textDecoration: "none",
   fontSize: 13,
@@ -680,7 +680,7 @@ const creditBalance: CSSProperties = {
   fontSize: 34,
   fontWeight: 800,
   letterSpacing: "-0.02em",
-  color: "#f5fbff"
+  color: "var(--spx-text-1)"
 };
 
 const packRow: CSSProperties = {
@@ -694,7 +694,7 @@ const miniBtn: CSSProperties = {
   padding: "0 10px",
   borderRadius: 10,
   border: "1px solid var(--spx-border)",
-  background: "rgba(255,255,255,0.03)",
+  background: "var(--spx-surface-2)",
   color: "var(--spx-text-1)",
   fontSize: 12.5,
   fontWeight: 620,
@@ -757,7 +757,7 @@ const tagLink: CSSProperties = {
   padding: "0 10px",
   borderRadius: 999,
   border: "1px solid var(--spx-border)",
-  background: "rgba(255,255,255,0.03)",
+  background: "var(--spx-surface-2)",
   color: "var(--spx-text-1)",
   textDecoration: "none",
   fontSize: 12.5,

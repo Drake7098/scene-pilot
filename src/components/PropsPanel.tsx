@@ -366,7 +366,7 @@ export function PropsPanel(props: Props) {
 
   const mediaMode: MediaMode = useMemo(() => parseMediaModeFromNotes(scene?.notes), [scene?.notes]);
   const isImageMode = mediaMode === "image";
-  const t1Field = useFieldState(FIELD_KEYS.OBJECT_T1);
+  const t1Field = useFieldState(FIELD_KEYS.OBJECT_T1, scene, project, lang);
   const t1Visible = t1Field.visible;
   const t1Enabled = t1Field.enabled;
 

@@ -5,6 +5,8 @@ import { resolveSceneConfig } from "../../../model";
 import { EditorSection, EditorInput, EditorSelect, EditorCheckbox } from "../../../components/ui";
 import { Film, Image as ImageIcon } from "lucide-react";
 import { t } from "../../../i18n";
+import { useFieldState } from "../../../hooks/useFieldState";
+import { FIELD_KEYS } from "../../../rules/fieldKeys";
 import { deleteRefBlob, getRefBlob, putRefBlob } from "../../../utils/localRefs";
 import { FIGMA_COLORS } from "../constants";
 
@@ -35,6 +37,12 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
   const isSingle = shotPlan === "single";
   const applyMode = project?.meta?.currentTemplate?.applyMode ?? "layout_only";
   const layoutLocked = applyMode === "layout_only";
+
+  const durationRule = useFieldState(FIELD_KEYS.SCENE_DURATION, scene, project, lang);
+  const sceneChangeModeRule = useFieldState(FIELD_KEYS.SCENE_CHANGE_MODE, scene, project, lang);
+  const jumpCutRule = useFieldState(FIELD_KEYS.SCENE_JUMP_CUT_MODE, scene, project, lang);
+  const entryDirRule = useFieldState(FIELD_KEYS.SCENE_ENTRY_DIRECTION, scene, project, lang);
+  const exitDirRule = useFieldState(FIELD_KEYS.SCENE_EXIT_DIRECTION, scene, project, lang);
 
   const [bgRefThumb, setBgRefThumb] = useState<string>("");
   const [bgRefToast, setBgRefToast] = useState("");
@@ -124,7 +132,8 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
             const n = Math.max(1, Math.min(120, Math.round(Number(v) || 1)));
             onUpdateScene({ ...scene, duration_s: n });
           }}
-          disabled={layoutLocked}
+          disabled={!durationRule.enabled}
+          title={durationRule.reason}
         />
         <EditorInput
           label={lang === "zh" ? "分镜备注" : "Shot note"}
@@ -139,7 +148,7 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
         <EditorSelect
           compact
           label={lang === "zh" ? "景别" : "Shot size"}
-          value={(scene.camera?.shot ?? "") || "wide"}
+          value={scene.camera?.shot ?? ""}
           onChange={(v) =>
             onUpdateScene({
               ...scene,
@@ -148,16 +157,18 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
           }
           disabled={layoutLocked}
           options={[
+            { label: lang === "zh" ? "未设置" : "Unset", value: "" },
             { label: lang === "zh" ? "全景" : "Wide", value: "wide" },
             { label: lang === "zh" ? "中景" : "Medium", value: "medium" },
             { label: lang === "zh" ? "特写" : "Close", value: "close" },
+            { label: lang === "zh" ? "极近景" : "Extreme close", value: "extreme_close" },
             { label: lang === "zh" ? "自定义" : "Custom", value: "custom" },
           ]}
         />
         <EditorSelect
           compact
           label={lang === "zh" ? "运动" : "Movement"}
-          value={(scene.camera?.movement ?? "") || "static"}
+          value={scene.camera?.movement ?? ""}
           onChange={(v) =>
             onUpdateScene({
               ...scene,
@@ -166,16 +177,18 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
           }
           disabled={layoutLocked || mediaMode === "image"}
           options={[
+            { label: lang === "zh" ? "未设置" : "Unset", value: "" },
             { label: lang === "zh" ? "静止" : "Static", value: "static" },
             { label: lang === "zh" ? "左摇" : "Pan left", value: "pan_left" },
             { label: lang === "zh" ? "右摇" : "Pan right", value: "pan_right" },
             { label: lang === "zh" ? "推进" : "Push in", value: "push_in" },
             { label: lang === "zh" ? "拉远" : "Pull out", value: "pull_out" },
+            { label: lang === "zh" ? "手持" : "Handheld", value: "handheld" },
           ]}
         />
       </EditorSection>
 
-      {!isSingle && (
+      {sceneChangeModeRule.visible && !isSingle && (
         <EditorSection title={lang === "zh" ? "衔接" : "Continuity"} defaultOpen={false}>
           <EditorSelect
             label={lang === "zh" ? "转场" : "Transition"}
@@ -186,7 +199,8 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
                 transitionType: v as Scene["transitionType"]
               })
             }
-            disabled={layoutLocked}
+            disabled={layoutLocked || !jumpCutRule.enabled}
+            title={jumpCutRule.reason}
             options={[
               { label: "Cut", value: "cut" },
               { label: "Dissolve", value: "dissolve" },
@@ -202,7 +216,8 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
                 inheritFromPrevious: v
               })
             }
-            disabled={layoutLocked}
+            disabled={!sceneChangeModeRule.enabled}
+            title={sceneChangeModeRule.reason}
           />
         </EditorSection>
       )}
@@ -211,7 +226,7 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
         <EditorSelect
           compact
           label={lang === "zh" ? "时间" : "Time"}
-          value={scene.lighting?.time ?? "day"}
+          value={scene.lighting?.time ?? ""}
           onChange={(v) =>
             onUpdateScene({
               ...scene,
@@ -220,8 +235,12 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
           }
           disabled={layoutLocked}
           options={[
+            { label: lang === "zh" ? "未设置" : "Unset", value: "" },
             { label: lang === "zh" ? "日间" : "Day", value: "day" },
+            { label: lang === "zh" ? "黎明" : "Dawn", value: "dawn" },
+            { label: lang === "zh" ? "黄金时段" : "Golden hour", value: "golden_hour" },
             { label: lang === "zh" ? "傍晚" : "Dusk", value: "dusk" },
+            { label: lang === "zh" ? "蓝色时段" : "Blue hour", value: "blue_hour" },
             { label: lang === "zh" ? "夜间" : "Night", value: "night" },
             { label: lang === "zh" ? "室内" : "Indoor", value: "indoor" },
           ]}
@@ -229,7 +248,7 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
         <EditorSelect
           compact
           label={lang === "zh" ? "主光方向" : "Key light"}
-          value={scene.lighting?.key_dir ?? "front"}
+          value={scene.lighting?.key_dir ?? ""}
           onChange={(v) =>
             onUpdateScene({
               ...scene,
@@ -238,10 +257,13 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
           }
           disabled={layoutLocked}
           options={[
+            { label: lang === "zh" ? "未设置" : "Unset", value: "" },
             { label: lang === "zh" ? "正面" : "Front", value: "front" },
-            { label: lang === "zh" ? "侧面" : "Side", value: "side" },
+            { label: lang === "zh" ? "左侧" : "Side left", value: "side_left" },
+            { label: lang === "zh" ? "右侧" : "Side right", value: "side_right" },
             { label: lang === "zh" ? "背光" : "Back", value: "back" },
             { label: lang === "zh" ? "顶光" : "Top", value: "top" },
+            { label: lang === "zh" ? "轮廓光" : "Rim light", value: "rim_light" },
           ]}
         />
       </EditorSection>

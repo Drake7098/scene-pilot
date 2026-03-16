@@ -44,7 +44,8 @@ export const UI_PALETTE = {
     surface1: "rgba(255,255,255,0.035)",
     surface2: "rgba(255,255,255,0.06)",
     surfaceActive: "rgba(102,168,255,0.18)",
-    surfaceMuted: "rgba(186,206,232,0.09)"
+    surfaceMuted: "rgba(186,206,232,0.09)",
+    surfaceAmber: "rgba(245,158,11,0.1)"
   },
   text: {
     primary: "rgba(237,243,252,0.96)",
@@ -63,7 +64,11 @@ export const UI_PALETTE = {
     coldBlue: "rgba(104,171,255,0.86)",
     cyan: "rgba(88,202,218,0.78)",
     coldBlueSoft: "rgba(104,171,255,0.18)",
-    dangerSoft: "rgba(255,124,124,0.18)"
+    dangerSoft: "rgba(255,124,124,0.18)",
+    amber: "#f59e0b",
+    amberHover: "#d97706",
+    amberSoft: "rgba(245,158,11,0.15)",
+    amberBorder: "rgba(245,158,11,0.55)"
   },
   shadow: {
     panel: "0 18px 48px rgba(2,6,14,0.42)",

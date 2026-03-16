@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertCircle, CheckCircle2, CreditCard, Crown, KeyRound, LogOut, Sparkles, UserRound, Wallet, X } from "lucide-react";
 import type { AccountCenterSection, ApiCredentialState, ApiProviderId, ApiProviderMode, ProviderConnectionStatus, UserState } from "../types/account";
@@ -97,6 +97,23 @@ export function AccountCenterModal(props: Props) {
   } = props;
   const [apiDraft, setApiDraft] = useState<ApiCredentialState>(() => normalizeApiCredentialsForForm(apiCredentials));
   const [activeLegalDoc, setActiveLegalDoc] = useState<LegalDocId | null>(null);
+  const [consentShake, setConsentShake] = useState(false);
+  const consentRef = useRef<HTMLDivElement | null>(null);
+
+  function shakeConsent() {
+    setConsentShake(true);
+    setTimeout(() => setConsentShake(false), 650);
+    consentRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  const shakeKeyframes = `@keyframes spx-shake {
+    0%,100%{transform:translateX(0)}
+    15%{transform:translateX(-7px)}
+    35%{transform:translateX(7px)}
+    55%{transform:translateX(-5px)}
+    75%{transform:translateX(4px)}
+    90%{transform:translateX(-2px)}
+  }`;
 
   useEffect(() => {
     setApiDraft(normalizeApiCredentialsForForm(apiCredentials));
@@ -135,6 +152,7 @@ export function AccountCenterModal(props: Props) {
 
   return createPortal(
     <div style={styles.mask} onMouseDown={onClose} role="presentation">
+      <style>{shakeKeyframes}</style>
       <div
         style={{ ...styles.modal, ...(!user ? styles.modalAuth : null) }}
         onMouseDown={(e) => e.stopPropagation()}
@@ -175,90 +193,114 @@ export function AccountCenterModal(props: Props) {
 
         {!user ? (
           <div style={styles.authPanel} data-testid="account-auth-panel">
+
+            {/* 标题区 */}
             <div style={styles.authHero}>
-              <div style={styles.authHeroTitle}>{t(lang, "Welcome to ScenePilotix", "Welcome to ScenePilotix")}</div>
+              <div style={styles.authHeroTitle}>{t(lang, "欢迎使用 ScenePilotix", "Welcome to ScenePilotix")}</div>
               <div style={styles.authHeroSub}>
                 {t(lang, "还没有账号？", "Don't have an account?")}
                 <button
                   type="button"
                   style={styles.authHeroLink}
-                  onClick={() => void onGoogleSignIn()}
                   disabled={authBusy || !googleSignInEnabled}
-                  title={!googleSignInEnabled ? (lang === "zh" ? "认证服务未配置" : "Auth not configured") : undefined}
+                  onClick={() => {
+                    if (!authLegalAccepted) { shakeConsent(); return; }
+                    onSendCode();
+                  }}
                 >
                   {t(lang, "免费注册", "Sign up for free")}
                 </button>
               </div>
             </div>
 
+            {/* 服务不可用提示 */}
             {!googleSignInEnabled ? (
               <div style={styles.authEnvHint} data-testid="account-auth-env-hint">
                 {lang === "zh"
-                  ? "认证未配置：本地需设置 VITE_SUPABASE_URL、VITE_SUPABASE_ANON_KEY；部署环境需配置对应 Pages 变量。"
-                  : "Auth not configured: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY locally; configure Pages env for deployment."}
+                  ? "登录服务暂时不可用，请稍后重试。"
+                  : "Sign-in is temporarily unavailable. Please try again later."}
               </div>
             ) : null}
 
+            {/* 邮箱 + 密码 */}
             <input
               value={authEmail}
               onChange={(e) => onAuthEmailChange(e.target.value)}
-              placeholder={t(lang, "Username or Email", "Username or Email")}
+              placeholder={t(lang, "用户名或邮箱", "Username or Email")}
               style={styles.authInput}
               autoComplete="email"
+              type="email"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (!authLegalAccepted) { shakeConsent(); return; }
+                  onPasswordSignIn();
+                }
+              }}
             />
             <input
               value={authPassword}
               onChange={(e) => onAuthPasswordChange(e.target.value)}
-              placeholder={t(lang, "Password", "Password")}
+              placeholder={t(lang, "密码", "Password")}
               style={styles.authInput}
               autoComplete="current-password"
               type="password"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (!authLegalAccepted) { shakeConsent(); return; }
+                  onPasswordSignIn();
+                }
+              }}
             />
 
+            {/* 登录按钮 */}
             <button
               type="button"
               style={styles.authPrimaryBtn}
-              onClick={onPasswordSignIn}
-              disabled={authBusy || !authLegalAccepted || !authEmail.trim() || !authPassword.trim()}
-              title={
-                !authLegalAccepted
-                  ? (lang === "zh" ? "请先勾选下方协议" : "Check the agreement below first")
-                  : (!authEmail.trim() || !authPassword.trim())
-                    ? (lang === "zh" ? "请输入邮箱和密码" : "Enter email and password")
-                    : undefined
-              }
+              onClick={() => {
+                if (!authLegalAccepted) { shakeConsent(); return; }
+                onPasswordSignIn();
+              }}
+              disabled={authBusy}
               data-testid="account-auth-send-code"
             >
-              {authBusy ? t(lang, "处理中...", "Processing...") : t(lang, "登录 / 注册", "Log in / Sign up")}
+              {authBusy ? t(lang, "处理中...", "Processing...") : t(lang, "登录", "Log in")}
             </button>
 
+            {/* OR 分割线 */}
             <div style={styles.authOrRow} aria-hidden="true">
               <span style={styles.authOrLine} />
               <span style={styles.authOrText}>OR</span>
               <span style={styles.authOrLine} />
             </div>
 
+            {/* Google 登录 */}
             <button
               type="button"
               style={styles.authGoogleBtn}
-              onClick={onGoogleSignIn}
-              disabled={authBusy || !googleSignInEnabled || !authLegalAccepted}
-              title={
-                !googleSignInEnabled
-                  ? (lang === "zh" ? "认证服务未配置" : "Auth not configured")
-                  : !authLegalAccepted
-                    ? (lang === "zh" ? "请先勾选下方协议" : "Check the agreement below first")
-                    : undefined
-              }
+              onClick={() => {
+                if (!authLegalAccepted) { shakeConsent(); return; }
+                onGoogleSignIn();
+              }}
+              disabled={authBusy || !googleSignInEnabled}
+              title={!googleSignInEnabled ? (lang === "zh" ? "认证服务未配置" : "Auth not configured") : undefined}
               data-testid="account-auth-google"
             >
               <span style={styles.authGoogleGlyph}>G</span>
               <span>{authBusy ? t(lang, "登录中…", "Signing in…") : t(lang, "Log in with Google", "Log in with Google")}</span>
             </button>
 
+            {/* 错误/提示信息 */}
             {authHint ? <div style={styles.authHint}>{authHint}</div> : null}
 
-            <div style={{ ...styles.authConsentBlock, ...(lang === "zh" ? styles.authConsentBlockZh : null) }}>
+            {/* 协议 — 底部小字，不拦截，点按钮未勾则抖动 */}
+            <div
+              ref={consentRef}
+              style={{
+                ...styles.authConsentBlock,
+                ...(lang === "zh" ? styles.authConsentBlockZh : null),
+                ...(consentShake ? { animation: "spx-shake 0.65s ease", outline: "2px solid rgba(239,68,68,0.55)", outlineOffset: 4, borderRadius: 8 } : null)
+              }}
+            >
               <label style={{ ...styles.authCheckboxRow, ...(lang === "zh" ? styles.authCheckboxRowZh : null) }}>
                 <input
                   type="checkbox"
@@ -285,6 +327,7 @@ export function AccountCenterModal(props: Props) {
                 </a>
               </div>
             </div>
+
           </div>
         ) : null}
 

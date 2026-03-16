@@ -33,8 +33,8 @@ const topRow: CSSProperties = {
 const langBtn: CSSProperties = {
   padding: "6px 12px",
   borderRadius: 10,
-  border: "1px solid rgba(255,255,255,0.2)",
-  background: "rgba(255,255,255,0.06)",
+  border: "1px solid var(--spx-border-soft)",
+  background: "var(--spx-surface-2)",
   color: "var(--spx-text-2)",
   fontSize: 13,
   fontWeight: 500,
@@ -51,7 +51,7 @@ const navLink: CSSProperties = {
 const footerWrap: CSSProperties = {
   marginTop: 48,
   paddingTop: 24,
-  borderTop: "1px solid rgba(255,255,255,0.1)",
+  borderTop: "1px solid var(--spx-border-soft)",
   textAlign: "center",
 };
 
@@ -62,7 +62,7 @@ const footerLink: CSSProperties = {
   minHeight: 44,
   padding: "0 20px",
   borderRadius: 12,
-  background: "rgba(255,255,255,0.08)",
+  background: "var(--spx-surface-2)",
   color: "var(--spx-text-1)",
   fontSize: 14,
   fontWeight: 600,

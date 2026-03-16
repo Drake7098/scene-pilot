@@ -205,7 +205,7 @@ export default function LandingPage() {
 const page: CSSProperties = {
   minHeight: "100%",
   background: "#1f2125",
-  color: "#e5e7eb",
+  color: "var(--spx-text-1)",
   position: "relative",
   overflowX: "hidden"
 };
@@ -263,7 +263,7 @@ const topActions: CSSProperties = {
 const textBtn: CSSProperties = {
   border: "none",
   background: "transparent",
-  color: "#9ca3af",
+  color: "var(--spx-text-3)",
   fontSize: 13,
   fontWeight: 620,
   padding: 0,
@@ -277,7 +277,7 @@ const textBtnZh: CSSProperties = {
 };
 
 const textLink: CSSProperties = {
-  color: "#9ca3af",
+  color: "var(--spx-text-3)",
   textDecoration: "none",
   fontSize: 13,
   fontWeight: 620
@@ -289,7 +289,7 @@ const textLinkZh: CSSProperties = {
 const signBtn: CSSProperties = {
   border: "none",
   background: "transparent",
-  color: "#e5e7eb",
+  color: "var(--spx-text-1)",
   fontSize: 14,
   fontWeight: 720,
   padding: 0,
@@ -317,7 +317,7 @@ const avatarDot: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   background: "#343942",
-  color: "#e5e7eb"
+  color: "var(--spx-text-1)"
 };
 
 const userAvatarImage: CSSProperties = {
@@ -347,7 +347,7 @@ const title: CSSProperties = {
 
 const subtitle: CSSProperties = {
   margin: "16px auto 0",
-  color: "#9ca3af",
+  color: "var(--spx-text-3)",
   fontSize: "clamp(14px, 1.7vw, 16px)",
   lineHeight: 1.62,
   maxWidth: 920
@@ -364,7 +364,7 @@ const subtitleLine: CSSProperties = {
 
 const tagline: CSSProperties = {
   margin: "12px auto 0",
-  color: "#9ca3af",
+  color: "var(--spx-text-3)",
   fontSize: "clamp(13px, 1.5vw, 15px)",
   lineHeight: 1.5,
   maxWidth: 920
@@ -418,7 +418,7 @@ const ctaHintWrap: CSSProperties = {
 };
 
 const ctaHintLine: CSSProperties = {
-  color: "#9ca3af",
+  color: "var(--spx-text-3)",
   fontSize: 12,
   lineHeight: 1.5,
   textAlign: "center"
@@ -438,7 +438,7 @@ const footerWrap: CSSProperties = {
 };
 
 const footerLink: CSSProperties = {
-  color: "#9ca3af",
+  color: "var(--spx-text-3)",
   textDecoration: "none",
   fontSize: 13,
   fontWeight: 620

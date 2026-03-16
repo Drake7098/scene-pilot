@@ -11,6 +11,8 @@ export type EditorCheckboxProps = {
   disabled?: boolean;
   label?: string;
   className?: string;
+  /** Tooltip (e.g. rule reason when disabled) */
+  title?: string;
 };
 
 export function EditorCheckbox({
@@ -20,6 +22,7 @@ export function EditorCheckbox({
   disabled = false,
   label,
   className,
+  title,
 }: EditorCheckboxProps) {
   const [uncontrolledChecked, setUncontrolledChecked] = useState(defaultChecked);
   const isControlled = controlledChecked !== undefined;
@@ -37,6 +40,7 @@ export function EditorCheckbox({
   return (
     <label
       className={className}
+      title={title}
       style={{
         display: "inline-flex",
         alignItems: "center",

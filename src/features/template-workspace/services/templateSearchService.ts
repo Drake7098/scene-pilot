@@ -109,7 +109,7 @@ export function filterTemplateIndex(
   if (filters.ratio !== "all") {
     list = list.filter((t) => t.ratio === filters.ratio);
   }
-  if (filters.pricing !== "all") {
+  if (filters.pricing !== "all" && scope !== "free") {
     list = list.filter((t) =>
       filters.pricing === "free" ? t.isFree : !t.isFree
     );

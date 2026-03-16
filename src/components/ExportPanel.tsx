@@ -264,9 +264,9 @@ export function ExportPanel({
   const safeIdx = clampInt(sceneIdx, 0, Math.max(0, scenes.length - 1));
   const currentScene = scenes[safeIdx] ?? null;
   const scopeOptions = useMemo(() => availableExportScopes(project, safeIdx), [project, safeIdx]);
-  const rangeField = useFieldState(FIELD_KEYS.EXPORT_RANGE);
-  const rangeOptions = useAllowedOptions(FIELD_KEYS.EXPORT_RANGE, ["current_scene", "continuous_sequence"]);
-  const targetOptions = useAllowedOptions(FIELD_KEYS.EXPORT_TARGET, PLATFORM_PRESETS.map((p) => p.id));
+  const rangeField = useFieldState(FIELD_KEYS.EXPORT_RANGE, currentScene, project, lang);
+  const rangeOptions = useAllowedOptions(FIELD_KEYS.EXPORT_RANGE, ["current_scene", "continuous_sequence"], currentScene, project, lang);
+  const targetOptions = useAllowedOptions(FIELD_KEYS.EXPORT_TARGET, PLATFORM_PRESETS.map((p) => p.id), currentScene, project, lang);
   const recommendedExportMode = useMemo(() => recommendExportMode(project, safeIdx), [project, safeIdx]);
   const sceneConflicts = useMemo(() => {
     if (!currentScene) return [];

@@ -549,12 +549,12 @@ export function CreateWizard(props: Props) {
                   </span>
                 </label>
                 <input
-                value={String(draft.totalDuration)}
-                onChange={(e) => setDraft((s) => nextWizardDraft({ ...s, totalDuration: Math.max(1, Math.round(Number(e.target.value) || 12)) }))}
-                style={styles.modalInput}
-                inputMode="numeric"
-              />
-            </div>
+                  value={String(draft.totalDuration)}
+                  onChange={(e) => setDraft((s) => nextWizardDraft({ ...s, totalDuration: Math.max(1, Math.round(Number(e.target.value) || 12)) }))}
+                  style={styles.modalInput}
+                  inputMode="numeric"
+                />
+              </div>
             </div>
             {step3Warnings.length ? (
               <div style={{ ...styles.step3WarnBox, ...styles.step3Body }}>
@@ -563,7 +563,7 @@ export function CreateWizard(props: Props) {
                 ))}
               </div>
             ) : null}
-            <div style={styles.step3FormRow}>
+            <div style={{ ...styles.step3FormRow, ...styles.step3Body }}>
               <label style={styles.modalLabel}>{lang === "zh" ? "时长分配" : "Duration Mode"}</label>
               <select
                 value={draft.durationMode}
@@ -621,7 +621,10 @@ export function CreateWizard(props: Props) {
               {canCancel ? (
                 <SecondaryActionButton label={lang === "zh" ? "取消" : "Cancel"} onClick={onCancel} />
               ) : null}
-              <SecondaryActionButton label={lang === "zh" ? "上一步" : "Back"} onClick={() => setStep("video_plan")} />
+              <SecondaryActionButton label={lang === "zh" ? "上一步" : "Back"} onClick={() => {
+                  setPlanTouched(false);
+                  setStep("video_plan");
+                }} />
               <PrimaryActionButton
                 label={lang === "zh" ? "开始编辑" : "Start Editing"}
                 onClick={() => {

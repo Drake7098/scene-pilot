@@ -51,7 +51,7 @@ const page: CSSProperties = {
   minHeight: "100%",
   color: "var(--spx-text-1)",
   background:
-    "radial-gradient(820px 460px at -10% -18%, rgba(88,143,230,0.16), transparent 62%), radial-gradient(680px 420px at 110% -20%, rgba(72,188,210,0.1), transparent 64%), #090d15"
+    "radial-gradient(820px 460px at -10% -18%, rgba(88,143,230,0.16), transparent 62%), radial-gradient(680px 420px at 110% -20%, rgba(72,188,210,0.1), transparent 64%), var(--spx-bg-app)"
 };
 
 const shell: CSSProperties = {

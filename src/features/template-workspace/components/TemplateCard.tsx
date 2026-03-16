@@ -57,10 +57,13 @@ export function TemplateCard({
   const isPrivate = isUserPrivateTemplate(item);
   const name = isPrivate ? item.name : (lang === "zh" ? item.nameZh : item.nameEn);
   const desc = isPrivate ? "" : (lang === "zh" ? (item.descriptionZh ?? item.descriptionEn) : item.descriptionEn);
-  const priceLabel =
-    pricing !== undefined && pricing !== null
-      ? formatPricingBucketForDisplay(pricing.pricingBucket, lang)
-      : "…";
+  const priceLabel = (() => {
+    if (isPrivate) return "";
+    if ((item as TemplateIndex).isFree) return lang === "zh" ? "免费" : "Free";
+    if (pricing !== undefined && pricing !== null)
+      return formatPricingBucketForDisplay(pricing.pricingBucket, lang);
+    return "…";
+  })();
   const tags = pricing?.capabilityTags?.slice(0, 4) ?? [];
   const familyLabel = isPrivate ? t("我创建的", "Created by me") : (lang === "zh" ? item.familyNameZh : item.familyNameEn);
   const showOwned = isPrivate || owned;
@@ -71,7 +74,9 @@ export function TemplateCard({
       type="button"
       style={{
         ...(view === "grid" ? styles.card : styles.cardList),
-        ...(selected ? styles.cardSelected : {})
+        border: selected
+          ? `2px solid ${colors.accent}`
+          : `1px solid ${colors.border}`,
       }}
       onClick={onSelect}
     >
@@ -154,7 +159,8 @@ const styles: Record<string, React.CSSProperties> = {
     border: `1px solid ${colors.border}`,
     borderRadius: 10,
     cursor: "pointer",
-    overflow: "hidden"
+    overflow: "hidden",
+    transition: "border-color 120ms ease",
   },
   cardList: {
     display: "flex",
@@ -165,9 +171,9 @@ const styles: Record<string, React.CSSProperties> = {
     background: colors.panel,
     border: `1px solid ${colors.border}`,
     borderRadius: 8,
-    cursor: "pointer"
+    cursor: "pointer",
+    transition: "border-color 120ms ease",
   },
-  cardSelected: { borderColor: colors.accent },
   cardThumb: {
     aspectRatio: "16/9",
     background: colors.bg,

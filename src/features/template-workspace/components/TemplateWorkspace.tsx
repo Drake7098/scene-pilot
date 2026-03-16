@@ -51,7 +51,7 @@ export function TemplateWorkspace({
   isTemplateOwned,
   templatesRefresh = 0
 }: TemplateWorkspaceProps) {
-  const { indexList, filtered, selectedTemplate: selectedMarketTemplate, stats } = useTemplateWorkspace(state);
+  const { indexList, filtered, filteredBeforeFamily, selectedTemplate: selectedMarketTemplate, stats } = useTemplateWorkspace(state);
   const { toggleFavorite, isFavorite } = useTemplateFavorites();
   const createdList = useMemo(
     () => getUserPrivateTemplates(userId ?? ""),
@@ -105,13 +105,13 @@ export function TemplateWorkspace({
       <TemplateWorkspaceHeader
         lang={lang}
         templateWorkspaceView={state.templateWorkspaceView}
-        onTemplateWorkspaceViewChange={(v) => update({ templateWorkspaceView: v })}
+        onTemplateWorkspaceViewChange={(v) => update({ templateWorkspaceView: v, selectedTemplateId: null, selectedFamilyId: null })}
         myTemplateSection={state.myTemplateSection}
-        onMyTemplateSectionChange={(s) => update({ myTemplateSection: s })}
+        onMyTemplateSectionChange={(s) => update({ myTemplateSection: s, selectedTemplateId: null })}
         searchQuery={state.searchQuery}
-        onSearchChange={(q) => update({ searchQuery: q })}
+        onSearchChange={(q) => update({ searchQuery: q, selectedTemplateId: null, selectedFamilyId: null })}
         filters={state.filters}
-        onFiltersChange={(f) => update({ filters: f })}
+        onFiltersChange={(f) => update({ filters: f, selectedTemplateId: null, selectedFamilyId: null })}
         onClose={onClose}
         totalCount={stats.total}
         freeCount={stats.free}
@@ -121,9 +121,9 @@ export function TemplateWorkspace({
       <div style={styles.body}>
         <TemplateFamilyList
           lang={lang}
-          items={state.templateWorkspaceView === "market" ? indexList : []}
+          items={state.templateWorkspaceView === "market" ? filteredBeforeFamily : []}
           selectedFamilyId={state.selectedFamilyId}
-          onSelectFamily={(id) => update({ selectedFamilyId: id })}
+          onSelectFamily={(id) => update({ selectedFamilyId: id, selectedTemplateId: null })}
         />
         <TemplateGridContainer
           lang={lang}
@@ -131,7 +131,7 @@ export function TemplateWorkspace({
           view={state.view}
           onViewChange={(v) => update({ view: v })}
           selectedId={state.selectedTemplateId}
-          onSelect={(id) => update({ selectedTemplateId: id })}
+          onSelect={(id) => update({ selectedTemplateId: state.selectedTemplateId === id ? null : id })}
           onUse={(item) => handleUse(item)}
           isFavorite={isFavorite}
           onToggleFavorite={toggleFavorite}

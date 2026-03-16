@@ -519,7 +519,7 @@ export default function PricingPage() {
 const page: CSSProperties = {
   minHeight: "100%",
   color: "var(--spx-text-1)",
-  background: "radial-gradient(860px 460px at 12% -16%, rgba(83,146,226,0.18), transparent 62%), #070b12",
+  background: "radial-gradient(860px 460px at 12% -16%, rgba(83,146,226,0.18), transparent 62%), var(--spx-bg-app)",
 };
 
 const surface: CSSProperties = {
@@ -557,7 +557,7 @@ const balanceWrap: CSSProperties = {
   gap: 10,
   marginBottom: 16,
   padding: "10px 16px",
-  background: "rgba(255,255,255,0.06)",
+  background: "var(--spx-surface-2)",
   borderRadius: 12,
 };
 
@@ -578,7 +578,7 @@ const tiersGrid: CSSProperties = {
 };
 
 const tierCard: CSSProperties = {
-  background: "linear-gradient(180deg, rgba(13,18,30,0.92), rgba(10,14,24,0.94))",
+  background: "var(--spx-surface-1)",
   borderRadius: 18,
   padding: 24,
   display: "flex",
@@ -629,13 +629,13 @@ const tierCta: CSSProperties = {
 };
 
 const tierCtaPrimary: CSSProperties = {
-  color: "#f4f8ff",
-  background: "linear-gradient(180deg, rgba(84,145,232,0.7), rgba(40,97,172,0.72))",
+  color: "#1a1208",
+  background: "#f59e0b"
 };
 
 const tierCtaGhost: CSSProperties = {
   color: "var(--spx-text-1)",
-  background: "rgba(255,255,255,0.08)",
+  background: "var(--spx-surface-2)",
 };
 
 const creditsRechargeGrid: CSSProperties = {
@@ -646,7 +646,7 @@ const creditsRechargeGrid: CSSProperties = {
 };
 
 const creditRechargeCard: CSSProperties = {
-  background: "linear-gradient(180deg, rgba(13,18,30,0.92), rgba(10,14,24,0.94))",
+  background: "var(--spx-surface-1)",
   borderRadius: 16,
   padding: 24,
   display: "flex",
@@ -676,7 +676,7 @@ const creditCtaBtn: CSSProperties = {
   padding: "0 16px",
   fontWeight: 650,
   fontSize: 14,
-  background: "rgba(255,255,255,0.1)",
+  background: "var(--spx-surface-2)",
   color: "var(--spx-text-1)",
   border: "none",
   cursor: "pointer",
@@ -699,7 +699,7 @@ const templateTiers: CSSProperties = {
 
 const templateTierCard: CSSProperties = {
   padding: "16px 18px",
-  background: "rgba(255,255,255,0.04)",
+  background: "var(--spx-surface-1)",
   borderRadius: 12,
 };
 
@@ -724,7 +724,7 @@ const hostedByoGrid: CSSProperties = {
 
 const hostedByoCard: CSSProperties = {
   padding: "18px 20px",
-  background: "rgba(255,255,255,0.04)",
+  background: "var(--spx-surface-1)",
   borderRadius: 12,
 };
 
@@ -751,7 +751,7 @@ const usageRow: CSSProperties = {
   justifyContent: "space-between",
   alignItems: "center",
   padding: "12px 16px",
-  background: "rgba(255,255,255,0.045)",
+  background: "var(--spx-surface-1)",
   borderRadius: 10,
   color: "var(--spx-text-2)",
   fontSize: 14,
@@ -764,7 +764,7 @@ const faqList: CSSProperties = {
 
 const faqItem: CSSProperties = {
   padding: "14px 16px",
-  background: "rgba(255,255,255,0.04)",
+  background: "var(--spx-surface-1)",
   borderRadius: 12,
 };
 
@@ -783,7 +783,7 @@ const faqA: CSSProperties = {
 const bottomCtaSection: CSSProperties = {
   marginTop: 48,
   paddingTop: 32,
-  borderTop: "1px solid rgba(255,255,255,0.1)",
+  borderTop: "1px solid var(--spx-border)",
   textAlign: "center",
 };
 
@@ -801,8 +801,8 @@ const bottomCtaBtn: CSSProperties = {
   minHeight: 48,
   padding: "0 28px",
   borderRadius: 12,
-  background: "linear-gradient(180deg, rgba(84,145,232,0.7), rgba(40,97,172,0.72))",
-  color: "#f4f8ff",
+  background: "#f59e0b",
+  color: "#1a1208",
   textDecoration: "none",
   fontSize: 15,
   fontWeight: 650,

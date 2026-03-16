@@ -104,12 +104,6 @@ export function TemplateWorkspaceHeader({
           </button>
         </div>
       ) : null}
-      {totalCount != null && templateWorkspaceView === "market" ? (
-        <span style={styles.countBadge}>
-          {totalCount} {t("模板", "templates")}
-          {freeCount != null ? ` · ${freeCount} ${t("免费", "free")}` : ""}
-        </span>
-      ) : null}
       <div style={styles.searchWrap}>
         <Search size={14} style={styles.searchIcon} />
         <input
@@ -126,7 +120,7 @@ export function TemplateWorkspaceHeader({
           onChange={(e) =>
             onFiltersChange({ ...filters, mediaType: e.target.value as TemplateWorkspaceFilters["mediaType"] })
           }
-          style={styles.select}
+          style={{ ...styles.select, ...(filters.mediaType !== "all" ? styles.selectActive : {}) }}
         >
           <option value="all">{t("图/视频", "Image/Video")}</option>
           <option value="image">{t("图", "Image")}</option>
@@ -137,7 +131,7 @@ export function TemplateWorkspaceHeader({
           onChange={(e) =>
             onFiltersChange({ ...filters, storyPlan: e.target.value as TemplateWorkspaceFilters["storyPlan"] })
           }
-          style={styles.select}
+          style={{ ...styles.select, ...(filters.storyPlan !== "all" ? styles.selectActive : {}) }}
         >
           <option value="all">{t("单镜/连续/多机位/剪辑", "Shot plan")}</option>
           <option value="single">{t("单镜", "Single")}</option>
@@ -150,7 +144,7 @@ export function TemplateWorkspaceHeader({
           onChange={(e) =>
             onFiltersChange({ ...filters, ratio: e.target.value as TemplateWorkspaceFilters["ratio"] })
           }
-          style={styles.select}
+          style={{ ...styles.select, ...(filters.ratio !== "all" ? styles.selectActive : {}) }}
         >
           <option value="all">{t("比例", "Ratio")}</option>
           <option value="16:9">16:9</option>
@@ -162,7 +156,7 @@ export function TemplateWorkspaceHeader({
           onChange={(e) =>
             onFiltersChange({ ...filters, domain: e.target.value as TemplateWorkspaceFilters["domain"] })
           }
-          style={styles.select}
+          style={{ ...styles.select, ...((filters.domain && filters.domain !== "all") ? styles.selectActive : {}) }}
         >
           <option value="all">{t("全部域", "All domains")}</option>
           <option value="base">{t("基础", "Base")}</option>
@@ -174,7 +168,7 @@ export function TemplateWorkspaceHeader({
           onChange={(e) =>
             onFiltersChange({ ...filters, pricing: e.target.value as TemplateWorkspaceFilters["pricing"] })
           }
-          style={styles.select}
+          style={{ ...styles.select, ...(filters.pricing !== "all" ? styles.selectActive : {}) }}
         >
           <option value="all">{t("免费/付费", "Free/Paid")}</option>
           <option value="free">{t("免费", "Free")}</option>
@@ -189,7 +183,6 @@ export function TemplateWorkspaceHeader({
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  countBadge: { fontSize: PRO_TYPO["2xs"], fontWeight: PRO_TYPO.weightRegular, fontFamily: PRO_TYPO.fontFamily, color: colors.textMuted },
   wrap: {
     display: "flex",
     flexWrap: "wrap",
@@ -273,7 +266,15 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: PRO_TYPO["2xs"],
     fontWeight: PRO_TYPO.weightRegular,
     fontFamily: PRO_TYPO.fontFamily,
-    cursor: "pointer"
+    cursor: "pointer",
+    outline: "none",
+    appearance: "none" as const,
+    WebkitAppearance: "none" as const,
+  },
+  selectActive: {
+    border: `1px solid ${colors.accent}`,
+    color: colors.accent,
+    background: `${colors.accent}18`,
   },
   closeBtn: {
     padding: 6,

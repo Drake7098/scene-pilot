@@ -6,6 +6,7 @@
 
 import React, { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import type { Lang } from "../../../i18n";
+import type { PromptConflict } from "../../../utils/conflictRules";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const MAX_HISTORY = 5;
@@ -20,7 +21,7 @@ type Props = {
   exportScopeLabel: string;
   /** e.g. "可生成" / "已更新" when no conflict */
   statusLabel: string;
-  conflictCount: number;
+  conflicts: PromptConflict[];
 };
 
 function t(lang: Lang, zh: string, en: string) {
@@ -28,7 +29,7 @@ function t(lang: Lang, zh: string, en: string) {
 }
 
 export const FeedbackBar = forwardRef<FeedbackBarApi, Props>(function FeedbackBar(
-  { lang, platformLabel, exportScopeLabel, statusLabel, conflictCount },
+  { lang, platformLabel, exportScopeLabel, statusLabel, conflicts },
   ref
 ) {
   const [history, setHistory] = useState<string[]>([]);
@@ -44,7 +45,9 @@ export const FeedbackBar = forwardRef<FeedbackBarApi, Props>(function FeedbackBa
     }
   }), []);
 
-  const hasConflict = conflictCount > 0;
+  const hasConflict = conflicts.length > 0;
+  const topConflict = conflicts.find((c) => c.severity === "high") ?? conflicts[0] ?? null;
+  const conflictCount = conflicts.length;
   const hasHistory = history.length > 0;
   const lastIdx = Math.max(0, history.length - 1);
   const canGoLeft = hasHistory && index > 0;
@@ -66,21 +69,14 @@ export const FeedbackBar = forwardRef<FeedbackBarApi, Props>(function FeedbackBa
       role="region"
       aria-label={t(lang, "工作流反馈", "Workflow feedback")}
     >
-      {/* Row1: conflict only; empty when no conflict */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "8px 12px",
-          fontSize: 11,
-          color: "var(--pro-text-muted, #9ca3af)",
-          minHeight: 18
-        }}
-      >
-        {hasConflict ? (
+      {/* Row1: 有冲突时显示，无冲突时空着 */}
+      <div style={{ minHeight: 18, fontSize: 11 }}>
+        {hasConflict && topConflict ? (
           <span style={{ color: "var(--pro-text-danger, #c96b6b)" }}>
-            {t(lang, "冲突", "Conflicts")}: {conflictCount}{lang === "zh" ? "项" : ""}
+            ⚠ {topConflict.title}
+            {conflictCount > 1
+              ? (lang === "zh" ? `（共 ${conflictCount} 项）` : ` (+${conflictCount - 1} more)`)
+              : ""}
           </span>
         ) : null}
       </div>

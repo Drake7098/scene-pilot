@@ -391,7 +391,9 @@ export default function App() {
   const [postAuthRedirect, setPostAuthRedirect] = useState("");
   const [lastSentCode, setLastSentCode] = useState("");
   const activeWorkspaceMode: ResultConsoleMode = "pro";
-  const [authLegalAccepted, setAuthLegalAccepted] = useState<boolean>(false);
+  const [authLegalAccepted, setAuthLegalAccepted] = useState<boolean>(() => {
+    try { return localStorage.getItem(AUTH_LEGAL_CONSENT_KEY) === "1"; } catch { return false; }
+  });
   const [billingLegalAccepted, setBillingLegalAccepted] = useState<boolean>(() => {
     try {
       return localStorage.getItem(BILLING_LEGAL_CONSENT_KEY) === "1";
@@ -689,7 +691,10 @@ export default function App() {
       return "";
     }
   }, [safeProject, scene, lang, savePlatformId]);
-  const sceneConflicts = useMemo(() => detectSceneConflicts(scene, lang), [scene, lang]);
+  const sceneConflicts = useMemo(
+    () => detectSceneConflicts(scene, lang, safeProject),
+    [scene, lang, safeProject]
+  );
   const feedbackBarPlatformLabel = useMemo(
     () => (lang === "zh" ? getPlatformPreset(savePlatformId).labelZh : getPlatformPreset(savePlatformId).labelEn),
     [savePlatformId, lang]
@@ -1678,7 +1683,7 @@ export default function App() {
   }
 
   async function handleSendAuthCode() {
-    if (authBusy || !authLegalAccepted) return;
+    if (authBusy) return;
     setAuthBusy(true);
     setAuthHint("");
     try {
@@ -1698,7 +1703,7 @@ export default function App() {
   }
 
   async function handleVerifyAuthCode() {
-    if (authBusy || !authLegalAccepted) return;
+    if (authBusy) return;
     setAuthBusy(true);
     setAuthHint("");
     try {
@@ -1724,7 +1729,7 @@ export default function App() {
   }
 
   async function handleGoogleSignIn() {
-    if (authBusy || !authLegalAccepted) return;
+    if (authBusy) return;
     setAuthBusy(true);
     setAuthHint("");
     try {
@@ -1750,7 +1755,7 @@ export default function App() {
   }
 
   async function handlePasswordSignIn() {
-    if (authBusy || !authLegalAccepted) return;
+    if (authBusy) return;
     setAuthBusy(true);
     setAuthHint("");
     try {
@@ -4323,7 +4328,7 @@ export default function App() {
               platformLabel={feedbackBarPlatformLabel}
               exportScopeLabel={feedbackBarScopeLabel}
               statusLabel={lang === "zh" ? "可生成" : "Ready"}
-              conflictCount={sceneConflicts.length}
+              conflicts={sceneConflicts}
             />
             <OutputConsole
               lang={lang}
@@ -5546,7 +5551,7 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: "100%",
     borderRadius: UI_RADIUS.panel,
     border: `1px solid ${UI_PALETTE.border.default}`,
-    background: `${UI_PANEL.rightGlow}, rgba(12,17,27,0.96)`,
+    background: `${UI_PANEL.rightGlow}, rgba(15,20,30,0.97)`,
     boxShadow: UI_EFFECT.floatShadow,
     padding: 14,
     backdropFilter: "blur(18px)"
@@ -5569,7 +5574,7 @@ const styles: Record<string, React.CSSProperties> = {
     maxHeight: "min(80vh, 760px)",
     borderRadius: UI_RADIUS.panel,
     border: `1px solid ${UI_PALETTE.border.default}`,
-    background: `${UI_PANEL.leftGlow}, rgba(12,17,27,0.96)`,
+    background: `${UI_PANEL.leftGlow}, rgba(15,20,30,0.97)`,
     boxShadow: UI_EFFECT.floatShadow,
     padding: 14,
     display: "flex",
@@ -5607,9 +5612,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800
   },
   newProjectMediaBtnOn: {
-    border: "1px solid rgba(120,180,255,0.78)",
-    background: "rgba(120,180,255,0.12)",
-    boxShadow: "0 0 0 2px rgba(120,180,255,0.18) inset"
+    border: "1px solid rgba(245,158,11,0.7)",
+    background: "rgba(245,158,11,0.12)",
+    boxShadow: "0 0 0 2px rgba(245,158,11,0.18) inset"
   },
   wizardBullets: {
     marginTop: 8,
@@ -5639,9 +5644,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   wizardPrinciple: {
     marginTop: 8,
-    border: "1px solid rgba(120,180,255,0.22)",
+    border: "1px solid rgba(245,158,11,0.22)",
     borderRadius: 10,
-    background: "rgba(120,180,255,0.10)",
+    background: "rgba(245,158,11,0.08)",
     padding: "8px 10px",
     fontSize: 12,
     lineHeight: 1.45,
@@ -5672,8 +5677,8 @@ const styles: Record<string, React.CSSProperties> = {
     color: "inherit"
   },
   wizardPlanCardOn: {
-    border: "1px solid rgba(120,180,255,0.7)",
-    background: "rgba(120,180,255,0.12)"
+    border: "1px solid rgba(245,158,11,0.7)",
+    background: "rgba(245,158,11,0.12)"
   },
   wizardPlanTitle: { fontSize: 13, fontWeight: 900, marginBottom: 4 },
   wizardPlanDesc: { fontSize: 12, opacity: 0.76, lineHeight: 1.4 },
@@ -5816,20 +5821,15 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   modalBtn: {
-    padding: "8px 10px",
+    padding: "8px 16px",
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_ACTION.border.default}`,
-    background: UI_ACTION.surface.default,
-    color: "inherit",
+    border: "1px solid rgba(245,158,11,0.55)",
+    background: "rgba(245,158,11,0.15)",
+    color: "#f59e0b",
     cursor: "pointer",
     fontSize: 12,
     fontWeight: 900,
-    boxShadow: UI_EFFECT.insetShadow,
-    ["--spx-btn-bg-hover" as any]: UI_ACTION.surface.hover,
-    ["--spx-btn-bg-active" as any]: UI_ACTION.surface.active,
-    ["--spx-btn-border-hover" as any]: UI_ACTION.border.hover,
-    ["--spx-btn-border-active" as any]: UI_ACTION.border.active,
-    ["--spx-btn-shadow-hover" as any]: UI_ACTION.shadow.hover
+    boxShadow: UI_EFFECT.insetShadow
   },
   modalBtnGhost: {
     padding: "8px 10px",

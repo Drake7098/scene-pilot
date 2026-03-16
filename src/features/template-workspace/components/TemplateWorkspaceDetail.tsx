@@ -60,7 +60,12 @@ export function TemplateWorkspaceDetail({
   const name = isPrivate ? (template as UserPrivateTemplate).name : (lang === "zh" ? (template as TemplateIndex).nameZh : (template as TemplateIndex).nameEn);
   const desc = isPrivate ? "" : (lang === "zh" ? ((template as TemplateIndex).descriptionZh ?? (template as TemplateIndex).descriptionEn) : (template as TemplateIndex).descriptionEn);
   const owned = isPrivate || (isTemplateOwned?.(template.id) ?? false);
-  const priceLabel = loading ? "…" : pricing ? formatPricingBucketForDisplay(pricing.pricingBucket, lang) : "—";
+  const priceLabel = (() => {
+    if (loading) return "…";
+    if (!isPrivate && (template as TemplateIndex).isFree) return lang === "zh" ? "免费" : "Free";
+    if (pricing) return formatPricingBucketForDisplay(pricing.pricingBucket, lang);
+    return "—";
+  })();
   const capabilityTags = pricing?.capabilityTags?.slice(0, 4) ?? [];
   const insufficient = !isPrivate && !owned && (pricing?.creditPrice ?? 0) > 0 && userCredits < (pricing?.creditPrice ?? 0);
 

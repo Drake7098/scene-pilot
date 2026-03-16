@@ -80,7 +80,7 @@ export function TemplateWorkspaceGrid({
               item={item}
               view={view}
               selected={selectedId === item.id}
-              onSelect={() => onSelect(selectedId === item.id ? null : item.id)}
+              onSelect={() => onSelect(item.id)}
               onUse={onUse ? () => onUse(item) : undefined}
               isFavorite={isFavorite?.(item.id)}
               onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(item.id) : undefined}

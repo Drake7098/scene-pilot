@@ -70,6 +70,33 @@ export function ProWorkspaceStatusRail({ lang, project, scene, platformId }: Pro
       }}
     >
       <div className="pro-rail-scroll" style={{ flex: 1, padding: `${PRO_PANEL_PADDING}px` }}>
+        {conflicts.length > 0 && (
+          <div
+            style={{
+              padding: "6px 12px",
+              background: "rgba(220,60,60,0.12)",
+              borderBottom: "1px solid rgba(220,60,60,0.3)",
+              marginBottom: PRO_SECTION_GAP,
+              fontSize: 11,
+              color: "#e07070",
+              display: "flex",
+              flexDirection: "column",
+              gap: 3,
+            }}
+          >
+            {conflicts.slice(0, 2).map((c) => (
+              <div key={c.id} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+                <span style={{ flexShrink: 0, opacity: 0.8 }}>⚠</span>
+                <span>{c.title}：{c.detail}</span>
+              </div>
+            ))}
+            {conflicts.length > 2 && (
+              <div style={{ opacity: 0.7 }}>
+                {lang === "zh" ? `还有 ${conflicts.length - 2} 项冲突` : `${conflicts.length - 2} more conflicts`}
+              </div>
+            )}
+          </div>
+        )}
         <div style={{ fontSize: 10, fontWeight: 600, color: FIGMA_COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: PRO_SECTION_GAP }}>
           {lang === "zh" ? "状态" : "Status"}
         </div>

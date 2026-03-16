@@ -54,6 +54,8 @@ import type { TemplateIndex } from "../features/template-workspace";
 import type { SceneTemplate } from "../model/template";
 import { useProCollapseSections } from "../hooks/useProCollapseSections";
 import { EditorSection, EditorSelect, EditorInput, EditorCheckbox } from "./ui";
+import { useFieldState } from "../hooks/useFieldState";
+import { FIELD_KEYS } from "../rules/fieldKeys";
 import { ContinuityPanel } from "./ContinuityPanel";
 import { editorTheme } from "../theme/editorTheme";
 import { Film, FileText, Layout, LayoutGrid, Layers, Camera, Settings, Play, Plus, Minus, ChevronDown, ChevronRight, Save, Copy, Download, FilePlus2, FolderOpen, PencilLine, Sun } from "lucide-react";
@@ -313,6 +315,15 @@ export function Sidebar(props: Props) {
   const proMotionSelection = useMemo(() => parseProMotionSelection(scene.notes ?? ""), [scene.notes]);
   const imageProSelection = useMemo(() => parseImageProEffects(scene.notes ?? ""), [scene.notes]);
   const directorStylePackId = useMemo(() => parseDirectorStylePackId(scene.notes ?? ""), [scene.notes]);
+  // 规则引擎 - 字段可用状态
+  const classicModeRule = useFieldState(FIELD_KEYS.SCENE_CLASSIC_SHOT, scene, project, lang);
+  const directorPackRule = useFieldState(FIELD_KEYS.SCENE_DIRECTOR_STYLE_PACK, scene, project, lang);
+  const proMotionsRule = useFieldState(FIELD_KEYS.SCENE_PRO_MOTIONS, scene, project, lang);
+  const imageProRule = useFieldState(FIELD_KEYS.SCENE_IMAGE_PRO_EFFECTS, scene, project, lang);
+  const lensRecipeRule = useFieldState(FIELD_KEYS.SCENE_LENS_RECIPE, scene, project, lang);
+  const entryDirRule = useFieldState(FIELD_KEYS.SCENE_ENTRY_DIRECTION, scene, project, lang);
+  const exitDirRule = useFieldState(FIELD_KEYS.SCENE_EXIT_DIRECTION, scene, project, lang);
+  const jumpCutRule = useFieldState(FIELD_KEYS.SCENE_JUMP_CUT_MODE, scene, project, lang);
   const videoClassicModes = useMemo(() => getVideoClassicModes(), []);
   const imageClassicModes = useMemo(() => getImageClassicModes(), []);
   const disabledProPlusIds = useMemo(
@@ -964,6 +975,7 @@ export function Sidebar(props: Props) {
 
   function renderVideoCascadeMenu() {
     if (!videoProMenuOpen || !videoMenuRect || typeof document === "undefined") return null;
+    const allDisabledByRule = !proMotionsRule.enabled;
     return createPortal(
       <div
         ref={videoProPopupRef}
@@ -990,7 +1002,8 @@ export function Sidebar(props: Props) {
               <button
                 key={category.id}
                 type="button"
-                disabled={allDisabled}
+                disabled={allDisabled || allDisabledByRule}
+                title={allDisabledByRule ? proMotionsRule.reason : undefined}
                 style={{
                   ...styles.proMenuRow,
                   ...(videoProCategoryHover === category.id ? styles.proMenuRowActive : null),
@@ -1937,6 +1950,8 @@ export function Sidebar(props: Props) {
               ]}
               value={(scene.entryDir ?? "").toString()}
               onChange={(v) => onUpdateScene({ ...scene, entryDir: (v || undefined) as Direction | undefined })}
+              disabled={!entryDirRule.enabled}
+              title={entryDirRule.reason}
             />
             <EditorSelect
               label={lang === "zh" ? "出镜方向" : "Exit"}
@@ -1946,6 +1961,8 @@ export function Sidebar(props: Props) {
               ]}
               value={(scene.exitDir ?? "").toString()}
               onChange={(v) => onUpdateScene({ ...scene, exitDir: (v || undefined) as Direction | undefined })}
+              disabled={!exitDirRule.enabled}
+              title={exitDirRule.reason}
             />
           </>
         ) : null}
@@ -1973,6 +1990,9 @@ export function Sidebar(props: Props) {
               label={lang === "zh" ? "导演预设" : "Director Preset"}
               options={[
                 { label: lang === "zh" ? "未选择" : "None", value: "" },
+                ...(directorStylePackId
+                  ? [{ label: lang === "zh" ? "（已启用导演包，建议不叠加）" : "(Director pack active — not recommended)", value: "__hint__", disabled: true as const }]
+                  : []),
                 ...((isVideoProject ? hasVideoManualClassic : hasImageManualClassic)
                   ? [{ label: lang === "zh" ? "手动设置" : "Manual Setup", value: "__manual__", disabled: true as const }]
                   : []),
@@ -1984,9 +2004,11 @@ export function Sidebar(props: Props) {
               ]}
               value={isVideoProject ? videoClassicSelectValue : imageClassicSelectValue}
               onChange={(v) => {
-                if (v === "__manual__") return;
+                if (v === "__manual__" || v === "__hint__") return;
                 return isVideoProject ? pickVideoClassicMode(v) : pickImageClassicMode(v);
               }}
+              disabled={!classicModeRule.enabled}
+              title={classicModeRule.reason}
             />
           </div>
           <div style={styles.proMotionPanel}>
@@ -1994,11 +2016,19 @@ export function Sidebar(props: Props) {
               <EditorSelect
                 label={lang === "zh" ? "导演级风格包" : "Directing Pack"}
                 options={[
-                  { label: lang === "zh" ? "自动" : "Auto", value: "" },
+                  { label: lang === "zh" ? "未选择" : "None", value: "" },
+                  ...(selectedVideoClassicModeId || selectedImageClassicModeId
+                    ? [{ label: lang === "zh" ? "（已启用经典模式，建议不叠加）" : "(Classic mode active — not recommended)", value: "__hint__", disabled: true as const }]
+                    : []),
                   ...DIRECTOR_STYLE_PACKS.map((pack) => ({ label: lang === "zh" ? pack.labelZh : pack.labelEn, value: pack.id }))
                 ]}
                 value={directorStylePackId ?? ""}
-                onChange={(v) => updateDirectorStylePack(v)}
+                onChange={(v) => {
+                  if (v === "__hint__") return;
+                  updateDirectorStylePack(v);
+                }}
+                disabled={!directorPackRule.enabled}
+                title={directorPackRule.reason}
               />
             </div>
           </div>
@@ -2040,15 +2070,18 @@ export function Sidebar(props: Props) {
           <EditorSelect
             compact
             label={lang === "zh" ? "镜头语言" : "Camera Language"}
-            options={getUserVisibleCameraLanguageOptions().map((o) => ({
-              label: lang === "zh" ? o.labelZh : o.labelEn,
-              value: o.id
-            }))}
+            options={[
+              { label: lang === "zh" ? "未选择" : "None", value: "" },
+              ...getUserVisibleCameraLanguageOptions().map((o) => ({
+                label: lang === "zh" ? o.labelZh : o.labelEn,
+                value: o.id
+              }))
+            ]}
             value={(() => {
               const raw = parseCameraLanguageId(scene.notes);
-              if (!raw) return undefined;
+              if (!raw) return "";
               if (isUserVisibleCameraLanguage(raw)) return raw;
-              return normalizeForUserSelection(raw) || undefined;
+              return normalizeForUserSelection(raw) || "";
             })()}
             onChange={(v) => {
               const nextNotes = applyCameraLanguage(scene.notes ?? "", v ?? "");
