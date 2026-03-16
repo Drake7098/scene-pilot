@@ -2,12 +2,12 @@
 
 Last updated: 2026-03-13
 
-## develop 服务器（scene-pilot-test / develop，域名 scene-pilot-test.pages.dev）
+## develop 服务器（scenepilotix / develop，域名 scenepilotix.pages.dev）
 
 ### 前端（公开变量）
 - `VITE_SUPABASE_URL=https://sampclwsqputkeswqbbu.supabase.co`
 - `VITE_SUPABASE_ANON_KEY=<SUPABASE_PUBLISHABLE_KEY>`
-- `VITE_APP_BASE_URL=https://scene-pilot-test.pages.dev`
+- `VITE_APP_BASE_URL=https://scenepilotix.pages.dev`
 - `VITE_BILLING_ENABLED=0`（Paddle 未联调完成前建议关闭）
 - `VITE_BILLING_MODE=sandbox`
 - `VITE_BILLING_LIVE_ALLOWED=0`
@@ -17,7 +17,7 @@ Last updated: 2026-03-13
 ### Functions（服务端变量）
 - `SUPABASE_URL=https://sampclwsqputkeswqbbu.supabase.co`
 - `SUPABASE_SERVICE_ROLE_KEY=<SUPABASE_SERVICE_ROLE_KEY>`
-- `CORS_ALLOW_ORIGINS=https://scene-pilot-test.pages.dev,https://www.scenepilotix.com,http://localhost:5173`
+- `CORS_ALLOW_ORIGINS=https://scenepilotix.pages.dev,https://www.scenepilotix.com,http://localhost:5173`
 - `API_AUTH_STRICT=1`
 - `API_AUTH_TOKEN=<LONG_RANDOM_TOKEN>`
 - `BILLING_ENABLED=0`（Paddle 未联调完成前建议关闭）
@@ -41,7 +41,7 @@ Last updated: 2026-03-13
 - `PADDLE_WEBHOOK_MAX_FUTURE_SKEW_SECONDS=60`
 - 说明：`API_AUTH_STRICT=1` 时，前端请求需携带 Supabase access token（Bearer），Functions 会校验 token 与 `userId` 一致性。
 
-## 正式环境（scene-pilot-prod / main）
+## 正式环境（scenepilotix1-prod / main）
 
 ### 前端（公开变量）
 - `VITE_SUPABASE_URL=https://sampclwsqputkeswqbbu.supabase.co`
@@ -56,7 +56,7 @@ Last updated: 2026-03-13
 ### Functions（服务端变量）
 - `SUPABASE_URL=https://sampclwsqputkeswqbbu.supabase.co`
 - `SUPABASE_SERVICE_ROLE_KEY=<SUPABASE_SERVICE_ROLE_KEY>`
-- `CORS_ALLOW_ORIGINS=https://www.scenepilotix.com,https://scene-pilot-test.pages.dev`
+- `CORS_ALLOW_ORIGINS=https://www.scenepilotix.com,https://scenepilotix.pages.dev`
 - `API_AUTH_STRICT=1`
 - `API_AUTH_TOKEN=<LONG_RANDOM_TOKEN>`
 - `BILLING_ENABLED=0`（Paddle 未联调完成前建议关闭）
@@ -117,12 +117,12 @@ Last updated: 2026-03-13
 
 ## 可复制模板（体验优先）
 
-### develop 服务器 Functions（scene-pilot-test）
+### develop 服务器 Functions（scenepilotix）
 
 ```bash
 SUPABASE_URL=https://sampclwsqputkeswqbbu.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<SUPABASE_SERVICE_ROLE_KEY>
-CORS_ALLOW_ORIGINS=https://scene-pilot-test.pages.dev,https://www.scenepilotix.com,http://localhost:5173
+CORS_ALLOW_ORIGINS=https://scenepilotix.pages.dev,https://www.scenepilotix.com,http://localhost:5173
 API_AUTH_STRICT=1
 API_AUTH_TOKEN=<LONG_RANDOM_TOKEN>
 BILLING_ENABLED=0
@@ -146,12 +146,12 @@ PADDLE_WEBHOOK_MAX_AGE_SECONDS=300
 PADDLE_WEBHOOK_MAX_FUTURE_SKEW_SECONDS=60
 ```
 
-### Prod Functions（scene-pilot-prod）
+### Prod Functions（scenepilotix1-prod）
 
 ```bash
 SUPABASE_URL=https://sampclwsqputkeswqbbu.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<SUPABASE_SERVICE_ROLE_KEY>
-CORS_ALLOW_ORIGINS=https://www.scenepilotix.com,https://scene-pilot-test.pages.dev
+CORS_ALLOW_ORIGINS=https://www.scenepilotix.com,https://scenepilotix.pages.dev
 API_AUTH_STRICT=1
 API_AUTH_TOKEN=<LONG_RANDOM_TOKEN>
 BILLING_ENABLED=0
@@ -186,7 +186,7 @@ VITE_AUTH_MOCK_FALLBACK=0
 
 ```bash
 # test
-VITE_APP_BASE_URL=https://scene-pilot-test.pages.dev
+VITE_APP_BASE_URL=https://scenepilotix.pages.dev
 VITE_BILLING_ENABLED=0
 VITE_BILLING_MODE=sandbox
 VITE_BILLING_LIVE_ALLOWED=0

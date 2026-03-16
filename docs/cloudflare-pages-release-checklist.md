@@ -4,9 +4,9 @@ Last updated: 2026-03-15
 
 ## 当前拓扑
 
-- **develop 服务器**：Cloudflare 项目名 **scene-pilot-test**，域名 scene-pilot-test.pages.dev，部署分支 develop。
-- **正式服**：scene-pilot-prod，部署分支 main。
-- push **develop** → scene-pilot-test 自动部署；push **main** → scene-pilot-prod 自动部署。允许直接 push，不强制 PR。
+- **develop 服务器**：Cloudflare 项目名 **scenepilotix**，域名 scenepilotix.pages.dev，部署分支 develop。
+- **正式服**：scenepilotix1-prod，部署分支 main。
+- push **develop** → scenepilotix 自动部署；push **main** → scenepilotix1-prod 自动部署。允许直接 push，不强制 PR。
 
 ## 目标
 
@@ -25,13 +25,13 @@ Last updated: 2026-03-15
 
 ## B. Cloudflare Pages develop 服务器（develop）
 
-项目：`scene-pilot-test`，Production branch: `develop`，域名：scene-pilot-test.pages.dev
+项目：`scenepilotix`，Production branch: `develop`，域名：scenepilotix.pages.dev
 
 ### Build 环境变量（前端）
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
-- `VITE_APP_BASE_URL=https://scene-pilot-test.pages.dev`
+- `VITE_APP_BASE_URL=https://scenepilotix.pages.dev`
 - `VITE_BILLING_ENABLED=0`
 - `VITE_AUTH_MOCK_FALLBACK=0`
 
@@ -39,7 +39,7 @@ Last updated: 2026-03-15
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `CORS_ALLOW_ORIGINS=https://scene-pilot-test.pages.dev,https://www.scenepilotix.com,http://localhost:5173`
+- `CORS_ALLOW_ORIGINS=https://scenepilotix.pages.dev,https://www.scenepilotix.com,http://localhost:5173`
 - `API_AUTH_STRICT=1`
 - `BILLING_ENABLED=0`
 - `AUTH_DEV_CODE_EXPOSE=0`
@@ -48,7 +48,7 @@ Last updated: 2026-03-15
 
 ## C. Cloudflare Pages 正式服（main）
 
-项目：`scene-pilot-prod`
+项目：`scenepilotix1-prod`
 
 ### Build 环境变量（前端）
 
@@ -62,14 +62,14 @@ Last updated: 2026-03-15
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `CORS_ALLOW_ORIGINS=https://www.scenepilotix.com,https://scene-pilot-test.pages.dev`
+- `CORS_ALLOW_ORIGINS=https://www.scenepilotix.com,https://scenepilotix.pages.dev`
 - `API_AUTH_STRICT=1`
 - `BILLING_ENABLED=0`
 - `AUTH_DEV_CODE_EXPOSE=0`（生产必须）
 
 ## D. 域名与 DNS
 
-1. `www.scenepilotix.com` 绑定到 `scene-pilot-prod`
+1. `www.scenepilotix.com` 绑定到 `scenepilotix1-prod`
 2. 根域 `scenepilotix.com` 301 到 `https://www.scenepilotix.com`
 3. 等待 DNS 生效后再做 smoke
 
@@ -85,14 +85,14 @@ Last updated: 2026-03-15
 1. `SUPABASE_URL=... VITE_SUPABASE_ANON_KEY=... SUPABASE_SERVICE_ROLE_KEY=... npm run release:cloudflare:sync-secrets -- --target all`
 2. `CF_API_TOKEN=... CF_ACCOUNT_ID=... npm run release:cloudflare:audit`
 3. `npm run check:env:release`
-4. `APP_URL=https://scene-pilot-test.pages.dev npm run smoke:release`
-5. `APP_URL=https://scene-pilot-prod.pages.dev npm run smoke:release`
+4. `APP_URL=https://scenepilotix.pages.dev npm run smoke:release`
+5. `APP_URL=https://scenepilotix1-prod.pages.dev npm run smoke:release`
 6. `APP_URL=https://www.scenepilotix.com npm run smoke:release`（仅在自定义域名 DNS 生效后）
 
 也可一键编排：
 
-- develop 服务器：`npm run release:orchestrate -- --target test --app-url https://scene-pilot-test.pages.dev`
-- 正式服：`npm run release:orchestrate -- --target prod --app-url https://scene-pilot-prod.pages.dev`
+- develop 服务器：`npm run release:orchestrate -- --target test --app-url https://scenepilotix.pages.dev`
+- 正式服：`npm run release:orchestrate -- --target prod --app-url https://scenepilotix1-prod.pages.dev`
 
 通过标准：
 

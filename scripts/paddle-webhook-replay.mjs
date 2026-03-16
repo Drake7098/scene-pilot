@@ -29,7 +29,7 @@ async function postWebhook(baseUrl, webhookSecret, body, ts) {
 
 function usage() {
   console.log("Usage:");
-  console.log("APP_URL=https://scene-pilot-test.pages.dev PADDLE_WEBHOOK_SECRET=... npm run paddle:webhook:replay");
+  console.log("APP_URL=https://scenepilotix.pages.dev PADDLE_WEBHOOK_SECRET=... npm run paddle:webhook:replay");
 }
 
 async function main() {

@@ -13,13 +13,13 @@
 | **支付** | Paddle | checkout / customer-portal / webhook |
 | **本地 DB（开发）** | Cloudflare D1 | `wrangler.toml` 绑定 `scene-pilot-db` |
 
-### 环境 URL（2026-03-15：develop 服务器 = scene-pilot-test.pages.dev，正式服 = prod）
+### 环境 URL（2026-03-15：develop 服务器 = scenepilotix.pages.dev，正式服 = prod）
 
 | 环境 | 项目名 | URL | 分支 |
 |------|--------|-----|------|
-| develop 服务器 | scene-pilot-test | https://scene-pilot-test.pages.dev | develop |
-| 正式服 | scene-pilot-prod | https://scene-pilot-prod.pages.dev | main |
-| 正式域名 | scene-pilot-prod | https://www.scenepilotix.com | main |
+| develop 服务器 | scenepilotix | https://scenepilotix.pages.dev | develop |
+| 正式服 | scenepilotix1-prod | https://scenepilotix1-prod.pages.dev | main |
+| 正式域名 | scenepilotix1-prod | https://www.scenepilotix.com | main |
 
 ### 关键环境变量（必记）
 
@@ -60,8 +60,8 @@ npm run db:query:local -- "SELECT ..."
 
 | 分支 | 用途 | 自动部署 |
 |------|------|----------|
-| develop | develop 服务器、先更新 | scene-pilot-test |
-| main | 正式服、确认 develop 后再更新 | scene-pilot-prod |
+| develop | develop 服务器、先更新 | scenepilotix |
+| main | 正式服、确认 develop 后再更新 | scenepilotix1-prod |
 
 ### 发布流程
 

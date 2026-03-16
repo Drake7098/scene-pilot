@@ -172,10 +172,10 @@ npm run release:cloudflare:audit
 
 echo "[4/5] Smoke test pages.dev environments"
 if [[ "$TARGET" == "all" || "$TARGET" == "test" ]]; then
-  APP_URL="https://scene-pilot-test.pages.dev" npm run smoke:release
+  APP_URL="https://scenepilotix.pages.dev" npm run smoke:release
 fi
 if [[ "$TARGET" == "all" || "$TARGET" == "prod" ]]; then
-  APP_URL="https://scene-pilot-prod.pages.dev" npm run smoke:release
+  APP_URL="https://scenepilotix1-prod.pages.dev" npm run smoke:release
 fi
 
 echo "[5/5] Smoke test custom domain"

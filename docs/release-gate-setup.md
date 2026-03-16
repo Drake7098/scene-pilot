@@ -16,8 +16,8 @@
 
 ## 2) 环境与发布流程
 
-- **develop 服务器**：push `develop` → Cloudflare scene-pilot-test（scene-pilot-test.pages.dev）自动部署。
-- **正式服**：push `main` → Cloudflare scene-pilot-prod 自动部署。
+- **develop 服务器**：push `develop` → Cloudflare scenepilotix（scenepilotix.pages.dev）自动部署。
+- **正式服**：push `main` → Cloudflare scenepilotix1-prod 自动部署。
 - 推荐：先 push develop，确认 develop 服务器无误后再 merge 到 main 并 push，更新 prod。
 
 详见：`docs/release-flow-quick.md`。

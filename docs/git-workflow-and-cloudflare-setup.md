@@ -39,8 +39,8 @@ npm run deploy:prod
 
 - 前端使用 **`import.meta.env.VITE_*`**，构建时由 Vite 内联。
 - **Cloudflare Pages 连 Git 时**：测试站与正式站的环境变量在 **Cloudflare Dashboard** 分别配置，而不是用仓库里的 `.env`：
-  - **scene-pilot-test**：在项目 **Settings → Environment variables** 中为 **Production**（或 Preview）配置 `VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY`、`VITE_APP_BASE_URL` 等，指向测试环境。
-  - **scene-pilot-prod**：同上，为 **Production** 配置正式环境变量（如 `VITE_APP_BASE_URL=https://www.scenepilotix.com`）。
+  - **scenepilotix**：在项目 **Settings → Environment variables** 中为 **Production**（或 Preview）配置 `VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY`、`VITE_APP_BASE_URL` 等，指向测试环境。
+  - **scenepilotix1-prod**：同上，为 **Production** 配置正式环境变量（如 `VITE_APP_BASE_URL=https://www.scenepilotix.com`）。
 - 同一套代码、不同 CF 项目、不同环境变量，即可区分测试站与正式站；无需在仓库维护多份 `.env`。
 
 ## 4. Cloudflare Dashboard 操作步骤（关联 Git）
@@ -52,11 +52,11 @@ npm run deploy:prod
 - 使用有 **Cloudflare 账户** 和 **GitHub 仓库访问权限** 的浏览器。
 - 确认 GitHub 仓库为 **Drake7098/scene-pilot**（或你的实际仓库名）。
 
-### 4.2 测试站（scene-pilot-test）— 关联 develop
+### 4.2 测试站（scenepilotix）— 关联 develop
 
 1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)。
 2. 左侧选择 **Workers & Pages**。
-3. 在项目列表中点击 **scene-pilot-test**（若尚未创建，先 **Create application** → **Pages** → **Connect to Git** 创建并跳过下面“改为连接”的步骤）。
+3. 在项目列表中点击 **scenepilotix**（若尚未创建，先 **Create application** → **Pages** → **Connect to Git** 创建并跳过下面“改为连接”的步骤）。
 4. 进入项目后，顶部切到 **Settings**。
 5. 左侧找到 **Builds & deployments**（或 **Build configuration**）。
 6. 若当前为 **Direct Upload**：
@@ -69,11 +69,11 @@ npm run deploy:prod
    - **Build command**：`npm run build`
    - **Build output directory**：`dist`
    - **Root directory**：留空（或 `/`）
-8. **Environment variables**（同上页或 **Settings → Environment variables**）：为 **Production** 配置测试站所需变量（如 `VITE_APP_BASE_URL=https://scene-pilot-test.pages.dev` 等），保存。
+8. **Environment variables**（同上页或 **Settings → Environment variables**）：为 **Production** 配置测试站所需变量（如 `VITE_APP_BASE_URL=https://scenepilotix.pages.dev` 等），保存。
 
-### 4.3 正式站（scene-pilot-prod）— 关联 main
+### 4.3 正式站（scenepilotix1-prod）— 关联 main
 
-1. 在 **Workers & Pages** 项目列表中点击 **scene-pilot-prod**。
+1. 在 **Workers & Pages** 项目列表中点击 **scenepilotix1-prod**。
 2. **Settings** → **Builds & deployments**（或 **Build configuration**）。
 3. 若当前为 **Direct Upload**：同样通过 **Connect to Git** / **Change source** 连接 **GitHub**，选择仓库 **Drake7098/scene-pilot**。
 4. **Production branch** 设为 **`main`**。
@@ -82,8 +82,8 @@ npm run deploy:prod
 
 ### 4.4 验证
 
-- 在 GitHub 上对 **develop** 做一次 push（或合并 PR 到 develop），到 Cloudflare **scene-pilot-test** 的 **Deployments** 页查看是否出现新部署。
-- 对 **main** 做一次 push（或执行 `npm run deploy:prod`），到 **scene-pilot-prod** 的 **Deployments** 查看是否出现新部署。
+- 在 GitHub 上对 **develop** 做一次 push（或合并 PR 到 develop），到 Cloudflare **scenepilotix** 的 **Deployments** 页查看是否出现新部署。
+- 对 **main** 做一次 push（或执行 `npm run deploy:prod`），到 **scenepilotix1-prod** 的 **Deployments** 查看是否出现新部署。
 
 ### 4.5 若界面与上述不一致
 

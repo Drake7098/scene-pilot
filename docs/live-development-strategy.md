@@ -162,10 +162,10 @@ Last updated: 2026-03-13
 
 ## Infra Migration (Stage-1 Active)
 - 目标架构：Cloudflare Pages（前端）+ Supabase Auth/Postgres（登录与主库）+ Paddle（支付）。
-- **当前发布拓扑（2026-03-15 起）**：**develop 服务器**（scene-pilot-test）+ **prod 正式服**（scene-pilot-prod）。
-- **约定**：在 develop 开发时，**push 只更新测试服**（scene-pilot-test）；**要更新正式服必须执行 `npm run deploy:prod`**（合并 develop 到 main 并 push main）。流程与补足清单见 **docs/deploy-flow-develop-main.md**。
-- `develop` -> scene-pilot-test：`https://scene-pilot-test.pages.dev`，push develop 即更新测试站（需 CF 连 Git 或 GitHub Actions 已配置）。
-- `main` -> scene-pilot-prod：`https://scene-pilot-prod.pages.dev` / www.scenepilotix.com，push main（或 `npm run deploy:prod`）即更新正式站。
+- **当前发布拓扑（2026-03-15 起）**：**develop 服务器**（scenepilotix）+ **prod 正式服**（scenepilotix1-prod）。
+- **约定**：在 develop 开发时，**push 只更新测试服**（scenepilotix）；**要更新正式服必须执行 `npm run deploy:prod`**（合并 develop 到 main 并 push main）。流程与补足清单见 **docs/deploy-flow-develop-main.md**。
+- `develop` -> scenepilotix：`https://scenepilotix.pages.dev`，push develop 即更新测试站（需 CF 连 Git 或 GitHub Actions 已配置）。
+- `main` -> scenepilotix1-prod：`https://scenepilotix1-prod.pages.dev` / www.scenepilotix.com，push main（或 `npm run deploy:prod`）即更新正式站。
 - **允许直接 push**：不要求 PR；推荐先 push develop，确认测试站后再 `npm run deploy:prod` 更新 prod。安全闸门（PR/审批）以后再加。
 - PR 闸门（可选）：`.github/workflows/pr-gate.yml` 仍可对 PR 跑检查；分支保护不强制开启，可直接 push。
 - 支付环境保险已启用：
@@ -198,9 +198,9 @@ Last updated: 2026-03-13
 - 前端 `creditService/providerGatewayService/billingService` 已接入会话鉴权 header 与服务端链路（保留本地回退仅用于离线调试）。
 
 ## Known Gaps
-- 2026-03-13 13:50（Asia/Shanghai）发布收口：`scene-pilot-prod` 最新生产部署 `cbe40160`、`scene-pilot-test` 最新生产部署 `327eabac`，两端 `Source` 均为 `f98a1dc`。
+- 2026-03-13 13:50（Asia/Shanghai）发布收口：`scenepilotix1-prod` 最新生产部署 `cbe40160`、`scenepilotix` 最新生产部署 `327eabac`，两端 `Source` 均为 `f98a1dc`。
 - 2026-03-13 安全参数收口：test/prod 已补齐并加密注入新增限流与 webhook 时间窗密钥（`AUTH_*_LIMIT_*`、`GENERATION_*_LIMIT_*`、`CHECKOUT_LIMIT_PER_10M`、`LEGAL_CONSENT_LIMIT_PER_10M`、`COLLECT_RATE_LIMIT_PER_MIN`、`FEEDBACK_RATE_LIMIT_PER_10M`、`PADDLE_WEBHOOK_MAX_*`）。
-- 2026-03-13 收口完成：`scene-pilot-test/pages.dev` 与 `scene-pilot-prod/pages.dev` 的 smoke 已通过，严格鉴权与 billing-off 行为正确（`401/401/503`）。
+- 2026-03-13 收口完成：`scenepilotix/pages.dev` 与 `scenepilotix1-prod/pages.dev` 的 smoke 已通过，严格鉴权与 billing-off 行为正确（`401/401/503`）。
 - 2026-03-13 收口完成：`SUPABASE_SERVICE_ROLE_KEY` 已注入 test/prod；正式域名 `www.scenepilotix.com` 已绑定并通过最终 smoke（`200/401/503`）。
 - 2026-03-13 最新测试服核验：`/api/generation/providers`、`/api/billing/me` 匿名访问已返回 `401`；登录 cookie 下可访问 `billing/me`，跨用户查询返回 `403 user_id_mismatch`。
 - 登录策略已收口为 Supabase-only：前端 `authService` 仅走 Supabase (`auth/v1/otp` / `auth/v1/verify` / `auth/v1/token`)。

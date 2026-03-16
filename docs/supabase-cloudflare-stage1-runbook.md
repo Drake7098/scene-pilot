@@ -16,19 +16,19 @@ Last updated: 2026-03-13
 - `main`: 正式环境主分支（只放已验收版本）
 
 ### 发布流程（2026-03-15 起，快捷优先）
-1. push **develop** → 自动部署 **develop 服务器**（scene-pilot-test，域名 scene-pilot-test.pages.dev）。
-2. 确认 develop 服务器无误后，merge 到 main 并 push **main** → 自动部署正式服（scene-pilot-prod）。允许直接 push，不强制 PR。
+1. push **develop** → 自动部署 **develop 服务器**（scenepilotix，域名 scenepilotix.pages.dev）。
+2. 确认 develop 服务器无误后，merge 到 main 并 push **main** → 自动部署正式服（scenepilotix1-prod）。允许直接 push，不强制 PR。
 
 ### Cloudflare Pages 项目
-- `scene-pilot-test` → Production branch: `develop`（develop 服务器，域名 scene-pilot-test.pages.dev）
-- `scene-pilot-prod` → Production branch: `main`（正式服）
+- `scenepilotix` → Production branch: `develop`（develop 服务器，域名 scenepilotix.pages.dev）
+- `scenepilotix1-prod` → Production branch: `main`（正式服）
 
 ## 当前发布状态（2026-03-13）
 
 - 代码侧：登录回跳、fail-closed、`/api/auth/password/sign-in`、`AUTH_DEV_CODE_EXPOSE` 默认关闭，已完成。
-- develop 服务器：`https://scene-pilot-test.pages.dev` 冒烟通过（`/api/generation/providers=401`、`/api/billing/me=401`、`/api/paddle/checkout=503`）。
-- 预正式服：`https://scene-pilot-prod.pages.dev` 冒烟通过（同上）。
-- 生产域名：`https://www.scenepilotix.com` 已绑定 `scene-pilot-prod` 并通过最终冒烟（`200/401/503`）。
+- develop 服务器：`https://scenepilotix.pages.dev` 冒烟通过（`/api/generation/providers=401`、`/api/billing/me=401`、`/api/paddle/checkout=503`）。
+- 预正式服：`https://scenepilotix1-prod.pages.dev` 冒烟通过（同上）。
+- 生产域名：`https://www.scenepilotix.com` 已绑定 `scenepilotix1-prod` 并通过最终冒烟（`200/401/503`）。
 - 结论：Stage-1 发布链路收口完成（支付仍按 `BILLING_ENABLED=0` 关闭，待 Paddle 正式联调再开启）。
 
 ### 并行线程防污染（上线前新增）
@@ -40,7 +40,7 @@ Last updated: 2026-03-13
 
 ## 二、域名与 TLS
 
-1. 将 `www.scenepilotix.com` 绑定到 `scene-pilot-prod`。
+1. 将 `www.scenepilotix.com` 绑定到 `scenepilotix1-prod`。
 2. 将 `scenepilotix.com` 做 301 跳转到 `https://www.scenepilotix.com`。
 3. SSL/TLS 模式使用 `Full (strict)`。
 
@@ -132,7 +132,7 @@ Last updated: 2026-03-13
 - 单次 credits 购买
 - webhook 重放防重
 5. 回放命令（同一 `event_id` 发送两次，第二次应返回 `dedup=true`）：
-- `APP_URL=https://scene-pilot-test.pages.dev PADDLE_WEBHOOK_SECRET=<secret> npm run paddle:webhook:replay`
+- `APP_URL=https://scenepilotix.pages.dev PADDLE_WEBHOOK_SECRET=<secret> npm run paddle:webhook:replay`
 - 如需指定测试用户与产品：
 - `APP_URL=... PADDLE_WEBHOOK_SECRET=... PADDLE_REPLAY_USER_ID=<uuid> PADDLE_REPLAY_PRODUCT_ID=pro_monthly npm run paddle:webhook:replay`
 

@@ -194,7 +194,7 @@
         },
         {
           "at": "2026-03-13T02:55:00.348Z",
-          "text": "scene-pilot-test/pages.dev 与 scene-pilot-prod/pages.dev 已部署并 smoke 通过（200/200/200 + 401/401 + 503）；待 SUPABASE_SERVICE_ROLE_KEY 注入后完成最终收口。"
+          "text": "scenepilotix/pages.dev 与 scenepilotix1-prod/pages.dev 已部署并 smoke 通过（200/200/200 + 401/401 + 503）；待 SUPABASE_SERVICE_ROLE_KEY 注入后完成最终收口。"
         },
         {
           "at": "2026-03-13T02:55:23.658Z",

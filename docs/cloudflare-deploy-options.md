@@ -1,6 +1,6 @@
 # Cloudflare 双环境部署方案（当前为 Direct Upload）
 
-**问题**：scene-pilot-test 与 scene-pilot-prod 均为 **Direct Upload**，push Git 不会触发自动构建/部署。
+**问题**：scenepilotix 与 scenepilotix1-prod 均为 **Direct Upload**，push Git 不会触发自动构建/部署。
 
 **目标**：在安全前提下实现「push 后自动部署」或「可重复的一键部署」。
 
@@ -12,10 +12,10 @@
 
 **步骤**：
 
-1. Cloudflare Dashboard → **Workers & Pages** → **scene-pilot-test** → **Settings** → **Builds & deployments**。
+1. Cloudflare Dashboard → **Workers & Pages** → **scenepilotix** → **Settings** → **Builds & deployments**。
 2. 若当前为 **Direct Upload**，找到 **Connect to Git**（或 **Create with Git** 若需重建）。
 3. 连接仓库 `Drake7098/scene-pilot`，**Production branch** 设为 **develop**，保存。
-4. 对 **scene-pilot-prod** 重复，**Production branch** 设为 **main**。
+4. 对 **scenepilotix1-prod** 重复，**Production branch** 设为 **main**。
 
 **安全与行为**：
 
@@ -41,7 +41,7 @@
 **仓库内改动**：
 
 - 新增 workflow：`.github/workflows/deploy-pages.yml`（见下节）。
-- 每次 push **develop** 会构建并部署到 **scene-pilot-test**；每次 push **main** 会构建并部署到 **scene-pilot-prod**。
+- 每次 push **develop** 会构建并部署到 **scenepilotix**；每次 push **main** 会构建并部署到 **scenepilotix1-prod**。
 
 **与方案 A 的取舍**：
 
@@ -54,8 +54,8 @@
 
 已在本仓库添加 `.github/workflows/deploy-pages.yml`（见该文件）。逻辑概要：
 
-- **develop** push → `npm run build` → `wrangler pages deploy dist --project-name=scene-pilot-test`
-- **main** push → `npm run build` → `wrangler pages deploy dist --project-name=scene-pilot-prod`
+- **develop** push → `npm run build` → `wrangler pages deploy dist --project-name=scenepilotix`
+- **main** push → `npm run build` → `wrangler pages deploy dist --project-name=scenepilotix1-prod`
 - 使用 Secret：**CLOUDFLARE_API_TOKEN**；并需 **CLOUDFLARE_ACCOUNT_ID**（可 Secret 或 workflow 内变量）。
 
 **首次使用**：

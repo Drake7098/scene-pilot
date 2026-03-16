@@ -128,8 +128,8 @@ async function auditProject(projectName, expected) {
 }
 
 async function main() {
-  const testProject = env("CF_PAGES_TEST_PROJECT", "scene-pilot-test");
-  const prodProject = env("CF_PAGES_PROD_PROJECT", "scene-pilot-prod");
+  const testProject = env("CF_PAGES_TEST_PROJECT", "scenepilotix");
+  const prodProject = env("CF_PAGES_PROD_PROJECT", "scenepilotix1-prod");
 
   const sharedRequired = [
     "VITE_SUPABASE_URL",

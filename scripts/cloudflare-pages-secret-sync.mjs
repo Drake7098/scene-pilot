@@ -60,7 +60,7 @@ function buildSecretMap(target) {
     return {
       VITE_SUPABASE_URL: supabaseUrl,
       VITE_SUPABASE_ANON_KEY: supabaseAnon,
-      VITE_APP_BASE_URL: env("TEST_VITE_APP_BASE_URL", "https://scene-pilot-test.pages.dev"),
+      VITE_APP_BASE_URL: env("TEST_VITE_APP_BASE_URL", "https://scenepilotix.pages.dev"),
       VITE_BILLING_ENABLED: env("TEST_VITE_BILLING_ENABLED", "0"),
       VITE_BILLING_MODE: env("TEST_VITE_BILLING_MODE", "sandbox"),
       VITE_BILLING_LIVE_ALLOWED: env("TEST_VITE_BILLING_LIVE_ALLOWED", "0"),
@@ -70,7 +70,7 @@ function buildSecretMap(target) {
       SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRole,
       CORS_ALLOW_ORIGINS: env(
         "TEST_CORS_ALLOW_ORIGINS",
-        "https://scene-pilot-test.pages.dev,https://www.scenepilotix.com,http://localhost:5173"
+        "https://scenepilotix.pages.dev,https://www.scenepilotix.com,http://localhost:5173"
       ),
       API_AUTH_STRICT: env("TEST_API_AUTH_STRICT", "1"),
       API_AUTH_TOKEN: env("TEST_API_AUTH_TOKEN", apiAuthToken),
@@ -95,7 +95,7 @@ function buildSecretMap(target) {
     SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRole,
     CORS_ALLOW_ORIGINS: env(
       "PROD_CORS_ALLOW_ORIGINS",
-      "https://www.scenepilotix.com,https://scene-pilot-test.pages.dev"
+      "https://www.scenepilotix.com,https://scenepilotix.pages.dev"
     ),
     API_AUTH_STRICT: env("PROD_API_AUTH_STRICT", "1"),
     API_AUTH_TOKEN: env("PROD_API_AUTH_TOKEN", apiAuthToken),
@@ -139,8 +139,8 @@ function runSecretBulk(projectName, target, secrets, dryRun) {
 function main() {
   const target = argValue("--target", "all");
   const dryRun = hasFlag("--dry-run");
-  const testProject = argValue("--test-project", env("CF_PAGES_TEST_PROJECT", "scene-pilot-test"));
-  const prodProject = argValue("--prod-project", env("CF_PAGES_PROD_PROJECT", "scene-pilot-prod"));
+  const testProject = argValue("--test-project", env("CF_PAGES_TEST_PROJECT", "scenepilotix"));
+  const prodProject = argValue("--prod-project", env("CF_PAGES_PROD_PROJECT", "scenepilotix1-prod"));
 
   const targets = target === "all" ? ["test", "prod"] : [target];
   for (const item of targets) {
