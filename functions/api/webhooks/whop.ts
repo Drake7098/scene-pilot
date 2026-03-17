@@ -1,4 +1,5 @@
 export const onRequestPost = async ({ request, env }: { request: Request; env: { WHOP_WEBHOOK_SECRET: string; SUPABASE_URL: string; SUPABASE_SERVICE_KEY: string } }) => {
+  console.log("WHOP WEBHOOK HIT", request.method);
   const body = await request.text();
   const sig = request.headers.get("whop-signature") ?? "";
 
