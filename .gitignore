@@ -47,3 +47,7 @@ plans.json
 
 # Work files
 trea-work.md
+
+# Artifacts directories
+artifacts/
+tests/robots/artifacts/
