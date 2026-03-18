@@ -29,6 +29,8 @@ export type EditorSelectProps = {
   compact?: boolean;
   /** Tooltip (e.g. rule reason when disabled) */
   title?: string;
+  /** PRO badge shown after label — pass "PRO" when a pro field is active */
+  labelSuffix?: string;
 };
 
 export function EditorSelect({
@@ -42,6 +44,7 @@ export function EditorSelect({
   className,
   compact = false,
   title,
+  labelSuffix,
 }: EditorSelectProps) {
   const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue ?? "");
   const isControlled = controlledValue !== undefined;
@@ -63,7 +66,9 @@ export function EditorSelect({
       {label != null && (
         <label
           style={{
-            display: "block",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
             fontSize: typography.labelSize,
             fontWeight: typography.labelWeight,
             color: colors.textMuted,
@@ -71,6 +76,17 @@ export function EditorSelect({
           }}
         >
           {label}
+          {labelSuffix && (
+            <span style={{
+              fontSize: 9,
+              fontWeight: 600,
+              color: colors.accent,
+              letterSpacing: "0.04em",
+              lineHeight: 1,
+            }}>
+              {labelSuffix}
+            </span>
+          )}
         </label>
       )}
       <div style={{ position: "relative" }}>

@@ -6,7 +6,7 @@ import { StandalonePageChrome } from "../components/StandalonePageChrome";
 import type { UserSession, UserState } from "../types/account";
 import type { ApiCredentialState } from "../types/account";
 import type { CreditLedgerEntry, SubscriptionState, WalletState } from "../types/billing";
-import { CREDIT_PACKS, HOSTED_ACTIONS, getBillingSnapshot, launchCheckout, openCustomerPortal, PRO_PLAN } from "../services/billingService";
+import { HOSTED_ACTIONS, PRICING_FINAL_CREDIT_PACKS, getBillingSnapshot, launchCheckout, openCustomerPortal, PRO_PLAN } from "../services/billingService";
 import { getCreditLedger, getWalletState } from "../services/creditService";
 import { getCurrentSession, getCurrentUser, logout } from "../services/authService";
 import { recordLegalConsent } from "../services/legalConsentService";
@@ -131,7 +131,10 @@ export default function UserManagementPage() {
   }, [refresh]);
 
   const { user, session, wallet, ledger, apiCredentials } = snapshot;
-  const creditPacks = useMemo(() => CREDIT_PACKS.filter((item) => item.enabled), []);
+  const creditPacks = useMemo(
+    () => PRICING_FINAL_CREDIT_PACKS.filter((item) => item.enabled),
+    []
+  );
   const creditCosts = useMemo(() => HOSTED_ACTIONS.filter((item) => item.enabled), []);
   const billingRuntimeEnabled = BILLING_ENABLED && !BILLING_LIVE_BLOCKED;
   const proActive = user?.tier === "pro";

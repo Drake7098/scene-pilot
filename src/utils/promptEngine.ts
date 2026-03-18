@@ -94,7 +94,25 @@ function isNegativeHeading(line: string): boolean {
   return /^Anti-Director Rules:/i.test(line) || /^Negative:/i.test(line) || /^负向约束[:：]/.test(line);
 }
 
-/** Extract content after heading colon (e.g. "镜头：全景，固定" → "全景，固定") */
+// Step2 新格式识别：空间叙事行（Two-shot / 双人构图 / MCU shot 等）
+function isFrameNarrativeLine(line: string): boolean {
+  return (
+    /^Two-shot\./i.test(line) ||
+    /^Multi-subject\./i.test(line) ||
+    /^(ECU|CU|MCU|MS|FS|LS|XLS) shot\./i.test(line) ||
+    /^双人构图[：:]/i.test(line) ||
+    /^多主体构图/i.test(line)
+  );
+}
+
+// Step2 新格式识别：运动叙事行（"A: moves right." / "男主：向右移动。"）
+function isMotionNarrativeLine(line: string): boolean {
+  return (
+    /^[A-Za-z\u4e00-\u9fff\s]+[:：]\s*(slight|moves|walks|holds|shifts|drifts|runs|stays|轻微|向[左右上下]|保持静止|跑|走)/i.test(line) &&
+    !/^(Scene|Camera|Layout|Constraint|约束|镜头|构图|所有主体|All subjects)[:：]/i.test(line)
+  );
+}
+
 function contentAfterHeading(line: string): string | null {
   const m = line.match(/[:：]\s*(.+)$/);
   return m ? m[1].trim() : null;
@@ -180,9 +198,22 @@ function parseSections(main: string): PromptSectionSet {
       if (rest) sections.constraints.push(rest);
       continue;
     }
+    // Step2 新格式：Constraint: 单行直接进 constraints
+    if (/^Constraint:/i.test(line) || /^约束：/.test(line)) {
+      sections.constraints.push(line);
+      continue;
+    }
 
     if (current) {
-      sections[current].push(line);
+      // Step2 新格式：空间叙事行归入 subjects，运动叙事行归入 motion
+      // 无论当前 section 是什么（通常会在 layout section 内遇到它们）
+      if (isFrameNarrativeLine(line)) {
+        sections.subjects.push(line);
+      } else if (isMotionNarrativeLine(line)) {
+        sections.motion.push(line);
+      } else {
+        sections[current].push(line);
+      }
       continue;
     }
 
@@ -266,11 +297,17 @@ function compactQuickSubjectLines(
       .replace(/\s{2,}/g, " ")
       .trim();
 
-    const isCoordinateHeavy = /(起点t0|终点t1|Start t0|End\s+t1|x=|y=|w=|h=|rot=|t0\s*[->→]\s*t1)/i.test(line);
+    const isCoordinateHeavy = /(起点t0|终点t1|Start t0|End\s+t1|x=|y=|w=|h=|rot=|t0\s*[->\→]\s*t1)/i.test(line);
     if (isCoordinateHeavy) continue;
 
     const isLocalPromptTail = /(对象局部参考|Object-local pasted prompt|Reference links)/i.test(line);
     if (isLocalPromptTail && line.length > 90) continue;
+
+    // Step2 新格式保护：空间叙事行和运动叙事行不截断，直接保留
+    if (isFrameNarrativeLine(line) || isMotionNarrativeLine(line)) {
+      out.push(line);
+      continue;
+    }
 
     out.push(line);
   }
@@ -290,7 +327,9 @@ function renderImagePrompt(sections: PromptSectionSet, lang: Lang, workspace: Pr
   const subjects = workspace === "quick"
     ? compactQuickSubjectLines(sections.subjects, lang, "image")
     : sections.subjects;
-  const negatives = workspace === "quick" ? limitLines([...sections.negative, ...sections.constraints], 4) : [...sections.negative, ...sections.constraints];
+  const negatives = workspace === "quick"
+    ? limitLines([...sections.negative, ...sections.constraints], 4)
+    : [...sections.negative, ...sections.constraints];
   const blocks = [
     sections.extras.join("\n"),
     sections.scene.join("\n"),
@@ -308,7 +347,9 @@ function renderVideoPrompt(sections: PromptSectionSet, lang: Lang, workspace: Pr
   const subjects = workspace === "quick"
     ? compactQuickSubjectLines(sections.subjects, lang, "video")
     : sections.subjects;
-  const negatives = workspace === "quick" ? limitLines([...sections.negative, ...sections.constraints], 4) : [...sections.negative, ...sections.constraints];
+  const negatives = workspace === "quick"
+    ? limitLines([...sections.negative, ...sections.constraints], 4)
+    : [...sections.negative, ...sections.constraints];
   const blocks = [
     sections.extras.join("\n"),
     sections.scene.join("\n"),
@@ -376,7 +417,14 @@ function compactVideoBudgetLanguage(text: string, lang: Lang): string {
         [/结束保持原位，距离与尺度稳定。/g, "结束保持原位。"],
         [/保持层级关系与相对顺序。/g, "保持层级与相对顺序。"],
         [/保持对象顺序和前中后层级，不要自动重排。/g, "保持对象顺序与层级，不自动重排。"],
-        [/用画面占比表达远近，保持大小层级。/g, "用画面占比表达远近。"]
+        [/用画面占比表达远近，保持大小层级。/g, "用画面占比表达远近。"],
+        [/保持主体身份与空间方位连续一致。/g, ""],
+        [/保持主体位置关系与画面比例稳定。/g, ""],
+        [/保持画面比例稳定。/g, ""],
+        [/保持空间方位连续一致。/g, ""],
+        [/保持身份连续一致。/g, ""],
+        [/不自动换角度。/g, ""],
+        [/不要自动重排。/g, ""]
       ]
     : [
         [/\s*\(only applies to [^)]+\)/gi, ""],
@@ -386,7 +434,14 @@ function compactVideoBudgetLanguage(text: string, lang: Lang): string {
         [/End in place with stable distance and scale\./gi, "End in place."],
         [/Keep layer relationship and relative order\./gi, "Keep layer order."],
         [/Preserve object order and depth layering; do not relayout\./gi, "Preserve object order and depth."],
-        [/Use frame coverage to express distance and size hierarchy\./gi, "Use coverage to express depth."]
+        [/Use frame coverage to express distance and size hierarchy\./gi, "Use coverage to express depth."],
+        [/Keep subject identity and spatial orientation continuous\./gi, ""],
+        [/Keep subject relation and frame proportions stable\./gi, ""],
+        [/Keep frame proportions stable\./gi, ""],
+        [/Keep spatial orientation continuous\./gi, ""],
+        [/Keep identity continuous\./gi, ""],
+        [/Do not change angle\./gi, ""],
+        [/Do not relayout\./gi, ""]
       ];
 
   let next = text;
@@ -516,7 +571,12 @@ function enforceRouteContract(input: {
 
   if (route === "quick_video" || route === "pro_video") {
     const hasCamera = /(^Camera(?: Contract)?:|^镜头[:：])/im.test(working);
-    const hasMotion = /(^Motion:|^T1 Frame Spec:|^动作[:：]|^Transition\s+\d+|^衔接\s+\d+)/im.test(working);
+    // Step2 新格式：motion section 或直接的运动叙事行都算有 motion
+    const hasMotion =
+      /(^Motion:|^T1 Frame Spec:|^动作[:：]|^Transition\s+\d+|^衔接\s+\d+)/im.test(working) ||
+      working.split("\n").some((l) => isMotionNarrativeLine(l.trim())) ||
+      /^所有主体保持静止|^All subjects static/im.test(working);
+
     if (!hasCamera || !hasMotion) {
       const inject = lang === "zh"
         ? [
@@ -578,7 +638,8 @@ function enforceRouteContract(input: {
         : { camera: 4, layout: 4, subjects: 4, motion: 4, negative: 3 }
     );
 
-    if (route === "pro_video" && rebuilt.length > 430) {
+    // Budget 阈值提升：Step2 的空间叙事描述比原 T0 列表信息密度更高
+    if (route === "pro_video" && rebuilt.length > 600) {
       rebuilt = renderVideoPromptWithLimits(
         {
           ...sections,
@@ -589,14 +650,14 @@ function enforceRouteContract(input: {
         { camera: 3, layout: 3, subjects: 4, motion: 4, negative: 3 }
       );
       passes.push("pro_video_budget_compaction");
-      if (rebuilt.length > 430) {
+      if (rebuilt.length > 600) {
         rebuilt = compactVideoBudgetLanguage(rebuilt, lang);
         passes.push("pro_video_budget_language_compaction");
       }
     }
 
     working = rebuilt.trim();
-    if (route === "quick_video" && working.length > 320) {
+    if (route === "quick_video" && working.length > 450) {
       working = compactVideoBudgetLanguage(working, lang);
       passes.push("quick_video_budget_language_compaction");
     }

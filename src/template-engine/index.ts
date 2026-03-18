@@ -17,7 +17,8 @@ export type { TemplatePayload } from "./types/templatePayload";
 export type {
   TemplateVariant,
   TemplateCategory,
-  TemplateDomain
+  TemplateDomain,
+  TemplateIndustry
 } from "./types/templateTypes";
 export type {
   TemplateWorkspaceScope,

@@ -8,7 +8,8 @@ import type {
   TemplateStoryPlan,
   TemplateRatio,
   TemplateVariant,
-  TemplateDomain
+  TemplateDomain,
+  TemplateIndustry
 } from "./templateTypes";
 
 export type TemplateIndex = {
@@ -20,7 +21,10 @@ export type TemplateIndex = {
   nameZh: string;
   nameEn: string;
   category: TemplateCategory;
+  /** Internal routing domain (engine use) */
   domain: TemplateDomain;
+  /** User-facing industry/scene classification */
+  industry?: TemplateIndustry;
   descriptionZh?: string;
   descriptionEn?: string;
   tags: string[];

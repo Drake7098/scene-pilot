@@ -206,7 +206,10 @@ async function refreshSupabaseSessionIfNeeded() {
     body: { refresh_token: current.refreshToken }
   });
   if (!refreshed.ok || !refreshed.data?.access_token || !refreshed.data?.refresh_token) {
+    // refresh_token 已失效，清除 session 并触发重新登录提示
     writeSupabaseSession(null);
+    // 派发一个事件让 UI 层感知，而不是静默失败
+    window.dispatchEvent(new CustomEvent("sp:session_expired"));
     return null;
   }
   const next: SupabaseSessionState = {

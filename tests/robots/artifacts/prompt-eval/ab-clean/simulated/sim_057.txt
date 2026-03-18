@@ -1,0 +1,32 @@
+Scenario: sim_057
+[V2 SCENEPILOT COMPILE]
+Scene: shot_57 (6s)
+Scene Domain: daily (日常)
+Need: rainy-day umbrella crossing
+@compiler:v2
+@scene_tier:open_space
+@v2_mode:strict
+
+User Object Input:
+- object_id: hero_1
+- base: 年轻男性，黑色外套
+- user_actions: 跑了三步 / 坐着 / 在吃东西
+
+Layout Contract (obey strictly):
+- preserve relative layout and preserve depth order; far threshold.
+- keep object count; do not re-layout composition.
+
+T0 Frame Spec:
+- baseline framing with foreground-midground-background separation.
+
+T1 Frame Spec:
+- 先向右跑了三步，随后坐下并继续吃东西。 moves right, moves closer to camera, increases in size, slight turn.
+
+Anti-Director Rules:
+- anti-director strength: strong.
+- no auto-centering; no symmetry; no hero re-layout.
+- no text; no overlays; keep object count.
+
+Generation constraints:
+- Camera Contract: hold framing for 6s duration window.
+- structure first, style second.

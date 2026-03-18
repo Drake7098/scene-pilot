@@ -71,6 +71,23 @@ const FAMILIES: {
   { id: "title_subtitle_layout", nameEn: "Title Subtitle Layout", nameZh: "标题字幕布局", category: "cover_poster", mediaType: "image", storyPlan: "single" }
 ];
 
+const MULTI_PERSON_DIALOGUE_FAMILIES = [
+  "dialogue_duo",
+  "interview_layout",
+  "faceoff_scene",
+  "tracking_dialogue",
+  "multi_person_dialogue"
+];
+
+const CAMERA_MOVE_FAMILIES = [
+  "push_in_motion",
+  "pull_out_motion",
+  "pan_motion",
+  "tracking_motion",
+  "orbit_motion",
+  "crane_motion"
+];
+
 const FREE_DESCRIPTIONS: Record<string, { descriptionZh: string; descriptionEn: string }> = {
   product_hero: { descriptionZh: "适合快速生成单产品主视觉，居中主体，保留标题与 logo 区域。", descriptionEn: "A quick starter for single-product hero scenes with centered subject and reserved title/logo zones." },
   product_center_display: { descriptionZh: "适合产品居中陈列与干净背景展示，适合电商与演示图。", descriptionEn: "A centered product display starter for clean layouts, ideal for commerce and demo visuals." },
@@ -198,7 +215,6 @@ function buildSceneFromSpec(
 ): Scene {
   const mediaType = family.mediaType;
   const baseLayers = [
-    layer("Background", 1, { x: 50, y: 50, w: 100, h: 100 }),
     layer("Subject", 20, { x: 50, y: 50, w: 28, h: 36 })
   ];
   let shot = "medium";
@@ -220,8 +236,8 @@ function buildSceneFromSpec(
 
   if (variant === "multi_object") {
     layers = [
-      ...baseLayers,
       layer("Object 2", 18, { x: 30, y: 45, w: 18, h: 24 }),
+      layer("Subject", 20, { x: 50, y: 50, w: 28, h: 36 }),
       layer("Object 3", 18, { x: 70, y: 45, w: 18, h: 24 })
     ];
   }
@@ -277,6 +293,12 @@ export function getTemplateLibrary600Base(): UnifiedTemplate[] {
   const out: UnifiedTemplate[] = [];
   for (const family of FAMILIES) {
     for (const variant of VARIANTS) {
+      // 删除语义无效模版：多人对话类非 multi_object 变体缺人物层
+      if (MULTI_PERSON_DIALOGUE_FAMILIES.includes(family.id) && variant !== "multi_object") continue;
+      // 删除语义无效模版：镜头运动类非运动变体无运动参数
+      if (CAMERA_MOVE_FAMILIES.includes(family.id) && 
+          !["advanced_motion", "cinematic", "multi_object"].includes(variant)) continue;
+
       const isFree = variant === "free_starter";
       const cost = templateCost(family, variant);
       const scene = buildSceneFromSpec(family.id, variant, family);

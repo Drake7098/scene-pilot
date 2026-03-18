@@ -1,0 +1,32 @@
+Scenario: sim_007
+[V2 SCENEPILOT COMPILE]
+Scene: shot_07 (10s)
+Scene Domain: video (视频)
+Need: music video dance beat
+@compiler:v2
+@scene_tier:indoor
+@v2_mode:strict
+
+User Object Input:
+- object_id: hero_3
+- base: 中年男性，衬衫
+- user_actions: 向左挪一步 / 坐着 / 看手机
+
+Layout Contract (obey strictly):
+- preserve relative layout and preserve depth order; close threshold.
+- keep object count; do not re-layout composition.
+
+T0 Frame Spec:
+- baseline framing with foreground-midground-background separation.
+
+T1 Frame Spec:
+- 向左挪一步后坐定，低头看手机。 moves right, moves closer to camera, increases in size, slight turn.
+
+Anti-Director Rules:
+- anti-director strength: low.
+- no auto-centering; no symmetry; no hero re-layout.
+- no text; no overlays; keep object count.
+
+Generation constraints:
+- Camera Contract: hold framing for 10s duration window.
+- structure first, style second.

@@ -1,0 +1,112 @@
+[
+  {
+    "id": "image_bar_multi",
+    "mediaType": "image",
+    "promptLength": 483,
+    "matchedKeywords": [
+      "酒吧",
+      "主角",
+      "背景"
+    ],
+    "issues": []
+  },
+  {
+    "id": "image_forest_environment",
+    "mediaType": "image",
+    "promptLength": 484,
+    "matchedKeywords": [
+      "森林",
+      "旅行者",
+      "环境"
+    ],
+    "issues": []
+  },
+  {
+    "id": "image_product_watch",
+    "mediaType": "image",
+    "promptLength": 504,
+    "matchedKeywords": [
+      "手表",
+      "金属",
+      "产品"
+    ],
+    "issues": []
+  },
+  {
+    "id": "image_room_portrait",
+    "mediaType": "image",
+    "promptLength": 459,
+    "matchedKeywords": [
+      "风衣",
+      "窗边",
+      "背景"
+    ],
+    "issues": []
+  },
+  {
+    "id": "image_detective_depth",
+    "mediaType": "image",
+    "promptLength": 518,
+    "matchedKeywords": [
+      "侦探",
+      "机械臂",
+      "蓝图"
+    ],
+    "issues": []
+  },
+  {
+    "id": "video_single_shot_entry",
+    "mediaType": "video",
+    "promptLength": 485,
+    "matchedKeywords": [
+      "风雪",
+      "屋内",
+      "暖光"
+    ],
+    "issues": []
+  },
+  {
+    "id": "video_continuous_corridor",
+    "mediaType": "video",
+    "promptLength": 593,
+    "matchedKeywords": [
+      "走廊",
+      "人物",
+      "镜头"
+    ],
+    "issues": []
+  },
+  {
+    "id": "video_multiscene_rescue",
+    "mediaType": "video",
+    "promptLength": 656,
+    "matchedKeywords": [
+      "雪地",
+      "避难所",
+      "人物"
+    ],
+    "issues": []
+  },
+  {
+    "id": "video_multicam_dialogue",
+    "mediaType": "video",
+    "promptLength": 638,
+    "matchedKeywords": [
+      "桌子",
+      "交谈",
+      "女人"
+    ],
+    "issues": []
+  },
+  {
+    "id": "video_mood_time_jump",
+    "mediaType": "video",
+    "promptLength": 651,
+    "matchedKeywords": [
+      "海边",
+      "黄昏",
+      "女孩"
+    ],
+    "issues": []
+  }
+]

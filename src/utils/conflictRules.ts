@@ -184,20 +184,35 @@ export function detectSceneConflicts(
         detail: zhOrEn(lang, `对象 ${layer.id} 的备注和局部提示词都在改全局。`, `Both notes and object-local prompt of ${layer.id} attempt global overrides.`)
       });
     }
-    if (strategyOwnsGlobalLanguage && (has(RULES.globalWords, all) || has(RULES.lightingWords, all))) {
-      out.push({
-        id: `layer_strategy_scope_${layer.id}`,
-        severity: "warning",
-        scope: "layer",
-        layerId: layer.id,
-        field: has(RULES.globalWords, ext) ? "externalPrompt" : "notes",
-        title: zhOrEn(lang, "对象级输入正在改写场景策略", "Object-level Input Overrides Scene Strategy"),
-        detail: zhOrEn(
-          lang,
-          `对象 ${layer.id} 的局部描述出现了镜头/构图/光照等场景级词，但当前分镜已经启用了经典模式或导演包。建议把全局电影语言放回左栏。`,
-          `Layer ${layer.id} uses camera/composition/lighting wording while the scene already has a Classic Mode or Directing Pack. Keep global cinematic language on the left panel.`
-        )
-      });
+    // 只在明确检测到全局词时才提示，减少误报
+    if (strategyOwnsGlobalLanguage) {
+      const globalWordsMatch = has(RULES.globalWords, all);
+      const lightingWordsMatch = has(RULES.lightingWords, all);
+      if (globalWordsMatch || lightingWordsMatch) {
+        // 检查是否是真正的全局词，避免误报
+        const actualGlobalWords = /\b(camera|lens|shot|framing|composition|global|all subjects|whole scene|full frame)\b/i.test(all);
+        const actualLightingWords = /\b(light|lighting|backlight|rim light|key light|soft light|sunlight|shadow|glow|neon)\b/i.test(all);
+        // 只对明显的全局控制词进行提示，减少误报
+        if (actualGlobalWords || actualLightingWords) {
+          // 检查是否只是描述性的词汇，不是控制指令
+          const isDescriptiveOnly = /\b(description|detail|look|appearance|style)\b/i.test(all);
+          if (!isDescriptiveOnly) {
+            out.push({
+              id: `layer_strategy_scope_${layer.id}`,
+              severity: "warning",
+              scope: "layer",
+              layerId: layer.id,
+              field: has(RULES.globalWords, ext) ? "externalPrompt" : "notes",
+              title: zhOrEn(lang, "对象级输入正在改写场景策略", "Object-level Input Overrides Scene Strategy"),
+              detail: zhOrEn(
+                lang,
+                `对象 ${layer.id} 的局部描述出现了镜头/构图/光照等场景级词，但当前分镜已经启用了经典模式或导演包。建议把全局电影语言放回左栏。`,
+                `Layer ${layer.id} uses camera/composition/lighting wording while the scene already has a Classic Mode or Directing Pack. Keep global cinematic language on the left panel.`
+              )
+            });
+          }
+        }
+      }
     }
   }
 

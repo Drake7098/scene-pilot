@@ -323,7 +323,7 @@ export function ExportPanel({
       return;
     }
     setShowExportModal(true);
-  }, [openExportNonce, openExportAction, sceneConflicts]);
+  }, [openExportNonce, openExportAction]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function changePlatform(id: PlatformPresetId) {
     setPlatformPresetId(id);
@@ -1059,7 +1059,10 @@ export function ExportPanel({
               className="pro-btn"
               type="button"
               data-testid="export-copy-prompt-primary"
-              onClick={() => void guardBeforeExport("copy")}
+              onClick={(e) => {
+                e.stopPropagation();
+                void guardBeforeExport("copy");
+              }}
               style={styles.primaryBtn}
             >
               <Copy size={14} />
@@ -1069,7 +1072,10 @@ export function ExportPanel({
               className="pro-btn"
               type="button"
               data-testid="export-prompt-refs-primary"
-              onClick={() => void runExportPromptPlusRefs()}
+              onClick={(e) => {
+                e.stopPropagation();
+                void runExportPromptPlusRefs();
+              }}
               disabled={exporting}
               style={styles.primaryBtn}
             >
@@ -1099,22 +1105,10 @@ export function ExportPanel({
                   role="menuitem"
                   onClick={() => {
                     setMoreExportOpen(false);
-                    runOpenSaveModal("prompt_only");
+                    void guardBeforeExportTxt();
                   }}
                 >
                   {lang === "zh" ? "下载 prompt.txt" : "Download prompt.txt"}
-                </button>
-                <button
-                  type="button"
-                  className="pro-btn-ghost"
-                  style={styles.moreExportItem}
-                  role="menuitem"
-                  onClick={() => {
-                    setMoreExportOpen(false);
-                    runOpenSaveModal("package");
-                  }}
-                >
-                  {lang === "zh" ? "完整项目包" : "Full Project Package"}
                 </button>
               </div>
             ) : null}
@@ -1200,12 +1194,36 @@ export function ExportPanel({
           ) : null}
           <div style={styles.modalRow}>
             <div style={styles.profileLabel}>{lang === "zh" ? "导出类型" : "Export Type"}</div>
-            <div style={styles.optionWrap}>
-              <button data-testid="export-mode-prompt-only" type="button" className={exportMode === "prompt_only" ? "pro-btn" : "pro-btn-ghost"} style={styles.optionBtn} onClick={() => setExportMode("prompt_only")}>
-                {lang === "zh" ? "提示词 TXT" : "Prompt TXT"}
+            <div style={styles.exportTypeGrid}>
+              <button
+                data-testid="export-mode-prompt-only"
+                type="button"
+                className="pro-btn-ghost"
+                style={{ ...styles.exportTypeCard, ...(exportMode === "prompt_only" ? styles.exportTypeCardOn : {}) }}
+                onClick={() => setExportMode("prompt_only")}
+                aria-pressed={exportMode === "prompt_only"}
+              >
+                <div style={styles.exportTypeTitle}>{lang === "zh" ? "提示词 TXT" : "Prompt TXT"}</div>
+                <div style={styles.exportTypeDesc}>
+                  {lang === "zh"
+                    ? "导出单个 .txt 文件，适合直接粘贴到生成平台"
+                    : "Export a single .txt file for direct paste into generation platforms"}
+                </div>
               </button>
-              <button data-testid="export-mode-package" type="button" className={exportMode === "package" ? "pro-btn" : "pro-btn-ghost"} style={styles.optionBtn} onClick={() => setExportMode("package")}>
-                {lang === "zh" ? "整个项目（含参考图）" : "Whole Project (with refs)"}
+              <button
+                data-testid="export-mode-package"
+                type="button"
+                className="pro-btn-ghost"
+                style={{ ...styles.exportTypeCard, ...(exportMode === "package" ? styles.exportTypeCardOn : {}) }}
+                onClick={() => setExportMode("package")}
+                aria-pressed={exportMode === "package"}
+              >
+                <div style={styles.exportTypeTitle}>{lang === "zh" ? "完整项目包" : "Whole Project"}</div>
+                <div style={styles.exportTypeDesc}>
+                  {lang === "zh"
+                    ? "导出包含提示词和参考图的完整压缩包"
+                    : "Export a full archive with prompt + reference images"}
+                </div>
               </button>
             </div>
           </div>
@@ -1222,6 +1240,7 @@ export function ExportPanel({
               </div>
             </div>
           ) : null}
+          <div style={styles.modalDivider} />
           <div style={styles.modalRow}>
             <div style={styles.profileLabel}>{lang === "zh" ? "适用大模型" : "Target Model"}</div>
             <select
@@ -1263,13 +1282,16 @@ export function ExportPanel({
             </div>
           ) : null}
           <div style={styles.modalBtns}>
-            <button data-testid="export-close" className="pro-btn-ghost" onClick={() => setShowExportModal(false)} type="button">
-              {lang === "zh" ? "关闭" : "Close"}
-            </button>
-            <button
-              data-testid="export-submit"
-              className="pro-btn"
-              onClick={async () => {
+            <div style={styles.modalBtnLeft}>
+              <button data-testid="export-close" className="pro-btn-ghost" onClick={() => setShowExportModal(false)} type="button">
+                {lang === "zh" ? "关闭" : "Close"}
+              </button>
+            </div>
+            <div style={styles.modalBtnRight}>
+              <button
+                data-testid="export-submit"
+                className="pro-btn"
+                onClick={async () => {
                 if (exportMode === "prompt_only") {
                   let ticket: PromptExportTicket = { allowed: true };
                   if (onPreparePromptExport) {
@@ -1319,20 +1341,21 @@ export function ExportPanel({
                     setActionHint(zip.fileLabel || (lang === "zh" ? "ZIP 下载失败" : "ZIP download failed"));
                   }
                 }
-              }}
-              type="button"
-              disabled={exporting}
-            >
-              {exporting
-                ? lang === "zh"
-                  ? exportMode === "prompt_only" ? "导出中..." : "保存中..."
-                  : exportMode === "prompt_only" ? "Exporting..." : "Saving..."
-                : exportMode === "prompt_only"
-                  ? (lang === "zh" ? "导出提示词 TXT" : "Export Prompt TXT")
-                  : canSaveDirectory
-                    ? (lang === "zh" ? "导出整个项目" : "Export Whole Project")
-                    : (lang === "zh" ? "下载项目 ZIP" : "Download Project ZIP")}
-            </button>
+                }}
+                type="button"
+                disabled={exporting}
+              >
+                {exporting
+                  ? lang === "zh"
+                    ? exportMode === "prompt_only" ? "导出中..." : "保存中..."
+                    : exportMode === "prompt_only" ? "Exporting..." : "Saving..."
+                  : exportMode === "prompt_only"
+                    ? (lang === "zh" ? "导出提示词 TXT" : "Export Prompt TXT")
+                    : canSaveDirectory
+                      ? (lang === "zh" ? "导出整个项目" : "Export Whole Project")
+                      : (lang === "zh" ? "下载项目 ZIP" : "Download Project ZIP")}
+              </button>
+            </div>
           </div>
           </div>
         </div>
@@ -1965,8 +1988,10 @@ const styles: Record<string, React.CSSProperties> = {
     color: "rgba(108,221,162,0.96)",
     fontWeight: 800
   },
-  modalRow: { display: "flex", flexDirection: "column", gap: 4, marginBottom: 4 },
-  modalBtns: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4, flexWrap: "wrap" },
+  modalRow: { display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 },
+  modalBtns: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4, flexWrap: "wrap" },
+  modalBtnLeft: { display: "flex", justifyContent: "flex-start", flex: "0 0 auto" },
+  modalBtnRight: { display: "flex", justifyContent: "flex-end", flex: "0 0 auto" },
   optionWrap: { display: "flex", flexWrap: "wrap", gap: 6, flex: 1 },
   optionBtn: {
     padding: "5px 12px",
@@ -1983,6 +2008,43 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid #f59e0b",
     background: "rgba(245,158,11,0.12)",
     color: "#e5e7eb",
+  },
+  exportTypeGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 10
+  },
+  exportTypeCard: {
+    padding: "10px 12px",
+    borderRadius: 10,
+    border: "1px solid #3a3f46",
+    background: "#1f2125",
+    color: "#e5e7eb",
+    textAlign: "left",
+    cursor: "pointer",
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    outline: "none"
+  },
+  exportTypeCardOn: {
+    border: "1px solid rgba(245,158,11,0.55)",
+    background: "rgba(245,158,11,0.12)"
+  },
+  exportTypeTitle: {
+    fontSize: 13,
+    fontWeight: 900,
+    color: "#e5e7eb"
+  },
+  exportTypeDesc: {
+    fontSize: 12,
+    lineHeight: 1.45,
+    color: "#9ca3af"
+  },
+  modalDivider: {
+    height: 1,
+    background: "rgba(229,231,235,0.15)",
+    margin: "4px 0 12px"
   },
   conflictBadgeBtn: {
     padding: "6px 10px",

@@ -32,6 +32,7 @@ export function buildAnimeIndex(): TemplateIndex[] {
         nameZh: `${family.nameZh}｜${vLabels.zh}`,
         category: "continuous",
         domain: "anime_continuity" as TemplateDomain,
+        industry: "anime",
         descriptionEn: `Anime continuity template: ${family.nameEn}, ${vLabels.en} variant.`,
         descriptionZh: `动漫连续模板：${family.nameZh}，${vLabels.zh}变体。`,
         tags: ["anime", "动漫", "continuity", family.id, variant, "video"],

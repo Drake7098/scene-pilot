@@ -697,11 +697,8 @@ const typePresets = useMemo(
     return [
       { key: "high_detail", line: "high detail, intricate textures", zh: "高细节、丰富纹理" },
       { key: "sharp", line: "sharp focus, crisp edges", zh: "清晰锐利、焦点明确" },
-      { key: "material_readable", line: "readable materials, clear surface details", zh: "材质可读、表面细节清楚" },
-      { key: "clear_action", line: "clear action silhouette, readable body language", zh: "动作清楚、身体语言可读" },
       { key: "no_text", line: "no text, no watermark, no logo", zh: "无文字、无水印、无Logo" },
-      { key: "identity_consistent", line: "keep this object identity consistent", zh: "保持该对象身份一致" },
-      { key: "local_only", line: "object-local only, do not override camera or overall composition", zh: "仅作用于该对象，不改镜头和整体构图" }
+      { key: "identity_consistent", line: "keep this object identity consistent", zh: "保持该对象身份一致" }
     ];
   }, []);
 
@@ -1434,6 +1431,7 @@ const typePresets = useMemo(
       </ProCollapseSection>
 
       {/* Composition + Trajectory buttons */}
+      {!isImageMode && (
       <ProCollapseSection
         title={lang === "zh" ? "对象构图" : "Composition"}
         collapsed={propsCollapsed.has("composition")}
@@ -1587,6 +1585,7 @@ const typePresets = useMemo(
         )}
       </div>
       </ProCollapseSection>
+      )}
       </div>
       {bottomSlot ? (
         <div style={styles.bottomSlot}>{bottomSlot}</div>

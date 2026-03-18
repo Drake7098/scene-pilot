@@ -33,9 +33,14 @@ import { deriveRefineStrategy } from "./utils/refineStrategy";
 import { applyFeedbackToStructure } from "./utils/feedbackToStructure";
 import { intentPlanToProProject } from "./utils/intentPlanToProject";
 import {
+  getComfyUiBaseUrls as defaultComfyUiBaseUrls,
+  getDrawThingsBaseUrls as defaultDrawThingsBaseUrls,
+  aspectRatioToResolution,
+  loadLocalProviderConfig,
+  saveLocalProviderConfig,
+} from "./utils/localProviderConfig";
+import {
   buildDrawThingsQueuePack,
-  defaultComfyUiBaseUrls,
-  defaultDrawThingsBaseUrls,
   downloadTextFile,
   probeComfyUi,
   probeDrawThings,
@@ -47,7 +52,7 @@ import {
 } from "./utils/localGeneration";
 
 import { ChevronDown, ChevronRight, CircleHelp, FolderOpen, Image as ImageIcon, Languages, Layout, MoreHorizontal } from "lucide-react";
-import { CreditCard, Crown, KeyRound, LogOut, UserRound, Wallet } from "lucide-react";
+import { CreditCard, Crown, Cpu, KeyRound, LogOut, UserRound, Wallet } from "lucide-react";
 import { AccountCenterModal } from "./components/AccountCenterModal";
 import { BillingOverlay } from "./components/billing/BillingOverlay";
 import type { AccountCenterSection, ApiCredentialState, UserState } from "./types/account";
@@ -61,7 +66,7 @@ import {
   signInWithGoogle,
   verifyCode
 } from "./services/authService";
-import { CREDIT_PACKS, PRICING_FINAL_CREDIT_PACKS, creditCostFor, creditCostForProfile, GENERATION_PROFILE_LABELS, getBillingSnapshot, launchCheckout, openCustomerPortal, PRO_PLAN, type GenerationProfileId } from "./services/billingService";
+import { PRICING_FINAL_CREDIT_PACKS, creditCostFor, creditCostForProfile, GENERATION_PROFILE_LABELS, getBillingSnapshot, launchCheckout, openCustomerPortal, PRO_PLAN, type GenerationProfileId } from "./services/billingService";
 import { finalizeReservedCredits, getCreditLedger, getWalletState, reserveCredits, rollbackReservedCredits } from "./services/creditService";
 import { recordLegalConsent, syncPendingLegalConsents } from "./services/legalConsentService";
 import { getApiCredentials, setApiCredentials } from "./services/mockAccountStore";
@@ -364,10 +369,7 @@ function buildDefaultObjectLayer(lang: Lang, index: number) {
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => loadLang());
   const [project, setProject] = useState<Project>(() => loadProject() ?? defaultProject());
-  const [workspaceMode, _setWorkspaceMode] = useState<ResultConsoleMode>("pro");
-  const setWorkspaceMode = useCallback((_mode: ResultConsoleMode) => {
-    /* always Pro; no-op */
-  }, []);
+  const workspaceMode: ResultConsoleMode = "pro";
   const [sceneIdx, setSceneIdx] = useState<number>(0);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
   const [editT, setEditT] = useState<0 | 1>(0);
@@ -623,7 +625,6 @@ export default function App() {
       return false;
     }
     setWorkspaceSwitchShield(true);
-    setWorkspaceMode("pro");
     window.setTimeout(() => setWorkspaceSwitchShield(false), 180);
     return true;
   }
@@ -919,6 +920,14 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [helpCenterOpen]);
 
+  useEffect(() => {
+    const handler = () => {
+      openAccountCenter("auth");
+    };
+    window.addEventListener("sp:session_expired", handler);
+    return () => window.removeEventListener("sp:session_expired", handler);
+  }, []);
+
   const refreshLocalProviders = useCallback(async () => {
     setComfyStatus({ provider: "comfyui", state: "checking", detail: lang === "zh" ? "探测中..." : "checking..." });
     setDrawThingsStatus({ provider: "drawthings", state: "checking", detail: lang === "zh" ? "探测中..." : "checking..." });
@@ -1168,6 +1177,7 @@ export default function App() {
       });
       return { url: draft.imageUrl, ownedUrls: [draft.imageUrl] };
     } catch {
+      // If local image generation fails here, we do not create any blob URLs.
       throw new Error("Local image anchor generation failed");
     }
   }
@@ -1197,7 +1207,7 @@ export default function App() {
 
     const strategyPlatformId = resolveProGenerationPlatformId(requestedSource, mediaMode);
     const prompt = buildScenePromptText(scene, strategyPlatformId);
-    const resolution = resultModeResolution("16:9", mediaMode);
+    const resolution = aspectRatioToResolution(scene?.aspectRatio, mediaMode);
     const seed = 101 + currentSceneAssets.length;
     const videoSec = Math.max(1, Math.ceil(Number(scene?.duration_s) || 5));
     const cost = requestedSource === "hosted" ? creditCostForProfile(currentGenProfile, mediaMode === "video" ? videoSec : 1) : 0;
@@ -1242,29 +1252,42 @@ export default function App() {
           createdAt: new Date().toISOString()
         });
       } else {
-        const anchor = await buildSceneAnchorImage(prompt, resolution, seed);
-        const localVideo = await runComfyUiVideoPreview({
-          prompt,
-          anchorImageUrl: anchor.url,
-          resolution,
-          seed,
-          baseUrls: defaultComfyUiBaseUrls(),
-          prefix: `scenepilotix_scene_${sceneNo}_${Date.now()}`
-        });
-        const videoCount = currentSceneAssets.filter((item) => item.kind === "video").length + 1;
-        appendProAsset(sceneAssetKey, {
-          id: makeProAssetId("video"),
-          sceneId: sceneAssetKey,
-          kind: "video",
-          title: proAssetLabel("video", videoCount),
-          prompt,
-          source: requestedSource,
-          strategyPlatformId,
-          videoUrl: localVideo.videoUrl,
-          posterUrl: localVideo.posterUrl || anchor.url,
-          ownedUrls: [...new Set([localVideo.videoUrl, localVideo.posterUrl || "", ...anchor.ownedUrls].filter(Boolean))],
-          createdAt: new Date().toISOString()
-        });
+        let anchor: { url: string; ownedUrls: string[] } | null = null;
+        try {
+          anchor = await buildSceneAnchorImage(prompt, resolution, seed);
+          const localVideo = await runComfyUiVideoPreview({
+            prompt,
+            anchorImageUrl: anchor.url,
+            resolution,
+            seed,
+            baseUrls: defaultComfyUiBaseUrls(),
+            prefix: `scenepilotix_scene_${sceneNo}_${Date.now()}`
+          });
+          const videoCount = currentSceneAssets.filter((item) => item.kind === "video").length + 1;
+          appendProAsset(sceneAssetKey, {
+            id: makeProAssetId("video"),
+            sceneId: sceneAssetKey,
+            kind: "video",
+            title: proAssetLabel("video", videoCount),
+            prompt,
+            source: requestedSource,
+            strategyPlatformId,
+            videoUrl: localVideo.videoUrl,
+            posterUrl: localVideo.posterUrl || anchor.url,
+            ownedUrls: [...new Set([localVideo.videoUrl, localVideo.posterUrl || "", ...(anchor.ownedUrls ?? [])].filter(Boolean))],
+            createdAt: new Date().toISOString()
+          });
+        } catch (error) {
+          // Revoke any anchor blobs we created but did not attach to an owned asset.
+          if (anchor?.ownedUrls) {
+            for (const url of anchor.ownedUrls) {
+              if (typeof url === "string" && url.startsWith("blob:")) {
+                URL.revokeObjectURL(url);
+              }
+            }
+          }
+          throw error;
+        }
       }
 
       if (requestedSource === "hosted" && accountUser && reservedEntryId) {
@@ -1396,7 +1419,7 @@ export default function App() {
   function openCreateWizard(showWelcome: boolean) {
     setWizardCancelable(true);
     setWizardDraft(nextWizardDraft());
-    setWizardStep(showWelcome ? "welcome_1" : "media");
+    setWizardStep("media");
     setWizardOpen(true);
   }
 
@@ -1919,7 +1942,7 @@ export default function App() {
       const done = localStorage.getItem(ONBOARDING_KEY);
       if (!done) {
         setWizardCancelable(false);
-        setWizardStep("welcome_1");
+        setWizardStep("media");
         setWizardOpen(true);
       }
     } catch { /* ignore localStorage errors */ }
@@ -2064,7 +2087,10 @@ export default function App() {
   async function createNewProjectAfterSave() {
     setNewProjectConfirmBusy(true);
     try {
-      const ok = await (runProjectAction("save") as Promise<boolean>);
+      const maybe = runProjectAction("save");
+      const ok = typeof maybe === "object" && typeof (maybe as Promise<unknown>).then === "function"
+        ? await (maybe as Promise<boolean>)
+        : false;
       if (!ok) return;
       if (!requestProAccess("pro")) return;
       setNewProjectConfirmOpen(false);
@@ -2509,21 +2535,25 @@ export default function App() {
       /* ignore */
     }
     setWorkspaceSwitchShield(true);
-    flushSync(() => {
-      setWorkspaceMode("pro");
-    });
     window.setTimeout(() => setWorkspaceSwitchShield(false), 180);
   }
 
   async function generateResultPlan() {
     const brief = resultBrief.trim();
-    if (!brief || resultBusy || freeTrialUsed >= 20) return;
+    if (!brief || resultBusy) return;
     if (!canUseHostedGeneration(accountUser)) {
       openBillingPage("upgrade");
       return;
     }
+    if (freeTrialUsed >= 20) {
+      setResultToast(
+        lang === "zh"
+          ? "已达到当前环境的助手生成体验上限。"
+          : "You have reached the current assistant generation trial limit."
+      );
+      return;
+    }
     setResultBusy(true);
-    setWorkspaceMode("results");
     trackProjectFlow("assistant_generate", { len: brief.length }, lang);
     let reservedEntryId = "";
     try {
@@ -2571,7 +2601,12 @@ export default function App() {
         await rollbackReservedCredits(accountUser.id, reservedEntryId);
         await refreshAccountState();
       }
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      setResultToast(
+        lang === "zh"
+          ? `助手生成失败：${message}`
+          : `Assistant generation failed: ${message}`
+      );
     } finally {
       setResultBusy(false);
     }
@@ -2589,7 +2624,6 @@ export default function App() {
     }
 
     setResultBusy(true);
-    setWorkspaceMode("results");
     setBillingLocalHint(lang === "zh" ? "正在探测本地引擎..." : "Checking local engines...");
     trackProjectFlow("assistant_generate_local_test", { len: brief.length, provider: preferredProvider }, lang);
 
@@ -2605,6 +2639,7 @@ export default function App() {
       }
       if (selected.state !== "ready") {
         setBillingLocalHint(selectedText);
+        setResultBusy(false);
         return;
       }
 
@@ -2708,7 +2743,12 @@ export default function App() {
         await rollbackReservedCredits(accountUser.id, reservedEntryId);
         await refreshAccountState();
       }
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      setResultToast(
+        lang === "zh"
+          ? `助手精修失败：${message}`
+          : `Assistant refine failed: ${message}`
+      );
     } finally {
       setResultBusy(false);
     }
@@ -2789,6 +2829,16 @@ export default function App() {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
+    // Basic size guard to avoid loading unexpectedly large files into memory.
+    const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+    if (f.size > MAX_UPLOAD_BYTES) {
+      setLibraryHint(
+        lang === "zh"
+          ? "导入的项目文件过大，请压缩后重试。"
+          : "The imported project file is too large. Please compress or trim it and try again."
+      );
+      return;
+    }
     try {
       const text = await f.text();
       const obj = JSON.parse(text);
@@ -3257,14 +3307,24 @@ export default function App() {
       await navigator.clipboard.writeText(text);
       return true;
     } catch {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      ta.remove();
-      document.body.removeChild(ta);
-      return true;
+      let ta: HTMLTextAreaElement | null = null;
+      try {
+        ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "true");
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        return true;
+      } catch {
+        return false;
+      } finally {
+        if (ta && ta.parentNode) {
+          ta.parentNode.removeChild(ta);
+        }
+      }
     }
   }
 
@@ -3368,6 +3428,15 @@ export default function App() {
                 onClick: () => {
                   setAccountMenuOpen(false);
                   openAccountCenter("api");
+                }
+              } as const,
+              {
+                key: "local",
+                label: lang === "zh" ? "本地连接" : "Local Connect",
+                icon: <Cpu size={UI_MENU.item.iconSize} />,
+                onClick: () => {
+                  setAccountMenuOpen(false);
+                  openAccountCenter("local" as any);
                 }
               } as const
             ]
@@ -4577,6 +4646,9 @@ export default function App() {
         googleSignInEnabled={googleSignInEnabled}
         authLegalAccepted={authLegalAccepted}
         billingLegalAccepted={billingLegalAccepted}
+        localComfyStatus={comfyStatus}
+        localDrawStatus={drawThingsStatus}
+        onRefreshLocalProviders={() => refreshLocalProviders().then(() => {})}
         onClose={() => {
           setAccountCenterOpen(false);
           setAuthHint("");

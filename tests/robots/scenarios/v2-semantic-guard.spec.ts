@@ -42,7 +42,7 @@ function makeStaticSceneWithMotionIntent(): Scene {
 
 test("v2_semantic_guard_blocks_static_lock_when_motion_intent_exists", async () => {
   const scene = makeStaticSceneWithMotionIntent();
-  const compiled = compileScenePromptV2(scene, "zh", "open_space", "strict");
+  const compiled = compileScenePromptV2(scene, "zh", "open_space", "strict", undefined);
   const optimized = optimizeV2ScenePrompt(compiled, scene, "zh", "open_space", "strict");
 
   expect(optimized).not.toContain("当前 t0=t1");

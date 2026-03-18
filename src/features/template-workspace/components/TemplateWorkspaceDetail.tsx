@@ -67,7 +67,7 @@ export function TemplateWorkspaceDetail({
     return "—";
   })();
   const capabilityTags = pricing?.capabilityTags?.slice(0, 4) ?? [];
-  const insufficient = !isPrivate && !owned && (pricing?.creditPrice ?? 0) > 0 && userCredits < (pricing?.creditPrice ?? 0);
+  const insufficient = !isPrivate && !owned && !(template as TemplateIndex).isFree && (pricing?.creditPrice ?? 0) > 0 && userCredits < (pricing?.creditPrice ?? 0);
 
   if (isPrivate) {
     return (
@@ -192,7 +192,7 @@ export function TemplateWorkspaceDetail({
           style={styles.useBtn}
           onClick={onUse}
         >
-          {owned ? t("使用模板", "Use Template") : pricing?.creditPrice ? t("购买并使用", "Buy & Use Template") : t("使用模板", "Use Template")}
+          {owned || (template as TemplateIndex).isFree ? t("使用模板", "Use Template") : pricing?.creditPrice ? t("购买并使用", "Buy & Use Template") : t("使用模板", "Use Template")}
         </button>
       </div>
     </div>

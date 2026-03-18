@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertCircle, CheckCircle2, CreditCard, Crown, KeyRound, LogOut, Sparkles, UserRound, Wallet, X } from "lucide-react";
+import { LocalConnectionPanel } from "./LocalConnectionPanel";
 import type { AccountCenterSection, ApiCredentialState, ApiProviderId, ApiProviderMode, ProviderConnectionStatus, UserState } from "../types/account";
 import type { CreditLedgerEntry, CreditPackConfig, ProPlanConfig, SubscriptionState } from "../types/billing";
 import type { Lang } from "../i18n";
@@ -35,6 +36,9 @@ type Props = {
   googleSignInEnabled: boolean;
   authLegalAccepted: boolean;
   billingLegalAccepted: boolean;
+  localComfyStatus?: any;
+  localDrawStatus?: any;
+  onRefreshLocalProviders?: () => Promise<void>;
   onClose: () => void;
   onSectionChange: (section: AccountCenterSection) => void;
   onAuthEmailChange: (value: string) => void;
@@ -79,6 +83,9 @@ export function AccountCenterModal(props: Props) {
     googleSignInEnabled,
     authLegalAccepted,
     billingLegalAccepted,
+    localComfyStatus,
+    localDrawStatus,
+    onRefreshLocalProviders,
     onClose,
     onSectionChange,
     onAuthEmailChange,
@@ -613,6 +620,15 @@ export function AccountCenterModal(props: Props) {
                   </button>
                 </div>
               </div>
+            ) : null}
+
+            {section === "local" ? (
+              <LocalConnectionPanel
+                lang={lang}
+                comfyStatus={localComfyStatus ?? { provider: "comfyui", state: "idle" }}
+                drawStatus={localDrawStatus ?? { provider: "drawthings", state: "idle" }}
+                onRefresh={onRefreshLocalProviders ?? (() => Promise.resolve())}
+              />
             ) : null}
           </div>
         ) : null}

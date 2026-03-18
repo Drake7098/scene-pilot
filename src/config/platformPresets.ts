@@ -139,12 +139,12 @@ export const PLATFORM_PRESETS: PlatformPreset[] = [
     labelEn: "Keling",
     url: "https://klingai.com/",
     baseProfile: "jimeng",
-    nativeStrategy: false,
+    nativeStrategy: true,
     uploadMode: "upload-first",
     promptStyle: "short",
     maxRefsPerObject: 3,
     patchId: "keling_refs_strict",
-    strategyNote: "Mapped from jimeng with refs-first patch."
+    strategyNote: "Native jimeng-family engine (zh + style anchor)."
   },
   {
     id: "vidu",

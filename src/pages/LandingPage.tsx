@@ -27,6 +27,8 @@ function saveLocale(lang: LandingLocale) {
 function routeToSignIn(mode?: WorkspaceMode) {
   if (mode) {
     try {
+      localStorage.removeItem(WORKSPACE_MODE_KEY);
+      localStorage.removeItem(WORKSPACE_ENTRY_GUIDE_KEY);
       localStorage.setItem(WORKSPACE_MODE_KEY, mode);
       localStorage.setItem(WORKSPACE_ENTRY_GUIDE_KEY, "1");
     } catch { /* ignore */ }
@@ -39,16 +41,16 @@ const COPY = {
     intro: "产品介绍",
     pricing: "定价",
     lang: "EN",
-    signInUp: "登录 / 注册",
+    signInUp: "登录",
     account: "账户",
-    openWorkspace: "进入工作台",
+    openWorkspace: "工作台",
     // Hero
     eyebrow: "AI 图像 · 视频生成工作台",
     title: "说了十遍\n还是生成错",
     subtitle: "提示词越写越长，结果越跑越偏。\nScenePilotix 用分镜结构替代自由文本——\n主体位置、镜头语言、光影情绪，一次说清。",
     tagline: "首次生成成功率提升 3×",
     ctaMain: "免费开始",
-    ctaSub: "进入工作台",
+    ctaSub: "工作台",
     // Pain → Solution
     painTitle: "你一定遇过这些",
     pains: [
@@ -71,16 +73,16 @@ const COPY = {
     intro: "Product",
     pricing: "Pricing",
     lang: "中文",
-    signInUp: "Sign In / Sign Up",
+    signInUp: "Sign In",
     account: "Account",
-    openWorkspace: "Open Workspace",
+    openWorkspace: "Workspace",
     // Hero
     eyebrow: "AI Image & Video Generation Workspace",
     title: "Wrote the prompt\nten times. Still wrong.",
     subtitle: "The longer your prompt, the further off the result.\nScenePilotix replaces free-text guessing with scene structure —\nsubject position, camera language, mood. Say it once, get it right.",
     tagline: "3× higher first-generation success rate",
     ctaMain: "Start Free",
-    ctaSub: "Open Workspace",
+    ctaSub: "Workspace",
     // Pain → Solution
     painTitle: "Sound familiar?",
     pains: [
@@ -143,19 +145,24 @@ export default function LandingPage() {
               {t.signInUp}
             </div>
           ) : accountUser ? (
-            <a href="/app" style={{ ...userBtn, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 8, padding: "0 12px", minHeight: 32, textDecoration: "none" }} data-testid="landing-user-entry">
+            <button
+              type="button"
+              style={{ ...userBtn, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 8, padding: "0 12px", minHeight: 32 }}
+              onClick={() => { window.location.href = "/app"; }}
+              data-testid="landing-user-entry"
+            >
               <span style={avatarCircle}>
                 {accountUser.avatarUrl
                   ? <img src={accountUser.avatarUrl} alt="" style={avatarImg} />
                   : <UserRound size={13} />}
               </span>
               {t.openWorkspace}
-            </a>
+            </button>
           ) : (
-            <button type="button" style={{ ...userBtn, background: "rgba(255,255,255,0.06)", border: "1px solid #3a3f46", borderRadius: 8, padding: "0 12px", minHeight: 32 }} onClick={() => routeToSignIn()} data-testid="landing-user-entry">
+            <a href="/signin" style={{ ...userBtn, background: "rgba(255,255,255,0.06)", border: "1px solid #3a3f46", borderRadius: 8, padding: "0 12px", minHeight: 32, display: "inline-flex", alignItems: "center", gap: 8 }} data-testid="landing-user-entry">
               <span style={avatarCircle}><UserRound size={13} /></span>
               {t.signInUp}
-            </button>
+            </a>
           )}
         </nav>
       </header>

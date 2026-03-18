@@ -8,6 +8,7 @@ import { PRO_TYPO } from "../../../uiTokens";
 import type { Lang } from "../../../i18n";
 import type { TemplateWorkspaceFilters } from "../model/templateFilter";
 import type { TemplateWorkspaceView, MyTemplateSection } from "../state/templateWorkspaceState";
+import { TEMPLATE_INDUSTRY_OPTIONS } from "../model/templateCategory";
 
 const colors = {
   panel: "#24262b",
@@ -151,18 +152,25 @@ export function TemplateWorkspaceHeader({
           <option value="9:16">9:16</option>
           <option value="1:1">1:1</option>
         </select>
+
+        {/* Industry filter - replaces old "全部域" domain dropdown */}
         <select
-          value={filters.domain ?? "all"}
+          value={filters.industry ?? "all"}
           onChange={(e) =>
-            onFiltersChange({ ...filters, domain: e.target.value as TemplateWorkspaceFilters["domain"] })
+            onFiltersChange({ ...filters, industry: e.target.value as TemplateWorkspaceFilters["industry"] })
           }
-          style={{ ...styles.select, ...((filters.domain && filters.domain !== "all") ? styles.selectActive : {}) }}
+          style={{
+            ...styles.select,
+            ...((filters.industry && filters.industry !== "all") ? styles.selectActive : {})
+          }}
         >
-          <option value="all">{t("全部域", "All domains")}</option>
-          <option value="base">{t("基础", "Base")}</option>
-          <option value="webdrama_continuity">{t("网剧连续", "Web Drama")}</option>
-          <option value="anime_continuity">{t("动漫连续", "Anime")}</option>
+          {TEMPLATE_INDUSTRY_OPTIONS.map((opt) => (
+            <option key={opt.id} value={opt.id}>
+              {lang === "zh" ? opt.labelZh : opt.labelEn}
+            </option>
+          ))}
         </select>
+
         <select
           value={filters.pricing}
           onChange={(e) =>
@@ -193,10 +201,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderBottom: `1px solid ${colors.border}`,
     flexShrink: 0
   },
-  viewSwitch: {
-    display: "flex",
-    gap: 4
-  },
+  viewSwitch: { display: "flex", gap: 4 },
   viewBtn: {
     display: "flex",
     alignItems: "center",
@@ -216,10 +221,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderColor: colors.accent,
     color: colors.accent
   },
-  sectionSwitch: {
-    display: "flex",
-    gap: 4
-  },
+  sectionSwitch: { display: "flex", gap: 4 },
   sectionBtn: {
     padding: "4px 8px",
     background: "transparent",

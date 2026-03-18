@@ -57,8 +57,6 @@ function isSystemTailSignal(line: string): boolean {
   const low = t.toLowerCase();
   if (/^【系统稳定层/.test(t)) return true;
   if (/^\[stability layer/i.test(t)) return true;
-  if (/^【语言强化层】/.test(t)) return true;
-  if (/^\[lrl\]/i.test(t)) return true;
   if (/^【坐标/.test(t)) return true;
   if (/^\[coords/i.test(t)) return true;
   if (t.includes("坐标数字仅作内部控制")) return true;

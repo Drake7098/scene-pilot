@@ -210,6 +210,7 @@ export function runPromptPipeline(input: PromptPipelineInput): PromptPipelineOut
     lang: input.lang,
     media: mediaMode,
     sceneStrategy,
+    aspectRatio: (firstScene?.aspectRatio ?? "16:9") as string,
     creativeContext: creativeContext
       ? {
           source: creativeContext.source,

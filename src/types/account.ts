@@ -66,4 +66,4 @@ export type ApiCredentialState = {
   updatedAt: string | null;
 };
 
-export type AccountCenterSection = "auth" | "overview" | "credits" | "pro" | "api";
+export type AccountCenterSection = "auth" | "overview" | "credits" | "pro" | "api" | "local";

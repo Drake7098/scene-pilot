@@ -245,6 +245,7 @@ function describeTransition(s: SubjectSpec, lang: Lang, profile: (typeof TIER_PR
   return lang === "zh" ? `${parts.join("，")}。` : `${parts.join(", ")}.`;
 }
 
+// 保留原函数，builtin.ts / 其他地方可能引用
 function antiDirector(lang: Lang, anti: "low" | "mid" | "strong"): string[] {
   const zh = lang === "zh";
   if (anti === "low") {
@@ -289,7 +290,109 @@ function hasSemanticMotionIntent(scene: Scene): boolean {
   });
 }
 
-export function compileScenePromptV2(scene: Scene, lang: Lang, tier: SceneTier, mode: V2Mode = "strict"): string {
+// ─────────────────────────────────────────────
+// 新增：空间叙事生成器（取代 T0 Frame Spec 列表）
+// ─────────────────────────────────────────────
+
+function buildSpatialNarrative(subjects: SubjectSpec[], lang: Lang): string {
+  const n = subjects.length;
+  if (n === 0) return "";
+
+  if (n === 1) {
+    const s = subjects[0];
+    const detail = [s.look, s.notes].filter(Boolean).join(", ");
+    if (lang === "zh") {
+      return `${sizeLabel(s.size0, lang)}，主体（${s.name}${detail ? `，${detail}` : ""}）位于画面${posLabel(s.hPos0, lang)}${vPosLabel(s.vPos0, lang)}，${depthLabel(s.depth0, lang)}。`;
+    }
+    return `${sizeLabel(s.size0, lang)} shot. Subject (${s.name}${detail ? `, ${detail}` : ""}) at ${s.hPos0} ${s.vPos0}, ${s.depth0}.`;
+  }
+
+  if (n === 2) {
+    const [a, b] = subjects;
+    const oppSides =
+      (a.hPos0.includes("left") && b.hPos0.includes("right")) ||
+      (a.hPos0.includes("right") && b.hPos0.includes("left"));
+    const depthDiff = a.depth0 !== b.depth0;
+
+    if (lang === "zh") {
+      let rel = oppSides
+        ? `双人构图：${a.name}（${sizeLabel(a.size0, lang)}，${depthLabel(a.depth0, lang)}）在画面左侧，${b.name}（${sizeLabel(b.size0, lang)}，${depthLabel(b.depth0, lang)}）在画面右侧，两人面向彼此。`
+        : `双人构图：${a.name}（${sizeLabel(a.size0, lang)}）与${b.name}（${sizeLabel(b.size0, lang)}）均在${posLabel(a.hPos0, lang)}区域。`;
+      if (depthDiff) rel += `${a.name}距镜头更近，${b.name}在${depthLabel(b.depth0, lang)}。`;
+      return rel;
+    }
+
+    let rel = oppSides
+      ? `Two-shot. ${a.name} (${sizeLabel(a.size0, lang)}, ${a.depth0}) anchors ${a.hPos0}, ${b.name} (${sizeLabel(b.size0, lang)}, ${b.depth0}) holds ${b.hPos0}. Facing each other.`
+      : `Two-shot. ${a.name} (${sizeLabel(a.size0, lang)}) at ${a.hPos0}, ${b.name} (${sizeLabel(b.size0, lang)}) at ${b.hPos0}.`;
+    if (depthDiff) rel += ` ${a.name} is closer to camera.`;
+    return rel;
+  }
+
+  // 3+ 主体：按深度层分组
+  const fg = subjects.filter((s) => s.depth0 === "foreground");
+  const mg = subjects.filter((s) => s.depth0 === "midground");
+  const bg = subjects.filter((s) => s.depth0 === "background");
+
+  if (lang === "zh") {
+    const layers: string[] = [];
+    if (fg.length) layers.push(`前景：${fg.map((s) => `${s.name}（${sizeLabel(s.size0, lang)}，${posLabel(s.hPos0, lang)}）`).join("、")}`);
+    if (mg.length) layers.push(`中景：${mg.map((s) => `${s.name}（${sizeLabel(s.size0, lang)}，${posLabel(s.hPos0, lang)}）`).join("、")}`);
+    if (bg.length) layers.push(`背景：${bg.map((s) => `${s.name}（${sizeLabel(s.size0, lang)}，${posLabel(s.hPos0, lang)}）`).join("、")}`);
+    return `多主体构图。${layers.join("；")}。严格保持前中后层级，不重排。`;
+  }
+
+  const layers: string[] = [];
+  if (fg.length) layers.push(`Foreground: ${fg.map((s) => `${s.name}(${sizeLabel(s.size0, lang)}, ${s.hPos0})`).join(", ")}`);
+  if (mg.length) layers.push(`Midground: ${mg.map((s) => `${s.name}(${sizeLabel(s.size0, lang)}, ${s.hPos0})`).join(", ")}`);
+  if (bg.length) layers.push(`Background: ${bg.map((s) => `${s.name}(${sizeLabel(s.size0, lang)}, ${s.hPos0})`).join(", ")}`);
+  return `Multi-subject. ${layers.join(". ")}. Preserve exact depth layering.`;
+}
+
+// ─────────────────────────────────────────────
+// 新增：运动摘要生成器（取代 T1 Frame Spec 列表）
+// 只输出有实际运动的主体，静止主体不输出
+// ─────────────────────────────────────────────
+
+function buildMotionSummary(
+  subjects: SubjectSpec[],
+  lang: Lang,
+  profile: (typeof TIER_PROFILE)[SceneTier],
+  mode: V2Mode,
+  hasAnyMotion: boolean
+): string {
+  if (!hasAnyMotion) {
+    return lang === "zh"
+      ? "所有主体保持静止，不添加位移或缩放。"
+      : "All subjects static. No motion added.";
+  }
+
+  const staticZh = mode === "short" ? "保持不变。" : "结束保持原位，距离与尺度稳定。";
+  const staticEn = mode === "short" ? "stays stable." : "keeps original position with stable depth and scale.";
+
+  const lines = subjects
+    .map((s) => {
+      const transition = describeTransition(s, lang, profile, mode);
+      const isStatic = transition === (lang === "zh" ? staticZh : staticEn);
+      if (isStatic) return null;
+      return lang === "zh"
+        ? `${s.name}：${transition}`
+        : `${s.name}: ${transition}`;
+    })
+    .filter((line): line is string => line !== null);
+
+  return lines.length
+    ? lines.join(lang === "zh" ? "；" : "; ")
+    : "";
+}
+
+export function compileScenePromptV2(
+  scene: Scene,
+  lang: Lang,
+  tier: SceneTier,
+  mode: V2Mode = "strict",
+  aspectRatio?: string
+): string {
   const profile = TIER_PROFILE[tier];
   const duration = Math.max(1, Math.round(Number(scene.duration_s) || 1));
   const subjects: SubjectSpec[] = (scene.layers ?? []).map((l, idx) => {
@@ -314,7 +417,10 @@ export function compileScenePromptV2(scene: Scene, lang: Lang, tier: SceneTier, 
     };
     return s;
   });
-  const hasGeometryMotion = subjects.some((s) => describeTransition(s, lang, profile, "short") !== (lang === "zh" ? "保持不变。" : "stays stable."));
+
+  const hasGeometryMotion = subjects.some(
+    (s) => describeTransition(s, lang, profile, "short") !== (lang === "zh" ? "保持不变。" : "stays stable.")
+  );
   const hasAnyMotion = hasGeometryMotion || hasSemanticMotionIntent(scene);
 
   depthByHeight(subjects, 0);
@@ -346,12 +452,15 @@ export function compileScenePromptV2(scene: Scene, lang: Lang, tier: SceneTier, 
             : `- Current t0=t1; keep composition static for the full ${duration}s with no auto motion/zoom.`,
           "- Keep all main subjects recognizable."
         ];
+
   const proMotionLine = buildProMotionPromptLine(parseProMotionSelection(scene.notes ?? ""), lang);
   const mediaMode = /(^|\n)\s*media\s*:\s*image\b/i.test(scene.notes ?? "") ? "image" : "video";
   const imageProLine = mediaMode === "image" ? buildImageProPromptLine(scene.notes ?? "", lang) : "";
   const cameraLanguageId = parseCameraLanguageId(scene.notes ?? "");
   const cameraLanguageLine = cameraLanguageId
-    ? (lang === "zh" ? `镜头语言：${getCameraLanguageDisplayLabel(cameraLanguageId, lang, false)}` : `Camera language: ${getCameraLanguageDisplayLabel(cameraLanguageId, lang, false)}`)
+    ? (lang === "zh"
+        ? `镜头语言：${getCameraLanguageDisplayLabel(cameraLanguageId, lang, false)}`
+        : `Camera language: ${getCameraLanguageDisplayLabel(cameraLanguageId, lang, false)}`)
     : "";
 
   const layoutExtra =
@@ -378,47 +487,44 @@ export function compileScenePromptV2(scene: Scene, lang: Lang, tier: SceneTier, 
     layoutExtra
   ];
 
-  const t0Lines = ["T0 Frame Spec:"];
-  const t1Lines = ["T1 Frame Spec:"];
-  for (const s of subjects) {
-    const label = subjectLabel(s, lang);
-    const detail = [s.look, s.notes].filter(Boolean).join(", ");
-    const localSuffix =
-      s.externalPrompt
-        ? lang === "zh"
-          ? `；对象局部提示：${s.externalPrompt}（仅作用于 ${s.id}）`
-          : `; object-local prompt: ${s.externalPrompt} (apply to ${s.id} only)`
-        : "";
-    if (lang === "zh") {
-      t0Lines.push(
-        `- ${label}：初始在${posLabel(s.hPos0, lang)}${vPosLabel(s.vPos0, lang)}，${sizeLabel(s.size0, lang)}，${depthLabel(s.depth0, lang)}${detail ? `，${detail}` : ""}${localSuffix}。`
-      );
-    } else {
-      t0Lines.push(
-        `- ${label}: initial at ${s.hPos0} ${s.vPos0}, ${s.size0}, ${s.depth0}${detail ? `, ${detail}` : ""}${localSuffix}.`
-      );
-    }
-    t1Lines.push(
-      lang === "zh"
-        ? `- ${label}：${describeTransition(s, lang, profile, mode)}`
-        : `- ${label}: ${describeTransition(s, lang, profile, mode)}`
-    );
-  }
+  // 空间叙事（取代 T0 列表）
+  const spatialNarrative = buildSpatialNarrative(subjects, lang);
 
-  const anti = ["Anti-Director Rules:", ...antiDirector(lang, profile.anti)];
+  // 运动摘要（取代 T1 列表，静止主体不输出）
+  const motionSummary = buildMotionSummary(subjects, lang, profile, mode, hasAnyMotion);
+
+  // 约束（Anti-Director 4条 → 1条正向）
+  const constraint =
+    lang === "zh"
+      ? profile.anti === "strong"
+        ? "约束：严格按构图生成，保持主体位置、景深层级与画面构图，不自动调整。"
+        : profile.anti === "mid"
+          ? "约束：保持指定构图，不自动居中，不重排。"
+          : "约束：保持主体位置不变。"
+      : profile.anti === "strong"
+        ? "Constraint: Render exactly as specified. Preserve positions, depth, and composition without improvisation."
+        : profile.anti === "mid"
+          ? "Constraint: Preserve the specified composition. No recentering or relayout."
+          : "Constraint: Keep subject positions as specified.";
+
+  const aspectRatioNote =
+    aspectRatio && aspectRatio !== "16:9"
+      ? lang === "zh"
+        ? `画面比例：${aspectRatio}。`
+        : `Aspect ratio: ${aspectRatio}.`
+      : "";
 
   return [
-    "[V2 SCENEPILOT COMPILE]",
     sceneHeader,
     cameraContract.join("\n"),
     proMotionLine,
     imageProLine,
     cameraLanguageLine,
     layoutContract.join("\n"),
-    t0Lines.join("\n"),
-    t1Lines.join("\n"),
-    anti.join("\n"),
-    "[END]"
+    spatialNarrative,
+    motionSummary,
+    constraint,
+    aspectRatioNote
   ]
     .filter(Boolean)
     .join("\n\n");

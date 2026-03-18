@@ -1,0 +1,611 @@
+{
+  "generatedAt": "2026-03-13T02:44:09.896Z",
+  "caseCount": 8,
+  "cases": [
+    {
+      "id": "01-static-single-object",
+      "title": "基础单对象静态图",
+      "description": "一个主体处于简单背景中，检查结构化输出是否更清楚且不过度膨胀。",
+      "lang": "zh",
+      "platformId": "jimeng",
+      "platformLabel": "即梦",
+      "scope": "current_scene",
+      "userInput": "一个穿红色连帽衫的年轻女性坐在公园长椅上\n背景是安静的草地和树影\n画面静止，不要运动",
+      "baselinePrompt": "请根据以下自然语言直接生成画面，不额外补充结构层：\n1. 一个穿红色连帽衫的年轻女性坐在公园长椅上\n2. 背景是安静的草地和树影\n3. 画面静止，不要运动",
+      "structuredPrompt": "你将根据以下分镜结构生成图像画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 主画面（1秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 当前 t0=t1，整段 1 秒保持静止构图，不自动添加位移/缩放。\n- 主要主体保持可识别。\n- 当前 t0=t1，整段 1 秒保持静止构图。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 中等背景密度：保持层次均衡，不挤压深度。\n\nT0 Frame Spec:\n- 主体1（年轻女性）：初始在中间偏下，中近景，前景，红色连帽衫，深色牛仔裤, 静止，不要额外动作。；对象局部提示：自然坐姿，表情平静。（仅作用于 主体1）。\n\nT1 Frame Spec:\n- 主体1（年轻女性）：结束保持原位，距离与尺度稳定。\n\nAnti-Director Rules:\n- 不自动居中，不做对称构图，不重排队列。\n- 不强行把任何对象变成主角。\n- 保持层级关系与相对顺序。\n\n[END]",
+      "adaptedPrompt": "你将根据以下分镜结构生成图像画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 主画面（1秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 当前 t0=t1，整段 1 秒保持静止构图，不自动添加位移/缩放。\n- 主要主体保持可识别。\n- 当前 t0=t1，整段 1 秒保持静止构图。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 中等背景密度：保持层次均衡，不挤压深度。\n\nT0 Frame Spec:\n- 主体1（年轻女性）：初始在中间偏下，中近景，前景，红色连帽衫，深色牛仔裤, 静止，不要额外动作。；对象局部提示：自然坐姿，表情平静。（仅作用于 主体1）。\n\nT1 Frame Spec:\n- 主体1（年轻女性）：结束保持原位，距离与尺度稳定。\n\nAnti-Director Rules:\n- 不自动居中，不做对称构图，不重排队列。\n- 不强行把任何对象变成主角。\n- 保持层级关系与相对顺序。\n\n[END]",
+      "finalCopyPrompt": "你将根据以下分镜结构生成图像画面。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 主画面。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 主要主体保持可识别。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 中等背景密度：保持层次均衡，不挤压深度。\nT0 Frame Spec:\n- 主体1（年轻女性）：初始在中间偏下，中近景，前景，红色连帽衫，深色牛仔裤, 静止，不要额外动作。；对象局部提示：自然坐姿，表情平静。（仅作用于 主体1）。\nAnti-Director Rules:\n- 不自动居中，不做对称构图，不重排队列。\n- 不强行把任何对象变成主角。\n- 保持层级关系与相对顺序。\n",
+      "metadata": {
+        "platformId": "jimeng",
+        "baseProfile": "jimeng",
+        "platformEngineKey": "universal-core",
+        "platformEngineFamily": "universal",
+        "sceneStrategyLayer": "none",
+        "sceneStrategyClassicIds": [],
+        "sceneStrategyDirectorIds": [],
+        "sceneStrategyUsesAdvancedLanguage": false,
+        "sceneStrategyUsesLightingDefaults": false,
+        "nativeStrategy": true,
+        "mappedFromProfile": null,
+        "mediaMode": "image",
+        "compiler": "v2",
+        "workspace": "quick",
+        "engineId": "IM v5",
+        "strippedDurationForImage": true,
+        "strippedT1ForImage": true,
+        "strippedVideoScaffoldForImage": false,
+        "compactedForEngine": false,
+        "tailApplied": false,
+        "trimmedByBudget": false,
+        "trimReason": "",
+        "appliedPatches": [
+          "jimeng_patch"
+        ],
+        "stages": [
+          "compile",
+          "assemble",
+          "append_tail",
+          "adapt_platform",
+          "final_cleanup"
+        ],
+        "enginePasses": [],
+        "exportScope": "current_scene"
+      },
+      "evaluation": {
+        "informationRetention": "低",
+        "structureClarity": "低",
+        "conflictRisk": "中",
+        "trajectoryExpression": "低",
+        "multiObjectRelation": "低",
+        "modelExecutionReadiness": "低",
+        "platformCompressionRisk": "低",
+        "overallConclusion": "各有优劣",
+        "summary": "Baseline 更直接，ScenePilotix 更结构化；建议结合目标平台选择。",
+        "baselineNotes": [
+          "Baseline 保留了原始表述，但缺少结构字段和优先级。"
+        ],
+        "scenePilotixNotes": [
+          "Structured Prompt 明确拆出了场景、对象、布局和约束。"
+        ]
+      },
+      "screenshot": "01-static-single-object.png"
+    },
+    {
+      "id": "02-single-object-motion",
+      "title": "单对象移动",
+      "description": "主体从左向右移动且镜头跟随，检查运动表达是否更明确。",
+      "lang": "zh",
+      "platformId": "pika",
+      "platformLabel": "Pika",
+      "scope": "current_scene",
+      "userInput": "一个穿浅灰夹克的年轻男孩从左向右快步移动\n镜头轻微跟随他平移\n背景是空旷街道，不要切镜",
+      "baselinePrompt": "请根据以下自然语言直接生成画面，不额外补充结构层：\n1. 一个穿浅灰夹克的年轻男孩从左向右快步移动\n2. 镜头轻微跟随他平移\n3. 背景是空旷街道，不要切镜",
+      "structuredPrompt": "你将根据以下分镜结构生成视频画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 分镜 1（6秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 在 6 秒时长内完成 t0→t1 变化。\n- 主要主体保持可识别。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 开阔外景：强调前中后深度拉开，远景对象保留可见。\n\nT0 Frame Spec:\n- 主体1（年轻男孩）：初始在左侧中部，中近景，前景，浅灰夹克，黑色运动裤, 从左向右快步移动，保持身份连续。；对象局部提示：镜头跟随主体平移，不要切镜。（仅作用于 主体1）。\n\nT1 Frame Spec:\n- 主体1（年轻男孩）：向右移动。\n\nAnti-Director Rules:\n- 禁止自动居中、对称构图、整齐排队。\n- 禁止自动主角化（hero shot）与强行特写。\n- 禁止重排前中后层级与左右顺序。\n- 禁止自动推拉镜头/换机位。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]",
+      "adaptedPrompt": "你将根据以下分镜结构生成视频画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 分镜 1（6秒）。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 在 6 秒时长内完成 t0→t1 变化。\n- 主要主体保持可识别。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 开阔外景：强调前中后深度拉开，远景对象保留可见。\nT0 Frame Spec:\n- 主体1（年轻男孩）：初始在左侧中部，中近景，前景，浅灰夹克，黑色运动裤, 从左向右快步移动，保持身份连续。；对象局部提示：镜头跟随主体平移，不要切镜。（仅作用于 主体1）。\nT1 Frame Spec:\n- 主体1（年轻男孩）：向右移动。\nAnti-Director Rules:\n- 禁止自动居中、对称构图、整齐排队。\n- 禁止自动主角化（hero shot）与强行特写。\n- 禁止重排前中后层级与左右顺序。\n- 禁止自动推拉镜头/换机位。\n- 保持层级和顺序稳定，不整齐排队。\n[END]",
+      "finalCopyPrompt": "你将根据以下分镜结构生成视频画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 分镜 1（6秒）。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 在 6 秒时长内完成 t0→t1 变化。\n- 主要主体保持可识别。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 开阔外景：强调前中后深度拉开，远景对象保留可见。\nT0 Frame Spec:\n- 主体1（年轻男孩）：初始在左侧中部，中近景，前景，浅灰夹克，黑色运动裤, 从左向右快步移动，保持身份连续。；对象局部提示：镜头跟随主体平移，不要切镜。（仅作用于 主体1）。\nT1 Frame Spec:\n- 主体1（年轻男孩）：向右移动。\nAnti-Director Rules:\n- 禁止自动居中、对称构图、整齐排队。\n- 禁止自动主角化（hero shot）与强行特写。\n- 禁止重排前中后层级与左右顺序。\n- 禁止自动推拉镜头/换机位。\n- 保持层级和顺序稳定，不整齐排队。\n[END]\n",
+      "metadata": {
+        "platformId": "pika",
+        "baseProfile": "runway",
+        "platformEngineKey": "runway-family",
+        "platformEngineFamily": "runway",
+        "sceneStrategyLayer": "none",
+        "sceneStrategyClassicIds": [],
+        "sceneStrategyDirectorIds": [],
+        "sceneStrategyUsesAdvancedLanguage": false,
+        "sceneStrategyUsesLightingDefaults": false,
+        "nativeStrategy": false,
+        "mappedFromProfile": "runway",
+        "mediaMode": "video",
+        "compiler": "v2",
+        "workspace": "quick",
+        "engineId": "VI V5",
+        "strippedDurationForImage": false,
+        "strippedT1ForImage": false,
+        "strippedVideoScaffoldForImage": false,
+        "compactedForEngine": false,
+        "tailApplied": false,
+        "trimmedByBudget": false,
+        "trimReason": "",
+        "appliedPatches": [
+          "compact_density",
+          "compress_machine_tail",
+          "budget_factor_trim",
+          "refs_minimal",
+          "strip_execution_scaffold"
+        ],
+        "stages": [
+          "compile",
+          "assemble",
+          "append_tail",
+          "adapt_platform",
+          "final_cleanup"
+        ],
+        "enginePasses": [],
+        "exportScope": "current_scene"
+      },
+      "evaluation": {
+        "informationRetention": "中",
+        "structureClarity": "低",
+        "conflictRisk": "中",
+        "trajectoryExpression": "高",
+        "multiObjectRelation": "低",
+        "modelExecutionReadiness": "低",
+        "platformCompressionRisk": "低",
+        "overallConclusion": "ScenePilotix 更好",
+        "summary": "ScenePilotix 在结构、约束或轨迹表达上更稳，更适合作为模型执行输入。",
+        "baselineNotes": [
+          "Baseline 保留了原始表述，但缺少结构字段和优先级。",
+          "运动和路径更多停留在自然语言层，没有明确的镜头/路径约束。"
+        ],
+        "scenePilotixNotes": [
+          "Structured Prompt 明确拆出了场景、对象、布局和约束。",
+          "轨迹/镜头连续语义比 baseline 更清楚。"
+        ]
+      },
+      "screenshot": "02-single-object-motion.png"
+    },
+    {
+      "id": "03-two-person-relation",
+      "title": "双人物关系",
+      "description": "两个人面对面站位，一前一后，检查对象数量和相对关系是否清楚。",
+      "lang": "zh",
+      "platformId": "universal",
+      "platformLabel": "通用",
+      "scope": "current_scene",
+      "userInput": "两个人面对面站着\n一个更靠前，一个更靠后\n画面需要清楚体现两人的层次关系",
+      "baselinePrompt": "请根据以下自然语言直接生成画面，不额外补充结构层：\n1. 两个人面对面站着\n2. 一个更靠前，一个更靠后\n3. 画面需要清楚体现两人的层次关系",
+      "structuredPrompt": "你将根据以下分镜结构生成图像画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 主画面（1秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 当前 t0=t1，整段 1 秒保持静止构图，不自动添加位移/缩放。\n- 主要主体保持可识别。\n- 当前 t0=t1，整段 1 秒保持静止构图。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n- 低背景密度：远景阈值 h<0.12。\n\nT0 Frame Spec:\n- 主体1（人物A）：初始在左中中部，中近景，前景，深色西装，短发, 更靠前，与后景人物面对面。；对象局部提示：前景人物压住视线。（仅作用于 主体1）。\n- 主体2（人物B）：初始在右中中部，中近景，前景，浅色衬衫，长发, 更靠后，保持人物关系清楚。；对象局部提示：后景人物不要与前景重叠。（仅作用于 主体2）。\n\nT1 Frame Spec:\n- 主体1（人物A）：结束保持原位，距离与尺度稳定。\n- 主体2（人物B）：结束保持原位，距离与尺度稳定。\n\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 强化前中后分离，禁止压平空间深度。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]",
+      "adaptedPrompt": "你将根据以下分镜结构生成图像画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 主画面（1秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 当前 t0=t1，整段 1 秒保持静止构图，不自动添加位移/缩放。\n- 主要主体保持可识别。\n- 当前 t0=t1，整段 1 秒保持静止构图。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n- 低背景密度：远景阈值 h<0.12。\n\nT0 Frame Spec:\n- 主体1（人物A）：初始在左中中部，中近景，前景，深色西装，短发, 更靠前，与后景人物面对面。；对象局部提示：前景人物压住视线。（仅作用于 主体1）。\n- 主体2（人物B）：初始在右中中部，中近景，前景，浅色衬衫，长发, 更靠后，保持人物关系清楚。；对象局部提示：后景人物不要与前景重叠。（仅作用于 主体2）。\n\nT1 Frame Spec:\n- 主体1（人物A）：结束保持原位，距离与尺度稳定。\n- 主体2（人物B）：结束保持原位，距离与尺度稳定。\n\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 强化前中后分离，禁止压平空间深度。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]",
+      "finalCopyPrompt": "你将根据以下分镜结构生成图像画面。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 主画面。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 主要主体保持可识别。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n- 低背景密度：远景阈值 h<0.12。\nT0 Frame Spec:\n- 主体1（人物A）：初始在左中中部，中近景，前景，深色西装，短发, 更靠前，与后景人物面对面。；对象局部提示：前景人物压住视线。（仅作用于 主体1）。\n- 主体2（人物B）：初始在右中中部，中近景，前景，浅色衬衫，长发, 更靠后，保持人物关系清楚。；对象局部提示：后景人物不要与前景重叠。（仅作用于 主体2）。\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 强化前中后分离，禁止压平空间深度。\n- 保持层级和顺序稳定，不整齐排队。\n",
+      "metadata": {
+        "platformId": "universal",
+        "baseProfile": "universal",
+        "platformEngineKey": "universal-core",
+        "platformEngineFamily": "universal",
+        "sceneStrategyLayer": "none",
+        "sceneStrategyClassicIds": [],
+        "sceneStrategyDirectorIds": [],
+        "sceneStrategyUsesAdvancedLanguage": false,
+        "sceneStrategyUsesLightingDefaults": false,
+        "nativeStrategy": true,
+        "mappedFromProfile": null,
+        "mediaMode": "image",
+        "compiler": "v2",
+        "workspace": "quick",
+        "engineId": "IM v5",
+        "strippedDurationForImage": true,
+        "strippedT1ForImage": true,
+        "strippedVideoScaffoldForImage": false,
+        "compactedForEngine": false,
+        "tailApplied": false,
+        "trimmedByBudget": false,
+        "trimReason": "",
+        "appliedPatches": [
+          "universal_patch"
+        ],
+        "stages": [
+          "compile",
+          "assemble",
+          "append_tail",
+          "adapt_platform",
+          "final_cleanup"
+        ],
+        "enginePasses": [],
+        "exportScope": "current_scene"
+      },
+      "evaluation": {
+        "informationRetention": "中",
+        "structureClarity": "低",
+        "conflictRisk": "中",
+        "trajectoryExpression": "低",
+        "multiObjectRelation": "高",
+        "modelExecutionReadiness": "低",
+        "platformCompressionRisk": "低",
+        "overallConclusion": "ScenePilotix 更好",
+        "summary": "ScenePilotix 在结构、约束或轨迹表达上更稳，更适合作为模型执行输入。",
+        "baselineNotes": [
+          "Baseline 保留了原始表述，但缺少结构字段和优先级。",
+          "多对象关系主要依赖读者自行理解。"
+        ],
+        "scenePilotixNotes": [
+          "Structured Prompt 明确拆出了场景、对象、布局和约束。",
+          "对象层级和空间关系表达更稳定。"
+        ]
+      },
+      "screenshot": "03-two-person-relation.png"
+    },
+    {
+      "id": "04-multi-object-composition",
+      "title": "多对象构图",
+      "description": "前中后景多对象构图，检查空间结构是否清楚。",
+      "lang": "zh",
+      "platformId": "wanx",
+      "platformLabel": "通义万相",
+      "scope": "current_scene",
+      "userInput": "前景是一个人物\n中景是一张桌子\n后景有窗户和灯光\n希望空间层次清楚",
+      "baselinePrompt": "请根据以下自然语言直接生成画面，不额外补充结构层：\n1. 前景是一个人物\n2. 中景是一张桌子\n3. 后景有窗户和灯光\n4. 希望空间层次清楚",
+      "structuredPrompt": "你将根据以下分镜结构生成图像画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 主画面（1秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 当前 t0=t1，整段 1 秒保持静止构图，不自动添加位移/缩放。\n- 主要主体保持可识别。\n- 当前 t0=t1，整段 1 秒保持静止构图。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 开阔外景：强调前中后深度拉开，远景对象保留可见。\n- 高背景密度：远景阈值 h<0.05。\n\nT0 Frame Spec:\n- 主体1（前景人物）：初始在左中偏下，中近景，前景，深色外套, 前景主体，压住空间起点。；对象局部提示：前景人物不要遮住桌面主体关系。（仅作用于 主体1）。\n- 主体2（中景桌子）：初始在中间偏下，中景，背景，原木桌面, 中景桌子承担空间中层。；对象局部提示：桌子不要漂浮，保持与人物错层。（仅作用于 主体2）。\n- 主体3（后景窗户与灯光）：初始在右中上部，中近景，前景，大窗户，暖色灯光, 后景要清楚可见但不喧宾夺主。；对象局部提示：窗户和灯光明确处于后景。（仅作用于 主体3）。\n\nT1 Frame Spec:\n- 主体1（前景人物）：结束保持原位，距离与尺度稳定。\n- 主体2（中景桌子）：结束保持原位，距离与尺度稳定。\n- 主体3（后景窗户与灯光）：结束保持原位，距离与尺度稳定。\n\nAnti-Director Rules:\n- 禁止自动居中、对称构图、整齐排队。\n- 禁止自动主角化（hero shot）与强行特写。\n- 禁止重排前中后层级与左右顺序。\n- 禁止自动推拉镜头/换机位。\n- 强化前中后分离，禁止压平空间深度。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]",
+      "adaptedPrompt": "结构化生成：按对象 -> 关系 -> 构图 -> 光线顺序执行。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 主画面（1秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 当前 t0=t1，整段 1 秒保持静止构图，不自动添加位移/缩放。\n- 主要主体保持可识别。\n- 当前 t0=t1，整段 1 秒保持静止构图。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 开阔外景：强调前中后深度拉开，远景对象保留可见。\n- 高背景密度：远景阈值 h<0.05。\n\nT0 Frame Spec:\n- 主体1（前景人物）：初始在左中偏下，中近景，前景，深色外套, 前景主体，压住空间起点。；对象局部提示：前景人物不要遮住桌面主体关系。（仅作用于 主体1）。\n- 主体2（中景桌子）：初始在中间偏下，中景，背景，原木桌面, 中景桌子承担空间中层。；对象局部提示：桌子不要漂浮，保持与人物错层。（仅作用于 主体2）。\n- 主体3（后景窗户与灯光）：初始在右中上部，中近景，前景，大窗户，暖色灯光, 后景要清楚可见但不喧宾夺主。；对象局部提示：窗户和灯光明确处于后景。（仅作用于 主体3）。\n\nT1 Frame Spec:\n- 主体1（前景人物）：结束保持原位，距离与尺度稳定。\n- 主体2（中景桌子）：结束保持原位，距离与尺度稳定。\n- 主体3（后景窗户与灯光）：结束保持原位，距离与尺度稳定。\n\nAnti-Director Rules:\n- 禁止自动居中、对称构图、整齐排队。\n- 禁止自动主角化（hero shot）与强行特写。\n- 禁止重排前中后层级与左右顺序。\n- 禁止自动推拉镜头/换机位。\n- 强化前中后分离，禁止压平空间深度。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]",
+      "finalCopyPrompt": "结构化生成：按对象 -> 关系 -> 构图 -> 光线顺序执行。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 主画面。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 主要主体保持可识别。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 开阔外景：强调前中后深度拉开，远景对象保留可见。\n- 高背景密度：远景阈值 h<0.05。\nT0 Frame Spec:\n- 主体1（前景人物）：初始在左中偏下，中近景，前景，深色外套, 前景主体，压住空间起点。；对象局部提示：前景人物不要遮住桌面主体关系。（仅作用于 主体1）。\n- 主体2（中景桌子）：初始在中间偏下，中景，背景，原木桌面, 中景桌子承担空间中层。；对象局部提示：桌子不要漂浮，保持与人物错层。（仅作用于 主体2）。\n- 主体3（后景窗户与灯光）：初始在右中上部，中近景，前景，大窗户，暖色灯光, 后景要清楚可见但不喧宾夺主。；对象局部提示：窗户和灯光明确处于后景。（仅作用于 主体3）。\nAnti-Director Rules:\n- 禁止自动居中、对称构图、整齐排队。\n- 禁止自动主角化（hero shot）与强行特写。\n- 禁止重排前中后层级与左右顺序。\n- 禁止自动推拉镜头/换机位。\n- 强化前中后分离，禁止压平空间深度。\n- 保持层级和顺序稳定，不整齐排队。\n",
+      "metadata": {
+        "platformId": "wanx",
+        "baseProfile": "qwen",
+        "platformEngineKey": "universal-core",
+        "platformEngineFamily": "universal",
+        "sceneStrategyLayer": "none",
+        "sceneStrategyClassicIds": [],
+        "sceneStrategyDirectorIds": [],
+        "sceneStrategyUsesAdvancedLanguage": false,
+        "sceneStrategyUsesLightingDefaults": false,
+        "nativeStrategy": true,
+        "mappedFromProfile": null,
+        "mediaMode": "image",
+        "compiler": "v2",
+        "workspace": "quick",
+        "engineId": "IM v5",
+        "strippedDurationForImage": true,
+        "strippedT1ForImage": true,
+        "strippedVideoScaffoldForImage": false,
+        "compactedForEngine": false,
+        "tailApplied": false,
+        "trimmedByBudget": false,
+        "trimReason": "",
+        "appliedPatches": [
+          "keep_structured_blocks",
+          "budget_factor_trim"
+        ],
+        "stages": [
+          "compile",
+          "assemble",
+          "append_tail",
+          "adapt_platform",
+          "final_cleanup"
+        ],
+        "enginePasses": [],
+        "exportScope": "current_scene"
+      },
+      "evaluation": {
+        "informationRetention": "高",
+        "structureClarity": "低",
+        "conflictRisk": "中",
+        "trajectoryExpression": "低",
+        "multiObjectRelation": "高",
+        "modelExecutionReadiness": "低",
+        "platformCompressionRisk": "低",
+        "overallConclusion": "ScenePilotix 更好",
+        "summary": "ScenePilotix 在结构、约束或轨迹表达上更稳，更适合作为模型执行输入。",
+        "baselineNotes": [
+          "Baseline 保留了原始表述，但缺少结构字段和优先级。",
+          "多对象关系主要依赖读者自行理解。"
+        ],
+        "scenePilotixNotes": [
+          "Structured Prompt 明确拆出了场景、对象、布局和约束。",
+          "对象层级和空间关系表达更稳定。"
+        ]
+      },
+      "screenshot": "04-multi-object-composition.png"
+    },
+    {
+      "id": "05-enter-room",
+      "title": "进入房间",
+      "description": "人物从门外进入房间，检查进入动作和空间方向是否清楚。",
+      "lang": "zh",
+      "platformId": "jimeng",
+      "platformLabel": "即梦",
+      "scope": "current_scene",
+      "userInput": "一个人从门外进入房间\n镜头轻推跟随进入\n要能看出从外到内的空间变化",
+      "baselinePrompt": "请根据以下自然语言直接生成画面，不额外补充结构层：\n1. 一个人从门外进入房间\n2. 镜头轻推跟随进入\n3. 要能看出从外到内的空间变化",
+      "structuredPrompt": "你将根据以下分镜结构生成视频画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 分镜 1（6秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 在 6 秒时长内完成 t0→t1 变化。\n- 主要主体保持可识别。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n\nT0 Frame Spec:\n- 主体1（成年人）：初始在左中中部，中近景，前景，深蓝外套，背单肩包, 从门外进入房间，保持连续进入语义。；对象局部提示：镜头跟随主体从门外到室内。（仅作用于 主体1）。\n\nT1 Frame Spec:\n- 主体1（成年人）：向右移动，与镜头距离变近，尺寸增大。\n\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]",
+      "adaptedPrompt": "你将根据以下分镜结构生成视频画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 分镜 1（6秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 在 6 秒时长内完成 t0→t1 变化。\n- 主要主体保持可识别。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n\nT0 Frame Spec:\n- 主体1（成年人）：初始在左中中部，中近景，前景，深蓝外套，背单肩包, 从门外进入房间，保持连续进入语义。；对象局部提示：镜头跟随主体从门外到室内。（仅作用于 主体1）。\n\nT1 Frame Spec:\n- 主体1（成年人）：向右移动，与镜头距离变近，尺寸增大。\n\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]",
+      "finalCopyPrompt": "你将根据以下分镜结构生成视频画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 分镜 1（6秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 在 6 秒时长内完成 t0→t1 变化。\n- 主要主体保持可识别。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n\nT0 Frame Spec:\n- 主体1（成年人）：初始在左中中部，中近景，前景，深蓝外套，背单肩包, 从门外进入房间，保持连续进入语义。；对象局部提示：镜头跟随主体从门外到室内。（仅作用于 主体1）。\n\nT1 Frame Spec:\n- 主体1（成年人）：向右移动，与镜头距离变近，尺寸增大。\n\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]\n",
+      "metadata": {
+        "platformId": "jimeng",
+        "baseProfile": "jimeng",
+        "platformEngineKey": "universal-core",
+        "platformEngineFamily": "universal",
+        "sceneStrategyLayer": "none",
+        "sceneStrategyClassicIds": [],
+        "sceneStrategyDirectorIds": [],
+        "sceneStrategyUsesAdvancedLanguage": false,
+        "sceneStrategyUsesLightingDefaults": false,
+        "nativeStrategy": true,
+        "mappedFromProfile": null,
+        "mediaMode": "video",
+        "compiler": "v2",
+        "workspace": "quick",
+        "engineId": "VI V5",
+        "strippedDurationForImage": false,
+        "strippedT1ForImage": false,
+        "strippedVideoScaffoldForImage": false,
+        "compactedForEngine": false,
+        "tailApplied": false,
+        "trimmedByBudget": false,
+        "trimReason": "",
+        "appliedPatches": [
+          "jimeng_patch"
+        ],
+        "stages": [
+          "compile",
+          "assemble",
+          "append_tail",
+          "adapt_platform",
+          "final_cleanup"
+        ],
+        "enginePasses": [],
+        "exportScope": "current_scene"
+      },
+      "evaluation": {
+        "informationRetention": "中",
+        "structureClarity": "低",
+        "conflictRisk": "中",
+        "trajectoryExpression": "低",
+        "multiObjectRelation": "低",
+        "modelExecutionReadiness": "低",
+        "platformCompressionRisk": "低",
+        "overallConclusion": "各有优劣",
+        "summary": "Baseline 更直接，ScenePilotix 更结构化；建议结合目标平台选择。",
+        "baselineNotes": [
+          "Baseline 保留了原始表述，但缺少结构字段和优先级。",
+          "运动和路径更多停留在自然语言层，没有明确的镜头/路径约束。"
+        ],
+        "scenePilotixNotes": [
+          "Structured Prompt 明确拆出了场景、对象、布局和约束。"
+        ]
+      },
+      "screenshot": "05-enter-room.png"
+    },
+    {
+      "id": "06-continuous-next-room",
+      "title": "连续进入下一个房间",
+      "description": "人物先进入第一个房间，再穿过过道进入第二个房间，重点检查 continuous continuity sequence。",
+      "lang": "zh",
+      "platformId": "vidu",
+      "platformLabel": "Vidu",
+      "scope": "continuous_sequence",
+      "userInput": "一个人进入第一个房间\n再穿过过道进入第二个房间\n整个过程不要跳切，保持连续镜头",
+      "baselinePrompt": "请根据以下自然语言直接生成画面，不额外补充结构层：\n1. 一个人进入第一个房间\n2. 再穿过过道进入第二个房间\n3. 整个过程不要跳切，保持连续镜头",
+      "structuredPrompt": "你将根据以下分镜结构生成视频画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 分镜 1（5秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 在 5 秒时长内完成 t0→t1 变化。\n- 主要主体保持可识别。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n\nT0 Frame Spec:\n- 主体1（主角）：初始在左中中部，中近景，前景，深色风衣, 进入第一个房间，保持身份连续。；对象局部提示：镜头跟着主角穿门进入，不要切镜。（仅作用于 主体1）。\n\nT1 Frame Spec:\n- 主体1（主角）：向右移动，与镜头距离变近，尺寸增大。\n\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]\n\nScene: 分镜 2（5秒）。Style: realistic, cinematic natural light.\n\n- 主体1（主角）：初始在中间中部，中近景，前景，深色风衣, 穿过过道后继续进入第二个房间，不跳切不瞬移。；对象局部提示：保持单镜头 no-cut，镜头随主体转向第二个房间。（仅作用于 主体1）。\n\n- 主体1（主角）：向右移动，尺寸减小。",
+      "adaptedPrompt": "结构化生成：按对象 -> 关系 -> 构图 -> 光线顺序执行。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 分镜 1（5秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 在 5 秒时长内完成 t0→t1 变化。\n- 主要主体保持可识别。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n\nT0 Frame Spec:\n- 主体1（主角）：初始在左中中部，中近景，前景，深色风衣, 进入第一个房间，保持身份连续。；对象局部提示：镜头跟着主角穿门进入，不要切镜。（仅作用于 主体1）。\n\nT1 Frame Spec:\n- 主体1（主角）：向右移动，与镜头距离变近，尺寸增大。\n\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]\n\nScene: 分镜 2（5秒）。Style: realistic, cinematic natural light.\n\n- 主体1（主角）：初始在中间中部，中近景，前景，深色风衣, 穿过过道后继续进入第二个房间，不跳切不瞬移。；对象局部提示：保持单镜头 no-cut，镜头随主体转向第二个房间。（仅作用于 主体1）。\n\n- 主体1（主角）：向右移动，尺寸减小。",
+      "finalCopyPrompt": "结构化生成：按对象 -> 关系 -> 构图 -> 光线顺序执行。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 分镜 1（5秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 在 5 秒时长内完成 t0→t1 变化。\n- 主要主体保持可识别。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n\nT0 Frame Spec:\n- 主体1（主角）：初始在左中中部，中近景，前景，深色风衣, 进入第一个房间，保持身份连续。；对象局部提示：镜头跟着主角穿门进入，不要切镜。（仅作用于 主体1）。\n\nT1 Frame Spec:\n- 主体1（主角）：向右移动，与镜头距离变近，尺寸增大。\n\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]\n\n\n- 主体1（主角）：初始在中间中部，中近景，前景，深色风衣, 穿过过道后继续进入第二个房间，不跳切不瞬移。；对象局部提示：保持单镜头 no-cut，镜头随主体转向第二个房间。（仅作用于 主体1）。\n\n- 主体1（主角）：向右移动，尺寸减小。\n",
+      "metadata": {
+        "platformId": "vidu",
+        "baseProfile": "runway",
+        "platformEngineKey": "runway-family",
+        "platformEngineFamily": "runway",
+        "sceneStrategyLayer": "none",
+        "sceneStrategyClassicIds": [],
+        "sceneStrategyDirectorIds": [],
+        "sceneStrategyUsesAdvancedLanguage": false,
+        "sceneStrategyUsesLightingDefaults": false,
+        "nativeStrategy": false,
+        "mappedFromProfile": "runway",
+        "mediaMode": "video",
+        "compiler": "v2",
+        "workspace": "quick",
+        "engineId": "VI V5",
+        "strippedDurationForImage": false,
+        "strippedT1ForImage": false,
+        "strippedVideoScaffoldForImage": false,
+        "compactedForEngine": false,
+        "tailApplied": false,
+        "trimmedByBudget": false,
+        "trimReason": "",
+        "appliedPatches": [
+          "keep_structured_blocks",
+          "budget_factor_trim",
+          "strip_execution_scaffold"
+        ],
+        "stages": [
+          "compile",
+          "assemble",
+          "append_tail",
+          "adapt_platform",
+          "final_cleanup"
+        ],
+        "enginePasses": [],
+        "exportScope": "continuous_sequence"
+      },
+      "evaluation": {
+        "informationRetention": "高",
+        "structureClarity": "低",
+        "conflictRisk": "中",
+        "trajectoryExpression": "中",
+        "multiObjectRelation": "低",
+        "modelExecutionReadiness": "低",
+        "platformCompressionRisk": "低",
+        "overallConclusion": "ScenePilotix 更好",
+        "summary": "ScenePilotix 在结构、约束或轨迹表达上更稳，更适合作为模型执行输入。",
+        "baselineNotes": [
+          "Baseline 保留了原始表述，但缺少结构字段和优先级。",
+          "运动和路径更多停留在自然语言层，没有明确的镜头/路径约束。"
+        ],
+        "scenePilotixNotes": [
+          "Structured Prompt 明确拆出了场景、对象、布局和约束。",
+          "轨迹/镜头连续语义比 baseline 更清楚。"
+        ]
+      },
+      "screenshot": "06-continuous-next-room.png"
+    },
+    {
+      "id": "07-static-motion-conflict",
+      "title": "静态结构 + 强运动冲突",
+      "description": "结构层静止但文本要求强运动，检查 ScenePilotix 是否能做冲突收口。",
+      "lang": "zh",
+      "platformId": "hailuo",
+      "platformLabel": "海螺 AI",
+      "scope": "current_scene",
+      "userInput": "人物站在原地\n但又要求他冲向下一个房间\n希望镜头不要乱掉",
+      "baselinePrompt": "请根据以下自然语言直接生成画面，不额外补充结构层：\n1. 人物站在原地\n2. 但又要求他冲向下一个房间\n3. 希望镜头不要乱掉",
+      "structuredPrompt": "你将根据以下分镜结构生成视频画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 分镜 1（5秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 当前 t0=t1，整段 5 秒保持静止构图，不自动添加位移/缩放。\n- 主要主体保持可识别。\n- 当前 t0=t1，整段 5 秒保持静止构图。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n\nT0 Frame Spec:\n- 主体1（人物）：初始在中间中部，中近景，前景，深灰外套, 他想冲向下一个房间，但结构上保持静止。；对象局部提示：走向下一个房间，情绪急迫。（仅作用于 主体1）。\n\nT1 Frame Spec:\n- 主体1（人物）：结束保持原位，距离与尺度稳定。\n\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]",
+      "adaptedPrompt": "结构化生成：按对象 -> 关系 -> 构图 -> 光线顺序执行。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 分镜 1（5秒）。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 当前 t0=t1，整段 5 秒保持静止构图，不自动添加位移/缩放。\n- 主要主体保持可识别。\n- 当前 t0=t1，整段 5 秒保持静止构图。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\nT0 Frame Spec:\n- 主体1（人物）：初始在中间中部，中近景，前景，深灰外套, 他想冲向下一个房间，但结构上保持静止。；对象局部提示：走向下一个房间，情绪急迫。（仅作用于 主体1）。\nT1 Frame Spec:\n- 主体1（人物）：结束保持原位，距离与尺度稳定。\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 保持层级和顺序稳定，不整齐排队。\n[END]",
+      "finalCopyPrompt": "结构化生成：按对象 -> 关系 -> 构图 -> 光线顺序执行。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 分镜 1（5秒）。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 当前 t0=t1，整段 5 秒保持静止构图，不自动添加位移/缩放。\n- 主要主体保持可识别。\n- 当前 t0=t1，整段 5 秒保持静止构图。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\nT0 Frame Spec:\n- 主体1（人物）：初始在中间中部，中近景，前景，深灰外套, 他想冲向下一个房间，但结构上保持静止。；对象局部提示：走向下一个房间，情绪急迫。（仅作用于 主体1）。\nT1 Frame Spec:\n- 主体1（人物）：结束保持原位，距离与尺度稳定。\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 保持层级和顺序稳定，不整齐排队。\n[END]\n",
+      "metadata": {
+        "platformId": "hailuo",
+        "baseProfile": "runway",
+        "platformEngineKey": "runway-family",
+        "platformEngineFamily": "runway",
+        "sceneStrategyLayer": "none",
+        "sceneStrategyClassicIds": [],
+        "sceneStrategyDirectorIds": [],
+        "sceneStrategyUsesAdvancedLanguage": false,
+        "sceneStrategyUsesLightingDefaults": false,
+        "nativeStrategy": false,
+        "mappedFromProfile": "runway",
+        "mediaMode": "video",
+        "compiler": "v2",
+        "workspace": "quick",
+        "engineId": "VI V5",
+        "strippedDurationForImage": false,
+        "strippedT1ForImage": false,
+        "strippedVideoScaffoldForImage": false,
+        "compactedForEngine": false,
+        "tailApplied": false,
+        "trimmedByBudget": false,
+        "trimReason": "",
+        "appliedPatches": [
+          "compact_density",
+          "keep_structured_blocks",
+          "compress_machine_tail",
+          "budget_factor_trim",
+          "refs_strict",
+          "strip_execution_scaffold"
+        ],
+        "stages": [
+          "compile",
+          "assemble",
+          "append_tail",
+          "adapt_platform",
+          "final_cleanup"
+        ],
+        "enginePasses": [],
+        "exportScope": "current_scene"
+      },
+      "evaluation": {
+        "informationRetention": "高",
+        "structureClarity": "低",
+        "conflictRisk": "高",
+        "trajectoryExpression": "高",
+        "multiObjectRelation": "低",
+        "modelExecutionReadiness": "低",
+        "platformCompressionRisk": "低",
+        "overallConclusion": "ScenePilotix 更好",
+        "summary": "ScenePilotix 在结构、约束或轨迹表达上更稳，更适合作为模型执行输入。",
+        "baselineNotes": [
+          "Baseline 保留了原始表述，但缺少结构字段和优先级。",
+          "运动和路径更多停留在自然语言层，没有明确的镜头/路径约束。",
+          "高风险冲突：结构静止与强运动文本直接并列。"
+        ],
+        "scenePilotixNotes": [
+          "Structured Prompt 明确拆出了场景、对象、布局和约束。",
+          "轨迹/镜头连续语义比 baseline 更清楚。"
+        ]
+      },
+      "screenshot": "07-static-motion-conflict.png"
+    },
+    {
+      "id": "08-multi-refs",
+      "title": "多参考图场景",
+      "description": "包含背景参考图、对象参考图和多对象局部提示词，检查 refs 组织表达。",
+      "lang": "zh",
+      "platformId": "keling",
+      "platformLabel": "可灵",
+      "scope": "current_scene",
+      "userInput": "背景参考图是工业工作室\n主角参考图是穿米色风衣的侦探\n辅助对象参考图是一只机械臂和一块蓝图屏幕\n希望各对象关系和 refs 用途都清楚",
+      "baselinePrompt": "请根据以下自然语言直接生成画面，不额外补充结构层：\n1. 背景参考图是工业工作室\n2. 主角参考图是穿米色风衣的侦探\n3. 辅助对象参考图是一只机械臂和一块蓝图屏幕\n4. 希望各对象关系和 refs 用途都清楚",
+      "structuredPrompt": "你将根据以下分镜结构生成图像画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n输出策略：先结构后风格；每个对象先位置与尺度，再材质与细节；不要重排构图。\n\n---\n\n[V2 SCENEPILOT COMPILE]\n\nScene: 主画面（1秒）。Style: realistic, cinematic natural light.\n\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 当前 t0=t1，整段 1 秒保持静止构图，不自动添加位移/缩放。\n- 主要主体保持可识别。\n- 当前 t0=t1，整段 1 秒保持静止构图。\n\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n- 低背景密度：远景阈值 h<0.12。\n\nT0 Frame Spec:\n- 主体1（侦探）：初始在中间中部，中近景，前景，米色风衣，冷静神情, 主角为前景主体。；对象局部提示：参考侦探人物图，但保持整体构图服从场景。（仅作用于 主体1）。\n- 主体2（机械臂）：初始在右中中部，中景，前景，金属质感，冷灰色, 后景辅助对象，不要压过主角。；对象局部提示：机械臂参考图只作用于材质和轮廓。（仅作用于 主体2）。\n- 主体3（蓝图屏幕）：初始在左中上部，中景，背景，蓝色发光屏幕, 显示蓝图信息，属于后景辅助信息。；对象局部提示：蓝图屏幕参考图只作用于UI样式，不改变对象数量。（仅作用于 主体3）。\n\nT1 Frame Spec:\n- 主体1（侦探）：结束保持原位，距离与尺度稳定。\n- 主体2（机械臂）：结束保持原位，距离与尺度稳定。\n- 主体3（蓝图屏幕）：结束保持原位，距离与尺度稳定。\n\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 强化前中后分离，禁止压平空间深度。\n- 保持层级和顺序稳定，不整齐排队。\n\n[END]",
+      "adaptedPrompt": "你将根据以下分镜结构生成图像画面。\n要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。\n优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 主画面（1秒）。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 当前 t0=t1，整段 1 秒保持静止构图，不自动添加位移/缩放。\n- 主要主体保持可识别。\n- 当前 t0=t1，整段 1 秒保持静止构图。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n- 低背景密度：远景阈值 h<0.12。\nT0 Frame Spec:\n- 主体1（侦探）：初始在中间中部，中近景，前景，米色风衣，冷静神情, 主角为前景主体。；对象局部提示：参考侦探人物图，但保持整体构图服从场景。（仅作用于 主体1）。\n- 主体2（机械臂）：初始在右中中部，中景，前景，金属质感，冷灰色, 后景辅助对象，不要压过主角。；对象局部提示：机械臂参考图只作用于材质和轮廓。（仅作用于 主体2）。\n- 主体3（蓝图屏幕）：初始在左中上部，中景，背景，蓝色发光屏幕, 显示蓝图信息，属于后景辅助信息。；对象局部提示：蓝图屏幕参考图只作用于UI样式，不改变对象数量。（仅作用于 主体3）。\nT1 Frame Spec:\n- 主体1（侦探）：结束保持原位，距离与尺度稳定。\n- 主体2（机械臂）：结束保持原位，距离与尺度稳定。\n- 主体3（蓝图屏幕）：结束保持原位，距离与尺度稳定。\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 强化前中后分离，禁止压平空间深度。\n- 保持层级和顺序稳定，不整齐排队。\n[END]\n\n参考图策略：先上传参考图，再粘贴提示词；若附件不足，优先保证主体身份图。",
+      "finalCopyPrompt": "你将根据以下分镜结构生成图像画面。\n【平台执行协议：universal】\n硬约束：必须保持对象数量、对象身份、对象相对位置、坐标区间和镜头方向；不得擅自新增/删除主体。\n通用策略：使用清晰分段，避免冗长修辞，确保每个对象约束可执行。\n---\n[V2 SCENEPILOT COMPILE]\nScene: 主画面。Style: realistic, cinematic natural light.\nCamera Contract:\n- 单机位，保持镜头与构图一致。\n- 不自动推拉镜头，不自动换角度。\n- 主要主体保持可识别。\nLayout Contract (obey strictly):\n- 保持对象顺序和前中后层级，不要自动重排。\n- 用画面占比表达远近，保持大小层级。\n- 低背景密度：主体优先，减少背景干扰。\n- 低背景密度：远景阈值 h<0.12。\nT0 Frame Spec:\n- 主体1（侦探）：初始在中间中部，中近景，前景，米色风衣，冷静神情, 主角为前景主体。；对象局部提示：参考侦探人物图，但保持整体构图服从场景。（仅作用于 主体1）。\n- 主体2（机械臂）：初始在右中中部，中景，前景，金属质感，冷灰色, 后景辅助对象，不要压过主角。；对象局部提示：机械臂参考图只作用于材质和轮廓。（仅作用于 主体2）。\n- 主体3（蓝图屏幕）：初始在左中上部，中景，背景，蓝色发光屏幕, 显示蓝图信息，属于后景辅助信息。；对象局部提示：蓝图屏幕参考图只作用于UI样式，不改变对象数量。（仅作用于 主体3）。\nAnti-Director Rules:\n- 不自动居中，不自动对称。\n- 不改变主体相对顺序。\n- 强化前中后分离，禁止压平空间深度。\n- 保持层级和顺序稳定，不整齐排队。\n参考图策略：先上传参考图，再粘贴提示词；若附件不足，优先保证主体身份图。\n",
+      "metadata": {
+        "platformId": "keling",
+        "baseProfile": "jimeng",
+        "platformEngineKey": "universal-core",
+        "platformEngineFamily": "universal",
+        "sceneStrategyLayer": "none",
+        "sceneStrategyClassicIds": [],
+        "sceneStrategyDirectorIds": [],
+        "sceneStrategyUsesAdvancedLanguage": false,
+        "sceneStrategyUsesLightingDefaults": false,
+        "nativeStrategy": false,
+        "mappedFromProfile": "jimeng",
+        "mediaMode": "image",
+        "compiler": "v2",
+        "workspace": "quick",
+        "engineId": "IM v5",
+        "strippedDurationForImage": true,
+        "strippedT1ForImage": true,
+        "strippedVideoScaffoldForImage": false,
+        "compactedForEngine": false,
+        "tailApplied": false,
+        "trimmedByBudget": false,
+        "trimReason": "",
+        "appliedPatches": [
+          "compact_density",
+          "compress_machine_tail",
+          "budget_factor_trim",
+          "refs_strict"
+        ],
+        "stages": [
+          "compile",
+          "assemble",
+          "append_tail",
+          "adapt_platform",
+          "final_cleanup"
+        ],
+        "enginePasses": [],
+        "exportScope": "current_scene"
+      },
+      "evaluation": {
+        "informationRetention": "高",
+        "structureClarity": "低",
+        "conflictRisk": "中",
+        "trajectoryExpression": "低",
+        "multiObjectRelation": "低",
+        "modelExecutionReadiness": "低",
+        "platformCompressionRisk": "低",
+        "overallConclusion": "ScenePilotix 更好",
+        "summary": "ScenePilotix 在结构、约束或轨迹表达上更稳，更适合作为模型执行输入。",
+        "baselineNotes": [
+          "Baseline 保留了原始表述，但缺少结构字段和优先级。",
+          "多对象关系主要依赖读者自行理解。"
+        ],
+        "scenePilotixNotes": [
+          "Structured Prompt 明确拆出了场景、对象、布局和约束。"
+        ]
+      },
+      "screenshot": "08-multi-refs.png"
+    }
+  ],
+  "summary": {
+    "scenePilotixBetter": [
+      "02-single-object-motion",
+      "03-two-person-relation",
+      "04-multi-object-composition",
+      "06-continuous-next-room",
+      "07-static-motion-conflict",
+      "08-multi-refs"
+    ],
+    "baselineBetter": [],
+    "mixed": [
+      "01-static-single-object",
+      "05-enter-room"
+    ],
+    "highCompressionRisk": [],
+    "trajectoryWeakCases": [
+      "01-static-single-object",
+      "03-two-person-relation",
+      "04-multi-object-composition",
+      "05-enter-room",
+      "08-multi-refs"
+    ],
+    "conflictRiskCases": [
+      "01-static-single-object",
+      "02-single-object-motion",
+      "03-two-person-relation",
+      "04-multi-object-composition",
+      "05-enter-room",
+      "06-continuous-next-room",
+      "07-static-motion-conflict",
+      "08-multi-refs"
+    ]
+  }
+}

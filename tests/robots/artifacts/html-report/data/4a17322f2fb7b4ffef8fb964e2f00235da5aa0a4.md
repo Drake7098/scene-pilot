@@ -1,0 +1,72 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic "ScenePilotix" [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: ScenePilotix
+        - generic [ref=e8]: 场景领航
+    - button "EN" [ref=e9] [cursor=pointer]:
+      - img [ref=e10]
+      - generic [ref=e14]: EN
+    - button [ref=e15] [cursor=pointer]:
+      - img [ref=e16]
+    - button "登录 / 注册" [ref=e20] [cursor=pointer]:
+      - generic [ref=e23]: 登录
+  - generic [ref=e25]:
+    - generic [ref=e26]:
+      - complementary [ref=e27]:
+        - generic [ref=e28]: 快捷工作台
+        - button "新建" [ref=e29] [cursor=pointer]:
+          - generic [ref=e30]:
+            - img [ref=e31]
+            - text: 新建
+        - button "保存" [disabled] [ref=e32]:
+          - generic [ref=e33]:
+            - img [ref=e34]
+            - text: 保存
+        - button "打开" [disabled] [ref=e38]:
+          - generic [ref=e39]:
+            - img [ref=e40]
+            - text: 打开
+        - button "Pro 工作台" [ref=e42] [cursor=pointer]:
+          - generic [ref=e43]: Pro 工作台
+      - main [ref=e44]:
+        - heading "先说你想看到什么" [level=1] [ref=e46]
+    - generic [ref=e48]:
+      - generic [ref=e49]:
+        - textbox "第一句：谁在什么场景，最终想看到什么画面（例：三个人在酒吧对峙，主角居中）" [ref=e50]
+        - button "继续" [disabled] [ref=e51]:
+          - img [ref=e52]
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - generic [ref=e56]: 类型
+          - combobox "类型" [ref=e57] [cursor=pointer]:
+            - option "图片" [selected]
+            - option "视频"
+        - generic [ref=e58]:
+          - generic [ref=e59]: 画面类型
+          - combobox "画面类型" [ref=e60] [cursor=pointer]:
+            - option "单主体" [selected]
+            - option "多主体关系"
+            - option "环境场景"
+            - option "产品物件"
+            - option "不确定"
+        - generic [ref=e61]:
+          - generic [ref=e62]: 构图重点
+          - combobox "构图重点" [ref=e63] [cursor=pointer]:
+            - option "主体突出" [selected]
+            - option "关系表达"
+            - option "环境包围"
+            - option "产品展示"
+            - option "不确定"
+        - generic [ref=e64]:
+          - generic [ref=e65]: 风格目标
+          - combobox "风格目标" [ref=e66] [cursor=pointer]:
+            - option "电影感" [selected]
+            - option "写实"
+            - option "动画"
+            - option "商业图"
+            - option "不确定"
+```

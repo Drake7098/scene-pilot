@@ -32,6 +32,7 @@ export function buildWebdramaIndex(): TemplateIndex[] {
         nameZh: `${family.nameZh}｜${vLabels.zh}`,
         category: "continuous",
         domain: "webdrama_continuity" as TemplateDomain,
+        industry: "drama",
         descriptionEn: `Web drama continuity template: ${family.nameEn}, ${vLabels.en} variant.`,
         descriptionZh: `网剧连续模板：${family.nameZh}，${vLabels.zh}变体。`,
         tags: ["webdrama", "网剧", "continuity", family.id, variant, "video"],

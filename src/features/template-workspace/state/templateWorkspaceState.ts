@@ -43,7 +43,7 @@ export const DEFAULT_TEMPLATE_WORKSPACE_STATE: TemplateWorkspaceState = {
     storyPlan: "all",
     ratio: "all",
     pricing: "all",
-    domain: "all"
+    industry: "all"
   },
   applyMode: "layout_only"
 };

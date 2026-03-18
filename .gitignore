@@ -23,20 +23,27 @@ dist-ssr
 *.sln
 *.sw?
 
-# Local version backups (tarballs)
-backups/
-.backups/
+# Wrangler
+.wrangler/
 
-# Robot test generated artifacts (keep scripts/configs under tests/robots tracked)
-tests/robots/artifacts/
-tests/ab/dist/
-tests/ab/outputs/
-tests/local-ab/dist/
-tests/local-ab/outputs/
-tests/intent-benchmark/dist/
+# Large files
+*.zip
+*.tar.gz
 
-# Template asset pipeline outputs
-artifacts/template-assets/
+# Audit reports
+audit-report-*.md
 
-# Prompt batch test outputs
-artifacts/prompt-batch/
+# Project files
+project*.zip
+
+# Template files
+template_*.tar.gz
+
+# Scenario files
+scenepilotix_*.zip
+
+# Plan files
+plans.json
+
+# Work files
+trea-work.md

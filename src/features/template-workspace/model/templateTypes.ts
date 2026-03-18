@@ -8,6 +8,7 @@ export type {
   TemplateMediaType,
   TemplateRatio,
   TemplateDomain,
+  TemplateIndustry,
   ContinuityVariantWebdrama,
   ContinuityVariantAnime
 } from "../../../template-engine/types/templateTypes";

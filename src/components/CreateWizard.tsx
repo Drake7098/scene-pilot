@@ -6,7 +6,7 @@ import { defaultProjectName, defaultSceneName } from "../utils/naming";
 import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_INFO, UI_PALETTE, UI_RADIUS, UI_SPACE, UI_STATUS, UI_TYPO } from "../uiTokens";
 
 export type NewProjectMedia = "image" | "video";
-export type CreateStep = "welcome_1" | "welcome_2" | "media" | "image_setup" | "video_plan" | "video_setup";
+export type CreateStep = "media" | "setup" | "done";
 export type DurationMode = "average" | "manual";
 export type RatioOption = "16:9" | "9:16" | "1:1";
 export type SceneTier = "indoor" | "small_plaza" | "open_space";
@@ -230,14 +230,11 @@ export function CreateWizard(props: Props) {
 
   if (!open) return null;
   const modalWidthByStep: Record<CreateStep, number> = {
-    welcome_1: 640,
-    welcome_2: 640,
     media: 420,
-    image_setup: 420,
-    video_plan: 420,
-    video_setup: 420
+    setup: 420,
+    done: 420
   };
-  const modalWidth = modalWidthByStep[step] ?? 540;
+  const modalWidth = modalWidthByStep[step] ?? 420;
 
   const stepHeader = (
     <div style={styles.stepTopRow}>
@@ -264,51 +261,10 @@ export function CreateWizard(props: Props) {
         </div>
         {floatingHint ? <div style={styles.floatingHint}>{floatingHint}</div> : null}
 
-        {step === "welcome_1" ? (
-          <>
-            <div style={styles.wizardTopRow}>
-              <div style={styles.wizardBrand}>ScenePilotix</div>
-              <button style={styles.langBtn} type="button" onClick={onToggleLang}>
-                {lang === "zh" ? "EN" : "中文"}
-              </button>
-            </div>
-            <div style={styles.wizardWelcome}>{lang === "zh" ? "新手引导" : "WELCOME"}</div>
-            <div style={styles.wizardTitle}>{lang === "zh" ? "3 步开始使用" : "Get Started in 3 Steps"}</div>
-            <div style={styles.wizardSubtitle}>
-              {lang === "zh"
-                ? "轻量引导仅此一次，可跳过，不影响主流程。"
-                : "One-time lightweight onboarding. You can skip it anytime."}
-            </div>
-            <div style={styles.onboardingStepRow}>
-              <div style={styles.onboardingStepItem}>{lang === "zh" ? "1) 先创建项目并选择图片或视频" : "1) Create project and choose Image or Video"}</div>
-              <div style={styles.onboardingStepItem}>{lang === "zh" ? "2) 再编辑分镜结构与对象" : "2) Edit shot structure and objects"}</div>
-              <div style={styles.onboardingStepItem}>{lang === "zh" ? "3) 最后复制或导出提示词" : "3) Copy or export prompts"}</div>
-            </div>
-            <div style={styles.modalBtns}>
-              {canCancel ? (
-                <SecondaryActionButton
-                  label={lang === "zh" ? "跳过" : "Skip"}
-                  onClick={() => {
-                    onMarkOnboardingDone();
-                    onCancel();
-                  }}
-                />
-              ) : null}
-              <PrimaryActionButton
-                label={lang === "zh" ? "开始创建" : "Start Creating"}
-                onClick={() => {
-                  onMarkOnboardingDone();
-                  setStep("media");
-                }}
-              />
-            </div>
-          </>
-        ) : null}
-
         {step === "media" ? (
           <>
             {stepHeader}
-            <div style={styles.modalTitle}>{lang === "zh" ? "第 1 步：你要生成什么？" : "Step 1: What do you want to generate?"}</div>
+            <div style={styles.modalTitle}>{lang === "zh" ? "你要生成什么？" : "What do you want to generate?"}</div>
             <div style={styles.newProjectMediaRow}>
               <button
                 type="button"
@@ -349,28 +305,22 @@ export function CreateWizard(props: Props) {
               ) : null}
               <PrimaryActionButton
                 label={lang === "zh" ? "下一步" : "Next"}
-                onClick={() => {
-                  if (draft.mediaType === "image") setStep("image_setup");
-                  else {
-                    setPlanTouched(false);
-                    setStep("video_plan");
-                  }
-                }}
+                onClick={() => setStep("setup")}
               />
             </div>
           </>
         ) : null}
 
-        {step === "image_setup" ? (
+        {step === "setup" ? (
           <>
             {stepHeader}
-            <div style={styles.modalTitle}>{lang === "zh" ? "第 2 步：图片创建" : "Step 2A: Image Setup"}</div>
+            <div style={styles.modalTitle}>{lang === "zh" ? "给项目起个名字" : "Name your project"}</div>
             <div style={styles.modalFormRow}>
               <label style={styles.modalLabel}>{lang === "zh" ? "项目名称" : "Project Name"}</label>
               <input
                 value={draft.projectName}
                 onChange={(e) => setDraft((s) => ({ ...s, projectName: e.target.value }))}
-                style={styles.modalInput}
+                style={{ ...styles.modalInput, ...(floatingHint && !draft.projectName.trim() ? { borderColor: "#ef4444" } : {}) }}
                 placeholder={defaultProjectName(lang)}
               />
             </div>
@@ -386,15 +336,6 @@ export function CreateWizard(props: Props) {
                 <option value="1:1">1:1</option>
               </select>
             </div>
-            <div style={styles.summaryBox}>
-              <div style={styles.summaryTitle}>{lang === "zh" ? "创建摘要" : "Creation Summary"}</div>
-              <div style={styles.summaryLine}>{lang === "zh" ? "媒体类型" : "Media"}: {summaryLabel.media}</div>
-              <div style={styles.summaryLine}>{lang === "zh" ? "分镜方案" : "Shot Plan"}: {summaryLabel.shotPlan}</div>
-              <div style={styles.summaryLine}>{lang === "zh" ? "分镜数量" : "Shot Count"}: {draftSummary.shotCount}</div>
-              <div style={styles.summaryLine}>{lang === "zh" ? "总时长" : "Total Duration"}: {draftSummary.totalDuration}s</div>
-              <div style={styles.summaryLine}>{lang === "zh" ? "场景级别" : "Scene Tier"}: {draftSummary.sceneTier}</div>
-              <div style={styles.summaryLine}>{lang === "zh" ? "画幅比例" : "Ratio"}: {draftSummary.ratio}</div>
-            </div>
             <div style={styles.modalBtns}>
               {canCancel ? (
                 <SecondaryActionButton label={lang === "zh" ? "取消" : "Cancel"} onClick={onCancel} />
@@ -403,249 +344,59 @@ export function CreateWizard(props: Props) {
                 setMediaTouched(false);
                 setStep("media");
               }} />
-              <PrimaryActionButton label={lang === "zh" ? "开始编辑" : "Start Editing"} onClick={onCreateProject} />
-            </div>
-          </>
-        ) : null}
-
-        {step === "video_plan" ? (
-          <>
-            {stepHeader}
-            <div style={styles.modalTitle}>{lang === "zh" ? "第 2 步：设置分镜结构" : "Step 2: Set Shot Structure"}</div>
-            <div style={styles.wizardPlanGrid}>
-              {[
-                { id: "single", zh: "单镜头", en: "Single Shot", descZh: "一个分镜完成全部", descEn: "One shot for all" },
-                { id: "multicam", zh: "同场景多机位", en: "Multicam", descZh: "场景不变只换角度", descEn: "Same location, angle changes" },
-                { id: "continuous", zh: "连续镜头", en: "Continuous", descZh: "多分镜无缝连接", descEn: "Multi-shot no-cut illusion" },
-                { id: "edit", zh: "标准剪辑", en: "Edit", descZh: "可切换场景和时间", descEn: "Scene/time jump allowed" }
-              ].map((p) => {
-                const on = draft.shotPlan === (p.id as ShotPlan);
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    style={{
-                      ...styles.wizardPlanCard,
-                      ...(hoveredPlan === (p.id as ShotPlan) ? styles.wizardPlanCardHover : {}),
-                      ...(planTouched && on ? styles.wizardPlanCardOn : {})
-                    }}
-                    onMouseEnter={() => setHoveredPlan(p.id as ShotPlan)}
-                    onMouseLeave={() => setHoveredPlan(null)}
-                    onClick={() => {
-                      setPlanTouched(true);
-                      setDraft((s) =>
-                        nextWizardDraft({ ...s, shotPlan: p.id as ShotPlan, shotCount: defaultShotCount(p.id as ShotPlan) })
-                      );
-                    }}
-                  >
-                    <div style={styles.wizardPlanTitle}>{lang === "zh" ? p.zh : p.en}</div>
-                    <div style={styles.wizardPlanDesc}>{lang === "zh" ? p.descZh : p.descEn}</div>
-                  </button>
-                );
-              })}
-            </div>
-            <div style={styles.modalBtns}>
-              {canCancel ? (
-                <SecondaryActionButton label={lang === "zh" ? "取消" : "Cancel"} onClick={onCancel} />
-              ) : null}
-              <SecondaryActionButton label={lang === "zh" ? "上一步" : "Back"} onClick={() => {
-                setMediaTouched(false);
-                setStep("media");
-              }} />
-              <PrimaryActionButton label={lang === "zh" ? "下一步" : "Next"} onClick={() => setStep("video_setup")} />
-            </div>
-          </>
-        ) : null}
-
-        {step === "video_setup" ? (
-          <>
-            {stepHeader}
-            <div style={styles.modalTitle}>{lang === "zh" ? "第 3 步：生成分镜骨架" : "Step 3: Build Shot Skeleton"}</div>
-            <div style={styles.step3Body}>
-              <div style={styles.step3FormRow}>
-                <label style={styles.modalLabel}>{lang === "zh" ? "项目名称" : "Project Name"}</label>
-                <input
-                  value={draft.projectName}
-                  onChange={(e) => setDraft((s) => ({ ...s, projectName: e.target.value }))}
-                  style={styles.modalInput}
-                  placeholder={defaultProjectName(lang)}
-                />
-              </div>
-              <div style={styles.step3FormRow}>
-                <label style={styles.modalLabel}>{lang === "zh" ? "分镜数量" : "Shot Count"}</label>
-                <select
-                  value={String(draft.shotCount)}
-                  onChange={(e) => {
-                    const shotCount = Math.max(1, Number(e.target.value) || 1);
-                    setDraft((s) => nextWizardDraft({ ...s, shotCount }));
-                  }}
-                  style={styles.modalSelect}
-                  disabled={draft.shotPlan === "single"}
-                >
-                  {[1, 2, 3, 4, 5, 6, 8].map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div style={styles.step3FormRow}>
-                <label style={styles.modalLabelWithHelp}>
-                  <span>{lang === "zh" ? "场景级别" : "Scene Tier"}</span>
-                  <span style={styles.helpWrap}>
-                    <span
-                      style={styles.helpQ}
-                      onMouseEnter={() => setShowSceneTierHelp(true)}
-                      onMouseLeave={() => setShowSceneTierHelp(false)}
-                      onFocus={() => setShowSceneTierHelp(true)}
-                      onBlur={() => setShowSceneTierHelp(false)}
-                      tabIndex={0}
-                    >
-                      ?
-                    </span>
-                    {showSceneTierHelp ? (
-                      <span style={styles.helpBubble}>
-                        {lang === "zh"
-                          ? "这是什么：场景级别会影响画幅建议和构图深度。什么时候用：你还没确定视觉尺度时。下一步：先选 A/B/C，再微调画幅。"
-                          : "A: Indoor (9:16), B: Small plaza (1:1), C: Open space (16:9). Selection syncs suggested ratio."}
-                      </span>
-                    ) : null}
-                  </span>
-                </label>
-                <select
-                  value={draft.sceneTier}
-                  onChange={(e) => {
-                    const tier = e.target.value as SceneTier;
-                    setDraft((s) => nextWizardDraft({ ...s, sceneTier: tier, ratio: recommendedRatioByTier(tier) }));
-                  }}
-                  style={styles.modalSelect}
-                >
-                  <option value="indoor">{lang === "zh" ? "A｜室内（人物偏近）" : "A | Indoor (closer subjects)"}</option>
-                  <option value="small_plaza">{lang === "zh" ? "B｜小广场（均衡层次）" : "B | Small Plaza (balanced depth)"}</option>
-                  <option value="open_space">{lang === "zh" ? "C｜开阔外景（深度拉开）" : "C | Open Space (strong depth)"}</option>
-                </select>
-              </div>
-              <div style={styles.step3FormRow}>
-                <label style={styles.modalLabelWithHelp}>
-                  <span>{lang === "zh" ? "总时长(s)" : "Total Duration(s)"}</span>
-                  <span style={styles.helpWrap}>
-                    <span
-                      style={styles.helpQ}
-                      onMouseEnter={() => setShowDurationHelp(true)}
-                      onMouseLeave={() => setShowDurationHelp(false)}
-                      onFocus={() => setShowDurationHelp(true)}
-                      onBlur={() => setShowDurationHelp(false)}
-                      tabIndex={0}
-                    >
-                      ?
-                    </span>
-                    {showDurationHelp ? (
-                      <span style={styles.helpBubble}>
-                        {lang === "zh"
-                          ? "这是什么：总时长会影响分镜节奏。什么时候用：你先定整体节奏时。下一步：先填总时长，创建后再逐镜微调。"
-                          : "After creation, you can adjust shot seconds in scene list. Keep durations reasonable."}
-                      </span>
-                    ) : null}
-                  </span>
-                </label>
-                <input
-                  value={String(draft.totalDuration)}
-                  onChange={(e) => setDraft((s) => nextWizardDraft({ ...s, totalDuration: Math.max(1, Math.round(Number(e.target.value) || 12)) }))}
-                  style={styles.modalInput}
-                  inputMode="numeric"
-                />
-              </div>
-            </div>
-            {step3Warnings.length ? (
-              <div style={{ ...styles.step3WarnBox, ...styles.step3Body }}>
-                {step3Warnings.map((w, i) => (
-                  <div key={`${i}-${w}`}>{`- ${w}`}</div>
-                ))}
-              </div>
-            ) : null}
-            <div style={{ ...styles.step3FormRow, ...styles.step3Body }}>
-              <label style={styles.modalLabel}>{lang === "zh" ? "时长分配" : "Duration Mode"}</label>
-              <select
-                value={draft.durationMode}
-                onChange={(e) => setDraft((s) => nextWizardDraft({ ...s, durationMode: e.target.value as DurationMode }))}
-                style={styles.modalSelect}
-              >
-                <option value="average">{lang === "zh" ? "平均分配" : "Average"}</option>
-                <option value="manual">{lang === "zh" ? "手动填写" : "Manual"}</option>
-              </select>
-            </div>
-            {draft.durationMode === "manual" ? (
-              <div style={{ ...styles.manualDurGrid, ...styles.step3Body }}>
-                {Array.from({ length: draft.shotCount }).map((_, i) => (
-                  <div key={i} style={styles.manualDurItem}>
-                    <input
-                      value={String(draft.manualDurations[i] ?? 1)}
-                      onChange={(e) => {
-                        const val = Math.max(1, Math.round(Number(e.target.value) || 1));
-                        setDraft((s) => {
-                          const next = [...s.manualDurations];
-                          next[i] = val;
-                          return { ...s, manualDurations: next };
-                        });
-                      }}
-                      style={styles.manualDurInput}
-                      inputMode="numeric"
-                      placeholder={`${lang === "zh" ? "镜头" : "Shot"} ${i + 1}`}
-                    />
-                    <span style={styles.manualDurUnit}>{lang === "zh" ? "秒" : "s"}</span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            <div style={{ ...styles.wizardPreviewWrap, ...styles.step3Body }}>
-              <div style={styles.wizardPreviewTitle}>{lang === "zh" ? "分镜骨架预览" : "Shot Skeleton Preview"}</div>
-              <div style={styles.wizardPreviewList}>
-                {skeletonRows.map((row) => (
-                  <div key={row.id} style={styles.wizardPreviewItem}>
-                    <div style={styles.wizardPreviewName}>{row.name}</div>
-                    <div style={styles.wizardPreviewMeta}>{lang === "zh" ? `${row.duration}秒` : `${row.duration}s`}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div style={{ ...styles.summaryBox, ...styles.step3Body }}>
-              <div style={styles.summaryTitle}>{lang === "zh" ? "创建摘要" : "Creation Summary"}</div>
-              <div style={styles.summaryLine}>{lang === "zh" ? "媒体类型" : "Media"}: {summaryLabel.media}</div>
-              <div style={styles.summaryLine}>{lang === "zh" ? "分镜方案" : "Shot Plan"}: {summaryLabel.shotPlan}</div>
-              <div style={styles.summaryLine}>{lang === "zh" ? "分镜数量" : "Shot Count"}: {draftSummary.shotCount}</div>
-              <div style={styles.summaryLine}>{lang === "zh" ? "总时长" : "Total Duration"}: {draftSummary.totalDuration}s</div>
-              <div style={styles.summaryLine}>{lang === "zh" ? "场景级别" : "Scene Tier"}: {draftSummary.sceneTier}</div>
-              <div style={styles.summaryLine}>{lang === "zh" ? "画幅比例" : "Ratio"}: {draftSummary.ratio}</div>
-            </div>
-            <div style={styles.modalBtns}>
-              {canCancel ? (
-                <SecondaryActionButton label={lang === "zh" ? "取消" : "Cancel"} onClick={onCancel} />
-              ) : null}
-              <SecondaryActionButton label={lang === "zh" ? "上一步" : "Back"} onClick={() => {
-                  setPlanTouched(false);
-                  setStep("video_plan");
-                }} />
               <PrimaryActionButton
-                label={lang === "zh" ? "开始编辑" : "Start Editing"}
+                label={lang === "zh" ? "下一步" : "Next"}
                 onClick={() => {
-                  if (!validateVideoSetup()) return;
+                  const name = draft.projectName.trim();
+                  if (!name) {
+                    setFloatingHint(lang === "zh" ? "请填写项目名称" : "Please enter project name.");
+                    return;
+                  }
+                  setStep("done");
+                }}
+              />
+            </div>
+          </>
+        ) : null}
+
+        {step === "done" ? (
+          <>
+            {stepHeader}
+            <div style={styles.modalTitle}>{lang === "zh" ? "准备好了" : "You're all set"}</div>
+            <ul style={{ margin: "16px 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.8, color: "rgba(229,231,235,0.95)" }}>
+              <li>{lang === "zh" ? "左侧面板：选镜头景别、运镜方式、光线情绪，600+ 场景模板直接套用" : "Left: shot type, camera movement, lighting mood — 600+ templates ready to apply"}</li>
+              <li>{lang === "zh" ? "右侧面板：设置背景氛围、上传参考图、逐一描述画面对象细节" : "Right: background style, reference images, per-object descriptions"}</li>
+              <li>{lang === "zh" ? "填好结构，本地直接生成，或复制提示词到你常用的 AI 平台，多平台适配" : "Fill the structure, generate locally or copy the prompt to any AI platform — works everywhere"}</li>
+            </ul>
+            <p style={{ margin: "0 0 16px", fontSize: 12, color: "#f59e0b", lineHeight: 1.5 }}>
+              {lang === "zh" ? "用好结构化工作台，同样的创意产出效率翻倍——会用的人，比别人少花 80% 的时间。" : "The more you use it, the faster you get. What used to take an hour takes ten minutes."}
+            </p>
+            <div style={styles.modalBtns}>
+              <PrimaryActionButton
+                label={lang === "zh" ? "开始使用" : "Get Started"}
+                onClick={() => {
+                  onMarkOnboardingDone();
                   onCreateProject();
                 }}
               />
             </div>
           </>
         ) : null}
+
       </div>
     </div>
   );
 }
 
+const WIZARD_BG = "#24262b";
+const WIZARD_BORDER = "#3a3f46";
+const WIZARD_ACCENT = "#f59e0b";
+
 const styles: Record<string, CSSProperties> = {
   modalMask: {
     position: "fixed",
     inset: 0,
-    background:
-      "radial-gradient(circle at 18% 16%, rgba(108,150,255,0.22), transparent 28%), radial-gradient(circle at 84% 10%, rgba(84,197,197,0.18), transparent 24%), rgba(6,9,16,0.82)",
+    background: "rgba(31,33,37,0.85)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -656,14 +407,12 @@ const styles: Record<string, CSSProperties> = {
     width: 640,
     maxWidth: "100%",
     borderRadius: UI_RADIUS.panel,
-    border: "1px solid rgba(174,204,255,0.16)",
-    background:
-      "linear-gradient(180deg, rgba(14,20,32,0.96) 0%, rgba(10,15,25,0.98) 100%)",
+    border: `1px solid ${WIZARD_BORDER}`,
+    background: WIZARD_BG,
     boxShadow: UI_EFFECT.floatShadow,
     padding: UI_SPACE.md,
     position: "relative",
     overflow: "hidden",
-    backdropFilter: "blur(18px)",
     isolation: "isolate"
   },
   modalBackdrop: {
@@ -809,13 +558,13 @@ const styles: Record<string, CSSProperties> = {
   },
   newProjectMediaRow: { display: "grid", gridTemplateColumns: "1fr", gap: 8, marginTop: 10 },
   newProjectMediaBtn: {
-    height: 34,
+    height: 44,
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_CONTROL.border.default}`,
-    background: UI_CONTROL.bg.default,
-    color: "inherit",
+    border: `1px solid ${WIZARD_BORDER}`,
+    background: "#1f2125",
+    color: "rgba(229,231,235,0.95)",
     cursor: "pointer",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 800,
     display: "flex",
     alignItems: "center",
@@ -824,19 +573,16 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: UI_CONTROL.shadow.soft
   },
   newProjectMediaBtnHover: {
-    border: `1px solid ${UI_CONTROL.border.hover}`,
-    background: UI_CONTROL.bg.hover,
+    border: `1px solid ${WIZARD_BORDER}`,
+    background: "#24262b",
     boxShadow: UI_CONTROL.shadow.hover,
     transform: "translateY(-1px)"
   },
   newProjectMediaBtnOn: {
-    border: `1px solid ${UI_CONTROL.border.active}`,
-    background: UI_CONTROL.bg.accent,
-    boxShadow: UI_CONTROL.shadow.hover,
-    ["--spx-btn-bg-hover" as any]: UI_CONTROL.bg.accentHover,
-    ["--spx-btn-bg-active" as any]: UI_CONTROL.bg.accentActive,
-    ["--spx-btn-border-hover" as any]: UI_CONTROL.border.active,
-    ["--spx-btn-border-active" as any]: UI_CONTROL.border.active
+    border: `1px solid ${WIZARD_ACCENT}`,
+    background: WIZARD_ACCENT,
+    color: "#1f2125",
+    boxShadow: UI_CONTROL.shadow.hover
   },
   wizardBullets: {
     marginTop: 8,
@@ -1111,23 +857,23 @@ const styles: Record<string, CSSProperties> = {
     height: 34,
     padding: "0 14px",
     borderRadius: UI_RADIUS.control,
-    border: `1px solid ${UI_ACTION.border.default}`,
-    background: UI_ACTION.surface.default,
-    color: "inherit",
+    border: `1px solid ${WIZARD_ACCENT}`,
+    background: WIZARD_ACCENT,
+    color: "#1f2125",
     cursor: "pointer",
     fontSize: 12,
     fontWeight: 900,
     boxShadow: UI_CONTROL.shadow.soft
   },
   modalBtnHover: {
-    border: `1px solid ${UI_ACTION.border.hover}`,
-    background: UI_ACTION.surface.hover,
+    border: `1px solid ${WIZARD_ACCENT}`,
+    background: "#d97706",
     boxShadow: UI_ACTION.shadow.hover,
     transform: "translateY(-1px)"
   },
   modalBtnPressed: {
-    border: `1px solid ${UI_ACTION.border.active}`,
-    background: UI_ACTION.surface.active,
+    border: `1px solid ${WIZARD_ACCENT}`,
+    background: "#b45309",
     boxShadow: UI_CONTROL.shadow.active,
     transform: "translateY(0)"
   },

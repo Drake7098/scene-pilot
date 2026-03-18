@@ -1,5 +1,9 @@
 /**
  * Template search service - filter index by scope, category, filters, search query.
+ *
+ * Fix: scope and category are now additive (not mutually exclusive).
+ *   Step 1 - scope determines base pool
+ *   Step 2 - category + filters narrow within that pool
  */
 
 import type { TemplateIndex } from "../model/templateIndex";
@@ -77,6 +81,7 @@ export function filterTemplateIndex(
   filters: TemplateWorkspaceFilters,
   searchQuery: string
 ): TemplateIndex[] {
+  // --- Step 1: scope determines the base pool ---
   let list: TemplateIndex[];
 
   if (scope === "recommended") {
@@ -89,17 +94,23 @@ export function filterTemplateIndex(
     list = getRecentFromIndex();
   } else if (scope === "mine") {
     list = [];
-  } else if (category && category !== "all") {
-    list = items.filter((t) => t.category === category);
   } else {
+    // scope === "all" — full pool
     list = [...items];
   }
 
+  // --- Step 2: category narrows within scope pool (additive, not exclusive) ---
+  if (category && category !== "all") {
+    list = list.filter((t) => t.category === category);
+  }
+
+  // --- Step 3: search query ---
   if (searchQuery.trim()) {
     const q = searchQuery.trim();
     list = list.filter((t) => matchesSearch(t, q));
   }
 
+  // --- Step 4: filter bar ---
   if (filters.mediaType !== "all") {
     list = list.filter((t) => t.mediaType === filters.mediaType);
   }
@@ -114,9 +125,8 @@ export function filterTemplateIndex(
       filters.pricing === "free" ? t.isFree : !t.isFree
     );
   }
-
-  if (filters?.domain && filters.domain !== "all") {
-    list = list.filter((t) => t.domain === filters.domain);
+  if (filters.industry && filters.industry !== "all") {
+    list = list.filter((t) => t.industry === filters.industry);
   }
 
   return list;

@@ -1,0 +1,34 @@
+Scenario: sim_024
+[V2 SCENEPILOT COMPILE]
+Scene: shot_24 (9s)
+Scene Domain: animation (动画)
+Need: stylized hero entrance
+@compiler:v2
+@scene_tier:open_space
+@v2_mode:strict
+
+User Object Input:
+- object_id: hero_4
+- base: 女性角色，白色连衣裙
+- user_actions: 转身 / 站立 / 挥手
+
+Layout Contract (obey strictly):
+- preserve relative layout and preserve depth order; far threshold.
+- keep object count; do not re-layout composition.
+
+T0 Frame Spec:
+- baseline framing with foreground-midground-background separation.
+
+T1 Frame Spec:
+- 缓慢转身后保持站立，向镜头挥手。 moves down, becomes farther from camera, decreases in size, slight turn.
+
+Anti-Director Rules:
+- anti-director strength: strong.
+- no auto-centering; no symmetry; no hero re-layout.
+- no text; no overlays; keep object count.
+
+Generation constraints:
+- Camera Contract: hold framing for 9s duration window.
+- structure first, style second.
+- add text overlay for title card.
+- 动作改写：角色全程站立，双手空置，不做进食动作。

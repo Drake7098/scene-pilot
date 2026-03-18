@@ -27,6 +27,7 @@ export type PlatformAdaptInput = {
   profile: PlatformProfile;
   lang: Lang;
   media: MediaKind;
+  aspectRatio?: string;
   platformId?: PlatformPresetId;
   sceneStrategy?: PromptSceneStrategyMeta;
   creativeContext?: PromptCreativeContextMeta;

@@ -1,0 +1,34 @@
+Scenario: sim_038
+[V2 SCENEPILOT COMPILE]
+Scene: shot_38 (5s)
+Scene Domain: ecommerce (电商)
+Need: unboxing tabletop showcase
+@compiler:v2
+@scene_tier:small_plaza
+@v2_mode:strict
+
+User Object Input:
+- object_id: hero_2
+- base: 短发女性，运动服
+- user_actions: 慢走两步 / 站立 / 拿着杯子喝水
+
+Layout Contract (obey strictly):
+- preserve relative layout and preserve depth order; mid threshold.
+- keep object count; do not re-layout composition.
+
+T0 Frame Spec:
+- baseline framing with foreground-midground-background separation.
+
+T1 Frame Spec:
+- 慢走两步后原地站立，抬手喝水。 moves right, moves closer to camera, increases in size, slight turn.
+
+Anti-Director Rules:
+- anti-director strength: mid.
+- no auto-centering; no symmetry; no hero re-layout.
+- no text; no overlays; keep object count.
+
+Generation constraints:
+- Camera Contract: hold framing for 5s duration window.
+- structure first, style second.
+- add text overlay for title card.
+- 动作改写：角色全程站立，双手空置，不做进食动作。

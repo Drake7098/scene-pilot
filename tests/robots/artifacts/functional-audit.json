@@ -1,0 +1,141 @@
+{
+  "generatedAt": "2026-03-12T20:00:09.201Z",
+  "totals": {
+    "capabilities": 8,
+    "executed": 8,
+    "passed": 0,
+    "failed": 8,
+    "missing": 0,
+    "blockerFailures": 7
+  },
+  "capabilities": [
+    {
+      "id": "quick.image.local_generation",
+      "label": "Quick 工作台本地图片生成/继续生成/结构调整",
+      "severity": "blocker",
+      "executed": true,
+      "passed": false,
+      "specs": [
+        {
+          "file": "quick-workspace-local-drawthings.spec.ts",
+          "executed": true,
+          "passed": false,
+          "tests": 1,
+          "failedTests": 1
+        }
+      ]
+    },
+    {
+      "id": "quick.image.fallback_comfy",
+      "label": "Quick 工作台 ComfyUI 失败回退 Draw Things",
+      "severity": "blocker",
+      "executed": true,
+      "passed": false,
+      "specs": [
+        {
+          "file": "quick-workspace-local-fallback-comfy.spec.ts",
+          "executed": true,
+          "passed": false,
+          "tests": 1,
+          "failedTests": 1
+        }
+      ]
+    },
+    {
+      "id": "quick.image.handoff_pack",
+      "label": "Quick 工作台双离线降级任务包",
+      "severity": "blocker",
+      "executed": true,
+      "passed": false,
+      "specs": [
+        {
+          "file": "quick-workspace-handoff-pack.spec.ts",
+          "executed": true,
+          "passed": false,
+          "tests": 1,
+          "failedTests": 1
+        }
+      ]
+    },
+    {
+      "id": "quick.to_pro.handoff",
+      "label": "Quick 工作台进入 Pro（模式切换，不自动继承文本）",
+      "severity": "blocker",
+      "executed": true,
+      "passed": false,
+      "specs": [
+        {
+          "file": "quick-workspace-to-pro.spec.ts",
+          "executed": true,
+          "passed": false,
+          "tests": 1,
+          "failedTests": 1
+        }
+      ]
+    },
+    {
+      "id": "pro.media.contract",
+      "label": "Pro 图片/视频媒体契约分流",
+      "severity": "blocker",
+      "executed": true,
+      "passed": false,
+      "specs": [
+        {
+          "file": "pro-media-contract.spec.ts",
+          "executed": true,
+          "passed": false,
+          "tests": 1,
+          "failedTests": 1
+        }
+      ]
+    },
+    {
+      "id": "pro.save.export.local",
+      "label": "Pro 保存/另存/导出本地链路",
+      "severity": "blocker",
+      "executed": true,
+      "passed": false,
+      "specs": [
+        {
+          "file": "pro-save-export-local.spec.ts",
+          "executed": true,
+          "passed": false,
+          "tests": 1,
+          "failedTests": 1
+        }
+      ]
+    },
+    {
+      "id": "project.menu.flow",
+      "label": "项目菜单连续流",
+      "severity": "high",
+      "executed": true,
+      "passed": false,
+      "specs": [
+        {
+          "file": "project-menu-flow.spec.ts",
+          "executed": true,
+          "passed": false,
+          "tests": 1,
+          "failedTests": 1
+        }
+      ]
+    },
+    {
+      "id": "quick.layout.guard",
+      "label": "Quick 工作台布局守卫",
+      "severity": "blocker",
+      "executed": true,
+      "passed": false,
+      "specs": [
+        {
+          "file": "quick-workspace-layout-guard.spec.ts",
+          "executed": true,
+          "passed": false,
+          "tests": 1,
+          "failedTests": 1
+        }
+      ]
+    }
+  ]
+}

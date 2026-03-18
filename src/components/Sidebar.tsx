@@ -5,6 +5,7 @@ import { t } from "../i18n";
 import { resolveSceneConfig } from "../model";
 import type { Project, Scene, Layer, ShotPlan, Direction, TransitionType } from "../model";
 import { defaultObjectName, defaultSceneName } from "../utils/naming";
+import { resolveActiveProFields } from "../utils/proFieldsResolver";
 import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_FONT, UI_INFO, UI_OPACITY, UI_PALETTE, UI_RADIUS, UI_SIZE, UI_SPACE, UI_STATUS, UI_TYPO, PRO_TYPO } from "../uiTokens";
 import {
   PRO_PLUS_MOTION_CATEGORIES,
@@ -58,7 +59,7 @@ import { useFieldState } from "../hooks/useFieldState";
 import { FIELD_KEYS } from "../rules/fieldKeys";
 import { ContinuityPanel } from "./ContinuityPanel";
 import { editorTheme } from "../theme/editorTheme";
-import { Film, FileText, Layout, LayoutGrid, Layers, Camera, Settings, Play, Plus, Minus, ChevronDown, ChevronRight, Save, Copy, Download, FilePlus2, FolderOpen, PencilLine, Sun } from "lucide-react";
+import { Film, FileText, Layout, LayoutGrid, Layers, Camera, Settings, Play, Plus, Minus, ChevronDown, ChevronRight, Save, Copy, Download, FilePlus2, FolderOpen, PencilLine, Sun, Maximize } from "lucide-react";
 
 type Props = {
   lang: Lang;
@@ -334,19 +335,12 @@ export function Sidebar(props: Props) {
   const selectedVideoClassicModeId = useMemo(() => parseVideoClassicModeId(scene.notes ?? "") ?? "", [scene.notes]);
   const selectedImageClassicModeId = useMemo(() => parseImageClassicModeId(scene.notes ?? "") ?? "", [scene.notes]);
   const [videoProMenuOpen, setVideoProMenuOpen] = useState(false);
-  const [imageProMenuOpen, setImageProMenuOpen] = useState(false);
   const [videoProCategoryHover, setVideoProCategoryHover] = useState<string | null>(null);
-  const [imageProCategoryHover, setImageProCategoryHover] = useState<string | null>(null);
   const [videoProOptionHover, setVideoProOptionHover] = useState<string | null>(null);
-  const [imageProOptionHover, setImageProOptionHover] = useState<string | null>(null);
   const videoProMenuRef = useRef<HTMLDivElement | null>(null);
-  const imageProMenuRef = useRef<HTMLDivElement | null>(null);
   const videoProTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const imageProTriggerRef = useRef<HTMLButtonElement | null>(null);
   const videoProPopupRef = useRef<HTMLDivElement | null>(null);
-  const imageProPopupRef = useRef<HTMLDivElement | null>(null);
   const [videoProCategoryTop, setVideoProCategoryTop] = useState(0);
-  const [imageProCategoryTop, setImageProCategoryTop] = useState(0);
 
   // ✅ NEW: add scene mini panel
   const [newScene, setNewScene] = useState<NewSceneDraft>({
@@ -363,6 +357,12 @@ export function Sidebar(props: Props) {
   const [newSceneModeTouched, setNewSceneModeTouched] = useState(false);
   const [newSceneGenModeTouched, setNewSceneGenModeTouched] = useState(false);
   const [showGenHint, setShowGenHint] = useState(false);
+
+  // Pro 字段状态计算
+  const activeProFields = resolveActiveProFields(scene?.notes ?? "");
+  const hasVideoClassicPro = !!activeProFields.videoClassicId;
+  const hasImageClassicPro = !!activeProFields.imageClassicId;
+  const hasDirectorPackPro = !!activeProFields.directorPackId;
 
   // ✅ 替代 alert/confirm：轻量 toast + 自定义确认框
   const [toastText, setToastText] = useState<string>("");
@@ -386,11 +386,8 @@ export function Sidebar(props: Props) {
 
   useEffect(() => {
     setVideoProMenuOpen(false);
-    setImageProMenuOpen(false);
     setVideoProCategoryHover(null);
-    setImageProCategoryHover(null);
     setVideoProOptionHover(null);
-    setImageProOptionHover(null);
   }, [scene.id]);
 
   useEffect(() => {
@@ -406,24 +403,12 @@ export function Sidebar(props: Props) {
         setVideoProCategoryHover(null);
         setVideoProOptionHover(null);
       }
-      if (
-        imageProMenuRef.current &&
-        !imageProMenuRef.current.contains(target) &&
-        !imageProPopupRef.current?.contains(target)
-      ) {
-        setImageProMenuOpen(false);
-        setImageProCategoryHover(null);
-        setImageProOptionHover(null);
-      }
     };
     const onDocKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setVideoProMenuOpen(false);
-        setImageProMenuOpen(false);
         setVideoProCategoryHover(null);
-        setImageProCategoryHover(null);
         setVideoProOptionHover(null);
-        setImageProOptionHover(null);
       }
     };
     window.addEventListener("mousedown", onDocMouseDown);
@@ -555,6 +540,10 @@ export function Sidebar(props: Props) {
     setNewSceneModeTouched(false);
     setNewSceneGenModeTouched(false);
     setShowGenHint(false);
+    // 重置菜单状态，避免菜单显示在模态框上方
+    setVideoProMenuOpen(false);
+    setVideoProCategoryHover(null);
+    setVideoProOptionHover(null);
   }
 
   function confirmAddScene(anchorEl: HTMLElement | null) {
@@ -562,6 +551,10 @@ export function Sidebar(props: Props) {
       showFloatingHint(sceneLimitText(), anchorEl, "danger");
       return;
     }
+    // 重置菜单状态，避免菜单显示在模态框上方
+    setVideoProMenuOpen(false);
+    setVideoProCategoryHover(null);
+    setVideoProOptionHover(null);
     const mode: MediaMode = newScene.mode;
     const fallbackName = defaultSceneName(lang, mode, scenes.length + 1);
     const name = (newScene.name ?? "").trim() || fallbackName;
@@ -647,6 +640,10 @@ export function Sidebar(props: Props) {
     if (scenes.length <= 1) return;
     deleteHintAnchorRef.current = anchorEl;
     setConfirmDelIdx(idx);
+    // 重置菜单状态，避免菜单显示在模态框上方
+    setVideoProMenuOpen(false);
+    setVideoProCategoryHover(null);
+    setVideoProOptionHover(null);
   }
   function doDeleteScene(idx: number) {
     if (scenes.length <= 1) return;
@@ -777,10 +774,12 @@ export function Sidebar(props: Props) {
   const videoClassicSelectValue = selectedVideoClassicModeId || (hasVideoManualClassic ? "__manual__" : "");
   const imageClassicSelectValue = selectedImageClassicModeId || (hasImageManualClassic ? "__manual__" : "");
 
-  function buildInheritedSceneNotes(mode: MediaMode, genMode: GenMode) {
+  function buildInheritedSceneNotes(mode: MediaMode, genMode: GenMode, shotPlan?: ShotPlan) {
     let nextNotes = setGenMode(`media: ${mode}`, genMode);
     if (mode !== activeMediaType) return nextNotes;
-    nextNotes = applyDirectorStylePack(nextNotes, directorStylePackId ?? "");
+    if (shotPlan !== "edit") {
+      nextNotes = applyDirectorStylePack(nextNotes, directorStylePackId ?? "");
+    }
     if (mode === "video") {
       nextNotes = setVideoClassicModeMarker(nextNotes, selectedVideoClassicModeId);
       nextNotes = applyProMotionSelection(nextNotes, proMotionSelection);
@@ -792,11 +791,13 @@ export function Sidebar(props: Props) {
   }
 
   function buildSceneSeed(mode: MediaMode, shotPlan: ShotPlan, idxNo: number, name: string, genMode: GenMode): Scene {
+    const isEdit = shotPlan === "edit";
+    const inheritMotion = !isEdit && mode === activeMediaType;
     return {
       id: nextId("s", (x) => scenes.some((s) => s.id === x)),
       index: idxNo,
       name,
-      duration_s: Math.max(1, Math.round(Number(scene?.duration_s) || 6)),
+      duration_s: isEdit ? 6 : Math.max(1, Math.round(Number(scene?.duration_s) || 6)),
       cameraPreset: mode === "video" ? "first-person" : "",
       inheritFromPrevious: mode === "video" && idxNo > 1 && (shotPlan === "multicam" || shotPlan === "continuous"),
       ...defaultRefInheritByPlan(shotPlan, mode !== "video" || idxNo <= 1),
@@ -804,17 +805,17 @@ export function Sidebar(props: Props) {
       entryDir: mode === "video" && shotPlan === "continuous" && idxNo > 1 ? "E" : undefined,
       exitDir: mode === "video" && shotPlan === "continuous" ? "E" : undefined,
       camera: {
-        shot: mode === activeMediaType ? visibleShot : "",
-        movement: mode === "video" && mode === activeMediaType ? visibleMovement : "",
+        shot: inheritMotion ? visibleShot : "",
+        movement: inheritMotion ? visibleMovement : "",
         keyframes: [
           { t: 0, x: 0, y: 0, zoom: 1, rot: 0 },
           { t: 1, x: 0, y: 0, zoom: 1, rot: 0 }
         ]
       } as any,
       lighting: {
-        time: mode === activeMediaType ? visibleLightingTime : "",
-        key_dir: mode === activeMediaType ? visibleLightingKeyDir : "",
-        mood: mode === activeMediaType ? visibleLightingMood : ""
+        time: inheritMotion ? visibleLightingTime : "",
+        key_dir: inheritMotion ? visibleLightingKeyDir : "",
+        mood: inheritMotion ? visibleLightingMood : ""
       } as any,
       layoutLocked: false,
       layers: [buildDefaultObjectLayer(lang, [])],
@@ -824,7 +825,7 @@ export function Sidebar(props: Props) {
         sceneTier: resolveSceneConfig(scene).sceneTier,
         v2Mode: resolveSceneConfig(scene).v2Mode
       },
-      notes: buildInheritedSceneNotes(mode, genMode)
+      notes: buildInheritedSceneNotes(mode, genMode, shotPlan)
     };
   }
 
@@ -911,8 +912,6 @@ export function Sidebar(props: Props) {
     const item = getImageProEffect(value);
     if (!item?.category) return;
     selectImageProEffectForCategory(item.category, value);
-    setImageProMenuOpen(false);
-    setImageProCategoryHover(null);
   }
 
   function currentVideoProMenuLabel() {
@@ -971,7 +970,6 @@ export function Sidebar(props: Props) {
   }
 
   const videoMenuRect = videoProMenuOpen ? menuRect(videoProTriggerRef.current) : null;
-  const imageMenuRect = imageProMenuOpen ? menuRect(imageProTriggerRef.current) : null;
 
   function renderVideoCascadeMenu() {
     if (!videoProMenuOpen || !videoMenuRect || typeof document === "undefined") return null;
@@ -1065,95 +1063,19 @@ export function Sidebar(props: Props) {
     );
   }
 
-  function renderImageCascadeMenu() {
-    if (!imageProMenuOpen || !imageMenuRect || typeof document === "undefined") return null;
-    return createPortal(
-      <div
-        ref={imageProPopupRef}
-        style={{ ...styles.proCascadeRoot, top: imageMenuRect.top, left: imageMenuRect.left }}
-        data-testid="pro-image-menu"
-        onMouseLeave={() => {
-          setImageProCategoryHover(null);
-          setImageProOptionHover(null);
-        }}
-      >
-        <div
-          style={{
-            ...styles.proMotionSelectMenu,
-            width: imageMenuRect.width,
-            ...(imageProCategoryHover
-              ? { borderTopRightRadius: 0, borderBottomRightRadius: 0 }
-              : null)
-          }}
-        >
-          {IMAGE_PRO_CATEGORIES.map((category) => {
-            const items = getImageProEffectsByCategory(category.id);
-            const allDisabled = items.length > 0 && items.every((item) => disabledImageIds.has(item.id) && !imageProSelection.includes(item.id));
-            return (
-              <button
-                key={category.id}
-                type="button"
-                disabled={allDisabled}
-                style={{
-                  ...styles.proMenuRow,
-                  ...(imageProCategoryHover === category.id ? styles.proMenuRowActive : null),
-                  ...(allDisabled ? styles.proMenuRowDisabled : null)
-                }}
-                onMouseEnter={(e) => {
-                  if (allDisabled) return;
-                  setImageProCategoryHover(category.id);
-                  setImageProCategoryTop((e.currentTarget as HTMLButtonElement).getBoundingClientRect().top - imageMenuRect.top);
-                }}
-                data-testid={`pro-image-category-${category.id}`}
-              >
-                <span style={styles.proMotionSelectItemTitle}>{lang === "zh" ? category.labelZh : category.labelEn}</span>
-                <ChevronRight size={14} />
-              </button>
-            );
-          })}
-        </div>
-        {imageProCategoryHover ? (
-          <div
-            style={{
-              ...styles.proCascadeSubmenu,
-              top: imageProCategoryTop,
-              left: imageMenuRect.width,
-              width: imageMenuRect.width,
-              borderLeft: "none",
-              borderTopLeftRadius: 0,
-              borderBottomLeftRadius: 0
-            }}
-            data-testid="pro-image-submenu"
-          >
-            {getImageProEffectsByCategory(imageProCategoryHover as any).map((item) => {
-              const selected = imageProSelection.includes(item.id);
-              const disabled = disabledImageIds.has(item.id) && !selected;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  style={{
-                    ...styles.proMenuRow,
-                    ...(imageProOptionHover === item.id ? styles.proMenuRowActive : null),
-                    ...(selected ? styles.proMenuRowActive : null),
-                    ...(disabled ? styles.proMenuRowDisabled : null)
-                  }}
-                  disabled={disabled}
-                  onMouseEnter={() => setImageProOptionHover(item.id)}
-                  onMouseLeave={() => setImageProOptionHover((current) => (current === item.id ? null : current))}
-                  onClick={() => pickImageProEffect(item.id)}
-                  data-testid={`pro-image-option-${item.id}`}
-                >
-                  <span style={styles.proMotionSelectItemTitle}>{lang === "zh" ? item.labelZh : item.labelEn}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-      </div>,
-      document.body
+  const imageProEffectOptions = useMemo(() => {
+    const categoryLabel = (id: string) => {
+      const hit = IMAGE_PRO_CATEGORIES.find((c) => c.id === id);
+      return hit ? (lang === "zh" ? hit.labelZh : hit.labelEn) : id;
+    };
+    const items = IMAGE_PRO_CATEGORIES.flatMap((category) =>
+      getImageProEffectsByCategory(category.id).map((effect) => ({
+        id: effect.id,
+        label: `${categoryLabel(category.id)} · ${lang === "zh" ? effect.labelZh : effect.labelEn}`
+      }))
     );
-  }
+    return items;
+  }, [lang]);
 
   const [sidebarCollapsed, toggleSidebar] = useProCollapseSections(
     "sidebar",
@@ -1798,6 +1720,44 @@ export function Sidebar(props: Props) {
         onToggle={() => toggleSidebar("continuity")}
       />
 
+      {scene && (
+        <EditorSection
+          title={lang === "zh" ? "画面比例" : "Aspect Ratio"}
+          icon={Maximize}
+          open={!sidebarCollapsed.has("aspect_ratio")}
+          onOpenChange={(open) => {
+            const currentlyOpen = !sidebarCollapsed.has("aspect_ratio");
+            if (open !== currentlyOpen) toggleSidebar("aspect_ratio");
+          }}
+        >
+          <div style={{ display: "flex", gap: 4 }}>
+            {(["1:1", "16:9", "9:16", "4:3", "21:9"] as const).map((ratio) => {
+              const selected = (scene.aspectRatio ?? "16:9") === ratio;
+              return (
+                <button
+                  key={ratio}
+                  type="button"
+                  onClick={() => onUpdateScene({ ...scene, aspectRatio: ratio })}
+                  style={{
+                    flex: 1,
+                    fontSize: 10,
+                    padding: "5px 2px",
+                    border: selected ? `1.5px solid ${ec.accent}` : `1px solid ${ec.border}`,
+                    borderRadius: 6,
+                    background: selected ? "rgba(245,158,11,0.1)" : "transparent",
+                    color: selected ? ec.accent : ec.textMuted,
+                    cursor: "pointer",
+                    fontWeight: selected ? 600 : 400
+                  }}
+                >
+                  {ratio}
+                </button>
+              );
+            })}
+          </div>
+        </EditorSection>
+      )}
+
       {/* Object Layers (Figma: fourth) */}
       <EditorSection
         title={tt("sidebar.layers")}
@@ -1990,6 +1950,7 @@ export function Sidebar(props: Props) {
           <div data-testid="pro-shot-recipe-select">
             <EditorSelect
               label={lang === "zh" ? "导演预设" : "Director Preset"}
+              labelSuffix={(hasVideoClassicPro || hasImageClassicPro) ? "PRO" : undefined}
               options={[
                 { label: lang === "zh" ? "未选择" : "None", value: "" },
                 ...(directorStylePackId
@@ -2017,6 +1978,7 @@ export function Sidebar(props: Props) {
             <div data-testid="director-style-pack-select">
               <EditorSelect
                 label={lang === "zh" ? "导演级风格包" : "Directing Pack"}
+                labelSuffix={hasDirectorPackPro ? "PRO" : undefined}
                 options={[
                   { label: lang === "zh" ? "未选择" : "None", value: "" },
                   ...(selectedVideoClassicModeId || selectedImageClassicModeId
@@ -2093,57 +2055,29 @@ export function Sidebar(props: Props) {
         </div>
         {!isVideoProject ? (
           <div style={styles.proMotionBlock} data-testid="pro-image-block">
-            <div style={styles.proMotionPanel}>
-              <div ref={imageProMenuRef} style={styles.proMotionSelectShell}>
-                <div style={{ marginBottom: editorTheme.spacing.fieldMarginBottomCompact }}>
-                  <label style={{ display: "block", fontSize: editorTheme.typography.labelSize, fontWeight: editorTheme.typography.labelWeight, color: ec.textMuted, marginBottom: editorTheme.spacing.labelToControl }}>
-                    {lang === "zh" ? "画面语言" : "Visual Language"}
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <button
-                      ref={imageProTriggerRef}
-                      type="button"
-                      data-testid="pro-image-trigger"
-                      data-open={imageProMenuOpen ? "true" : undefined}
-                      onClick={() => {
-                        setImageProMenuOpen((prev) => !prev);
-                        setImageProCategoryHover(null);
-                      }}
-                      style={{
-                        ...styles.proShotLanguageBtn,
-                        borderColor: imageProMenuOpen ? ec.accent : undefined,
-                        transition: `border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!imageProMenuOpen) e.currentTarget.style.borderColor = ec.textMuted;
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!imageProMenuOpen) e.currentTarget.style.borderColor = ec.border;
-                      }}
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderColor = ec.accent;
-                      }}
-                      onBlur={(e) => {
-                        if (!imageProMenuOpen) e.currentTarget.style.borderColor = ec.border;
-                      }}
-                    >
-                      <span style={styles.proShotLanguageValue}>{currentImageProMenuLabel()}</span>
-                      <ChevronDown
-                        size={editorTheme.sizing.selectArrowSize}
-                        style={{
-                          flexShrink: 0,
-                          color: ec.textMuted,
-                          opacity: imageProMenuOpen ? 1 : 0.85,
-                          transform: imageProMenuOpen ? "rotate(180deg)" : "none",
-                          transition: `transform ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`
-                        }}
-                        aria-hidden
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <EditorSelect
+              compact
+              label={lang === "zh" ? "画面语言" : "Visual Language"}
+              labelSuffix={activeProFields.imageProEffectIds.length > 0 ? "PRO" : undefined}
+              options={[
+                { label: lang === "zh" ? "未选择" : "None", value: "" },
+                ...imageProEffectOptions.map((o) => ({ label: o.label, value: o.id }))
+              ]}
+              value={imageProSelection[imageProSelection.length - 1] ?? ""}
+              disabled={!imageProRule.enabled}
+              title={imageProRule.reason}
+              onChange={(v) => {
+                const nextId = String(v ?? "");
+                if (!nextId) {
+                  const nextNotes = syncImageClassicMode(scene.notes ?? "", currentShot, []);
+                  onUpdateScene({ ...scene, notes: nextNotes });
+                  return;
+                }
+                const selected = imageProSelection.includes(nextId);
+                if (disabledImageIds.has(nextId) && !selected) return;
+                pickImageProEffect(nextId);
+              }}
+            />
           </div>
         ) : null}
         {isVideoProject && projectShotPlan !== "single" ? (
@@ -2197,7 +2131,6 @@ export function Sidebar(props: Props) {
       </EditorSection>
     </div>
     {renderVideoCascadeMenu()}
-    {renderImageCascadeMenu()}
     </>
   );
 }

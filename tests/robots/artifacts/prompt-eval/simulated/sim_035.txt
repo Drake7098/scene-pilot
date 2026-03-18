@@ -1,0 +1,32 @@
+Scenario: sim_035
+[V2 SCENEPILOT COMPILE]
+Scene: shot_35 (11s)
+Scene Domain: video (视频)
+Need: reverse-angle conversation
+@compiler:v2
+@scene_tier:small_plaza
+@v2_mode:strict
+
+User Object Input:
+- object_id: hero_5
+- base: 电商模特，浅色上衣
+- user_actions: 拿起产品 / 转身展示 / 微笑点头
+
+Layout Contract (obey strictly):
+- preserve relative layout and preserve depth order; mid threshold.
+- keep object count; do not re-layout composition.
+
+T0 Frame Spec:
+- baseline framing with foreground-midground-background separation.
+
+T1 Frame Spec:
+- 拿起产品后转身展示细节，最后对镜头微笑点头。 moves left, becomes farther from camera, decreases in size, obvious turn.
+
+Anti-Director Rules:
+- anti-director strength: mid.
+- no auto-centering; no symmetry; no hero re-layout.
+- no text; no overlays; keep object count.
+
+Generation constraints:
+- Camera Contract: hold framing for 11s duration window.
+- structure first, style second.

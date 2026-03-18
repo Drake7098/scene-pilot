@@ -1,0 +1,32 @@
+Scenario: sim_016
+[V2 SCENEPILOT COMPILE]
+Scene: shot_16 (10s)
+Scene Domain: animation (动画)
+Need: animal mascot jump turn
+@compiler:v2
+@scene_tier:indoor
+@v2_mode:strict
+
+User Object Input:
+- object_id: hero_6
+- base: 动画风角色，蓝色短发
+- user_actions: 小跳一步 / 停顿 / 挥手比心
+
+Layout Contract (obey strictly):
+- preserve relative layout and preserve depth order; close threshold.
+- keep object count; do not re-layout composition.
+
+T0 Frame Spec:
+- baseline framing with foreground-midground-background separation.
+
+T1 Frame Spec:
+- 先小跳一步再停顿，随后挥手比心。 moves up, moves closer to camera, increases in size, obvious turn.
+
+Anti-Director Rules:
+- anti-director strength: low.
+- no auto-centering; no symmetry; no hero re-layout.
+- no text; no overlays; keep object count.
+
+Generation constraints:
+- Camera Contract: hold framing for 10s duration window.
+- structure first, style second.

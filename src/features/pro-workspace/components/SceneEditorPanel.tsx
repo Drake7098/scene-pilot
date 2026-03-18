@@ -9,6 +9,8 @@ import { useFieldState } from "../../../hooks/useFieldState";
 import { FIELD_KEYS } from "../../../rules/fieldKeys";
 import { deleteRefBlob, getRefBlob, putRefBlob } from "../../../utils/localRefs";
 import { FIGMA_COLORS } from "../constants";
+import { resolveActiveProFields } from "../../../utils/proFieldsResolver";
+import { PRO_CAMERA_PRESETS } from "../../../content/proCameraPresets";
 
 type Props = {
   lang: Lang;
@@ -37,6 +39,9 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
   const isSingle = shotPlan === "single";
   const applyMode = project?.meta?.currentTemplate?.applyMode ?? "layout_only";
   const layoutLocked = applyMode === "layout_only";
+
+  const activeProFields = resolveActiveProFields(scene.notes ?? "");
+  const hasProMotion = activeProFields.proMotionIds.length > 0;
 
   const durationRule = useFieldState(FIELD_KEYS.SCENE_DURATION, scene, project, lang);
   const sceneChangeModeRule = useFieldState(FIELD_KEYS.SCENE_CHANGE_MODE, scene, project, lang);
@@ -168,6 +173,7 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
         <EditorSelect
           compact
           label={lang === "zh" ? "运动" : "Movement"}
+          labelSuffix={hasProMotion ? "PRO" : undefined}
           value={scene.camera?.movement ?? ""}
           onChange={(v) =>
             onUpdateScene({
@@ -184,6 +190,15 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
             { label: lang === "zh" ? "推进" : "Push in", value: "push_in" },
             { label: lang === "zh" ? "拉远" : "Pull out", value: "pull_out" },
             { label: lang === "zh" ? "手持" : "Handheld", value: "handheld" },
+            // PRO 选项动态追加
+            ...activeProFields.proMotionIds.map(id => {
+              const preset = PRO_CAMERA_PRESETS.find(p => p.id === id);
+              if (!preset) return null;
+              return {
+                label: (lang === "zh" ? preset.labelZh : preset.labelEn) + " ✦",
+                value: id
+              };
+            }).filter(Boolean) as { label: string; value: string }[]
           ]}
         />
       </EditorSection>

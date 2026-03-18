@@ -96,6 +96,7 @@ export type Scene = {
   name: string;
   index?: number;
   layoutLocked?: boolean;
+  aspectRatio?: "1:1" | "4:3" | "16:9" | "9:16" | "21:9";
   backgroundRef?: SceneRefMeta;
   inheritFromPrevious?: boolean;
   inheritBgRefFromPrevious?: boolean;

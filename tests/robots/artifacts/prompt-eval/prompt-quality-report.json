@@ -1,0 +1,1821 @@
+{
+  "generatedAt": "2026-03-13T04:50:33.567Z",
+  "inputDir": "/Users/dk/scene-pilot/tests/robots/artifacts/prompt-eval/simulated",
+  "totals": {
+    "files": 100,
+    "avgEffectiveness": 100,
+    "avgRepeatLineRatio": 0,
+    "avgRepeatNgramRatio": 0.0343,
+    "avgConflictRate": 0,
+    "conflictPairCases": 0,
+    "actionConflictCases": 0,
+    "requiredMissingCases": 0,
+    "forbiddenHitCases": 0,
+    "correctionRate": 100,
+    "structuralConsistencyRate": 100,
+    "requiredPassRate": 100,
+    "forbiddenCleanRate": 100
+  },
+  "cases": [
+    {
+      "file": "sim_001.txt",
+      "sceneTier": "indoor",
+      "charCount": 849,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_002.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 864,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_003.txt",
+      "sceneTier": "open_space",
+      "charCount": 866,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_004.txt",
+      "sceneTier": "indoor",
+      "charCount": 858,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_005.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 867,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_006.txt",
+      "sceneTier": "open_space",
+      "charCount": 859,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_007.txt",
+      "sceneTier": "indoor",
+      "charCount": 850,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_008.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 861,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_009.txt",
+      "sceneTier": "open_space",
+      "charCount": 862,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_010.txt",
+      "sceneTier": "indoor",
+      "charCount": 860,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_011.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 860,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_012.txt",
+      "sceneTier": "open_space",
+      "charCount": 857,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_013.txt",
+      "sceneTier": "indoor",
+      "charCount": 847,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0345,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_014.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 858,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_015.txt",
+      "sceneTier": "open_space",
+      "charCount": 866,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0345,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_016.txt",
+      "sceneTier": "indoor",
+      "charCount": 857,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_017.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 869,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_018.txt",
+      "sceneTier": "open_space",
+      "charCount": 801,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0367,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_019.txt",
+      "sceneTier": "indoor",
+      "charCount": 850,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_020.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 863,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_021.txt",
+      "sceneTier": "open_space",
+      "charCount": 860,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_022.txt",
+      "sceneTier": "indoor",
+      "charCount": 862,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_023.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 798,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0367,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_024.txt",
+      "sceneTier": "open_space",
+      "charCount": 859,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_025.txt",
+      "sceneTier": "indoor",
+      "charCount": 855,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_026.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 862,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_027.txt",
+      "sceneTier": "open_space",
+      "charCount": 861,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_028.txt",
+      "sceneTier": "indoor",
+      "charCount": 796,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0367,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_029.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 863,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_030.txt",
+      "sceneTier": "open_space",
+      "charCount": 861,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_031.txt",
+      "sceneTier": "indoor",
+      "charCount": 846,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_032.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 858,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_033.txt",
+      "sceneTier": "open_space",
+      "charCount": 858,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0345,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_034.txt",
+      "sceneTier": "indoor",
+      "charCount": 858,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_035.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 871,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0345,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_036.txt",
+      "sceneTier": "open_space",
+      "charCount": 858,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_037.txt",
+      "sceneTier": "indoor",
+      "charCount": 853,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_038.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 862,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_039.txt",
+      "sceneTier": "open_space",
+      "charCount": 861,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_040.txt",
+      "sceneTier": "indoor",
+      "charCount": 861,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_041.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 863,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_042.txt",
+      "sceneTier": "open_space",
+      "charCount": 863,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_043.txt",
+      "sceneTier": "indoor",
+      "charCount": 857,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_044.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 862,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_045.txt",
+      "sceneTier": "open_space",
+      "charCount": 866,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_046.txt",
+      "sceneTier": "indoor",
+      "charCount": 858,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_047.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 862,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_048.txt",
+      "sceneTier": "open_space",
+      "charCount": 797,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0367,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_049.txt",
+      "sceneTier": "indoor",
+      "charCount": 849,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_050.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 862,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_051.txt",
+      "sceneTier": "open_space",
+      "charCount": 857,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_052.txt",
+      "sceneTier": "indoor",
+      "charCount": 858,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_053.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 792,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.037,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_054.txt",
+      "sceneTier": "open_space",
+      "charCount": 859,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_055.txt",
+      "sceneTier": "indoor",
+      "charCount": 855,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0345,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_056.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 857,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_057.txt",
+      "sceneTier": "open_space",
+      "charCount": 864,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_058.txt",
+      "sceneTier": "indoor",
+      "charCount": 797,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0367,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_059.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 864,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_060.txt",
+      "sceneTier": "open_space",
+      "charCount": 862,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_061.txt",
+      "sceneTier": "indoor",
+      "charCount": 851,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_062.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 866,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_063.txt",
+      "sceneTier": "open_space",
+      "charCount": 868,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_064.txt",
+      "sceneTier": "indoor",
+      "charCount": 858,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_065.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 867,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_066.txt",
+      "sceneTier": "open_space",
+      "charCount": 859,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_067.txt",
+      "sceneTier": "indoor",
+      "charCount": 848,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_068.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 859,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_069.txt",
+      "sceneTier": "open_space",
+      "charCount": 860,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_070.txt",
+      "sceneTier": "indoor",
+      "charCount": 862,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_071.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 862,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_072.txt",
+      "sceneTier": "open_space",
+      "charCount": 859,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_073.txt",
+      "sceneTier": "indoor",
+      "charCount": 847,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0345,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_074.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 858,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_075.txt",
+      "sceneTier": "open_space",
+      "charCount": 866,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0345,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_076.txt",
+      "sceneTier": "indoor",
+      "charCount": 855,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_077.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 867,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_078.txt",
+      "sceneTier": "open_space",
+      "charCount": 798,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0367,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_079.txt",
+      "sceneTier": "indoor",
+      "charCount": 852,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_080.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 865,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_081.txt",
+      "sceneTier": "open_space",
+      "charCount": 862,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_082.txt",
+      "sceneTier": "indoor",
+      "charCount": 862,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_083.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 798,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0367,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_084.txt",
+      "sceneTier": "open_space",
+      "charCount": 859,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_085.txt",
+      "sceneTier": "indoor",
+      "charCount": 853,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_086.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 860,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_087.txt",
+      "sceneTier": "open_space",
+      "charCount": 859,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_088.txt",
+      "sceneTier": "indoor",
+      "charCount": 799,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0367,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_089.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 865,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_090.txt",
+      "sceneTier": "open_space",
+      "charCount": 863,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_091.txt",
+      "sceneTier": "indoor",
+      "charCount": 846,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_092.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 858,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_093.txt",
+      "sceneTier": "open_space",
+      "charCount": 858,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0345,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_094.txt",
+      "sceneTier": "indoor",
+      "charCount": 856,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_095.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 869,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0345,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "拿起产品",
+        "转身展示",
+        "微笑点头"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_096.txt",
+      "sceneTier": "open_space",
+      "charCount": 856,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0339,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "转身",
+        "站立",
+        "挥手"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_097.txt",
+      "sceneTier": "indoor",
+      "charCount": 855,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "向左挪一步",
+        "坐着",
+        "看手机"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_098.txt",
+      "sceneTier": "small_plaza",
+      "charCount": 864,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "慢走两步",
+        "站立",
+        "拿着杯子喝水"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_099.txt",
+      "sceneTier": "open_space",
+      "charCount": 863,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "跑了三步",
+        "坐着",
+        "在吃东西"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    },
+    {
+      "file": "sim_100.txt",
+      "sceneTier": "indoor",
+      "charCount": 862,
+      "missingRequired": [],
+      "forbiddenHits": [],
+      "repeatLineRatio": 0,
+      "repeatNgramRatio": 0.0342,
+      "conflictRate": 0,
+      "conflictPairsMatched": [],
+      "userActions": [
+        "小跳一步",
+        "停顿",
+        "挥手比心"
+      ],
+      "actionConflicts": [],
+      "effectiveness": 100
+    }
+  ]
+}

@@ -671,7 +671,23 @@ function buildLRLForScene(lang: Lang, mode: MediaMode, scene: Scene): string {
     }
   }
 
-  return [title, global, perObj.join("\n")].filter(Boolean).join("\n");
+  const perObjText = perObj.join("\n");
+  const result = [title, global, perObjText].filter(Boolean).join("\n");
+  try {
+    // Debug-only: verify LRL output shape.
+    if (import.meta.env?.DEV) {
+      const hasCenterCenter = result.includes("- 区域：中心 + 中心");
+      console.log("[LRL][debug] buildLRLForScene", {
+        sceneId: scene.id,
+        sceneName: scene.name,
+        hasCenterCenter,
+        perObj: perObjText,
+      });
+    }
+  } catch {
+    // ignore debug logging failures
+  }
+  return result;
 }
 
 function languageReinforcementBlock(lang: Lang, project: Project): string {
@@ -708,25 +724,24 @@ function appendUnifiedTail(prompt: string, lang: Lang, project: Project): string
   const mode: MediaMode = anyVideo ? "video" : "image";
 
   const machine = mode === "video" ? machineNotesVideo(lang) : machineNotesImage(lang);
-
-  const parts: string[] = [];
   const machineLines = machine.split("\n");
   const marker = (machineLines[0] ?? "").trim();
   const machineBody = machineLines.slice(1).join("\n").trimEnd();
 
-  parts.push(marker);
+  const lrl = languageReinforcementBlock(lang, project);
+
+  const parts: string[] = [];
+
+  if (lrl.trim()) {
+    parts.push("", lrl.trim());
+  }
+
+  parts.push("", marker);
 
   if (shouldAppendExposureFix(project)) {
     parts.push("", exposureFixBlock(lang));
   }
 
-  // ✅ LRL always ON (no switch)
-  const lrl = languageReinforcementBlock(lang, project);
-  if (lrl.trim()) {
-    parts.push("", lrl.trim());
-  }
-
-  // ✅ Machine notes always ON (no switch)
   if (machineBody) {
     parts.push("", machineBody);
   }
@@ -783,7 +798,13 @@ function optimizeFinalPrompt(raw: string): string {
     }
 
     // Keep scene/object detail lines intact; dedupe only meta constraints.
-    if (/^#\s/.test(trimmed) || /^-\s+[A-Za-z0-9_]/.test(trimmed) || /^- 对象/.test(trimmed)) {
+    if (
+      /^#\s/.test(trimmed) ||
+      /^-\s+[A-Za-z0-9_]/.test(trimmed) ||
+      /^- 对象/.test(trimmed) ||
+      /^-\s*(区域|尺寸|锚点)[:：]/.test(trimmed) ||
+      /^-\s*(Region|Size|Anchor)[:：]/i.test(trimmed)
+    ) {
       out.push(line);
       continue;
     }
@@ -895,22 +916,16 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
 
   if (lang === "zh") {
     const lines = [
-      `你将根据以下分镜结构生成${anyVideo ? "视频" : "图像"}画面。`,
-      "要求：严格遵守已填写的 type / look / 形状描述 / 起点终点坐标与尺寸 / 备注约束；未填写字段可由模型补全，但不得改变结构与坐标。",
-      "优先级：1) 对象位置与数量 2) 运动路径与镜头 3) 光照与时间 4) 风格细节。发生冲突时以前者为准。"
     ];
     const p = platformGuide(profile, lang);
     if (p) lines.push(p);
-    out.push(lines.join("\n"));
+    if (lines.filter(Boolean).length) out.push(lines.join("\n"));
   } else {
     const lines = [
-      `Generate ${anyVideo ? "video" : "image"} visuals following the storyboard below.`,
-      "Strictly follow provided type/look/shape/start-end layout/constraints. Empty fields may be completed by the model, but layout and coordinates must not be altered.",
-      "Priority: 1) object position/count 2) motion path/camera 3) lighting/time 4) style details. Resolve conflicts using this order."
     ];
     const p = platformGuide(profile, lang);
     if (p) lines.push(p);
-    out.push(lines.join("\n"));
+    if (lines.filter(Boolean).length) out.push(lines.join("\n"));
   }
 
   if (hasV2) {
@@ -918,14 +933,17 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
       if (parseCompiler(s) === "v2") {
         const tier = parseSceneTier(s);
         const v2Mode = parseV2Mode(s);
-        const compiled = compileScenePromptV2(s, lang, tier, v2Mode);
+        const compiled = compileScenePromptV2(s, lang, tier, v2Mode, s.aspectRatio);
         out.push(optimizeV2ScenePrompt(compiled, s, lang, tier, v2Mode));
       } else {
         out.push(formatScenePrompt(lang, s));
       }
     });
     return proPromptQualityGate(
-      finalizeByPlatform(optimizeFinalPrompt(out.join("\n\n---\n\n")), profile, lang, anyVideo ? "video" : "image")
+      finalizeByPlatform(
+        optimizeFinalPrompt(appendUnifiedTail(out.join("\n\n---\n\n"), lang, project)),
+        profile, lang, anyVideo ? "video" : "image"
+      )
     );
   }
 

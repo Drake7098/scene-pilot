@@ -1,0 +1,133 @@
+{
+  "generatedAt": "2026-03-12T20:08:47.794Z",
+  "status": "passed",
+  "startedAt": "2026-03-12T12:47:01.767Z",
+  "finishedAt": "2026-03-12T12:47:46.292Z",
+  "exitCode": 0,
+  "appUrl": "http://127.0.0.1:5173",
+  "totals": {
+    "tests": 59,
+    "passed": 32,
+    "failed": 19,
+    "flaky": 0,
+    "skipped": 8,
+    "timedOut": 10,
+    "durationMs": 989096
+  },
+  "failures": [
+    {
+      "title": "account-api-providers.spec.ts > pro user can manage fal and runway api settings in account center",
+      "file": "account-api-providers.spec.ts",
+      "error": "\u001b[31mTest timeout of 90000ms exceeded while running \"beforeEach\" hook.\u001b[39m",
+      "status": "timedOut"
+    },
+    {
+      "title": "account-legal-consent.spec.ts > account_auth_and_billing_require_legal_consent",
+      "file": "account-legal-consent.spec.ts",
+      "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+      "status": "timedOut"
+    },
+    {
+      "title": "pro-media-contract.spec.ts > pro_media_contract_image_vs_video_controls",
+      "file": "pro-media-contract.spec.ts",
+      "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByTestId('pro-director-block')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('pro-director-block')\u001b[22m\n",
+      "status": "failed"
+    },
+    {
+      "title": "pro-motion-library.spec.ts > pro_motion_library_and_tutorials_work",
+      "file": "pro-motion-library.spec.ts",
+      "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByTestId('pro-director-block')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('pro-director-block')\u001b[22m\n",
+      "status": "failed"
+    },
+    {
+      "title": "pro-save-export-local.spec.ts > pro_save_export_flow_stays_stable_after_quick_workspace_handoff",
+      "file": "pro-save-export-local.spec.ts",
+      "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByTestId('media-studio-root')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('media-studio-root')\u001b[22m\n",
+      "status": "failed"
+    },
+    {
+      "title": "project-menu-flow.spec.ts > project_menu_save_export_flow_is_continuous",
+      "file": "project-menu-flow.spec.ts",
+      "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+      "status": "timedOut"
+    },
+    {
+      "title": "quick-workspace-handoff-pack.spec.ts > quick_workspace_degrades_to_drawthings_handoff_pack_when_local_engines_are_offline",
+      "file": "quick-workspace-handoff-pack.spec.ts",
+      "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByTestId('media-studio-root')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('media-studio-root')\u001b[22m\n",
+      "status": "failed"
+    },
+    {
+      "title": "quick-workspace-layout-guard.spec.ts > quick_workspace_layout_guard_for_zh_and_en",
+      "file": "quick-workspace-layout-guard.spec.ts",
+      "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+      "status": "timedOut"
+    },
+    {
+      "title": "quick-workspace-local-drawthings.spec.ts > quick_workspace_local_generation_prefers_comfyui_when_both_local_engines_are_available",
+      "file": "quick-workspace-local-drawthings.spec.ts",
+      "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByTestId('media-studio-root')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('media-studio-root')\u001b[22m\n",
+      "status": "failed"
+    },
+    {
+      "title": "quick-workspace-local-fallback-comfy.spec.ts > quick_workspace_falls_back_to_drawthings_when_comfyui_is_unavailable",
+      "file": "quick-workspace-local-fallback-comfy.spec.ts",
+      "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByTestId('media-studio-root')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('media-studio-root')\u001b[22m\n",
+      "status": "failed"
+    },
+    {
+      "title": "quick-workspace-prompt-check.spec.ts > quick_workspace_prompt_effectiveness_on_10_samples",
+      "file": "quick-workspace-prompt-check.spec.ts",
+      "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+      "status": "timedOut"
+    },
+    {
+      "title": "quick-workspace-to-pro.spec.ts > quick_workspace_to_pro_switches_mode_without_auto_inheriting_quick_text",
+      "file": "quick-workspace-to-pro.spec.ts",
+      "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByTestId('media-studio-root')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('media-studio-root')\u001b[22m\n",
+      "status": "failed"
+    },
+    {
+      "title": "result-studio-image-first.spec.ts > quick_workspace_two_layer_input_flow_image",
+      "file": "result-studio-image-first.spec.ts",
+      "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByTestId('quick-intro-title')\nExpected pattern: \u001b[32m/先说你想看到什么|Tell us what you want to see first/i\u001b[39m\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('quick-intro-title')\u001b[22m\n",
+      "status": "failed"
+    },
+    {
+      "title": "result-studio-image-first.spec.ts > quick_workspace_two_layer_input_flow_video",
+      "file": "result-studio-image-first.spec.ts",
+      "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+      "status": "timedOut"
+    },
+    {
+      "title": "workbench-layout-guard.spec.ts > pro_dropdowns_and_canvas_action_bar_layout_guard",
+      "file": "workbench-layout-guard.spec.ts",
+      "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+      "status": "timedOut"
+    },
+    {
+      "title": "workspace-entry-guide.spec.ts > first open shows workspace entry guide",
+      "file": "workspace-entry-guide.spec.ts",
+      "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByTestId('workspace-entry-guide')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('workspace-entry-guide')\u001b[22m\n",
+      "status": "failed"
+    },
+    {
+      "title": "workspace-entry-guide.spec.ts > choose quick keeps quick mode and does not show guide again",
+      "file": "workspace-entry-guide.spec.ts",
+      "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+      "status": "timedOut"
+    },
+    {
+      "title": "workspace-entry-guide.spec.ts > choose pro switches to pro mode and does not show guide again",
+      "file": "workspace-entry-guide.spec.ts",
+      "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+      "status": "timedOut"
+    },
+    {
+      "title": "workspace-entry-guide.spec.ts > skip stores guide completion and keeps current mode",
+      "file": "workspace-entry-guide.spec.ts",
+      "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+      "status": "timedOut"
+    }
+  ]
+}

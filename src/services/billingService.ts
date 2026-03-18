@@ -10,32 +10,10 @@ import type {
   ProPlanConfig,
   SubscriptionState
 } from "../types/billing";
-import { canUsePaddleClient, openPaddleCheckout } from "./paddleClient";
 import { grantCredits } from "./creditService";
 import { getApiAuthHeaders } from "./authService";
 import { getSubscription, getUser, setSubscription, updateUser } from "./mockAccountStore";
 import { BILLING_ALLOW_MOCK_FALLBACK, BILLING_ENABLED, BILLING_LIVE_BLOCKED } from "../config/billingFlags";
-
-/** @deprecated 使用 PRICING_FINAL_CREDIT_PACKS。此配置仅保留用于 checkout 历史 session 查找。 */
-export const CREDIT_PACKS: CreditPackConfig[] = [
-  { id: "credit_100", name: "100 credits / $3", usdPrice: 3, credits: 100, priceId: (import.meta.env.VITE_PADDLE_PRICE_CREDIT_100 as string | undefined)?.trim(), enabled: true },
-  { id: "credit_500", name: "500 credits / $12", usdPrice: 12, credits: 500, priceId: (import.meta.env.VITE_PADDLE_PRICE_CREDIT_500 as string | undefined)?.trim(), enabled: true },
-  { id: "credit_2000", name: "2000 credits / $40", usdPrice: 40, credits: 2000, priceId: (import.meta.env.VITE_PADDLE_PRICE_CREDIT_2000 as string | undefined)?.trim(), enabled: true }
-];
-
-/** @deprecated */
-export const PRICING_V2_QUICK_PACKS: CreditPackConfig[] = [
-  { id: "quick_20", name: "20 credits", usdPrice: 3, credits: 20, priceId: (import.meta.env.VITE_PADDLE_PRICE_QUICK_20 as string | undefined)?.trim(), enabled: true },
-  { id: "quick_40", name: "40 credits", usdPrice: 5, credits: 40, priceId: (import.meta.env.VITE_PADDLE_PRICE_QUICK_40 as string | undefined)?.trim(), enabled: true },
-  { id: "quick_90", name: "90 credits", usdPrice: 10, credits: 90, priceId: (import.meta.env.VITE_PADDLE_PRICE_QUICK_90 as string | undefined)?.trim(), enabled: true },
-];
-
-/** @deprecated */
-export const PRICING_V2_PLAN_PACKS: CreditPackConfig[] = [
-  { id: "plan_200", name: "200 credits", usdPrice: 15, credits: 200, priceId: (import.meta.env.VITE_PADDLE_PRICE_PLAN_200 as string | undefined)?.trim(), enabled: true },
-  { id: "plan_500", name: "500 credits", usdPrice: 30, credits: 500, priceId: (import.meta.env.VITE_PADDLE_PRICE_PLAN_500 as string | undefined)?.trim(), enabled: true },
-  { id: "plan_1200", name: "1200 credits", usdPrice: 60, credits: 1200, priceId: (import.meta.env.VITE_PADDLE_PRICE_PLAN_1200 as string | undefined)?.trim(), enabled: true },
-];
 
 /** Pricing Final: $3→150, $8→420, $15→800. checkoutUrl = Whop 结账链接 */
 export const PRICING_FINAL_CREDIT_PACKS: (CreditPackConfig & { checkoutUrl?: string })[] = [
@@ -44,13 +22,8 @@ export const PRICING_FINAL_CREDIT_PACKS: (CreditPackConfig & { checkoutUrl?: str
   { id: "pack_15", name: "800 Credits", usdPrice: 15, credits: 800, priceId: (import.meta.env.VITE_PADDLE_PRICE_PACK_15 as string | undefined)?.trim(), enabled: true, checkoutUrl: "https://whop.com/checkout/plan_00vbsXkjSR9jA" },
 ];
 
-/** All credit packs (legacy + V2 + final) for checkout lookup */
-const ALL_CREDIT_PACKS = [
-  ...CREDIT_PACKS,
-  ...PRICING_V2_QUICK_PACKS,
-  ...PRICING_V2_PLAN_PACKS,
-  ...PRICING_FINAL_CREDIT_PACKS,
-];
+/** All credit packs (final only) for checkout lookup */
+const ALL_CREDIT_PACKS = PRICING_FINAL_CREDIT_PACKS;
 
 export const PRO_PLAN: ProPlanConfig & { checkoutUrl?: string } = {
   id: "pro_monthly",
@@ -269,11 +242,8 @@ export async function launchCheckout(input: CheckoutRequest) {
       return { session: null, completedUser: null };
     }
   }
-  const session = await createCheckoutSession(input);
-  if (!session.mock && canUsePaddleClient()) {
-    const opened = await openPaddleCheckout(session);
-    if (opened) return { session, completedUser: null };
-  }
+  // 没有 checkoutUrl 时走 mock fallback（本地开发用）
+  const session = buildMockCheckoutResult(input);
   if (session.sessionId) {
     const completedUser = await completeMockCheckout(session.sessionId);
     return { session, completedUser };
