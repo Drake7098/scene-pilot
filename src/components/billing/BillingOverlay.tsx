@@ -5,11 +5,9 @@ import type { Lang } from "../../i18n";
 import type { UserState } from "../../types/account";
 import type { CreditPackConfig, ProPlanConfig } from "../../types/billing";
 import { LEGAL_DOCS, legalText, type LegalDocId } from "../../content/legal";
-import type { LocalProviderStatus } from "../../utils/localGeneration";
-import { PUBLIC_CONTACT_CHANNELS, SYSTEM_NOTIFICATION_MAILBOX } from "../../config/contactChannels";
+import { PUBLIC_CONTACT_CHANNELS } from "../../config/contactChannels";
 
 type BillingPage = "upgrade" | "credits";
-type LocalTestProvider = "comfyui" | "drawthings";
 
 type Props = {
   open: boolean;
@@ -22,18 +20,10 @@ type Props = {
   creditPacks: CreditPackConfig[];
   proPlan: ProPlanConfig | null;
   billingBusy: boolean;
-  localTestBusy: boolean;
-  localTestHint: string;
-  localProviderStatus: {
-    comfy: LocalProviderStatus;
-    draw: LocalProviderStatus;
-  };
   billingLegalAccepted: boolean;
   onClose: () => void;
   onOpenUpgrade: () => void;
   onOpenCredits: () => void;
-  onProbeLocalProviders: () => void;
-  onRunLocalTest: (provider: LocalTestProvider) => void;
   onRequireAuth: () => void;
   onBillingLegalAcceptedChange: (value: boolean) => void;
   onUpgrade: () => void;
@@ -41,374 +31,259 @@ type Props = {
   onManageBilling: () => void;
 };
 
-const featureRows = [
-  { label: "Scene structure editor", free: true, pro: true },
-  { label: "Multi scene workflow", free: false, pro: true },
-  { label: "Reference images", free: false, pro: true },
-  { label: "Unlimited projects", free: false, pro: true },
-  { label: "AI generation", free: false, pro: true }
-];
+const t = (lang: Lang, zh: string, en: string) => lang === "zh" ? zh : en;
 
 export function BillingOverlay(props: Props) {
   const {
-    open,
-    page,
-    lang,
-    user,
-    billingEnabled,
-    billingNotice,
-    creditsBalance,
-    creditPacks,
-    proPlan,
-    billingBusy,
-    localTestBusy,
-    localTestHint,
-    localProviderStatus,
-    billingLegalAccepted,
-    onClose,
-    onOpenUpgrade,
-    onOpenCredits,
-    onProbeLocalProviders,
-    onRunLocalTest,
-    onRequireAuth,
-    onBillingLegalAcceptedChange,
-    onUpgrade,
-    onBuyCredits,
-    onManageBilling
+    open, page, lang, user, billingEnabled, billingNotice,
+    creditsBalance, creditPacks, proPlan, billingBusy,
+    billingLegalAccepted, onClose, onOpenUpgrade, onOpenCredits,
+    onRequireAuth, onBillingLegalAcceptedChange,
+    onUpgrade, onBuyCredits, onManageBilling
   } = props;
+
   const [activeLegalDoc, setActiveLegalDoc] = React.useState<LegalDocId | null>(null);
-  const [localProvider, setLocalProvider] = React.useState<LocalTestProvider>("comfyui");
   const legalDoc = activeLegalDoc ? LEGAL_DOCS[activeLegalDoc] : null;
-  const billingConsentCopy = lang === "zh"
-    ? "我已阅读并同意《付费条款》《退款政策》《用户协议》《隐私说明》，并理解支付与税费由 Paddle 处理。"
-    : "I have read and agree to the Billing Terms, Refund Policy, Terms of Service, and Privacy Notice, and understand checkout and taxes are processed by Paddle.";
+
+  const isPro = user?.tier === "pro";
+  const monthlyPrice = proPlan?.monthlyUsdPrice ?? 12;
+  const monthlyCredits = proPlan?.monthlyCredits ?? 700;
 
   if (!open || !page) return null;
 
-  const localStatusText = (status: LocalProviderStatus) => {
-    if (status.state === "ready") return status.baseUrl ? `ready · ${status.baseUrl}` : "ready";
-    if (status.state === "checking") return "checking...";
-    if (status.state === "handoff") return status.detail || "handoff only";
-    return status.error || status.detail || "unavailable";
-  };
+  const LegalFooter = () => (
+    <div style={s.legalCard}>
+      <label style={s.checkboxRow}>
+        <input
+          type="checkbox"
+          checked={billingLegalAccepted}
+          onChange={(e) => onBillingLegalAcceptedChange(e.target.checked)}
+          data-testid="billing-legal-consent"
+        />
+        <span style={{ fontSize: 13, color: "rgba(255,255,255,0.72)", lineHeight: 1.6 }}>
+          {t(lang,
+            "继续即表示同意《付费条款》《退款政策》《用户协议》《隐私说明》。结算与税务由 Paddle 处理。",
+            "By continuing you agree to the Billing Terms, Refund Policy, Terms of Service, and Privacy Notice. Checkout and taxes are processed by Paddle."
+          )}
+        </span>
+      </label>
+      <div style={s.legalLinks}>
+        {(["billing", "refund"] as LegalDocId[]).map(id => (
+          <button key={id} type="button" style={s.legalLinkBtn} onClick={() => setActiveLegalDoc(id)}>
+            {legalText("en", LEGAL_DOCS[id].title)}
+          </button>
+        ))}
+        {[{ label: "Terms", href: "/terms" }, { label: "Privacy", href: "/privacy" }].map(l => (
+          <a key={l.href} href={l.href} style={s.legalLinkBtn as React.CSSProperties}>{l.label}</a>
+        ))}
+      </div>
+      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>
+        {t(lang, "支持：", "Support: ")}{PUBLIC_CONTACT_CHANNELS.support}
+      </div>
+    </div>
+  );
 
   return createPortal(
-    <div style={styles.mask} onMouseDown={onClose} role="presentation">
-      <div
-        style={styles.sheet}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
-      >
-        <div style={styles.head}>
+    <div style={s.mask} onMouseDown={onClose} role="presentation">
+      <div style={s.sheet} onMouseDown={e => { e.preventDefault(); e.stopPropagation(); }}>
+
+        {/* Header */}
+        <div style={s.head}>
           <div>
-            <div style={styles.eyebrow}>Billing</div>
-            <div style={styles.title}>{page === "upgrade" ? "Upgrade your scene workflow" : "Buy AI generation credits"}</div>
-            <div style={styles.subTitle}>
+            <div style={s.eyebrow}>
+              {t(lang, "会员与积分", "Plans & Credits")}
+            </div>
+            <div style={s.title}>
               {page === "upgrade"
-                ? "Design complex AI scenes faster and with more control."
-                : "Use credits to generate images and videos."}
+                ? t(lang, "解锁完整创作能力", "Unlock full creative control")
+                : t(lang, "购买 AI 积分", "Buy AI credits")}
             </div>
           </div>
-          <div style={styles.headActions}>
-            <button type="button" style={{ ...styles.tab, ...(page === "upgrade" ? styles.tabOn : null) }} onClick={onOpenUpgrade} data-testid="billing-tab-upgrade">
-              Upgrade
+          <div style={s.headActions}>
+            <button type="button" style={{ ...s.tab, ...(page === "upgrade" ? s.tabOn : {}) }} onClick={onOpenUpgrade}>
+              {t(lang, "会员方案", "Plans")}
             </button>
-            <button type="button" style={{ ...styles.tab, ...(page === "credits" ? styles.tabOn : null) }} onClick={onOpenCredits} data-testid="billing-tab-credits">
-              Credits
+            <button type="button" style={{ ...s.tab, ...(page === "credits" ? s.tabOn : {}) }} onClick={onOpenCredits}>
+              {t(lang, "购买积分", "Credits")}
             </button>
-            <button type="button" style={styles.tab} onClick={onManageBilling} disabled={!billingEnabled || billingBusy} data-testid="billing-manage">
-              Manage billing
-            </button>
-            <button type="button" style={styles.iconBtn} onClick={onClose} data-testid="billing-close">
+            {isPro && (
+              <button type="button" style={s.tab} onClick={onManageBilling} disabled={!billingEnabled || billingBusy}>
+                {t(lang, "管理订阅", "Manage")}
+              </button>
+            )}
+            <button type="button" style={s.iconBtn} onClick={onClose}>
               <X size={16} />
             </button>
           </div>
         </div>
 
-        {billingNotice ? (
-          <div style={styles.unavailableBanner} data-testid="billing-notice">
-            {billingNotice}
-          </div>
-        ) : null}
+        {billingNotice && (
+          <div style={s.noticeBanner}>{billingNotice}</div>
+        )}
 
-        {page === "upgrade" ? (
-          <section style={styles.content} data-testid="billing-upgrade-page">
-            <div style={styles.priceGrid}>
-              <article style={styles.priceCard} data-testid="upgrade-card-free">
-                <div style={styles.priceTier}>Free</div>
-                <div style={styles.priceValue}>$0</div>
-                <div style={styles.priceMeta}>Scene structure tools only</div>
-                <div style={styles.blockTitle}>Included</div>
-                <ul style={styles.list}>
-                  <li>Scene structure editor</li>
-                  <li>Basic storyboard</li>
-                  <li>Object placement</li>
-                  <li>Prompt export (free)</li>
+        {/* Upgrade page */}
+        {page === "upgrade" && (
+          <section style={s.content}>
+            <div style={s.priceGrid}>
+
+              {/* Free card */}
+              <article style={s.priceCard}>
+                <div style={s.priceTier}>{t(lang, "免费", "Free")}</div>
+                <div style={s.priceValue}>$0</div>
+                <div style={s.priceMeta}>{t(lang, "基础场景搭建工具", "Scene structure tools")}</div>
+                <div style={s.divider} />
+                <ul style={s.list}>
+                  <li>{t(lang, "场景结构编辑器", "Scene structure editor")}</li>
+                  <li>{t(lang, "对象布局与坐标系", "Object placement & layout")}</li>
+                  <li>{t(lang, "提示词导出（永久免费）", "Prompt export (always free)")}</li>
+                  <li>{t(lang, "免费模版", "Free templates")}</li>
                 </ul>
-                <div style={styles.blockTitle}>Limits</div>
-                <ul style={styles.listMuted}>
-                  <li>Limited projects</li>
-                  <li>No AI generation</li>
+                <div style={s.divider} />
+                <ul style={{ ...s.list, color: "rgba(255,255,255,0.45)" }}>
+                  <li>{t(lang, "最多 3 个项目", "Up to 3 projects")}</li>
+                  <li>{t(lang, "不含 AI 生成", "No AI generation")}</li>
                 </ul>
               </article>
 
-              <article style={{ ...styles.priceCard, ...styles.priceCardOn }} data-testid="upgrade-card-pro">
-                <div style={styles.priceBadge}>Recommended</div>
-                <div style={styles.priceTier}><Crown size={16} />Pro</div>
-                <div style={styles.priceValue}>${proPlan?.monthlyUsdPrice ?? 12} <span style={styles.priceSlash}>/ month</span></div>
-                <div style={styles.priceMeta}>AI generation still uses credits</div>
-                <ul style={styles.list}>
-                  <li>Advanced scene editor</li>
-                  <li>Unlimited projects</li>
-                  <li>Reference images</li>
-                  <li>Multi-scene workflow</li>
-                  <li>Prompt optimization</li>
-                  <li>+ {proPlan?.monthlyCredits ?? 500} AI credits monthly</li>
+              {/* Pro card */}
+              <article style={{ ...s.priceCard, ...s.priceCardOn }}>
+                <div style={s.priceBadge}>{t(lang, "推荐", "Recommended")}</div>
+                <div style={s.priceTier}><Crown size={16} style={{ color: "#f59e0b" }} /> Pro</div>
+                <div style={s.priceValue}>
+                  ${monthlyPrice}
+                  <span style={s.pricePer}>{t(lang, " / 月", " / mo")}</span>
+                </div>
+                <div style={s.priceMeta}>
+                  {t(lang, `含 ${monthlyCredits} 积分 / 月，AI 生成按积分计费`, `Includes ${monthlyCredits} credits / month · AI generation uses credits`)}
+                </div>
+                <div style={s.divider} />
+                <ul style={s.list}>
+                  <li>{t(lang, "完整场景编辑器（含专业字段）", "Full scene editor with pro fields")}</li>
+                  <li>{t(lang, "无限项目", "Unlimited projects")}</li>
+                  <li>{t(lang, "参考图上传", "Reference image upload")}</li>
+                  <li>{t(lang, "多分镜连续调度", "Multi-scene continuity workflow")}</li>
+                  <li>{t(lang, "专业镜头语言 & 导演风格包", "Pro camera language & director packs")}</li>
+                  <li>{t(lang, `每月赠送 ${monthlyCredits} AI 积分`, `${monthlyCredits} AI credits every month`)}</li>
+                  <li>{t(lang, "付费模版无限使用", "Unlimited paid templates")}</li>
                 </ul>
+                <div style={s.divider} />
                 {!user ? (
-                  <button
-                    type="button"
-                    style={styles.signInBtn}
-                    onClick={onRequireAuth}
-                    disabled={!billingEnabled || billingBusy}
-                    data-testid="upgrade-pro-cta"
-                  >
-                    <span style={styles.signInAvatar}><UserRound size={14} /></span>
-                    <span>{lang === "zh" ? "登录以继续" : "Sign in to continue"}</span>
+                  <button type="button" style={s.ghostBtn} onClick={onRequireAuth}>
+                    <UserRound size={14} />
+                    {t(lang, "登录后升级", "Sign in to upgrade")}
+                  </button>
+                ) : isPro ? (
+                  <button type="button" style={{ ...s.primaryBtn, opacity: 0.5, cursor: "default" }} disabled>
+                    {t(lang, "当前方案", "Current plan")}
                   </button>
                 ) : (
                   <button
                     type="button"
-                    style={styles.primaryBtn}
+                    style={s.primaryBtn}
                     onClick={onUpgrade}
-                    disabled={!billingEnabled || billingBusy || user?.tier === "pro" || !billingLegalAccepted}
-                    data-testid="upgrade-pro-cta"
+                    disabled={!billingEnabled || billingBusy || !billingLegalAccepted}
                   >
-                    {user.tier === "pro" ? "Current plan" : "Upgrade to Pro"}
+                    {t(lang, "升级到 Pro", "Upgrade to Pro")}
                   </button>
                 )}
               </article>
             </div>
 
-            <div style={styles.noteCard} data-testid="upgrade-credits-note">
-              <div>AI image and video generation uses credits.</div>
-              <div>Credits are included with Pro and can be purchased separately.</div>
-              <div>Prompt export is free. Credits are used for AI generation and paid templates only.</div>
-            </div>
-
-            <div style={styles.localTestCard} data-testid="billing-local-test-card">
-              <div style={styles.blockTitle}>
-                {lang === "zh" ? "本地测试生成（跳过会员）" : "Local test generation (membership bypass)"}
-              </div>
-              <div style={styles.localTestDesc}>
-                {lang === "zh"
-                  ? "用于本地链路调试：选择 ComfyUI 或 Draw Things，直接本地生成。"
-                  : "For local pipeline debugging: choose ComfyUI or Draw Things and generate locally."}
-              </div>
-              <div style={styles.localTestRow}>
-                <select
-                  value={localProvider}
-                  onChange={(e) => setLocalProvider(e.target.value as LocalTestProvider)}
-                  style={styles.localSelect}
-                  data-testid="billing-local-provider-select"
-                >
-                  <option value="comfyui">ComfyUI</option>
-                  <option value="drawthings">Draw Things</option>
-                </select>
-                <button
-                  type="button"
-                  style={styles.secondaryBtn}
-                  onClick={onProbeLocalProviders}
-                  disabled={localTestBusy}
-                  data-testid="billing-local-probe"
-                >
-                  {lang === "zh" ? "检测本地 API" : "Check local APIs"}
-                </button>
-                <button
-                  type="button"
-                  style={styles.primaryBtn}
-                  onClick={() => onRunLocalTest(localProvider)}
-                  disabled={localTestBusy}
-                  data-testid="billing-local-generate"
-                >
-                  {localTestBusy
-                    ? (lang === "zh" ? "本地生成中..." : "Running local generation...")
-                    : (lang === "zh" ? "本地测试生成" : "Run local test generate")}
-                </button>
-              </div>
-              <div style={styles.localStatusGrid}>
-                <div style={styles.localStatusItem}>
-                  <span style={styles.localStatusLabel}>ComfyUI</span>
-                  <span style={styles.localStatusValue}>{localStatusText(localProviderStatus.comfy)}</span>
-                </div>
-                <div style={styles.localStatusItem}>
-                  <span style={styles.localStatusLabel}>Draw Things</span>
-                  <span style={styles.localStatusValue}>{localStatusText(localProviderStatus.draw)}</span>
-                </div>
-              </div>
-              {localTestHint ? (
-                <div style={styles.localHint} data-testid="billing-local-hint">
-                  {localTestHint}
-                </div>
-              ) : null}
-            </div>
-
-            <div style={styles.legalCard}>
-              <label style={styles.checkboxRow}>
-                <input
-                  type="checkbox"
-                  checked={billingLegalAccepted}
-                  onChange={(e) => onBillingLegalAcceptedChange(e.target.checked)}
-                  data-testid="billing-legal-consent"
-                />
-                <span>{billingConsentCopy}</span>
-              </label>
-              <div style={styles.legalLinks}>
-                <button type="button" style={styles.legalLinkBtn} onClick={() => setActiveLegalDoc("billing")} data-testid="billing-open-billing-terms">
-                  {legalText("en", LEGAL_DOCS.billing.title)}
-                </button>
-                <button type="button" style={styles.legalLinkBtn} onClick={() => setActiveLegalDoc("refund")} data-testid="billing-open-refund-policy">
-                  {legalText("en", LEGAL_DOCS.refund.title)}
-                </button>
-              </div>
-              <div style={styles.legalRouteLinks}>
-                <a href="/terms" style={styles.legalRouteLink}>Terms</a>
-                <a href="/privacy" style={styles.legalRouteLink}>Privacy</a>
-                <a href="/billing-terms" style={styles.legalRouteLink}>Billing Terms</a>
-                <a href="/refund-policy" style={styles.legalRouteLink}>Refund Policy</a>
-              </div>
-              <div style={styles.legalContact}>
-                Checkout and tax handling are processed by Paddle. Support: {PUBLIC_CONTACT_CHANNELS.support} | Business: {PUBLIC_CONTACT_CHANNELS.business} | Notifications: {SYSTEM_NOTIFICATION_MAILBOX} (no reply)
+            <div style={s.noteCard}>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.7 }}>
+                {t(lang,
+                  "· 提示词导出永久免费，不消耗积分。\n· AI 图片生成、视频生成、付费模版使用积分。\n· Pro 会员每月自动补充积分，不使用不累积。",
+                  "· Prompt export is always free — no credits needed.\n· AI image / video generation and paid templates use credits.\n· Pro credits refresh monthly and do not roll over."
+                ).split("\n").map((line, i) => <div key={i}>{line}</div>)}
               </div>
             </div>
 
-            <div style={styles.compareCard}>
-              <div style={styles.blockTitle}>Feature comparison</div>
-              <div style={styles.compareTable}>
-                <div style={styles.compareHead}>Feature</div>
-                <div style={styles.compareHead}>Free</div>
-                <div style={styles.compareHead}>Pro</div>
-                {featureRows.map((row) => (
-                  <React.Fragment key={row.label}>
-                    <div style={styles.compareCell}>{row.label}</div>
-                    <div style={styles.compareCell}>{row.free ? <Check size={14} /> : "—"}</div>
-                    <div style={styles.compareCell}>{row.pro ? <Check size={14} /> : "—"}</div>
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
+            <LegalFooter />
           </section>
-        ) : (
-          <section style={styles.content} data-testid="billing-credits-page">
-            <div style={styles.balanceCard} data-testid="credits-balance">
-              <div style={styles.balanceLabel}>Credits balance</div>
-              <div style={styles.balanceValue}>Credits: {creditsBalance}</div>
+        )}
+
+        {/* Credits page */}
+        {page === "credits" && (
+          <section style={s.content}>
+            <div style={s.balanceCard}>
+              <div style={s.balanceLabel}>{t(lang, "当前积分余额", "Credits balance")}</div>
+              <div style={s.balanceValue}>{creditsBalance.toLocaleString()}</div>
             </div>
 
-            <div style={styles.priceGrid}>
+            <div style={s.priceGrid}>
               {creditPacks.map((pack) => (
-                <article key={pack.id} style={styles.priceCard} data-testid={`credits-card-${pack.id}`}>
-                  <div style={styles.priceTier}><CreditCard size={16} />{pack.credits} credits</div>
-                  <div style={styles.priceValue}>${pack.usdPrice}</div>
-                  <div style={styles.priceMeta}>One-time purchase</div>
+                <article key={pack.id} style={s.priceCard}>
+                  <div style={s.priceTier}><CreditCard size={15} /> {pack.credits.toLocaleString()} {t(lang, "积分", "credits")}</div>
+                  <div style={s.priceValue}>${pack.usdPrice}</div>
+                  <div style={s.priceMeta}>{t(lang, "一次性购买", "One-time purchase")}</div>
+                  <div style={s.divider} />
                   {!user ? (
-                    <button
-                      type="button"
-                      style={styles.signInBtn}
-                      onClick={onRequireAuth}
-                      disabled={!billingEnabled || billingBusy}
-                      data-testid={`credits-buy-${pack.id}`}
-                    >
-                      <span style={styles.signInAvatar}><UserRound size={14} /></span>
-                      <span>{lang === "zh" ? "登录以继续" : "Sign in to continue"}</span>
+                    <button type="button" style={s.ghostBtn} onClick={onRequireAuth}>
+                      <UserRound size={14} />
+                      {t(lang, "登录后购买", "Sign in to buy")}
                     </button>
                   ) : (
                     <button
                       type="button"
-                      style={styles.primaryBtn}
+                      style={s.primaryBtn}
                       onClick={() => onBuyCredits(pack.id)}
                       disabled={!billingEnabled || billingBusy || !billingLegalAccepted}
-                      data-testid={`credits-buy-${pack.id}`}
                     >
-                      Buy
+                      {t(lang, "购买", "Buy")}
                     </button>
                   )}
                 </article>
               ))}
             </div>
 
-            <div style={styles.compareCard}>
-              <div style={styles.blockTitle}>Usage</div>
-              <ul style={styles.list}>
-                <li>1 image = 1 credit</li>
-                <li>HD image = 3 credits</li>
-                <li>Video = 20 credits</li>
-                <li>Paid templates = credits per template</li>
-              </ul>
-            </div>
-
-            <div style={styles.legalCard}>
-              <label style={styles.checkboxRow}>
-                <input
-                  type="checkbox"
-                  checked={billingLegalAccepted}
-                  onChange={(e) => onBillingLegalAcceptedChange(e.target.checked)}
-                  data-testid="billing-legal-consent"
-                />
-                <span>{billingConsentCopy}</span>
-              </label>
-              <div style={styles.legalLinks}>
-                <button type="button" style={styles.legalLinkBtn} onClick={() => setActiveLegalDoc("billing")} data-testid="billing-open-billing-terms">
-                  {legalText("en", LEGAL_DOCS.billing.title)}
-                </button>
-                <button type="button" style={styles.legalLinkBtn} onClick={() => setActiveLegalDoc("refund")} data-testid="billing-open-refund-policy">
-                  {legalText("en", LEGAL_DOCS.refund.title)}
-                </button>
+            <div style={s.noteCard}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+                {t(lang, "积分用量参考", "Credit usage")}
               </div>
-              <div style={styles.legalRouteLinks}>
-                <a href="/terms" style={styles.legalRouteLink}>Terms</a>
-                <a href="/privacy" style={styles.legalRouteLink}>Privacy</a>
-                <a href="/billing-terms" style={styles.legalRouteLink}>Billing Terms</a>
-                <a href="/refund-policy" style={styles.legalRouteLink}>Refund Policy</a>
-              </div>
-              <div style={styles.legalContact}>
-                Checkout and tax handling are processed by Paddle. Support: {PUBLIC_CONTACT_CHANNELS.support} | Business: {PUBLIC_CONTACT_CHANNELS.business} | Notifications: {SYSTEM_NOTIFICATION_MAILBOX} (no reply)
+              <div style={{ display: "grid", gap: 6 }}>
+                {[
+                  [t(lang, "标准图片生成", "Standard image"), "1"],
+                  [t(lang, "高清图片生成", "HD image"), "3"],
+                  [t(lang, "视频生成", "Video"), "20"],
+                  [t(lang, "付费模版", "Paid template"), t(lang, "1–3（按模版）", "1–3 (per template)")],
+                ].map(([label, val]) => (
+                  <div key={label as string} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "rgba(255,255,255,0.8)" }}>
+                    <span>{label}</span>
+                    <span style={{ color: "rgba(255,255,255,0.5)" }}>{val}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div style={styles.noteCard}>
-              <div>Credits are non-refundable once used.</div>
-            </div>
+            <LegalFooter />
           </section>
         )}
-        {legalDoc ? (
-          <div style={styles.legalModalMask} onMouseDown={() => setActiveLegalDoc(null)} role="presentation">
-            <div
-              style={styles.legalModal}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-            >
-              <div style={styles.legalModalHead}>
+
+        {/* Legal doc modal */}
+        {legalDoc && (
+          <div style={s.legalModalMask} onMouseDown={() => setActiveLegalDoc(null)} role="presentation">
+            <div style={s.legalModal} onMouseDown={e => { e.preventDefault(); e.stopPropagation(); }}>
+              <div style={s.legalModalHead}>
                 <div>
-                  <div style={styles.eyebrow}>{legalText("en", legalDoc.title)}</div>
-                  <div style={styles.legalMeta}>{`${legalDoc.version} · ${legalDoc.updatedAt}`}</div>
+                  <div style={s.eyebrow}>{legalText("en", legalDoc.title)}</div>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 4 }}>
+                    {`${legalDoc.version} · ${legalDoc.updatedAt}`}
+                  </div>
                 </div>
-                <button type="button" style={styles.iconBtn} onClick={() => setActiveLegalDoc(null)}>
+                <button type="button" style={s.iconBtn} onClick={() => setActiveLegalDoc(null)}>
                   <X size={16} />
                 </button>
               </div>
-              <div style={styles.legalSummary}>{legalText("en", legalDoc.summary)}</div>
-              <div style={styles.legalDocBody}>
+              <div style={{ padding: "12px 18px 0", fontSize: 13, color: "rgba(255,255,255,0.72)", lineHeight: 1.6 }}>
+                {legalText("en", legalDoc.summary)}
+              </div>
+              <div style={{ overflowY: "auto", padding: 18, display: "grid", gap: 16 }}>
                 {legalDoc.sections.map((item) => (
-                  <section key={legalText("en", item.heading)} style={styles.legalSection}>
-                    <div style={styles.legalSectionTitle}>{legalText("en", item.heading)}</div>
-                    {item.body.map((paragraph) => (
-                      <p key={legalText("en", paragraph)} style={styles.legalParagraph}>
-                        {legalText("en", paragraph)}
+                  <section key={legalText("en", item.heading)}>
+                    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>{legalText("en", item.heading)}</div>
+                    {item.body.map((p) => (
+                      <p key={legalText("en", p)} style={{ margin: "0 0 8px", fontSize: 13, lineHeight: 1.7, color: "rgba(255,255,255,0.8)" }}>
+                        {legalText("en", p)}
                       </p>
                     ))}
                   </section>
@@ -416,450 +291,197 @@ export function BillingOverlay(props: Props) {
               </div>
             </div>
           </div>
-        ) : null}
+        )}
       </div>
     </div>,
     document.body
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const s: Record<string, React.CSSProperties> = {
   mask: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.68)",
+    position: "fixed", inset: 0,
+    background: "rgba(0,0,0,0.72)",
     backdropFilter: "blur(16px)",
-    zIndex: 120,
-    padding: 20,
-    display: "grid",
-    placeItems: "center"
+    zIndex: 120, padding: 20,
+    display: "grid", placeItems: "center"
   },
   sheet: {
-    width: "min(1080px, calc(100vw - 40px))",
-    maxHeight: "min(90vh, 940px)",
+    width: "min(900px, calc(100vw - 40px))",
+    maxHeight: "min(90vh, 900px)",
     overflowY: "auto",
-    borderRadius: 28,
+    borderRadius: 24,
     border: "1px solid rgba(255,255,255,0.08)",
-    background: "linear-gradient(180deg, rgba(10,11,16,0.98), rgba(8,9,14,0.96))",
-    boxShadow: "0 40px 120px rgba(0,0,0,0.42)",
+    background: "linear-gradient(180deg, rgba(10,11,16,0.98), rgba(8,9,14,0.97))",
+    boxShadow: "0 40px 120px rgba(0,0,0,0.5)",
     color: "#f5f7fb",
     padding: 24,
-    display: "grid",
-    gap: 20
+    display: "grid", gap: 20
   },
   head: {
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 16
+    display: "flex", alignItems: "flex-start",
+    justifyContent: "space-between", gap: 16
   },
   eyebrow: {
-    fontSize: 12,
-    letterSpacing: "0.14em",
+    fontSize: 11, letterSpacing: "0.12em",
     textTransform: "uppercase",
-    color: "rgba(255,255,255,0.46)",
-    marginBottom: 8
+    color: "rgba(255,255,255,0.4)", marginBottom: 6
   },
   title: {
-    fontSize: 38,
-    lineHeight: 1.06,
-    fontWeight: 760,
-    letterSpacing: "-0.04em"
-  },
-  subTitle: {
-    marginTop: 8,
-    fontSize: 15,
-    lineHeight: 1.6,
-    color: "rgba(255,255,255,0.72)"
+    fontSize: 32, lineHeight: 1.08,
+    fontWeight: 760, letterSpacing: "-0.04em"
   },
   headActions: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
-    justifyContent: "flex-end"
-  },
-  unavailableBanner: {
-    borderRadius: 14,
-    border: "1px solid rgba(255,200,160,0.3)",
-    background: "rgba(255,160,90,0.12)",
-    color: "rgba(255,235,216,0.95)",
-    padding: "10px 12px",
-    fontSize: 13,
-    lineHeight: 1.5
+    display: "flex", alignItems: "center",
+    gap: 8, flexShrink: 0
   },
   tab: {
-    height: 34,
-    borderRadius: 999,
+    height: 32, borderRadius: 999,
     border: "1px solid rgba(255,255,255,0.12)",
     background: "rgba(255,255,255,0.04)",
-    color: "#f5f7fb",
-    padding: "0 14px",
-    cursor: "pointer"
+    color: "rgba(255,255,255,0.8)",
+    padding: "0 14px", cursor: "pointer",
+    fontSize: 13, whiteSpace: "nowrap" as const
   },
-  tabOn: {
-    background: "rgba(255,255,255,0.12)"
-  },
+  tabOn: { background: "rgba(255,255,255,0.14)", color: "#f5f7fb" },
   iconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 999,
+    width: 32, height: 32, borderRadius: 999,
     border: "1px solid rgba(255,255,255,0.12)",
     background: "rgba(255,255,255,0.04)",
-    color: "#f5f7fb",
-    display: "grid",
-    placeItems: "center",
-    cursor: "pointer"
+    color: "#f5f7fb", display: "grid",
+    placeItems: "center", cursor: "pointer"
   },
-  content: {
-    display: "grid",
-    gap: 20
+  noticeBanner: {
+    borderRadius: 12,
+    border: "1px solid rgba(255,200,160,0.25)",
+    background: "rgba(255,160,90,0.1)",
+    color: "rgba(255,235,216,0.9)",
+    padding: "10px 14px", fontSize: 13, lineHeight: 1.5
   },
+  content: { display: "grid", gap: 16 },
   priceGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-    gap: 16
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: 14
   },
   priceCard: {
-    borderRadius: 24,
-    border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: 20,
+    border: "1px solid rgba(255,255,255,0.08)",
     background: "rgba(255,255,255,0.03)",
-    padding: 20,
-    display: "grid",
-    gap: 12,
+    padding: 20, display: "grid", gap: 10,
     alignContent: "start"
   },
   priceCardOn: {
-    background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))"
+    background: "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03))",
+    border: "1px solid rgba(255,255,255,0.14)"
   },
   priceBadge: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "fit-content",
-    minHeight: 26,
-    padding: "0 10px",
-    borderRadius: 999,
-    background: "rgba(255,255,255,0.12)",
-    fontSize: 12
+    display: "inline-flex", alignItems: "center",
+    width: "fit-content", height: 24,
+    padding: "0 10px", borderRadius: 999,
+    background: "rgba(255,255,255,0.1)",
+    fontSize: 11, letterSpacing: "0.04em"
   },
   priceTier: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    fontSize: 20,
-    fontWeight: 700
+    display: "inline-flex", alignItems: "center",
+    gap: 7, fontSize: 18, fontWeight: 700
   },
   priceValue: {
-    fontSize: 34,
-    fontWeight: 760,
-    letterSpacing: "-0.05em"
+    fontSize: 36, fontWeight: 760,
+    letterSpacing: "-0.05em", lineHeight: 1
   },
-  priceSlash: {
-    fontSize: 18,
-    fontWeight: 500,
-    color: "rgba(255,255,255,0.62)"
+  pricePer: {
+    fontSize: 16, fontWeight: 500,
+    color: "rgba(255,255,255,0.5)"
   },
   priceMeta: {
-    fontSize: 14,
-    lineHeight: 1.5,
-    color: "rgba(255,255,255,0.68)"
+    fontSize: 13, color: "rgba(255,255,255,0.6)", lineHeight: 1.5
   },
-  blockTitle: {
-    fontSize: 15,
-    fontWeight: 680
+  divider: {
+    height: 1, background: "rgba(255,255,255,0.07)",
+    margin: "2px 0"
   },
   list: {
-    margin: 0,
-    paddingLeft: 18,
-    display: "grid",
-    gap: 8,
-    color: "rgba(255,255,255,0.9)"
-  },
-  listMuted: {
-    margin: 0,
-    paddingLeft: 18,
-    display: "grid",
-    gap: 8,
-    color: "rgba(255,255,255,0.62)"
+    margin: 0, paddingLeft: 16,
+    display: "grid", gap: 7,
+    fontSize: 13, lineHeight: 1.5,
+    color: "rgba(255,255,255,0.85)"
   },
   primaryBtn: {
-    marginTop: 6,
-    height: 42,
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "#f5f7fb",
-    color: "#090b10",
-    fontWeight: 700,
-    cursor: "pointer"
-  },
-  signInBtn: {
-    marginTop: 6,
-    height: 42,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    height: 40, borderRadius: 999,
     border: "none",
-    background: "transparent",
-    color: "#f4fbff",
-    fontSize: 14,
-    fontWeight: 720,
-    cursor: "pointer"
+    background: "#f5f7fb", color: "#090b10",
+    fontWeight: 700, cursor: "pointer",
+    fontSize: 14, marginTop: 4
   },
-  signInAvatar: {
-    width: 22,
-    height: 22,
-    borderRadius: "50%",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "linear-gradient(145deg, rgba(108,168,245,0.82), rgba(84,203,169,0.78))",
-    color: "#f4fbff"
+  ghostBtn: {
+    height: 40, borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.16)",
+    background: "transparent", color: "#f5f7fb",
+    fontWeight: 600, cursor: "pointer",
+    fontSize: 13, display: "inline-flex",
+    alignItems: "center", gap: 8,
+    justifyContent: "center", marginTop: 4
   },
   noteCard: {
-    borderRadius: 20,
-    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.07)",
     background: "rgba(255,255,255,0.03)",
-    padding: 18,
-    display: "grid",
-    gap: 8,
-    color: "rgba(255,255,255,0.84)",
-    lineHeight: 1.6
-  },
-  localTestCard: {
-    borderRadius: 20,
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "linear-gradient(180deg, rgba(70,90,188,0.16), rgba(34,44,98,0.12))",
-    padding: 18,
-    display: "grid",
-    gap: 10
-  },
-  localTestDesc: {
-    fontSize: 13,
-    lineHeight: 1.6,
-    color: "rgba(236,241,255,0.86)"
-  },
-  localTestRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap"
-  },
-  localSelect: {
-    minWidth: 148,
-    minHeight: 36,
-    borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(255,255,255,0.06)",
-    color: "#f5f7fb",
-    padding: "0 10px",
-    fontSize: 13
-  },
-  secondaryBtn: {
-    minHeight: 36,
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.2)",
-    background: "rgba(255,255,255,0.06)",
-    color: "#f5f7fb",
-    padding: "0 14px",
-    cursor: "pointer",
-    fontWeight: 640,
-    fontSize: 13
-  },
-  localStatusGrid: {
-    display: "grid",
-    gap: 8,
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))"
-  },
-  localStatusItem: {
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.04)",
-    padding: "8px 10px",
-    display: "grid",
-    gap: 4
-  },
-  localStatusLabel: {
-    fontSize: 11,
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    color: "rgba(255,255,255,0.6)"
-  },
-  localStatusValue: {
-    fontSize: 12.5,
-    color: "rgba(255,255,255,0.9)",
-    lineHeight: 1.4
-  },
-  localHint: {
-    borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.16)",
-    background: "rgba(255,255,255,0.06)",
-    padding: "8px 10px",
-    fontSize: 12.5,
-    color: "rgba(241,245,255,0.96)",
-    lineHeight: 1.5
-  },
-  legalCard: {
-    borderRadius: 20,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(255,255,255,0.03)",
-    padding: 18,
-    display: "grid",
-    gap: 12
-  },
-  checkboxRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    lineHeight: 1.6,
-    color: "rgba(255,255,255,0.86)"
-  },
-  legalLinks: {
-    display: "flex",
-    gap: 8,
-    flexWrap: "wrap"
-  },
-  legalRouteLinks: {
-    display: "flex",
-    gap: 8,
-    flexWrap: "wrap"
-  },
-  legalRouteLink: {
-    minHeight: 30,
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.02)",
-    color: "rgba(245,247,251,0.9)",
-    padding: "0 12px",
-    textDecoration: "none",
-    display: "inline-flex",
-    alignItems: "center",
-    fontSize: 12.5,
-    fontWeight: 600
-  },
-  legalContact: {
-    color: "rgba(195,205,228,0.86)",
-    fontSize: 12.5,
-    lineHeight: 1.6
-  },
-  legalLinkBtn: {
-    minHeight: 30,
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.04)",
-    color: "#f5f7fb",
-    padding: "0 12px",
-    cursor: "pointer"
-  },
-  compareCard: {
-    borderRadius: 20,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(255,255,255,0.03)",
-    padding: 18,
-    display: "grid",
-    gap: 14
-  },
-  compareTable: {
-    display: "grid",
-    gridTemplateColumns: "minmax(180px, 1.6fr) repeat(2, minmax(90px, 0.8fr))",
-    borderTop: "1px solid rgba(255,255,255,0.08)",
-    borderLeft: "1px solid rgba(255,255,255,0.08)"
-  },
-  compareHead: {
-    padding: "12px 14px",
-    borderRight: "1px solid rgba(255,255,255,0.08)",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
-    fontSize: 12,
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    color: "rgba(255,255,255,0.58)"
-  },
-  compareCell: {
-    minHeight: 46,
-    padding: "12px 14px",
-    borderRight: "1px solid rgba(255,255,255,0.08)",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    color: "rgba(255,255,255,0.88)"
-  },
-  balanceCard: {
-    borderRadius: 22,
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
-    padding: 20,
-    display: "grid",
-    gap: 8
-  },
-  balanceLabel: {
-    fontSize: 12,
-    letterSpacing: "0.1em",
-    textTransform: "uppercase",
-    color: "rgba(255,255,255,0.54)"
-  },
-  balanceValue: {
-    fontSize: 30,
-    fontWeight: 760,
-    letterSpacing: "-0.04em"
-  },
-  legalModalMask: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.45)",
-    backdropFilter: "blur(8px)",
-    display: "grid",
-    placeItems: "center",
     padding: 16
   },
-  legalModal: {
-    width: "min(760px, calc(100vw - 32px))",
-    maxHeight: "min(84vh, 900px)",
-    overflow: "hidden",
-    borderRadius: 22,
+  balanceCard: {
+    borderRadius: 18,
     border: "1px solid rgba(255,255,255,0.1)",
-    background: "linear-gradient(180deg, rgba(11,13,18,0.98), rgba(8,10,16,0.97))",
+    background: "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03))",
+    padding: 20, display: "grid", gap: 6
+  },
+  balanceLabel: {
+    fontSize: 11, letterSpacing: "0.1em",
+    textTransform: "uppercase",
+    color: "rgba(255,255,255,0.45)"
+  },
+  balanceValue: {
+    fontSize: 36, fontWeight: 760,
+    letterSpacing: "-0.04em"
+  },
+  legalCard: {
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.06)",
+    background: "rgba(255,255,255,0.02)",
+    padding: 16, display: "grid", gap: 10
+  },
+  checkboxRow: {
+    display: "flex", alignItems: "flex-start",
+    gap: 10, cursor: "pointer"
+  },
+  legalLinks: { display: "flex", gap: 6, flexWrap: "wrap" as const },
+  legalLinkBtn: {
+    height: 28, borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.03)",
+    color: "rgba(255,255,255,0.7)",
+    padding: "0 11px", cursor: "pointer",
+    fontSize: 12, textDecoration: "none",
+    display: "inline-flex", alignItems: "center"
+  },
+  legalModalMask: {
+    position: "fixed", inset: 0,
+    background: "rgba(0,0,0,0.5)",
+    backdropFilter: "blur(8px)",
+    display: "grid", placeItems: "center", padding: 16
+  },
+  legalModal: {
+    width: "min(720px, calc(100vw - 32px))",
+    maxHeight: "min(84vh, 860px)",
+    overflow: "hidden", borderRadius: 20,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "linear-gradient(180deg, rgba(11,13,18,0.99), rgba(8,10,16,0.98))",
     display: "grid",
     gridTemplateRows: "auto auto minmax(0,1fr)"
   },
   legalModalHead: {
-    display: "flex",
-    alignItems: "flex-start",
+    display: "flex", alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 16,
-    padding: "18px 18px 0"
+    gap: 16, padding: "18px 18px 0"
   },
-  legalMeta: {
-    marginTop: 6,
-    fontSize: 12,
-    color: "rgba(255,255,255,0.56)"
-  },
-  legalSummary: {
-    padding: "12px 18px 0",
-    fontSize: 13,
-    lineHeight: 1.6,
-    color: "rgba(255,255,255,0.82)"
-  },
-  legalDocBody: {
-    overflowY: "auto",
-    padding: 18,
-    display: "grid",
-    gap: 16
-  },
-  legalSection: {
-    display: "grid",
-    gap: 8
-  },
-  legalSectionTitle: {
-    fontSize: 14,
-    fontWeight: 700
-  },
-  legalParagraph: {
-    margin: 0,
-    fontSize: 13,
-    lineHeight: 1.7,
-    color: "rgba(255,255,255,0.82)"
-  }
 };

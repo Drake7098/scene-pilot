@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="ScenePilotix favicon">
+  <defs>
+    <radialGradient id="ringGlow" cx="50%" cy="50%" r="62%">
+      <stop offset="70%" stop-color="#3defff" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#3defff" stop-opacity="0.3"/>
+    </radialGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8df8ff"/>
+      <stop offset="100%" stop-color="#24d8f6"/>
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="62" fill="transparent"/>
+  <circle cx="64" cy="64" r="50" fill="none" stroke="url(#cyanGrad)" stroke-width="7"/>
+  <circle cx="64" cy="64" r="56" fill="url(#ringGlow)"/>
+  <path d="M64 26L28 90L56 82L64 68L72 82L100 90L64 26Z" fill="url(#cyanGrad)"/>
+  <path d="M64 68L56 82H72L64 68Z" fill="#0a1824"/>
+</svg>

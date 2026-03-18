@@ -3,8 +3,6 @@ import { corsOptions, json, rejectDisallowedOrigin } from "../_shared/http";
 function readMaintenanceToken(request: Request) {
   const byHeader = request.headers.get("x-maintenance-token")?.trim();
   if (byHeader) return byHeader;
-  const byStatsHeader = request.headers.get("x-stats-token")?.trim();
-  if (byStatsHeader) return byStatsHeader;
   const auth = request.headers.get("authorization")?.trim() || "";
   const m = auth.match(/^Bearer\s+(.+)$/i);
   return m?.[1]?.trim() || "";
@@ -78,7 +76,7 @@ export const onRequestPost: PagesFunction = async (context) => {
     const originErr = rejectDisallowedOrigin(context.request, context.env);
     if (originErr) return originErr;
 
-    const expectedToken = String(context.env?.MAINTENANCE_API_TOKEN || context.env?.STATS_API_TOKEN || "").trim();
+    const expectedToken = String(context.env?.MAINTENANCE_API_TOKEN || "").trim();
     if (!expectedToken) {
       return json({ error: "maintenance_auth_not_configured" }, 503, context.request, context.env);
     }

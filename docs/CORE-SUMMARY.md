@@ -260,11 +260,11 @@ npm run paddle:webhook:replay                # webhook 重放校验
 
 ## 九、高风险文件
 
-- `src/components/ResultConsole.tsx`
 - `src/App.tsx`
 - `src/components/ExportPanel.tsx`
 - `src/components/ProjectControlBar.tsx`
 - `src/components/Sidebar.tsx`
+- `src/components/billing/BillingOverlay.tsx`
 - `src/utils/promptPipeline.ts`
 - `src/utils/promptEngines/builtin.ts`
 
@@ -275,5 +275,5 @@ npm run paddle:webhook:replay                # webhook 重放校验
 - Paddle 测试服未联调完成，`BILLING_ENABLED=0`
 - Google 登录测试服未配置
 - fal / Runway provider adapter 未 fully landed
-- Quick 草稿跨刷新 blob 媒体未完整恢复
+- 历史 Quick 相关文档/脚本残留仍需持续清理，避免旧入口回流
 - 站点 HTML 仍带 `access-control-allow-origin: *`，与 API CORS 口径不一致

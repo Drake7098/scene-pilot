@@ -1681,6 +1681,14 @@ export default function App() {
 
   async function handleSendAuthCode() {
     if (authBusy) return;
+    if (!authLegalAccepted) {
+      setAuthHint(
+        lang === "zh"
+          ? "请先勾选并同意服务协议和隐私协议。"
+          : "Please accept the Terms and Privacy before continuing."
+      );
+      return;
+    }
     setAuthBusy(true);
     setAuthHint("");
     try {
@@ -1723,6 +1731,14 @@ export default function App() {
 
   async function handleGoogleSignIn() {
     if (authBusy) return;
+    if (!authLegalAccepted) {
+      setAuthHint(
+        lang === "zh"
+          ? "请先勾选并同意服务协议和隐私协议。"
+          : "Please accept the Terms and Privacy before continuing."
+      );
+      return;
+    }
     setAuthBusy(true);
     setAuthHint("");
     try {
@@ -1749,6 +1765,14 @@ export default function App() {
 
   async function handlePasswordSignIn() {
     if (authBusy) return;
+    if (!authLegalAccepted) {
+      setAuthHint(
+        lang === "zh"
+          ? "请先勾选并同意服务协议和隐私协议。"
+          : "Please accept the Terms and Privacy before continuing."
+      );
+      return;
+    }
     setAuthBusy(true);
     setAuthHint("");
     try {
@@ -4494,36 +4518,10 @@ export default function App() {
         creditPacks={creditPacks}
         proPlan={proPlan}
         billingBusy={billingBusy}
-        localTestBusy={resultBusy}
-        localTestHint={billingLocalHint}
-        localProviderStatus={{
-          comfy: comfyStatus,
-          draw: drawThingsStatus
-        }}
         billingLegalAccepted={billingLegalAccepted}
         onClose={closeBillingPage}
         onOpenUpgrade={() => openBillingPage("upgrade")}
         onOpenCredits={() => openBillingPage("credits")}
-        onProbeLocalProviders={() => {
-          void (async () => {
-            try {
-              const { nextComfy, nextDraw } = await refreshLocalProviders();
-              const comfyText = providerReadyText("comfyui", nextComfy);
-              const drawText = providerReadyText("drawthings", nextDraw);
-              setBillingLocalHint(`${comfyText} | ${drawText}`);
-            } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              setBillingLocalHint(
-                lang === "zh"
-                  ? `本地探测失败：${message}`
-                  : `Local probing failed: ${message}`
-              );
-            }
-          })();
-        }}
-        onRunLocalTest={(provider) => {
-          void generateResultPlanLocalTest(provider);
-        }}
         onRequireAuth={() => openAccountCenter("auth")}
         onBillingLegalAcceptedChange={setBillingLegalAccepted}
         onUpgrade={() => void handleUpgradePro()}

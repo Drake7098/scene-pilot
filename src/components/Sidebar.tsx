@@ -1893,7 +1893,11 @@ export function Sidebar(props: Props) {
 
       {/* Director Control - 导演预设、一键选择、导演级风格包 */}
       <EditorSection
-        title={lang === "zh" ? "导演控制" : "Director Control"}
+        title={
+          (hasVideoClassicPro || hasImageClassicPro || hasDirectorPackPro)
+            ? (lang === "zh" ? "导演控制 ✦" : "Director Control ✦")
+            : (lang === "zh" ? "导演控制" : "Director Control")
+        }
         icon={Settings}
         open={!sidebarCollapsed.has("scene_strategy")}
         onOpenChange={(open) => {
@@ -2003,7 +2007,11 @@ export function Sidebar(props: Props) {
 
       {/* Camera & Lighting - 景别、运动、镜头语言、转场 (Figma: Camera & Lighting) */}
       <EditorSection
-        title={lang === "zh" ? "镜头控制" : "Camera & Lighting"}
+        title={
+          (activeProFields.proMotionIds.length > 0 || activeProFields.hiddenCameraLangId)
+            ? (lang === "zh" ? "镜头控制 ✦" : "Camera & Lighting ✦")
+            : (lang === "zh" ? "镜头控制" : "Camera & Lighting")
+        }
         icon={Camera}
         open={!sidebarCollapsed.has("camera_control")}
         onOpenChange={(open) => {

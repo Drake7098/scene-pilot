@@ -1,6 +1,6 @@
 # Live Development Strategy
 
-Last updated: 2026-03-13
+Last updated: 2026-03-19
 
 ## Purpose
 - 这是跨线程共享的单一事实源。
@@ -207,21 +207,21 @@ Last updated: 2026-03-13
 - 服务端 `/api/auth/email/send-code`、`/api/auth/email/verify-code` 仅保留兼容提示，不再承载 Resend/本地 OTP 登录主链路。
 - 测试服 Google 登录后端当前未配置：`/api/auth/google` 返回 `500 google_not_configured`。
 - 测试服支付保护当前处于 `billing_live_blocked`（`/api/paddle/checkout` 返回 `503`）；仍需明确测试环境最终策略应为 `billing_disabled` 还是 `sandbox`。
-- Quick 草稿跨刷新场景仍不能完整恢复 blob 媒体结果（第二阶段：结果资产持久化）。
+- 历史草稿跨刷新媒体结果恢复链路仍有遗留资产兼容问题（第二阶段：结果资产持久化）。
 - Pro 的 `hosted / BYO` 交互已存在，但底层真实 `fal / Runway` provider adapter 尚未 fully landed。
 - Paddle checkout / customer-portal / webhook 已支持 Supabase 优先、D1 回退；下一步需要在测试服完成真实 Paddle 回调联调与事件重放验证。
 - 已提供 webhook 重放校验脚本：`npm run paddle:webhook:replay`（同 event_id 第二次应 dedup）。
 - Google 登录当前为内部对接阶段：需要在部署环境配置 `VITE_GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_ID`（或 `GOOGLE_CLIENT_IDS`）后才可正式启用。
 - 站点 HTML 响应头当前仍带 `access-control-allow-origin: *`（静态页面层）；API CORS 已切为 allowlist。后续需在 Pages 项目级 Header 设置清理 wildcard，避免与 API 安全策略口径不一致。
-- `src/components/ResultConsole.tsx` 仍是高风险文件，Quick UI 很容易被局部改动带回旧布局。
+- 历史 Quick Workspace 代码已移除，需继续防止旧入口/旧命名在脚本与文档中回流。
 - 自动化客服/工单机器人尚未产品化落地（当前仅有测试机器人 + 帮助中心）。
 
 ## High-Risk Files
-- `/Users/dk/scene-pilot/src/components/ResultConsole.tsx`
 - `/Users/dk/scene-pilot/src/App.tsx`
 - `/Users/dk/scene-pilot/src/components/ExportPanel.tsx`
 - `/Users/dk/scene-pilot/src/components/ProjectControlBar.tsx`
 - `/Users/dk/scene-pilot/src/components/Sidebar.tsx`
+- `/Users/dk/scene-pilot/src/components/billing/BillingOverlay.tsx`
 - `/Users/dk/scene-pilot/src/utils/promptPipeline.ts`
 - `/Users/dk/scene-pilot/src/utils/promptEngines/builtin.ts`
 
@@ -237,26 +237,21 @@ Last updated: 2026-03-13
 - 引擎锁 hash 变化（`docs/engine-library-lock.json` 变更）
 
 ## Recent Decisions
+- 认证同意勾选已加硬拦截：未勾选 `Terms + Privacy` 时，账号中心不会继续触发邮箱发码、Google 登录或密码登录（仅提示并停留当前态）。
+- 维护清理接口 `/api/maintenance/prune` 与统计接口 token 已隔离：仅接受 `MAINTENANCE_API_TOKEN`（不再回退或复用 `STATS_API_TOKEN`）。
+- 已完成一轮全仓口径清理：产品流转文档、融资脚本、机器人配置与基准脚本统一为 Pro 单工作台，不再依赖旧 Quick 组件或 `quickWorkspacePromptV3` 路径。
 - 已新增独立用户管理页 `/account`，采用行业标准分区：Profile / Security / Subscription & Billing / Credits / API / Account Actions。
 - 账号弹层 `overview` 中新增“用户管理页面”入口，用于从高频弹层进入完整管理页。
-- （已移除：Quick/Pro 选择弹层；工作台统一为 Pro。）
-- Quick 与 Pro 不再互相继承内容。
-- Quick 左侧不再常驻“我的/喜欢/下载/删除”。
-- Quick 左侧当前仅保留：`新建 / 保存 / 打开 / Pro 工作台`
-- Quick 提示词区固定在中间主区右上。
-- Quick 提示词外层框已删除，仅保留黑色编辑区。
+- （已移除：双工作台选择弹层；工作台统一为 Pro。）
 - 项目库只保存项目，主格式为单文件 JSON。
 - 当前本地生成测试优先 `ComfyUI`。
-- Quick 草稿恢复已进入第一阶段：支持结果列表恢复（可持久 URL + 同会话完整缓存）。
-- Quick 生成在“仅任务包/无可用媒体”情况下不再扣 credits（自动回滚预留）。
 - 会员升级页支持本地测试生成直连入口，可跳过会员并按所选本地引擎执行。
 - 提示词导出采用统一计费策略：注册 7 天免费，之后每次导出 2 credits；不足时统一进入点数页。
 - 首次语言默认策略：系统语言为中文（`zh*`）时默认中文，其余语言默认英文；若已有 `scenepilot_lang` 保存值则优先使用保存值。
 - 机器人功能矩阵（8项）已恢复为 `Executed 8 / Passed 8 / Blocker failures 0`（2026-03-12）。
 - 机器人能力断言已与当前产品规则对齐：
-- Quick 本地图片链路：`ComfyUI` 优先，`Draw Things` 回退。
-- Quick -> Pro：仅模式切换，不自动继承 Quick 自由文本到 Pro 项目快照。
-- Pro 入口已做全局收口：移除“可跳过 Pro”旁路；本地记忆为 `pro` 但账号非 Pro 时，会自动回退到 Quick（`results`）。
+- 本地图片链路：`ComfyUI` 优先，`Draw Things` 回退。
+- Pro 入口已做全局收口：移除“可跳过 Pro”旁路；账号不满足 Pro 权限时统一进入升级/认证路径。
 - 应用内已移除 `开发看板` 入口，发布清单改为独立本地页面 `/release-board.html`（用户清单在上，发布清单在下，勾选后变灰并本地持久化）。
 - 账号中心 Auth 区新增 Google 登录入口，后端新增 `/api/auth/google` 进行 Google token 校验。
 - 账号中心未登录态采用 SaaS 登录布局（邮箱+密码主入口 + Google 入口 + 协议链接），账户 tabs 在未登录态隐藏。

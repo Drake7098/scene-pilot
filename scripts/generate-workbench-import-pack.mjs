@@ -2,7 +2,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { structureDraftToCanvas } from "../tests/local-ab/dist/src/utils/structureDraftToCanvas.js";
-import { generateQuickWorkspacePromptV3 } from "../tests/local-ab/dist/src/utils/quickWorkspacePromptV3.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -909,7 +908,7 @@ async function generateQuickFiles() {
     const item = structuredClone(entry.item);
     item.updatedAt = now();
     item.canvasDraft = structureDraftToCanvas(item.structureDraft, "zh");
-    item.prompt = generateQuickWorkspacePromptV3({ lang: "zh", draft: item.canvasDraft, ratio: item.ratio });
+    item.prompt = "";
     const filePath = path.join(quickDir, entry.filename);
     await writeJson(filePath, item);
     bundleItems.push(item);

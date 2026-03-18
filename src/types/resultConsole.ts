@@ -1,5 +1,5 @@
 /**
- * Types formerly from ResultConsole (Quick Workspace removed).
+ * Types retained from legacy result console module.
  * Kept for CreateWizard, BillingOverlay, and App state compatibility.
  */
 

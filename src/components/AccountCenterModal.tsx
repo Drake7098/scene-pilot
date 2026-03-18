@@ -236,7 +236,10 @@ export function AccountCenterModal(props: Props) {
                   type="email"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
-                      if (!authLegalAccepted) shakeConsent();
+                      if (!authLegalAccepted) {
+                        shakeConsent();
+                        return;
+                      }
                       onSendCode();
                     }
                   }}
@@ -245,7 +248,10 @@ export function AccountCenterModal(props: Props) {
                   type="button"
                   style={styles.authPrimaryBtn}
                   onClick={() => {
-                    if (!authLegalAccepted) shakeConsent();
+                    if (!authLegalAccepted) {
+                      shakeConsent();
+                      return;
+                    }
                     onSendCode();
                   }}
                   disabled={authBusy}
@@ -264,7 +270,10 @@ export function AccountCenterModal(props: Props) {
                   type="button"
                   style={styles.authGoogleBtn}
                   onClick={() => {
-                    if (!authLegalAccepted) shakeConsent();
+                    if (!authLegalAccepted) {
+                      shakeConsent();
+                      return;
+                    }
                     onGoogleSignIn();
                   }}
                   disabled={authBusy || !googleSignInEnabled}

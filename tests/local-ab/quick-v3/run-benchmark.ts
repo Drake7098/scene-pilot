@@ -9,7 +9,6 @@ import { structureDraftToCanvas } from "../../../src/utils/structureDraftToCanva
 import { canvasDraftToIntentPlan } from "../../../src/utils/canvasDraftToIntentPlan.js";
 import { intentPlanToProProject } from "../../../src/utils/intentPlanToProject.js";
 import { generatePrompts } from "../../../src/utils/prompt.js";
-import { generateQuickWorkspacePromptV3 } from "../../../src/utils/quickWorkspacePromptV3.js";
 
 type MediaType = "image" | "video";
 
@@ -99,7 +98,6 @@ const FORCE_SECONDS_LINES = [
 
 const ENGINE_LOCK_REL_PATH = "docs/engine-library-lock.json";
 const ENGINE_FILES = [
-  "src/utils/quickWorkspacePromptV3.ts",
   "src/utils/prompt.ts",
   "src/utils/promptEngine.ts",
   "src/utils/promptPipeline.ts",
@@ -210,7 +208,7 @@ function makeCase(i: number): BenchCase {
   }
 
   return {
-    id: `qw_v3_${String(i + 1).padStart(3, "0")}`,
+    id: `prompt_v5_${String(i + 1).padStart(3, "0")}`,
     lang,
     mediaType,
     ratio,
@@ -295,8 +293,18 @@ function v2PromptFromCanvas(lang: Lang, canvas: CanvasDraft): string {
   return generatePrompts(project, lang, "universal").trim();
 }
 
-function v3PromptFromCanvas(lang: Lang, ratio: "16:9" | "9:16" | "1:1", canvas: CanvasDraft): string {
-  return generateQuickWorkspacePromptV3({ lang, draft: canvas, ratio }).trim();
+function v3PromptFromCanvas(lang: Lang, _ratio: "16:9" | "9:16" | "1:1", canvas: CanvasDraft): string {
+  const intentPlan = canvasDraftToIntentPlan(canvas, lang);
+  const state: ResultStructureState = {
+    subjectX: 0.5,
+    subjectY: 0.5,
+    subjectSize: 0.26,
+    subjectLayer: 4,
+    compositionFocus: "center"
+  };
+  const project = intentPlanToProProject(intentPlan, state, lang);
+  const platform = project.project.mediaType === "video" ? "runway" : "fal";
+  return generatePrompts(project, lang, platform).trim();
 }
 
 function evaluate(c: BenchCase, canvas: CanvasDraft, v2: string, v3: string): CaseScore {
@@ -375,7 +383,7 @@ function evaluate(c: BenchCase, canvas: CanvasDraft, v2: string, v3: string): Ca
 async function main() {
   const countArg = Number(process.argv[2]);
   const count = Number.isFinite(countArg) && countArg > 0 ? Math.floor(countArg) : 200;
-  const outTag = process.argv[3] || `quick-v3-benchmark-${count}`;
+  const outTag = process.argv[3] || `prompt-v5-benchmark-${count}`;
 
   const root = process.cwd();
   const engineLock = await loadAndAssertEngineLock(root);
@@ -414,9 +422,9 @@ async function main() {
   const summary = {
     generatedAt: new Date().toISOString(),
     tracking: {
-      workspace: "quick",
+      workspace: "pro",
       mediaMode: "mixed",
-      engineId: "IM v5 + VI V5",
+      engineId: "IM V5P + VI V5P",
       engineLockHash: engineLock.lockHash,
       engineLockGeneratedAt: engineLock.lockGeneratedAt
     },
@@ -448,12 +456,12 @@ async function main() {
     summary.quality.v3NoEngineLeakRate >= 99 &&
     summary.quality.v3ConciseRate >= 95;
 
-  const jsonOut = path.join(outDir, "quick-v3-benchmark.json");
+  const jsonOut = path.join(outDir, "prompt-v5-benchmark.json");
   await writeFile(jsonOut, `${JSON.stringify({ summary, passGate, results }, null, 2)}\n`, "utf8");
 
   const worst = [...results].sort((a, b) => a.v3 - b.v3).slice(0, 12);
   const md = [
-    `# Quick Workspace Prompt V3 Benchmark (${count} cases)`,
+    `# Prompt Engine V5 Benchmark (${count} cases)`,
     "",
     `- Generated: ${summary.generatedAt}`,
     `- Workspace: ${summary.tracking.workspace}`,
@@ -479,7 +487,7 @@ async function main() {
     ...worst.map((item) => `| ${item.caseId} | ${item.mediaType} | ${item.v2} | ${item.v3} | ${(item.notes.join("; ") || "-").replace(/\|/g, "/")} |`)
   ].join("\n");
 
-  const mdOut = path.join(outDir, "quick-v3-benchmark.md");
+  const mdOut = path.join(outDir, "prompt-v5-benchmark.md");
   await writeFile(mdOut, `${md}\n`, "utf8");
 
   console.log(`Wrote ${jsonOut}`);

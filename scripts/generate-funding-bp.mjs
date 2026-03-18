@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 
 const ROOT = process.cwd();
 const OUT_DIR = path.join(ROOT, "artifacts", "funding-bp");
-const QUICK_SCREENSHOT = path.join(OUT_DIR, "quick-workspace.png");
+const ENTRY_SCREENSHOT = path.join(OUT_DIR, "workspace-entry.png");
 const PRO_SCREENSHOT = path.join(OUT_DIR, "pro-workspace.png");
 const HTML_PATH = path.join(OUT_DIR, "scene-pilotix-funding-bp.html");
 const PDF_PATH = path.join(OUT_DIR, "scene-pilotix-funding-bp.pdf");
@@ -39,25 +39,14 @@ async function captureScreenshots() {
     deviceScaleFactor: 1
   });
   await context.addInitScript(() => {
-    localStorage.setItem("sp_workspace_mode", "results");
     localStorage.setItem("scenepilot_lang", "zh");
   });
 
   const page = await context.newPage();
   await page.goto(APP_URL, { waitUntil: "networkidle" });
-  await page.getByTestId("composer-media-type").selectOption("video");
-  await page.getByTestId("composer-primary-2").selectOption("single_shot");
-  await page.getByTestId("composer-primary-3").selectOption("scene_progression");
-  await page.getByTestId("composer-primary-4").selectOption("cinematic");
-  await page.getByTestId("result-console-brief").fill("从一个密码钢制门进入");
-  await page.getByTestId("result-console-generate").click();
-  await page.getByTestId("result-console-brief-secondary").fill("进去以后是个温暖的避难所房间");
-  await page.getByTestId("quick-second-video-camera-motion").locator("select").selectOption("follow");
-  await page.getByTestId("quick-second-video-main-scene").locator("select").selectOption("indoor");
-  await page.getByTestId("quick-second-video-continuity-focus").locator("select").selectOption("identity");
-  await page.screenshot({ path: QUICK_SCREENSHOT });
+  await page.screenshot({ path: ENTRY_SCREENSHOT });
 
-  await page.getByTestId("media-nav-pro").click();
+  await page.goto(new URL("/app?signin=1", APP_URL).toString(), { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   await page.screenshot({ path: PRO_SCREENSHOT });
   await browser.close();
@@ -383,15 +372,15 @@ function deckHtml() {
     "AI Storyboard OS",
     `
       <h1 class="hero-title">ScenePilotix：把用户一句想法，压缩成可执行的镜头、对象与场景结构</h1>
-      <p class="hero-sub">面向 AI 图片与视频创作的双工作台系统。用快捷工作台快速锁定需求，用 Pro 工作台把结构升级为可编辑、可导出、可落地的生产项目。</p>
+      <p class="hero-sub">面向 AI 图片与视频创作的单工作台系统。用户直接进入 Pro 工作台，把想法转为可编辑、可导出、可落地的生产项目。</p>
       <div class="split-stat">
         <div class="card metric">
-          <div class="num">Quick Workspace</div>
-          <div class="label">两步输入，迅速锁定用户真正想要的画面目标、镜头方式与场景结构。</div>
+          <div class="num">Pro Workspace</div>
+          <div class="label">统一入口，直接锁定镜头目标、场景结构与导出路径。</div>
         </div>
         <div class="card metric">
-          <div class="num">Pro Workspace</div>
-          <div class="label">把需求变成分镜工程、对象层级、场景文件和平台适配提示词。</div>
+          <div class="num">Template Workspace</div>
+          <div class="label">模板驱动创建项目，把需求变成分镜工程、对象层级与平台适配提示词。</div>
         </div>
       </div>
       <div class="pill-row">
@@ -475,26 +464,26 @@ function deckHtml() {
 
   ${page(
     "04 / Product",
-    "Quick Workspace",
+    "Workspace Entry",
     `
       <div class="grid-2">
         <div class="stack">
           <div>
-            <h2 class="section-title">快捷工作台：两步就把需求压成结构</h2>
-            <p class="section-copy">把复杂创作问题收敛成“先说你想看到什么”与“再补一个结构重点”。系统再根据图片/视频自动切换最有价值的选项，减少重复和冲突设置。</p>
+            <h2 class="section-title">统一入口：直接把需求压成结构项目</h2>
+            <p class="section-copy">用户直接进入 Pro 主路径，通过模板与结构编辑快速锁定目标。系统根据图片/视频自动给出稳定的结构约束，减少重复和冲突设置。</p>
           </div>
           <div class="card">
             <ul class="clean">
-              <li>第一步负责确定媒体类型、镜头方式、表达重点、风格方向。</li>
-              <li>第二步根据第一步自适应，自动切换为最有效的镜头/主体/场景约束。</li>
-              <li>避免“单镜头 + 分镜数”这类无效组合，降低错误输入。</li>
-              <li>输入层始终保持简洁，目标是更少信息、更快拿结果。</li>
+              <li>模板入口负责给出可执行的结构骨架与场景边界。</li>
+              <li>编辑区直接调整镜头、主体、场景约束并实时预览。</li>
+              <li>避免“入口切换 + 语义重录”导致的信息丢失。</li>
+              <li>统一流程目标是更少跳转、更快拿到可交付结果。</li>
             </ul>
           </div>
         </div>
         <div>
-          <div class="shot"><img src="./quick-workspace.png" alt="Quick Workspace Screenshot" /></div>
-          <div class="caption">界面截图：快捷工作台聚焦两层胶囊输入，帮助用户在极短时间内锁定镜头对象和场景结构。</div>
+          <div class="shot"><img src="./workspace-entry.png" alt="Workspace Entry Screenshot" /></div>
+          <div class="caption">界面截图：统一入口直接进入结构化项目编辑主路径，减少模式切换成本。</div>
         </div>
       </div>
     `
@@ -573,7 +562,7 @@ function deckHtml() {
           <ul class="clean">
             <li>对用户来说，系统从“写提示词工具”变成“帮我理解需求的工作台”。</li>
             <li>对结果来说，系统先控制对象、场景、镜头，再把结构送去生成，引导更稳定。</li>
-            <li>对产品来说，Quick 与 Pro 形成从轻到重、从灵感到工程的连续闭环。</li>
+            <li>对产品来说，单工作台让“灵感 -> 工程”在同一路径闭环。</li>
           </ul>
         </div>
         <div class="stack">
@@ -669,7 +658,7 @@ function deckHtml() {
         <div class="timeline">
           <div class="timeline-item">
             <div class="left">阶段 1</div>
-            <div class="right">从快捷工作台切入，用“更少输入、更快出结果”吃下 AI 图片/视频创作者的第一入口。</div>
+            <div class="right">以统一工作台切入，用“更少跳转、更快出结果”吃下 AI 图片/视频创作者的第一入口。</div>
           </div>
           <div class="timeline-item">
             <div class="left">阶段 2</div>
@@ -692,7 +681,7 @@ function deckHtml() {
         <div class="card">
           <h2 class="section-title">当前已经形成的闭环</h2>
           <ul class="clean">
-            <li>快捷工作台两步输入与自适应选项。</li>
+            <li>统一工作台主入口与模板驱动创建流程。</li>
             <li>结构草案与对象级编辑。</li>
             <li>本地首轮预览与 Prompt 路由。</li>
             <li>Pro 项目编辑、导出、分镜库保存。</li>
@@ -769,7 +758,7 @@ async function main() {
   await writeDeckHtml();
   await exportPdf();
   console.log(JSON.stringify({
-    quickScreenshot: QUICK_SCREENSHOT,
+    entryScreenshot: ENTRY_SCREENSHOT,
     proScreenshot: PRO_SCREENSHOT,
     html: HTML_PATH,
     pdf: PDF_PATH

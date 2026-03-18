@@ -14,6 +14,9 @@ import { isUserPrivateTemplate } from "./TemplateCard";
 import type { ApplyTemplateMode } from "../model/templateFilter";
 import { formatPricingBucketForDisplay } from "../../../pricing";
 import { useTemplatePricing } from "../hooks/useTemplatePricing";
+import { loadTemplatePayloadById } from "../../../template-engine/payload/templateLoader";
+import { getProFieldLabelsFromPayload } from "../../../utils/proFieldsResolver";
+import type { ProFieldLabel } from "../../../utils/proFieldsResolver";
 
 const { colors } = editorTheme;
 
@@ -46,6 +49,18 @@ export function TemplateWorkspaceDetail({
   relatedTemplates = []
 }: Props) {
   const t = (zh: string, en: string) => (lang === "zh" ? zh : en);
+  const [proLabels, setProLabels] = React.useState<ProFieldLabel[]>([]);
+
+  React.useEffect(() => {
+    if (!template || isUserPrivateTemplate(template)) { setProLabels([]); return; }
+    let cancelled = false;
+    loadTemplatePayloadById(template.id).then(payload => {
+      if (cancelled || !payload) { setProLabels([]); return; }
+      setProLabels(getProFieldLabelsFromPayload(payload, lang));
+    });
+    return () => { cancelled = true; };
+  }, [(template as any)?.id, lang]);
+
   const isPrivate = template ? isUserPrivateTemplate(template) : false;
   const { pricing, loading } = useTemplatePricing(
     template && !isPrivate ? (template as TemplateIndex).id : null
@@ -154,6 +169,45 @@ export function TemplateWorkspaceDetail({
             {capabilityTags.map((tag) => (
               <span key={tag} style={styles.tag}>
                 {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {proLabels.length > 0 ? (
+        <div style={{
+          margin: "0 0 12px",
+          borderRadius: 10,
+          border: "1px solid rgba(245,158,11,0.35)",
+          background: "rgba(245,158,11,0.07)",
+          padding: "12px 14px"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <span style={{
+              fontSize: 11, fontWeight: 700,
+              color: colors.accent,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase" as const
+            }}>
+              ✦ {t("Pro 专属字段", "Pro Exclusive")}
+            </span>
+            <span style={{ fontSize: 10, color: colors.textMuted }}>
+              {t("使用后可在菜单中替换", "Replaceable after applying")}
+            </span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 5 }}>
+            {proLabels.map(label => (
+              <span key={label.key} style={{
+                display: "inline-flex", alignItems: "center", gap: 3,
+                fontSize: 11, fontWeight: 600,
+                color: colors.accent,
+                background: "rgba(245,158,11,0.12)",
+                border: "1px solid rgba(245,158,11,0.2)",
+                borderRadius: 99,
+                padding: "2px 9px"
+              }}>
+                ✦ {lang === "zh" ? label.labelZh : label.labelEn}
               </span>
             ))}
           </div>

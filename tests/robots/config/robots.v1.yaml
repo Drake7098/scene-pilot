@@ -86,10 +86,10 @@ robots:
     priority: "P0"
     sla_sec: 300
 
-  - id: quick_workspace_layout_guard
+  - id: workbench_layout_guard
     enabled: true
-    role: "Quick Workspace layout guard for overlap, dropdown clipping, and whitespace balance in zh/en"
-    scenario: "scenarios/quick-workspace-layout-guard.spec.ts"
+    role: "Workbench layout guard for overlap, dropdown clipping, and whitespace balance in zh/en"
+    scenario: "scenarios/workbench-layout-guard.spec.ts"
     priority: "P0"
     sla_sec: 360
 

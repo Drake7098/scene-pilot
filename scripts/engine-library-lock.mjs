@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = process.cwd();
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(scriptDir, "..");
 const lockPath = path.join(root, "docs", "engine-library-lock.json");
 
 const engineFiles = [
-  "src/utils/quickWorkspacePromptV3.ts",
   "src/utils/prompt.ts",
   "src/utils/promptEngine.ts",
   "src/utils/promptPipeline.ts",

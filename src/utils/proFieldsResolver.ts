@@ -1,68 +1,54 @@
-/**
- * proFieldsResolver.ts
- * 读取 scene.notes 里所有激活的 Pro 字段 marker，
- * 供 UI 层判断「当前场景是否携带专业字段」以及「携带了哪些」。
- *
- * 不修改任何数据，只读取和解析。
- */
-
-import { parseProMotionSelection } from "../content/proCameraPresets";
-import { parseDirectorStylePackId } from "../content/directorStylePacks";
+import { parseProMotionSelection, PRO_CAMERA_PRESETS } from "../content/proCameraPresets";
+import { DIRECTOR_STYLE_PACKS } from "../content/directorStylePacks";
 import {
+  VIDEO_CLASSIC_MODES,
+  IMAGE_CLASSIC_MODES,
+  IMAGE_PRO_EFFECTS,
   parseVideoClassicModeId,
   parseImageClassicModeId,
-  parseImageProEffects
+  parseImageProEffects,
 } from "../content/proCreativeModes";
-import {
-  parseCameraLanguageId,
-  isHiddenCameraLanguage
-} from "../content/cameraLanguageLayers";
-
-// ── 返回类型 ──────────────────────────────────────────────
+import { parseCameraLanguageId, isHiddenCameraLanguage, getTemplateHiddenCameraLanguageOptions } from "../content/cameraLanguageLayers";
+import type { TemplatePayload } from "../template-engine/types/templatePayload";
+import type { Lang } from "../i18n";
 
 export type ActiveProFields = {
-  /** pro_plus_motion: 激活的专业镜头语言 id 列表（可多个） */
   proMotionIds: string[];
-  /** director_pack: 激活的导演风格包 id，没有则为 null */
   directorPackId: string | null;
-  /** video_classic_mode: 激活的视频经典模式 id，没有则为 null */
   videoClassicId: string | null;
-  /** image_classic_mode: 激活的图片经典模式 id，没有则为 null */
   imageClassicId: string | null;
-  /** image_pro_effects: 激活的图片专业特效 id 列表（可多个） */
   imageProEffectIds: string[];
-  /** camera_language (hidden tier): 激活的隐藏镜头语言 id，没有则为 null */
   hiddenCameraLangId: string | null;
 };
 
-// ── 主函数 ────────────────────────────────────────────────
+export type ProFieldLabel = {
+  key: string;
+  labelZh: string;
+  labelEn: string;
+  category: "motion" | "director" | "classic" | "effect" | "camera";
+};
 
-/**
- * 解析 scene.notes，返回所有激活的 Pro 字段。
- * 传入空字符串或 undefined 时，所有字段均为空/null。
- */
-export function resolveActiveProFields(notes: string | undefined | null): ActiveProFields {
-  const raw = notes ?? "";
-
-  const motion = parseProMotionSelection(raw);
-  const cameraLangId = parseCameraLanguageId(raw);
-
+/** 从 scene.notes 解析激活的 Pro 字段（Sidebar 用） */
+export function resolveActiveProFields(notes: string): ActiveProFields {
+  const motion = parseProMotionSelection(notes ?? "");
+  const cameraLangId = parseCameraLanguageId(notes ?? "");
   return {
     proMotionIds: motion.proPlusIds ?? [],
-    directorPackId: parseDirectorStylePackId(raw) ?? null,
-    videoClassicId: parseVideoClassicModeId(raw) ?? null,
-    imageClassicId: parseImageClassicModeId(raw) ?? null,
-    imageProEffectIds: parseImageProEffects(raw) ?? [],
-    hiddenCameraLangId:
-      cameraLangId && isHiddenCameraLanguage(cameraLangId) ? cameraLangId : null,
+    directorPackId: parseDirectorStylePackId(notes ?? "") ?? null,
+    videoClassicId: parseVideoClassicModeId(notes ?? "") ?? null,
+    imageClassicId: parseImageClassicModeId(notes ?? "") ?? null,
+    imageProEffectIds: parseImageProEffects(notes ?? ""),
+    hiddenCameraLangId: cameraLangId && isHiddenCameraLanguage(cameraLangId) ? cameraLangId : null,
   };
 }
 
-/**
- * 快速判断：当前场景是否携带任何 Pro 字段。
- * UI 层用这个决定是否显示 PRO 标识。
- */
-export function hasAnyProFields(notes: string | undefined | null): boolean {
+function parseDirectorStylePackId(notes: string): string | null {
+  const lines = (notes ?? "").split("\n");
+  const hit = lines.find(l => l.trim().toLowerCase().startsWith("director_pack:"));
+  return hit ? hit.trim().slice("director_pack:".length).trim() || null : null;
+}
+
+export function hasAnyProFields(notes: string): boolean {
   const f = resolveActiveProFields(notes);
   return (
     f.proMotionIds.length > 0 ||
@@ -74,42 +60,97 @@ export function hasAnyProFields(notes: string | undefined | null): boolean {
   );
 }
 
-/**
- * 返回所有激活 Pro 字段的显示标签，供 tooltip 或 badge 使用。
- * lang: "zh" | "en"
- */
-export function getProFieldLabels(
-  notes: string | undefined | null,
-  lang: "zh" | "en"
-): string[] {
-  const f = resolveActiveProFields(notes);
-  const labels: string[] = [];
+/** 从 TemplatePayload 读取 Pro 字段标签（详情页用，直接读结构化字段，无需 parse） */
+export function getProFieldLabelsFromPayload(payload: TemplatePayload, lang: Lang): ProFieldLabel[] {
+  const scene = payload.scenes?.[0];
+  if (!scene) return [];
+  const labels: ProFieldLabel[] = [];
 
-  if (f.proMotionIds.length > 0) {
-    labels.push(
-      lang === "zh"
-        ? `专业镜头语言 (${f.proMotionIds.length}个)`
-        : `Pro motion (${f.proMotionIds.length})`
-    );
+  // 视频经典模式
+  const vcId = scene.classicMotion;
+  if (vcId) {
+    const m = VIDEO_CLASSIC_MODES.find(x => x.id === vcId);
+    if (m) labels.push({ key: m.id, labelZh: m.nameZh, labelEn: m.nameEn, category: "classic" });
   }
-  if (f.directorPackId) {
-    labels.push(lang === "zh" ? "导演风格包" : "Director pack");
+
+  // 图片经典模式（通过 notes 解析，payload 里没有直接字段）
+  const icId = parseImageClassicModeId(buildNotesFromSnapshot(scene));
+  if (icId) {
+    const m = IMAGE_CLASSIC_MODES.find(x => x.id === icId);
+    if (m) labels.push({ key: m.id, labelZh: m.nameZh, labelEn: m.nameEn, category: "classic" });
   }
+
+  // 导演风格包
+  if (scene.directorStylePack) {
+    const m = DIRECTOR_STYLE_PACKS.find(x => x.id === scene.directorStylePack);
+    if (m) labels.push({ key: m.id, labelZh: m.labelZh, labelEn: m.labelEn, category: "director" });
+  }
+
+  // 专业镜头运动 pro_plus
+  if (scene.proMotions) {
+    const notes = `pro_plus_motion: ${scene.proMotions}`;
+    const ids = parseProMotionSelection(notes).proPlusIds ?? [];
+    for (const id of ids) {
+      const m = PRO_CAMERA_PRESETS.find(x => x.id === id && x.tier === "pro_plus");
+      if (m) labels.push({ key: m.id, labelZh: m.labelZh, labelEn: m.labelEn, category: "motion" });
+    }
+  }
+
+  // 图片专业特效
+  if (scene.imageProEffects) {
+    const ids = scene.imageProEffects.split(",").map(s => s.trim()).filter(Boolean);
+    for (const id of ids) {
+      const m = IMAGE_PRO_EFFECTS.find(x => x.id === id);
+      if (m) labels.push({ key: m.id, labelZh: m.labelZh, labelEn: m.labelEn, category: "effect" });
+    }
+  }
+
+  // 隐藏镜头语言 Layer2
+  if (scene.cameraLanguage && isHiddenCameraLanguage(scene.cameraLanguage)) {
+    const m = getTemplateHiddenCameraLanguageOptions().find(x => x.id === scene.cameraLanguage);
+    if (m) labels.push({ key: m.id, labelZh: m.labelZh, labelEn: m.labelEn, category: "camera" });
+  }
+
+  return labels;
+}
+
+function buildNotesFromSnapshot(scene: TemplatePayload["scenes"][0]): string {
+  const parts: string[] = [];
+  if (scene.directorStylePack) parts.push(`director_pack: ${scene.directorStylePack}`);
+  if (scene.cameraLanguage) parts.push(`camera_language: ${scene.cameraLanguage}`);
+  if (scene.imageProEffects) parts.push(`image_pro_effects: ${scene.imageProEffects}`);
+  if (scene.classicMotion) parts.push(`video_classic_mode: ${scene.classicMotion}`);
+  return parts.join("\n");
+}
+
+/** 从 scene.notes 读取标签（Sidebar 用） */
+export function getProFieldLabels(notes: string, lang: Lang): ProFieldLabel[] {
+  const f = resolveActiveProFields(notes);
+  const labels: ProFieldLabel[] = [];
+
   if (f.videoClassicId) {
-    labels.push(lang === "zh" ? "视频经典模式" : "Video classic mode");
+    const m = VIDEO_CLASSIC_MODES.find(x => x.id === f.videoClassicId);
+    if (m) labels.push({ key: m.id, labelZh: m.nameZh, labelEn: m.nameEn, category: "classic" });
   }
   if (f.imageClassicId) {
-    labels.push(lang === "zh" ? "图片经典模式" : "Image classic mode");
+    const m = IMAGE_CLASSIC_MODES.find(x => x.id === f.imageClassicId);
+    if (m) labels.push({ key: m.id, labelZh: m.nameZh, labelEn: m.nameEn, category: "classic" });
   }
-  if (f.imageProEffectIds.length > 0) {
-    labels.push(
-      lang === "zh"
-        ? `图片专业特效 (${f.imageProEffectIds.length}个)`
-        : `Image pro effects (${f.imageProEffectIds.length})`
-    );
+  if (f.directorPackId) {
+    const m = DIRECTOR_STYLE_PACKS.find(x => x.id === f.directorPackId);
+    if (m) labels.push({ key: m.id, labelZh: m.labelZh, labelEn: m.labelEn, category: "director" });
+  }
+  for (const id of f.proMotionIds) {
+    const m = PRO_CAMERA_PRESETS.find(x => x.id === id);
+    if (m) labels.push({ key: m.id, labelZh: m.labelZh, labelEn: m.labelEn, category: "motion" });
+  }
+  for (const id of f.imageProEffectIds) {
+    const m = IMAGE_PRO_EFFECTS.find(x => x.id === id);
+    if (m) labels.push({ key: m.id, labelZh: m.labelZh, labelEn: m.labelEn, category: "effect" });
   }
   if (f.hiddenCameraLangId) {
-    labels.push(lang === "zh" ? "隐藏镜头语言层" : "Hidden camera language");
+    const m = getTemplateHiddenCameraLanguageOptions().find(x => x.id === f.hiddenCameraLangId);
+    if (m) labels.push({ key: m.id, labelZh: m.labelZh, labelEn: m.labelEn, category: "camera" });
   }
 
   return labels;
