@@ -14,11 +14,12 @@ export function useTemplateWorkspace(state: TemplateWorkspaceState) {
     return filterTemplateIndex(
       indexList,
       state.scope,
+      state.selectedIntentId,
       state.selectedCategory,
       state.filters,
       state.searchQuery
     );
-  }, [indexList, state.scope, state.selectedCategory, state.filters, state.searchQuery]);
+  }, [indexList, state.scope, state.selectedIntentId, state.selectedCategory, state.filters, state.searchQuery]);
   const filtered = useMemo(() => {
     if (state.selectedFamilyId) {
       return filteredBeforeFamily.filter((t) => t.familyId === state.selectedFamilyId);

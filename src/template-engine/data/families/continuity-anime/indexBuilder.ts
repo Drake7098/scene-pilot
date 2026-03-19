@@ -10,6 +10,13 @@ import {
   ANIME_VARIANT_LABELS
 } from "./families";
 
+const HIGH_INTENT_ANIME_FAMILY_IDS = new Set([
+  "daily_dialogue_anime",
+  "protagonist_entrance_anime",
+  "skill_release_anime",
+  "battle_standoff_anime"
+]);
+
 function continuityCost(variant: string): number {
   if (variant === "starter") return 0;
   return 5;
@@ -18,6 +25,7 @@ function continuityCost(variant: string): number {
 export function buildAnimeIndex(): TemplateIndex[] {
   const out: TemplateIndex[] = [];
   for (const family of ANIME_FAMILIES) {
+    if (!HIGH_INTENT_ANIME_FAMILY_IDS.has(family.id)) continue;
     for (const variant of ANIME_VARIANTS) {
       const id = `tpl600_anime_${family.id}_${variant}`;
       const vLabels = ANIME_VARIANT_LABELS[variant];

@@ -12,6 +12,10 @@ import { resolveTemplatePricing } from "./templatePricingResolver";
 
 const pricingCache = new Map<string, TemplatePricingResult>();
 
+function isForcedFreeTemplateId(templateId: string): boolean {
+  return /(?:^|_)(free_starter|starter)$/.test(templateId);
+}
+
 /**
  * Get pricing for a template by id. Caches result. Use for cards, detail, UseTemplate.
  */
@@ -39,15 +43,15 @@ export async function getTemplatePricingForTemplate(
   const input = payloadToPricingInput(payload);
   const scoreResult = scoreTemplate(input);
 
-  // free_starter 变体强制 F0，不走 resolver
-  if (templateId.includes("free_starter")) {
+  // starter / free_starter 变体强制 F0，不走 resolver
+  if (isForcedFreeTemplateId(templateId)) {
     const freeResult: TemplatePricingResult = {
       accessTier: "free",
       creditPrice: 0,
       pricingBucket: "F0",
       score: scoreResult.score,
       capabilityTags: [],
-      debugReasons: ["free_starter variant: forced F0"],
+      debugReasons: ["starter variant: forced F0"],
       capabilitySummary: scoreResult.capabilitySummary
     };
     pricingCache.set(templateId, freeResult);

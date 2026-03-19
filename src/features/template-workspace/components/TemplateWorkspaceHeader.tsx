@@ -9,6 +9,7 @@ import type { Lang } from "../../../i18n";
 import type { TemplateWorkspaceFilters } from "../model/templateFilter";
 import type { TemplateWorkspaceView, MyTemplateSection } from "../state/templateWorkspaceState";
 import { TEMPLATE_INDUSTRY_OPTIONS } from "../model/templateCategory";
+import { TEMPLATE_INTENTS, type TemplateIntentId } from "../model/templateIntent";
 
 const colors = {
   panel: "#24262b",
@@ -25,6 +26,8 @@ type Props = {
   onTemplateWorkspaceViewChange: (v: TemplateWorkspaceView) => void;
   myTemplateSection?: MyTemplateSection;
   onMyTemplateSectionChange?: (s: MyTemplateSection) => void;
+  selectedIntentId: TemplateIntentId | null;
+  onIntentChange: (intentId: TemplateIntentId) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
   filters: TemplateWorkspaceFilters;
@@ -42,6 +45,8 @@ export function TemplateWorkspaceHeader({
   onTemplateWorkspaceViewChange,
   myTemplateSection = "owned",
   onMyTemplateSectionChange,
+  selectedIntentId,
+  onIntentChange,
   searchQuery,
   onSearchChange,
   filters,
@@ -103,6 +108,24 @@ export function TemplateWorkspaceHeader({
             {t("我创建的", "Created by me")}
             {createdCount != null ? ` (${createdCount})` : ""}
           </button>
+        </div>
+      ) : null}
+      {templateWorkspaceView === "market" ? (
+        <div style={styles.intentStrip}>
+          {TEMPLATE_INTENTS.map((intent) => (
+            <button
+              key={intent.id}
+              type="button"
+              style={{
+                ...styles.intentCard,
+                ...(selectedIntentId === intent.id ? styles.intentCardActive : {})
+              }}
+              onClick={() => onIntentChange(intent.id)}
+            >
+              <span style={styles.intentLabel}>{lang === "zh" ? intent.labelZh : intent.labelEn}</span>
+              <span style={styles.intentDesc}>{lang === "zh" ? intent.descriptionZh : intent.descriptionEn}</span>
+            </button>
+          ))}
         </div>
       ) : null}
       <div style={styles.searchWrap}>
@@ -222,6 +245,41 @@ const styles: Record<string, React.CSSProperties> = {
     color: colors.accent
   },
   sectionSwitch: { display: "flex", gap: 4 },
+  intentStrip: {
+    width: "100%",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+    gap: 8
+  },
+  intentCard: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 4,
+    minWidth: 0,
+    padding: "10px 12px",
+    borderRadius: 10,
+    border: `1px solid ${colors.border}`,
+    background: colors.bg,
+    color: colors.textMuted,
+    cursor: "pointer"
+  },
+  intentCardActive: {
+    borderColor: colors.accent,
+    background: "rgba(245,158,11,0.08)",
+    color: colors.text
+  },
+  intentLabel: {
+    fontSize: PRO_TYPO.xs,
+    fontWeight: PRO_TYPO.weightMedium,
+    fontFamily: PRO_TYPO.fontFamily
+  },
+  intentDesc: {
+    fontSize: PRO_TYPO["2xs"],
+    lineHeight: 1.4,
+    color: colors.textMuted,
+    fontFamily: PRO_TYPO.fontFamily
+  },
   sectionBtn: {
     padding: "4px 8px",
     background: "transparent",

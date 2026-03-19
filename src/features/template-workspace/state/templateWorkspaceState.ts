@@ -7,6 +7,7 @@ import type {
   TemplateWorkspaceFilters,
   ApplyTemplateMode
 } from "../model/templateFilter";
+import { DEFAULT_TEMPLATE_INTENT_ID, loadLastTemplateIntent, type TemplateIntentId } from "../model/templateIntent";
 
 /** Top-level view: market (all templates) vs my templates. */
 export type TemplateWorkspaceView = "market" | "my_templates";
@@ -21,6 +22,7 @@ export type TemplateWorkspaceState = {
   myTemplateSection: MyTemplateSection;
   view: "grid" | "list";
   scope: TemplateWorkspaceScope;
+  selectedIntentId: TemplateIntentId | null;
   selectedCategory: string | null;
   selectedFamilyId: string | null;
   selectedTemplateId: string | null;
@@ -33,7 +35,8 @@ export const DEFAULT_TEMPLATE_WORKSPACE_STATE: TemplateWorkspaceState = {
   templateWorkspaceView: "market",
   myTemplateSection: "owned",
   view: "grid",
-  scope: "all",
+  scope: "recommended",
+  selectedIntentId: loadLastTemplateIntent() ?? DEFAULT_TEMPLATE_INTENT_ID,
   selectedCategory: null,
   selectedFamilyId: null,
   selectedTemplateId: null,

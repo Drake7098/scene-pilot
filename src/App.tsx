@@ -79,6 +79,7 @@ import {
   getTemplateIndex,
   type TemplateIndex
 } from "./features/template-workspace";
+import { consumePendingTemplateIntent, saveLastTemplateIntent } from "./features/template-workspace/model/templateIntent";
 import { applyTemplateCharge } from "./features/billing";
 import { getTemplatePricingForTemplate } from "./pricing";
 import { createProjectFromTemplate, createProjectFromUserTemplate, duplicateProject } from "./lib/projectCreation";
@@ -1959,6 +1960,10 @@ export default function App() {
     void refreshAccountState();
   }, [refreshAccountState]);
 
+  useEffect(() => {
+    saveLastTemplateIntent(templateWorkspaceState.selectedIntentId);
+  }, [templateWorkspaceState.selectedIntentId]);
+
   // ✅ 新用户 onboarding：登录后首次进入自动弹出创建向导
   useEffect(() => {
     if (!accountUser) return;
@@ -1971,6 +1976,31 @@ export default function App() {
       }
     } catch { /* ignore localStorage errors */ }
   }, [accountUser?.id]);
+
+  useEffect(() => {
+    if (!accountUser) return;
+    const pendingIntent = consumePendingTemplateIntent();
+    if (!pendingIntent) return;
+    setTemplateWorkspaceState((s) => ({
+      ...s,
+      templateWorkspaceView: "market",
+      myTemplateSection: "owned",
+      scope: "recommended",
+      selectedIntentId: pendingIntent,
+      selectedCategory: null,
+      selectedFamilyId: null,
+      selectedTemplateId: null,
+      searchQuery: "",
+      filters: {
+        mediaType: "all",
+        storyPlan: "all",
+        ratio: "all",
+        pricing: "all",
+        industry: "all"
+      }
+    }));
+    setIsTemplateWorkspaceOpen(true);
+  }, [accountUser]);
 
   useEffect(() => {
     if (!accountUser) return;

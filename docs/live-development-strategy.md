@@ -28,6 +28,7 @@ Last updated: 2026-03-19
 
 ### Public Routes
 - 根路径 `/` 为公开 Landing 页面（产品介绍、方案入口、合规链接）。
+- Landing 首屏已调整为“任务定向”入口：用户可直接选择 `卖货出图 / 人物出图 / 封面海报 / 口播讲解 / 剧情短视频 / 连续分镜`，不再只给产品介绍后再自行摸索模板库。
 - 工作台主界面改为 `/app`（直接进入 Pro 工作台）。
 - 新增正式认证入口别名：`/login`、`/signin`、`/register`、`/signup`（统一重定向到 `/app?signin=1`）。
 - `/app` 已启用强制登录闸门：未登录直访会跳 `/signin?redirect=/app`，仅登录态或 `signin=1` 认证入口可进入应用壳。
@@ -42,6 +43,8 @@ Last updated: 2026-03-19
 - 详见 `docs/prompt-preview-and-export-split.md`、`docs/prompt-readonly-positioning.md`、`docs/export-primary-actions-redesign.md`
 - Stage 可移动 Work Bar：选中对象时出现，仅开放结构安全动作（Select、Move、Center、Reset、Copy T0→T1、Lock、Assign Slot、Mark Anchor）；设计详见 `docs/stage-workbar-design.md`、`docs/stage-safe-editing-model.md`
 - 模板驱动工作流为主体验。
+- 模板库主入口已转为“任务先行”：默认以任务意图驱动推荐池，而不是让用户先学内部分类；当前 canonical intents 为 `卖货出图 / 人物出图 / 封面海报 / 口播讲解 / 剧情短视频 / 连续分镜`。
+- 模板任务意图会本地记忆；Landing 选中的任务会通过 pending intent 传递到 `/app`，登录后自动打开对应模板组。
 - Pro 权限闸门已收口：普通登录用户不可进入 Pro；所有入口统一先校验 `canUseProConsole`，不满足则进入升级路径。
 
 ### Top Menu
@@ -237,6 +240,7 @@ Last updated: 2026-03-19
 - 引擎锁 hash 变化（`docs/engine-library-lock.json` 变更）
 
 ## Recent Decisions
+- 2026-03-19：模板主流程从“搜索/筛选优先”改为“任务定向优先”。Landing 新增 6 个任务入口，模板库顶部新增同一套 intent 卡片；系统会记忆最近一次 intent，并在登录后自动打开对应推荐模板组。
 - 2026-03-19：提示词引擎 `buildUniversalResult` 已切换为 `stripExecutionScaffold` 执行链，统一清理 platformGuide 脚手架行（含 Hard constraints / Conflict policy / Output policy / Platform Execution Contract）后再输出给模型。
 - 认证同意勾选已加硬拦截：未勾选 `Terms + Privacy` 时，账号中心不会继续触发邮箱发码、Google 登录或密码登录（仅提示并停留当前态）。
 - 维护清理接口 `/api/maintenance/prune` 与统计接口 token 已隔离：仅接受 `MAINTENANCE_API_TOKEN`（不再回退或复用 `STATS_API_TOKEN`）。

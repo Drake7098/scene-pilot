@@ -66,7 +66,7 @@ function isP2(result: TemplateScoreResult): boolean {
 /**
  * P3: multiple Pro features, or score >= 7, or specific combos:
  * - director_pack + hidden camera language
- * - image_pro_effects >= 2 (count or categories)
+ * - image_pro_effects >= 3 (count or categories)
  * - continuous + advanced transition
  * - advanced video classic + movement + continuity
  */
@@ -83,7 +83,7 @@ function isP3(result: TemplateScoreResult): boolean {
     ...result.sceneResults.map((r) => r.imageProEffectsCategories),
     0
   );
-  if (totalImageEffects >= 2 || maxCategories >= 2) return true;
+  if (totalImageEffects >= 3 || maxCategories >= 3) return true;
 
   const anyContinuous = result.sceneResults.some((r) => r.hasContinuousControls);
   const anyAdvTransition = result.sceneResults.some((r) => r.hasAdvancedTransition);

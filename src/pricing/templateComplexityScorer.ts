@@ -227,17 +227,16 @@ export type TemplateScoreResult = {
   proFeatureCount: number;
 };
 
-/** Count of "Pro" features for bucket rules: director_pack, image_pro_effects, hidden camera language, continuous, advanced transition, advanced video classic, advanced scene config, pro motion. */
-function countProFeatures(r: SceneScoreResult): number {
+function countTemplateLevelProFeatures(sceneResults: SceneScoreResult[]): number {
   let n = 0;
-  if (r.hasDirectorPack) n += 1;
-  if (r.hasHiddenCameraLanguage) n += 1;
-  if (r.imageProEffectsCount > 0) n += 1;
-  if (r.hasContinuousControls) n += 1;
-  if (r.hasAdvancedTransition) n += 1;
-  if (r.hasAdvancedVideoClassic) n += 1;
-  if (r.hasAdvancedSceneConfig) n += 1;
-  if (r.hasProMotion) n += 1;
+  if (sceneResults.some((r) => r.hasDirectorPack)) n += 1;
+  if (sceneResults.some((r) => r.hasHiddenCameraLanguage)) n += 1;
+  if (sceneResults.some((r) => r.imageProEffectsCount > 0)) n += 1;
+  if (sceneResults.some((r) => r.hasContinuousControls)) n += 1;
+  if (sceneResults.some((r) => r.hasAdvancedTransition)) n += 1;
+  if (sceneResults.some((r) => r.hasAdvancedVideoClassic)) n += 1;
+  if (sceneResults.some((r) => r.hasAdvancedSceneConfig)) n += 1;
+  if (sceneResults.some((r) => r.hasProMotion)) n += 1;
   return n;
 }
 
@@ -289,7 +288,7 @@ export function scoreTemplate(input: TemplatePricingInput): TemplateScoreResult 
 
   const score = maxSceneScore + multiSceneBonus + comboBonus + sceneCountBonus;
   const allCaps = [...new Set(sceneResults.flatMap((r) => r.capabilities))];
-  const proFeatureCount = sceneResults.reduce((s, r) => s + countProFeatures(r), 0);
+  const proFeatureCount = countTemplateLevelProFeatures(sceneResults);
 
   return {
     score,

@@ -3,6 +3,7 @@ import { UserRound } from "lucide-react";
 import { getCurrentUser } from "../services/authService";
 import type { UserState } from "../types/account";
 import { PUBLIC_CONTACT_CHANNELS } from "../config/contactChannels";
+import { TEMPLATE_INTENTS, setPendingTemplateIntent, type TemplateIntentId } from "../features/template-workspace/model/templateIntent";
 
 const WORKSPACE_MODE_KEY = "sp_workspace_mode";
 const WORKSPACE_ENTRY_GUIDE_KEY = "sp_workspace_entry_guide_done_v1";
@@ -24,13 +25,14 @@ function saveLocale(lang: LandingLocale) {
   try { localStorage.setItem(LANDING_LANG_KEY, lang); } catch { /* ignore */ }
 }
 
-function routeToSignIn(mode?: WorkspaceMode) {
+function routeToSignIn(mode?: WorkspaceMode, intentId?: TemplateIntentId) {
   if (mode) {
     try {
       localStorage.removeItem(WORKSPACE_MODE_KEY);
       localStorage.removeItem(WORKSPACE_ENTRY_GUIDE_KEY);
       localStorage.setItem(WORKSPACE_MODE_KEY, mode);
       localStorage.setItem(WORKSPACE_ENTRY_GUIDE_KEY, "1");
+      if (intentId) setPendingTemplateIntent(intentId);
     } catch { /* ignore */ }
   }
   window.location.href = "/signin";
@@ -51,6 +53,7 @@ const COPY = {
     tagline: "首次生成成功率提升 3×",
     ctaMain: "免费开始",
     ctaSub: "工作台",
+    taskTitle: "直接说你要做什么",
     // Pain → Solution
     painTitle: "你一定遇过这些",
     pains: [
@@ -83,6 +86,7 @@ const COPY = {
     tagline: "3× higher first-generation success rate",
     ctaMain: "Start Free",
     ctaSub: "Workspace",
+    taskTitle: "Go straight to the job",
     // Pain → Solution
     painTitle: "Sound familiar?",
     pains: [
@@ -189,7 +193,7 @@ export default function LandingPage() {
               style={{ ...ctaPrimary, ...(ctaHover ? ctaPrimaryHover : {}) }}
               onMouseEnter={() => setCtaHover(true)}
               onMouseLeave={() => setCtaHover(false)}
-              onClick={() => routeToSignIn("pro")}
+              onClick={() => routeToSignIn("pro", "sell_product")}
               data-testid="landing-start-workspace"
             >
               {t.ctaMain}
@@ -197,6 +201,22 @@ export default function LandingPage() {
             {accountUser && (
               <a href="/app" style={ctaSecondary}>{t.ctaSub}</a>
             )}
+          </div>
+          <div style={taskLaunchWrap}>
+            <div style={taskLaunchLabel}>{t.taskTitle}</div>
+            <div style={taskLaunchGrid}>
+              {TEMPLATE_INTENTS.map((intent) => (
+                <button
+                  key={intent.id}
+                  type="button"
+                  style={taskLaunchBtn}
+                  onClick={() => routeToSignIn("pro", intent.id)}
+                >
+                  <span style={taskLaunchBtnTitle}>{locale === "zh" ? intent.labelZh : intent.labelEn}</span>
+                  <span style={taskLaunchBtnDesc}>{locale === "zh" ? intent.descriptionZh : intent.descriptionEn}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -260,6 +280,48 @@ const userBtn: CSSProperties = {
   display: "inline-flex", alignItems: "center", gap: 8,
   border: "none", background: "transparent", color: C.text,
   fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none", padding: "0 4px"
+};
+const taskLaunchWrap: CSSProperties = {
+  marginTop: 22,
+  display: "flex",
+  flexDirection: "column",
+  gap: 10,
+  width: "100%",
+  maxWidth: 920
+};
+const taskLaunchLabel: CSSProperties = {
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: C.muted
+};
+const taskLaunchGrid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 10
+};
+const taskLaunchBtn: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: 4,
+  padding: "14px 16px",
+  borderRadius: 14,
+  border: `1px solid ${C.border}`,
+  background: "#24262b",
+  color: C.text,
+  textAlign: "left",
+  cursor: "pointer"
+};
+const taskLaunchBtnTitle: CSSProperties = {
+  fontSize: 14,
+  fontWeight: 700
+};
+const taskLaunchBtnDesc: CSSProperties = {
+  fontSize: 12,
+  lineHeight: 1.45,
+  color: C.muted
 };
 const avatarCircle: CSSProperties = {
   width: 22, height: 22, borderRadius: "50%", display: "inline-flex",

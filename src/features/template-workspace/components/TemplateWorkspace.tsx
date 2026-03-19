@@ -108,6 +108,16 @@ export function TemplateWorkspace({
         onTemplateWorkspaceViewChange={(v) => update({ templateWorkspaceView: v, selectedTemplateId: null, selectedFamilyId: null })}
         myTemplateSection={state.myTemplateSection}
         onMyTemplateSectionChange={(s) => update({ myTemplateSection: s, selectedTemplateId: null })}
+        selectedIntentId={state.selectedIntentId}
+        onIntentChange={(intentId) => update({
+          selectedIntentId: intentId,
+          scope: "recommended",
+          selectedCategory: null,
+          selectedFamilyId: null,
+          selectedTemplateId: null,
+          searchQuery: "",
+          filters: { ...state.filters, mediaType: "all", storyPlan: "all", ratio: "all", pricing: "all", industry: "all" }
+        })}
         searchQuery={state.searchQuery}
         onSearchChange={(q) => update({ searchQuery: q, selectedTemplateId: null, selectedFamilyId: null })}
         filters={state.filters}

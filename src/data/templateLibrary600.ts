@@ -21,6 +21,381 @@ const VARIANTS: TemplateVariant[] = [
   "advanced_motion"
 ];
 
+type HiddenProfile =
+  | "product_showcase"
+  | "product_clean"
+  | "portrait_editorial"
+  | "portrait_natural"
+  | "social_cover"
+  | "poster_cover"
+  | "lifestyle_scene"
+  | "creative_style"
+  | "business_scene"
+  | "dialogue_video"
+  | "ad_video"
+  | "short_video_story";
+
+type ExtraFamilyDef = {
+  id: string;
+  nameEn: string;
+  nameZh: string;
+  category: TemplateCategory;
+  mediaType: "image" | "video";
+  storyPlan: UnifiedTemplate["storyPlan"];
+  descriptionZh: string;
+  descriptionEn: string;
+  hiddenProfile: HiddenProfile;
+};
+
+function makeFamilyGroup(
+  entries: ReadonlyArray<readonly [string, string, string]>,
+  common: {
+    category: TemplateCategory;
+    mediaType: "image" | "video";
+    storyPlan: UnifiedTemplate["storyPlan"];
+    hiddenProfile: HiddenProfile;
+    descriptionZhSuffix: string;
+    descriptionEnSuffix: string;
+  }
+): ExtraFamilyDef[] {
+  return entries.map(([id, nameEn, nameZh]) => ({
+    id,
+    nameEn,
+    nameZh,
+    category: common.category,
+    mediaType: common.mediaType,
+    storyPlan: common.storyPlan,
+    descriptionZh: `适合${nameZh}${common.descriptionZhSuffix}`,
+    descriptionEn: `A starter for ${nameEn.toLowerCase()} ${common.descriptionEnSuffix}`,
+    hiddenProfile: common.hiddenProfile
+  }));
+}
+
+const EXTRA_PRODUCT_FAMILIES = makeFamilyGroup([
+  ["product_lifestyle", "Product Lifestyle", "产品生活场景"],
+  ["product_texture_closeup", "Product Texture", "产品材质特写"],
+  ["product_hand_use", "Product In Use", "产品使用场景"],
+  ["product_packaging", "Product Packaging", "产品包装展示"],
+  ["product_minimal_flat", "Minimal Flat Lay", "极简平铺展示"],
+  ["product_group_shot", "Product Group Shot", "产品组合展示"],
+  ["food_beverage_ad", "Food & Beverage", "食品饮料广告"],
+  ["cosmetics_display", "Cosmetics Display", "美妆产品陈列"],
+  ["jewelry_showcase", "Jewelry Showcase", "珠宝首饰展示"],
+  ["fashion_item_flat", "Fashion Flat Lay", "服装平铺展示"],
+  ["perfume_bottle_hero", "Perfume Bottle Hero", "香水瓶主视觉"],
+  ["supplement_jar_display", "Supplement Jar", "保健品罐装展示"],
+  ["shoe_product_display", "Shoe Display", "鞋类产品展示"],
+  ["bag_product_showcase", "Bag Showcase", "包袋展示"],
+  ["watch_closeup", "Watch Closeup", "手表特写"],
+  ["home_appliance_showcase", "Home Appliance", "家电展示"],
+  ["gadget_unboxing_layout", "Gadget Unboxing", "数码开箱布局"],
+  ["stationery_flatlay", "Stationery Flat Lay", "文具平铺"],
+  ["toy_collectible_display", "Toy Collectible", "潮玩手办展示"],
+  ["furniture_product_scene", "Furniture Scene", "家具产品场景"]
+], {
+  category: "product",
+  mediaType: "image",
+  storyPlan: "single",
+  hiddenProfile: "product_showcase",
+  descriptionZhSuffix: "、电商展示与品牌出图。",
+  descriptionEnSuffix: "used in e-commerce and product marketing."
+});
+
+const EXTRA_PORTRAIT_FAMILIES = makeFamilyGroup([
+  ["portrait_natural_light", "Natural Light Portrait", "自然光人像"],
+  ["portrait_studio", "Studio Portrait", "棚拍人像"],
+  ["portrait_street", "Street Portrait", "街头人像"],
+  ["portrait_professional", "Professional Headshot", "职业形象照"],
+  ["portrait_couple", "Couple Portrait", "情侣写真"],
+  ["portrait_group", "Group Portrait", "团体合影"],
+  ["children_portrait", "Children Portrait", "儿童写真"],
+  ["elderly_portrait", "Elderly Portrait", "老人肖像"],
+  ["bridal_portrait", "Bridal Portrait", "婚纱写真"],
+  ["maternity_portrait", "Maternity Portrait", "孕妇写真"],
+  ["graduation_portrait", "Graduation Portrait", "毕业写真"],
+  ["fitness_portrait", "Fitness Portrait", "健身写真"],
+  ["musician_portrait", "Musician Portrait", "音乐人写真"],
+  ["artist_portrait", "Artist Portrait", "艺术家肖像"],
+  ["festival_portrait", "Festival Portrait", "节日写真"],
+  ["travel_portrait", "Travel Portrait", "旅行人像"]
+], {
+  category: "composition",
+  mediaType: "image",
+  storyPlan: "single",
+  hiddenProfile: "portrait_editorial",
+  descriptionZhSuffix: "与人物写真表达。",
+  descriptionEnSuffix: "for portrait and human-centered photography."
+});
+
+const EXTRA_SOCIAL_FAMILIES = [
+  ...makeFamilyGroup([
+    ["instagram_square", "Instagram Square", "Instagram 方图"],
+    ["youtube_thumbnail", "YouTube Thumbnail", "YouTube 封面"],
+    ["wechat_moments_cover", "WeChat Cover", "朋友圈封面"],
+    ["xiaohongshu_cover", "Xiaohongshu Cover", "小红书封面"],
+    ["douyin_cover", "Douyin Cover", "抖音封面"],
+    ["podcast_cover", "Podcast Cover", "播客封面"],
+    ["livestream_cover", "Livestream Cover", "直播封面"],
+    ["webinar_cover", "Webinar Cover", "线上讲座封面"],
+    ["app_store_promo", "App Store Promo", "应用商店宣传图"],
+    ["before_after_ad", "Before After Ad", "前后对比广告"],
+    ["testimonial_card_layout", "Testimonial Card", "用户证言卡片"],
+    ["membership_promo", "Membership Promo", "会员宣传图"]
+  ], {
+    category: "social",
+    mediaType: "image",
+    storyPlan: "single",
+    hiddenProfile: "social_cover",
+    descriptionZhSuffix: "、封面传播与社媒发布。",
+    descriptionEnSuffix: "for covers, social campaigns, and platform publishing."
+  }),
+  ...makeFamilyGroup([
+    ["event_poster", "Event Poster", "活动海报"],
+    ["course_cover", "Course Cover", "课程封面"],
+    ["recruitment_poster", "Recruitment Poster", "招聘海报"],
+    ["festival_poster", "Festival Poster", "节庆海报"]
+  ], {
+    category: "cover_poster",
+    mediaType: "image",
+    storyPlan: "single",
+    hiddenProfile: "poster_cover",
+    descriptionZhSuffix: "、宣传视觉与封面呈现。",
+    descriptionEnSuffix: "for posters, cover visuals, and announcement graphics."
+  }),
+  ...makeFamilyGroup([
+    ["sale_banner", "Sale Banner", "促销横幅"],
+    ["giveaway_poster", "Giveaway Poster", "抽奖宣传图"],
+    ["launch_countdown_banner", "Launch Countdown", "新品倒计时横幅"],
+    ["brand_story_cover", "Brand Story Cover", "品牌故事封面"]
+  ], {
+    category: "ad",
+    mediaType: "image",
+    storyPlan: "single",
+    hiddenProfile: "social_cover",
+    descriptionZhSuffix: "、营销传播与转化引导。",
+    descriptionEnSuffix: "for ad graphics, launch campaigns, and conversion-driven promotion."
+  })
+];
+
+const EXTRA_SHORT_VIDEO_FAMILIES = makeFamilyGroup([
+  ["vlog_opening", "Vlog Opening", "Vlog 开场"],
+  ["product_review_shot", "Product Review Shot", "产品测评镜头"],
+  ["dance_performance", "Dance Performance", "舞蹈表演镜头"],
+  ["comedy_reaction", "Comedy Reaction", "喜剧反应镜头"],
+  ["suspense_buildup", "Suspense Buildup", "悬念铺垫"],
+  ["flashback_scene", "Flashback Scene", "闪回场景"],
+  ["montage_transition", "Montage Transition", "蒙太奇转场"],
+  ["slow_motion_highlight", "Slow Motion Highlight", "慢动作高光"],
+  ["tutorial_hook", "Tutorial Hook", "教程钩子镜头"],
+  ["unboxing_reveal", "Unboxing Reveal", "开箱揭示"],
+  ["transformation_reveal", "Transformation Reveal", "改造揭示"],
+  ["street_interview_shot", "Street Interview", "街采访镜头"],
+  ["cooking_process_shot", "Cooking Process", "烹饪过程镜头"],
+  ["workout_highlight", "Workout Highlight", "训练高光镜头"],
+  ["fashion_walk_shot", "Fashion Walk", "走秀出场镜头"],
+  ["travel_broll_shot", "Travel B-Roll", "旅行转场镜头"]
+], {
+  category: "short_video",
+  mediaType: "video",
+  storyPlan: "single",
+  hiddenProfile: "short_video_story",
+  descriptionZhSuffix: "与短视频关键镜头。",
+  descriptionEnSuffix: "for short-form video beats and creator storytelling."
+});
+
+const EXTRA_LIFESTYLE_FAMILIES = makeFamilyGroup([
+  ["cafe_scene", "Cafe Scene", "咖啡馆场景"],
+  ["home_cozy", "Cozy Home", "温馨家居"],
+  ["outdoor_adventure", "Outdoor Adventure", "户外探险"],
+  ["beach_vacation", "Beach Vacation", "海滩度假"],
+  ["mountain_scenery", "Mountain Scenery", "山地风景"],
+  ["city_street", "City Street", "城市街道"],
+  ["night_city", "Night City", "夜间城市"],
+  ["restaurant_scene", "Restaurant Scene", "餐厅场景"],
+  ["gym_fitness", "Gym & Fitness", "健身运动"],
+  ["reading_study", "Reading & Study", "阅读学习"],
+  ["market_scene", "Market Scene", "市集生活"],
+  ["park_picnic", "Park Picnic", "公园野餐"],
+  ["airport_travel", "Airport Travel", "机场出行"],
+  ["hotel_room_scene", "Hotel Room", "酒店房间场景"],
+  ["kitchen_cooking", "Kitchen Cooking", "厨房烹饪"],
+  ["bakery_counter", "Bakery Counter", "面包店柜台"],
+  ["bookstore_corner", "Bookstore Corner", "书店一角"],
+  ["pet_lifestyle", "Pet Lifestyle", "宠物生活方式"],
+  ["camping_scene", "Camping Scene", "露营场景"],
+  ["sunset_walk", "Sunset Walk", "夕阳散步"]
+], {
+  category: "composition",
+  mediaType: "image",
+  storyPlan: "single",
+  hiddenProfile: "lifestyle_scene",
+  descriptionZhSuffix: "、日常氛围与生活方式画面。",
+  descriptionEnSuffix: "for lifestyle scenes, travel, and environmental storytelling."
+});
+
+const EXTRA_CREATIVE_FAMILIES = makeFamilyGroup([
+  ["cyberpunk_scene", "Cyberpunk Scene", "赛博朋克场景"],
+  ["fantasy_world", "Fantasy World", "奇幻世界"],
+  ["retro_vintage", "Retro Vintage", "复古风格"],
+  ["minimalist_art", "Minimalist Art", "极简艺术"],
+  ["watercolor_style", "Watercolor Style", "水彩风格"],
+  ["ink_painting", "Ink Painting", "水墨风格"],
+  ["pixel_art_scene", "Pixel Art", "像素艺术"],
+  ["neon_noir_scene", "Neon Noir", "霓虹黑色电影"],
+  ["dreamscape_world", "Dreamscape", "梦境场景"],
+  ["surreal_collage", "Surreal Collage", "超现实拼贴"],
+  ["paper_cut_style", "Paper Cut Style", "剪纸风格"],
+  ["clay_render_scene", "Clay Render", "黏土渲染风格"],
+  ["low_poly_world", "Low Poly World", "低多边形世界"],
+  ["comic_pop_style", "Comic Pop", "波普漫画风"],
+  ["glitch_art_scene", "Glitch Art", "故障艺术风"],
+  ["pastel_soft_scene", "Pastel Soft", "粉彩柔和风"],
+  ["monochrome_scene", "Monochrome", "单色风格"]
+], {
+  category: "composition",
+  mediaType: "image",
+  storyPlan: "single",
+  hiddenProfile: "creative_style",
+  descriptionZhSuffix: "与风格化创意视觉。",
+  descriptionEnSuffix: "for stylized creative visuals and art direction."
+});
+
+const EXTRA_PROFESSIONAL_FAMILIES = [
+  ...makeFamilyGroup([
+    ["office_workspace", "Office Workspace", "办公空间"],
+    ["medical_scene", "Medical Scene", "医疗场景"],
+    ["education_scene", "Education Scene", "教育场景"],
+    ["conference_room", "Conference Room", "会议室场景"],
+    ["doctor_consultation", "Doctor Consultation", "医生问诊"],
+    ["classroom_teaching", "Classroom Teaching", "课堂教学"],
+    ["lab_research", "Lab Research", "实验室研究"],
+    ["retail_storefront", "Retail Storefront", "零售门店"],
+    ["real_estate_interior", "Real Estate Interior", "地产室内展示"],
+    ["legal_consultation", "Legal Consultation", "法律咨询"],
+    ["finance_office_scene", "Finance Office", "金融办公场景"],
+    ["factory_workspace", "Factory Workspace", "工厂工作场景"],
+    ["beauty_salon_scene", "Beauty Salon", "美容沙龙场景"],
+    ["hotel_service_scene", "Hotel Service", "酒店服务场景"],
+    ["startup_pitch_scene", "Startup Pitch", "创业路演场景"]
+  ], {
+    category: "composition",
+    mediaType: "image",
+    storyPlan: "single",
+    hiddenProfile: "business_scene",
+    descriptionZhSuffix: "与商业专业场景呈现。",
+    descriptionEnSuffix: "for business, service, and professional visual communication."
+  }),
+  ...makeFamilyGroup([
+    ["team_collaboration", "Team Collaboration", "团队协作"],
+    ["customer_meeting", "Customer Meeting", "客户会议"],
+    ["mentor_conversation", "Mentor Conversation", "导师交流"],
+    ["workspace_brainstorm", "Workspace Brainstorm", "头脑风暴场景"],
+    ["presentation_shot", "Presentation Shot", "演讲展示"],
+    ["webinar_speaker", "Webinar Speaker", "线上演讲镜头"],
+    ["training_session", "Training Session", "培训讲解镜头"]
+  ], {
+    category: "dialogue",
+    mediaType: "video",
+    storyPlan: "single",
+    hiddenProfile: "dialogue_video",
+    descriptionZhSuffix: "与讲解沟通类工作场景。",
+    descriptionEnSuffix: "for presentations, explanations, and communication-driven workflows."
+  })
+];
+
+const EXTRA_SPORTS_FAMILIES = makeFamilyGroup([
+  ["running_scene", "Running Scene", "跑步场景"],
+  ["cycling_scene", "Cycling Scene", "骑行场景"],
+  ["basketball_moment", "Basketball Moment", "篮球瞬间"],
+  ["football_action", "Football Action", "足球动作场景"],
+  ["tennis_highlight", "Tennis Highlight", "网球高光"],
+  ["yoga_session", "Yoga Session", "瑜伽场景"],
+  ["swimming_pool_scene", "Swimming Pool", "泳池场景"],
+  ["boxing_training", "Boxing Training", "拳击训练"],
+  ["hiking_trail", "Hiking Trail", "徒步路线"],
+  ["ski_resort_scene", "Ski Resort", "滑雪度假场景"]
+], {
+  category: "composition",
+  mediaType: "image",
+  storyPlan: "single",
+  hiddenProfile: "lifestyle_scene",
+  descriptionZhSuffix: "、运动氛围与活力表达。",
+  descriptionEnSuffix: "for sports, motion energy, and active lifestyle visuals."
+});
+
+const EXTRA_FAMILIES: ExtraFamilyDef[] = [
+  ...EXTRA_PRODUCT_FAMILIES,
+  ...EXTRA_PORTRAIT_FAMILIES,
+  ...EXTRA_SOCIAL_FAMILIES,
+  ...EXTRA_SHORT_VIDEO_FAMILIES,
+  ...EXTRA_LIFESTYLE_FAMILIES,
+  ...EXTRA_CREATIVE_FAMILIES,
+  ...EXTRA_PROFESSIONAL_FAMILIES,
+  ...EXTRA_SPORTS_FAMILIES
+];
+
+const PAID_VARIANT_FAMILY_IDS = new Set([
+  "product_hero",
+  "product_center_display",
+  "product_compare",
+  "feature_breakdown",
+  "logo_copy_layout",
+  "product_in_hand",
+  "floating_product_showcase",
+  "white_bg_product",
+  "dialogue_duo",
+  "faceoff_scene",
+  "tracking_dialogue",
+  "multi_person_dialogue",
+  "solo_speaker",
+  "interview_layout",
+  "social_vertical_ad",
+  "selling_point_ad",
+  "cta_landing_layout",
+  "talking_head_ad",
+  "app_promo_layout",
+  "brand_promo_cover",
+  "opening_shot",
+  "character_entrance",
+  "scene_push_forward",
+  "emotional_peak",
+  "turning_point_shot",
+  "ending_closure",
+  "poster_cover",
+  "title_subtitle_layout",
+  "beauty_closeup",
+  "anime_action",
+  "drama_conflict",
+  "drama_climax",
+  "thriller_chase",
+  "thriller_reveal",
+  "tech_product",
+  "food_ad",
+  "product_tutorial",
+  "chase_sequence",
+  "dialogue_sequence",
+  "action_sequence",
+  "product_lifestyle",
+  "product_texture_closeup",
+  "product_hand_use",
+  "product_group_shot",
+  "cosmetics_display",
+  "jewelry_showcase",
+  "portrait_studio",
+  "portrait_professional",
+  "portrait_couple",
+  "portrait_group",
+  "youtube_thumbnail",
+  "xiaohongshu_cover",
+  "vlog_opening",
+  "product_review_shot",
+  "suspense_buildup",
+  "flashback_scene",
+  "slow_motion_highlight",
+  "team_collaboration",
+  "presentation_shot"
+]);
+
 // --- Families (from template-family-spec) ---
 const FAMILIES: {
   id: string;
@@ -83,8 +458,6 @@ const FAMILIES: {
   { id: "anime_emotional", nameEn: "Anime Emotional", nameZh: "动漫情绪特写", category: "dialogue", mediaType: "video", storyPlan: "single" },
   { id: "anime_landscape", nameEn: "Anime Landscape", nameZh: "动漫环境镜头", category: "composition", mediaType: "image", storyPlan: "single" },
   // ── 建筑/空间 ──
-  { id: "architecture_exterior", nameEn: "Architecture Exterior", nameZh: "建筑外观", category: "composition", mediaType: "image", storyPlan: "single" },
-  { id: "interior_space", nameEn: "Interior Space", nameZh: "室内空间", category: "composition", mediaType: "image", storyPlan: "single" },
   { id: "urban_scene", nameEn: "Urban Scene", nameZh: "城市场景", category: "composition", mediaType: "video", storyPlan: "single" },
   // ── 网剧剧情结构 ──
   { id: "drama_opening", nameEn: "Drama Opening", nameZh: "剧情开场", category: "continuous", mediaType: "video", storyPlan: "single" },
@@ -94,13 +467,10 @@ const FAMILIES: {
   // ── 音乐MV ──
   { id: "mv_performance", nameEn: "MV Performance", nameZh: "MV表演镜头", category: "short_video", mediaType: "video", storyPlan: "single" },
   { id: "mv_narrative", nameEn: "MV Narrative", nameZh: "MV叙事镜头", category: "short_video", mediaType: "video", storyPlan: "single" },
-  { id: "mv_abstract", nameEn: "MV Abstract", nameZh: "MV抽象视觉", category: "composition", mediaType: "video", storyPlan: "single" },
   // ── 悬疑/惊悚 ──
   { id: "thriller_chase", nameEn: "Thriller Chase", nameZh: "悬疑追逐", category: "short_video", mediaType: "video", storyPlan: "single" },
   { id: "thriller_reveal", nameEn: "Thriller Reveal", nameZh: "悬疑揭示", category: "short_video", mediaType: "video", storyPlan: "single" },
-  { id: "horror_atmosphere", nameEn: "Horror Atmosphere", nameZh: "恐怖氛围", category: "composition", mediaType: "video", storyPlan: "single" },
   // ── 商业广告专题 ──
-  { id: "luxury_brand", nameEn: "Luxury Brand", nameZh: "奢侈品牌", category: "ad", mediaType: "image", storyPlan: "single" },
   { id: "tech_product", nameEn: "Tech Product", nameZh: "科技产品", category: "product", mediaType: "image", storyPlan: "single" },
   { id: "food_ad", nameEn: "Food Ad", nameZh: "美食广告", category: "ad", mediaType: "image", storyPlan: "single" },
   // ── 教学/演示 ──
@@ -144,7 +514,6 @@ const SINGLE_SUBJECT_ONLY = [
   "tutorial_demo",
   "white_bg_product",
   "mv_performance",
-  "horror_atmosphere",
   "anime_emotional"
 ];
 
@@ -155,6 +524,50 @@ const CONTINUOUS_FAMILIES = [
   "dialogue_sequence",
   "action_sequence"
 ];
+
+const HIGH_INTENT_BASE_FAMILY_IDS = new Set([
+  "product_hero",
+  "product_center_display",
+  "product_compare",
+  "feature_breakdown",
+  "logo_copy_layout",
+  "product_in_hand",
+  "floating_product_showcase",
+  "white_bg_product",
+  "dialogue_duo",
+  "solo_speaker",
+  "interview_layout",
+  "social_vertical_ad",
+  "selling_point_ad",
+  "cta_landing_layout",
+  "talking_head_ad",
+  "app_promo_layout",
+  "brand_promo_cover",
+  "opening_shot",
+  "character_entrance",
+  "scene_push_forward",
+  "emotional_peak",
+  "turning_point_shot",
+  "ending_closure",
+  "poster_cover",
+  "title_subtitle_layout",
+  "portrait_fashion",
+  "lifestyle_casual",
+  "beauty_closeup",
+  "food_showcase",
+  "anime_action",
+  "anime_emotional",
+  "drama_opening",
+  "drama_conflict",
+  "drama_climax",
+  "drama_ending",
+  "thriller_chase",
+  "thriller_reveal",
+  "tech_product",
+  "food_ad",
+  "tutorial_demo",
+  "product_tutorial"
+]);
 
 const FREE_DESCRIPTIONS: Record<string, { descriptionZh: string; descriptionEn: string }> = {
   product_hero: { descriptionZh: "适合快速生成单产品主视觉，居中主体，保留标题与 logo 区域。", descriptionEn: "A quick starter for single-product hero scenes with centered subject and reserved title/logo zones." },
@@ -206,8 +619,6 @@ const FREE_DESCRIPTIONS: Record<string, { descriptionZh: string; descriptionEn: 
   ,anime_action: { descriptionZh: "适合动漫动作戏、打斗场面、能量爆发场景。", descriptionEn: "A starter for anime action sequences and high-energy combat scenes." }
   ,anime_emotional: { descriptionZh: "适合动漫情绪特写、人物内心戏、关键时刻。", descriptionEn: "A starter for anime emotional beats and character focus moments." }
   ,anime_landscape: { descriptionZh: "适合动漫风格环境镜头、场景建立、背景展示。", descriptionEn: "A starter for anime-style environment and establishing scene visuals." }
-  ,architecture_exterior: { descriptionZh: "适合建筑外观、楼盘宣传、城市地标展示。", descriptionEn: "A starter for architectural exteriors and landmark photography." }
-  ,interior_space: { descriptionZh: "适合室内空间、家居展示、酒店/餐厅环境。", descriptionEn: "A starter for interior spaces, home design, and hospitality visuals." }
   ,urban_scene: { descriptionZh: "适合城市街景、夜间都市、户外环境镜头。", descriptionEn: "A starter for urban cinematography and city environment shots." }
   ,drama_opening: { descriptionZh: "适合剧情开场、人物出场建立、氛围铺垫。", descriptionEn: "A starter for drama openings that establish character and tone." }
   ,drama_conflict: { descriptionZh: "适合剧情冲突、人物对立、矛盾激化场面。", descriptionEn: "A starter for dramatic conflict and interpersonal tension scenes." }
@@ -215,11 +626,8 @@ const FREE_DESCRIPTIONS: Record<string, { descriptionZh: string; descriptionEn: 
   ,drama_ending: { descriptionZh: "适合剧情结局、情绪收尾、叙事封闭。", descriptionEn: "A starter for drama endings with emotional resolution and closure." }
   ,mv_performance: { descriptionZh: "适合MV表演镜头、歌手出镜、节奏感强的视觉。", descriptionEn: "A starter for music video performance shots with strong rhythm." }
   ,mv_narrative: { descriptionZh: "适合MV叙事镜头、故事线、情绪驱动画面。", descriptionEn: "A starter for narrative-driven music video storytelling." }
-  ,mv_abstract: { descriptionZh: "适合MV抽象视觉、氛围感、非线性视觉叙事。", descriptionEn: "A starter for abstract and atmospheric music video visuals." }
   ,thriller_chase: { descriptionZh: "适合悬疑追逐、紧张逃跑、高压动作场景。", descriptionEn: "A starter for thriller chase sequences with high tension." }
   ,thriller_reveal: { descriptionZh: "适合悬疑揭示、真相浮现、心理转折时刻。", descriptionEn: "A starter for thriller reveal moments and psychological turning points." }
-  ,horror_atmosphere: { descriptionZh: "适合恐怖氛围、压迫感环境、惊悚感营造。", descriptionEn: "A starter for horror atmosphere with oppressive spatial tension." }
-  ,luxury_brand: { descriptionZh: "适合奢侈品牌宣传、高端质感、品牌形象建立。", descriptionEn: "A starter for luxury brand visuals with premium material quality." }
   ,tech_product: { descriptionZh: "适合科技产品展示、数码设备、工业设计感。", descriptionEn: "A starter for technology product photography with clean precision." }
   ,food_ad: { descriptionZh: "适合美食广告、餐厅宣传、食品品牌形象。", descriptionEn: "A starter for food advertising with appetizing texture and depth." }
   ,tutorial_demo: { descriptionZh: "适合教学演示、操作说明、知识传递镜头。", descriptionEn: "A starter for tutorial and instructional demonstration shots." }
@@ -729,25 +1137,6 @@ const HIDDEN_FIELD_MAP: Record<string, Partial<Record<TemplateVariant, NotesTran
                      (n) => applyImageProEffects(n, ["environment_wrap", "depth_split", "foreground_occlusion"])],
   },
   // ── 建筑/空间 ──────────────────────────────────────────
-  architecture_exterior: {
-    cinematic:       [(n, s) => applyImageClassicMode(n, s, "cinematic_still"),
-                     (n) => applyImageProEffects(n, ["depth_split", "environment_wrap"])],
-    advanced_motion: [(n, s) => applyImageClassicMode(n, s, "lonely_env"),
-                     (n) => applyCameraLanguage(n, "cinematic_wide"),
-                     (n) => applyImageProEffects(n, ["environment_wrap", "cinematic_air"])],
-    multi_object:    [(n, s) => applyImageClassicMode(n, s, "cinematic_still"),
-                     (n) => applyDirectorStylePack(n, "architectural_tension"),
-                     (n) => applyImageProEffects(n, ["depth_split", "foreground_occlusion", "cinematic_air"])],
-  },
-  interior_space: {
-    cinematic:       [(n, s) => applyImageClassicMode(n, s, "cinematic_still"),
-                     (n) => applyImageProEffects(n, ["depth_split", "clean_layering"])],
-    advanced_motion: [(n, s) => applyImageClassicMode(n, s, "cinematic_still"),
-                     (n) => applyImageProEffects(n, ["foreground_occlusion", "depth_split"])],
-    multi_object:    [(n, s) => applyImageClassicMode(n, s, "lonely_env"),
-                     (n) => applyDirectorStylePack(n, "poetic_restraint"),
-                     (n) => applyImageProEffects(n, ["environment_wrap", "depth_split", "cinematic_air"])],
-  },
   urban_scene: {
     cinematic:       [(n) => applyCameraLanguage(n, "neon_city"),
                      (n, s, m) => applyVideoClassicMode(n, s, m, "rhythm_transition")],
@@ -813,17 +1202,6 @@ const HIDDEN_FIELD_MAP: Record<string, Partial<Record<TemplateVariant, NotesTran
                      (n) => applyDirectorStylePack(n, "poetic_restraint"),
                      (n, s, m) => applyVideoClassicMode(n, s, m, "dream_memory")],
   },
-  mv_abstract: {
-    cinematic:       [(n, s) => applyImageClassicMode(n, s, "cinematic_still"),
-                     (n) => applyCameraLanguage(n, "neon_city"),
-                     (n) => applyImageProEffects(n, ["dream_haze", "silhouette_rim"])],
-    advanced_motion: [(n, s) => applyImageClassicMode(n, s, "dream_portrait"),
-                     (n) => applyCameraLanguage(n, "anime_battle"),
-                     (n) => applyImageProEffects(n, ["dream_haze", "cinematic_air"])],
-    multi_object:    [(n, s) => applyImageClassicMode(n, s, "cinematic_still"),
-                     (n) => applyCameraLanguage(n, "noir_shadow"),
-                     (n) => applyImageProEffects(n, ["silhouette_rim", "dream_haze", "cinematic_air"])],
-  },
   // ── 悬疑/惊悚 ──────────────────────────────────────────
   thriller_chase: {
     cinematic:       [(n) => applyCameraLanguage(n, "thriller_lowkey"),
@@ -843,29 +1221,7 @@ const HIDDEN_FIELD_MAP: Record<string, Partial<Record<TemplateVariant, NotesTran
                      (n) => applyDirectorStylePack(n, "architectural_tension"),
                      (n, s, m) => applyVideoClassicMode(n, s, m, "suspense_watch")],
   },
-  horror_atmosphere: {
-    cinematic:       [(n, s) => applyImageClassicMode(n, s, "cinematic_still"),
-                     (n) => applyCameraLanguage(n, "noir_shadow"),
-                     (n) => applyImageProEffects(n, ["silhouette_rim", "depth_split"])],
-    advanced_motion: [(n, s) => applyImageClassicMode(n, s, "dream_portrait"),
-                     (n) => applyCameraLanguage(n, "thriller_lowkey"),
-                     (n) => applyImageProEffects(n, ["silhouette_rim", "dream_haze"])],
-    multi_object:    [(n, s) => applyImageClassicMode(n, s, "cinematic_still"),
-                     (n) => applyDirectorStylePack(n, "architectural_tension"),
-                     (n) => applyImageProEffects(n, ["silhouette_rim", "dream_haze", "depth_split"])],
-  },
   // ── 商业广告专题 ───────────────────────────────────────
-  luxury_brand: {
-    cinematic:       [(n, s) => applyImageClassicMode(n, s, "premium_product"),
-                     (n) => applyCameraLanguage(n, "ad_luxury"),
-                     (n) => applyImageProEffects(n, ["material_focus", "glass_glow"])],
-    advanced_motion: [(n, s) => applyImageClassicMode(n, s, "premium_product"),
-                     (n) => applyCameraLanguage(n, "luxury_light"),
-                     (n) => applyImageProEffects(n, ["material_focus", "glass_glow"])],
-    multi_object:    [(n, s) => applyImageClassicMode(n, s, "premium_product"),
-                     (n) => applyDirectorStylePack(n, "commercial_spectacle"),
-                     (n) => applyImageProEffects(n, ["material_focus", "glass_glow", "cinematic_air"])],
-  },
   tech_product: {
     cinematic:       [(n, s) => applyImageClassicMode(n, s, "premium_product"),
                      (n) => applyCameraLanguage(n, "studio_lowkey"),
@@ -1058,6 +1414,7 @@ export function getTemplateLibrary600Base(): UnifiedTemplate[] {
   if (_cached) return _cached;
   const out: UnifiedTemplate[] = [];
   for (const family of FAMILIES) {
+    if (!HIGH_INTENT_BASE_FAMILY_IDS.has(family.id)) continue;
     for (const variant of VARIANTS) {
       // ── 语义无效过滤规则 ──────────────────────────────
       if (
@@ -1130,7 +1487,7 @@ export function getFreeCount600(): number {
 }
 
 export function getTotalCount600(): number {
-  return 400 + 200; // 400 base + 100 webdrama + 100 anime
+  return getTemplateLibrary600Base().length + 200; // base + webdrama/anime continuity
 }
 
 /** Backward compat: free count in base 400. */
@@ -1140,5 +1497,5 @@ export function getFreeCount(): number {
 
 /** Backward compat: total in base 400 only. */
 export function getTotalCount(): number {
-  return 400;
+  return getTemplateLibrary600Base().length;
 }

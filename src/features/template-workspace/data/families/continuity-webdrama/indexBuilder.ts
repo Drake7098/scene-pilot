@@ -11,6 +11,14 @@ import {
   type WebdramaFamily
 } from "./families";
 
+const HIGH_INTENT_WEBDRAMA_FAMILY_IDS = new Set([
+  "indoor_duo_continuity",
+  "corridor_tracking_continuity",
+  "emotional_confrontation_continuity",
+  "chase_enter_continuity",
+  "office_negotiation_continuity"
+]);
+
 function continuityCost(variant: string): number {
   if (variant === "starter") return 0;
   return 5;
@@ -19,6 +27,7 @@ function continuityCost(variant: string): number {
 export function buildWebdramaIndex(): TemplateIndex[] {
   const out: TemplateIndex[] = [];
   for (const family of WEBDRAMA_FAMILIES) {
+    if (!HIGH_INTENT_WEBDRAMA_FAMILY_IDS.has(family.id)) continue;
     for (const variant of WEBDRAMA_VARIANTS) {
       const id = `tpl600_webdrama_${family.id}_${variant}`;
       const vLabels = WEBDRAMA_VARIANT_LABELS[variant];
