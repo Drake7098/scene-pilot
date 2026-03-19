@@ -63,6 +63,20 @@ export function stripExecutionScaffold(text: string): { text: string; passes: st
     if (/^主体\(type\)：/.test(t)) continue;
     if (/^Subject\(type\):/i.test(t)) continue;
 
+    // platformGuide 追加过滤
+    if (/^硬约束：必须保持/.test(t)) continue;
+    if (/^Hard constraints?: preserve/.test(t)) continue;
+    if (/^冲突处理：若用户自由文案/.test(t)) continue;
+    if (/^Conflict policy: if free-form/.test(t)) continue;
+    if (/^通用策略：使用清晰分段/.test(t)) continue;
+    if (/^Universal: use clear sections/.test(t)) continue;
+    if (/^输出策略：先结构后风格/.test(t)) continue;
+    if (/^Output policy: structure first/.test(t)) continue;
+    if (/^优先级：$/.test(t)) continue;
+    if (/^Priority:$/.test(t)) continue;
+    if (/^【平台执行协议：/.test(t)) continue;
+    if (/^\[Platform Execution Contract:/i.test(t)) continue;
+
     out.push(line);
   }
 

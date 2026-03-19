@@ -60,58 +60,13 @@ export function hasAnyProFields(notes: string): boolean {
   );
 }
 
-/** 从 TemplatePayload 读取 Pro 字段标签（详情页用，直接读结构化字段，无需 parse） */
+/** 从 TemplatePayload 读取 Pro 字段标签（详情页用，优先 raw.notes，缺失时回退快照） */
 export function getProFieldLabelsFromPayload(payload: TemplatePayload, lang: Lang): ProFieldLabel[] {
   const scene = payload.scenes?.[0];
   if (!scene) return [];
-  const labels: ProFieldLabel[] = [];
-
-  // 视频经典模式
-  const vcId = scene.classicMotion;
-  if (vcId) {
-    const m = VIDEO_CLASSIC_MODES.find(x => x.id === vcId);
-    if (m) labels.push({ key: m.id, labelZh: m.nameZh, labelEn: m.nameEn, category: "classic" });
-  }
-
-  // 图片经典模式（通过 notes 解析，payload 里没有直接字段）
-  const icId = parseImageClassicModeId(buildNotesFromSnapshot(scene));
-  if (icId) {
-    const m = IMAGE_CLASSIC_MODES.find(x => x.id === icId);
-    if (m) labels.push({ key: m.id, labelZh: m.nameZh, labelEn: m.nameEn, category: "classic" });
-  }
-
-  // 导演风格包
-  if (scene.directorStylePack) {
-    const m = DIRECTOR_STYLE_PACKS.find(x => x.id === scene.directorStylePack);
-    if (m) labels.push({ key: m.id, labelZh: m.labelZh, labelEn: m.labelEn, category: "director" });
-  }
-
-  // 专业镜头运动 pro_plus
-  if (scene.proMotions) {
-    const notes = `pro_plus_motion: ${scene.proMotions}`;
-    const ids = parseProMotionSelection(notes).proPlusIds ?? [];
-    for (const id of ids) {
-      const m = PRO_CAMERA_PRESETS.find(x => x.id === id && x.tier === "pro_plus");
-      if (m) labels.push({ key: m.id, labelZh: m.labelZh, labelEn: m.labelEn, category: "motion" });
-    }
-  }
-
-  // 图片专业特效
-  if (scene.imageProEffects) {
-    const ids = scene.imageProEffects.split(",").map(s => s.trim()).filter(Boolean);
-    for (const id of ids) {
-      const m = IMAGE_PRO_EFFECTS.find(x => x.id === id);
-      if (m) labels.push({ key: m.id, labelZh: m.labelZh, labelEn: m.labelEn, category: "effect" });
-    }
-  }
-
-  // 隐藏镜头语言 Layer2
-  if (scene.cameraLanguage && isHiddenCameraLanguage(scene.cameraLanguage)) {
-    const m = getTemplateHiddenCameraLanguageOptions().find(x => x.id === scene.cameraLanguage);
-    if (m) labels.push({ key: m.id, labelZh: m.labelZh, labelEn: m.labelEn, category: "camera" });
-  }
-
-  return labels;
+  const rawNotes = (scene.raw as { notes?: string } | undefined)?.notes;
+  const notesSource = rawNotes ?? buildNotesFromSnapshot(scene);
+  return getProFieldLabels(notesSource, lang);
 }
 
 function buildNotesFromSnapshot(scene: TemplatePayload["scenes"][0]): string {

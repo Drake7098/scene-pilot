@@ -406,7 +406,7 @@ function buildUniversalResult(input: PlatformAdaptInput): PlatformAdaptResult {
   return runCommonAdaptation(input, {
     engineKey: "universal-core",
     engineFamily: "universal",
-    transformText: (text) => ({ text, passes: [] })
+    transformText: (text) => stripExecutionScaffold(text)
   });
 }
 

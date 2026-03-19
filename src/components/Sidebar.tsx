@@ -17,6 +17,8 @@ import {
 } from "../content/proCameraPresets";
 import {
   IMAGE_PRO_CATEGORIES,
+  IMAGE_CLASSIC_MODES,
+  VIDEO_CLASSIC_MODES,
   applyImageProEffects,
   applyImageClassicMode,
   applyVideoClassicMode,
@@ -44,9 +46,9 @@ import {
 } from "../content/directorStylePacks";
 import {
   getUserVisibleCameraLanguageOptions,
+  getTemplateHiddenCameraLanguageOptions,
   parseCameraLanguageId,
   applyCameraLanguage,
-  normalizeForUserSelection,
   isUserVisibleCameraLanguage
 } from "../content/cameraLanguageLayers";
 import { resolveSceneStrategy } from "../utils/sceneStrategyResolver";
@@ -1954,7 +1956,6 @@ export function Sidebar(props: Props) {
           <div data-testid="pro-shot-recipe-select">
             <EditorSelect
               label={lang === "zh" ? "导演预设" : "Director Preset"}
-              labelSuffix={(hasVideoClassicPro || hasImageClassicPro) ? "PRO" : undefined}
               options={[
                 { label: lang === "zh" ? "未选择" : "None", value: "" },
                 ...(directorStylePackId
@@ -1964,10 +1965,24 @@ export function Sidebar(props: Props) {
                   ? [{ label: lang === "zh" ? "手动设置" : "Manual Setup", value: "__manual__", disabled: true as const }]
                   : []),
                 ...(isVideoProject ? videoClassicModes : imageClassicModes).map((recipe) => ({
-                  label: recipeOptionLabel(recipe),
-                  value: recipe.id,
-                  disabled: false as const
-                }))
+                    label: recipeOptionLabel(recipe),
+                    value: recipe.id,
+                    disabled: false as const
+                })),
+                ...(isVideoProject && activeProFields.videoClassicId
+                  && !videoClassicModes.find((m) => m.id === activeProFields.videoClassicId)
+                  ? [{
+                      label: `${VIDEO_CLASSIC_MODES.find((m) => m.id === activeProFields.videoClassicId)?.[lang === "zh" ? "nameZh" : "nameEn"] ?? activeProFields.videoClassicId} ✦`,
+                      value: activeProFields.videoClassicId
+                    }]
+                  : []),
+                ...(!isVideoProject && activeProFields.imageClassicId
+                  && !imageClassicModes.find((m) => m.id === activeProFields.imageClassicId)
+                  ? [{
+                      label: `${IMAGE_CLASSIC_MODES.find((m) => m.id === activeProFields.imageClassicId)?.[lang === "zh" ? "nameZh" : "nameEn"] ?? activeProFields.imageClassicId} ✦`,
+                      value: activeProFields.imageClassicId
+                    }]
+                  : [])
               ]}
               value={isVideoProject ? videoClassicSelectValue : imageClassicSelectValue}
               onChange={(v) => {
@@ -1982,13 +1997,16 @@ export function Sidebar(props: Props) {
             <div data-testid="director-style-pack-select">
               <EditorSelect
                 label={lang === "zh" ? "导演级风格包" : "Directing Pack"}
-                labelSuffix={hasDirectorPackPro ? "PRO" : undefined}
                 options={[
                   { label: lang === "zh" ? "未选择" : "None", value: "" },
                   ...(selectedVideoClassicModeId || selectedImageClassicModeId
                     ? [{ label: lang === "zh" ? "（已启用经典模式，建议不叠加）" : "(Classic mode active — not recommended)", value: "__hint__", disabled: true as const }]
                     : []),
-                  ...DIRECTOR_STYLE_PACKS.map((pack) => ({ label: lang === "zh" ? pack.labelZh : pack.labelEn, value: pack.id }))
+                  ...DIRECTOR_STYLE_PACKS.map((pack) => ({ label: lang === "zh" ? pack.labelZh : pack.labelEn, value: pack.id })),
+                  ...(hasDirectorPackPro && directorStylePackId
+                    && !DIRECTOR_STYLE_PACKS.find((p) => p.id === directorStylePackId)
+                    ? [{ label: `${directorStylePackId} ✦`, value: directorStylePackId }]
+                    : [])
                 ]}
                 value={directorStylePackId ?? ""}
                 onChange={(v) => {
@@ -2047,13 +2065,21 @@ export function Sidebar(props: Props) {
               ...getUserVisibleCameraLanguageOptions().map((o) => ({
                 label: lang === "zh" ? o.labelZh : o.labelEn,
                 value: o.id
-              }))
+              })),
+              ...(activeProFields.hiddenCameraLangId
+                ? getTemplateHiddenCameraLanguageOptions()
+                    .filter((o) => o.id === activeProFields.hiddenCameraLangId)
+                    .map((o) => ({
+                      label: (lang === "zh" ? o.labelZh : o.labelEn) + " ✦",
+                      value: o.id
+                    }))
+                : [])
             ]}
             value={(() => {
               const raw = parseCameraLanguageId(scene.notes);
               if (!raw) return "";
               if (isUserVisibleCameraLanguage(raw)) return raw;
-              return normalizeForUserSelection(raw) || "";
+              return raw;
             })()}
             onChange={(v) => {
               const nextNotes = applyCameraLanguage(scene.notes ?? "", v ?? "");
@@ -2063,14 +2089,13 @@ export function Sidebar(props: Props) {
         </div>
         {!isVideoProject ? (
           <div style={styles.proMotionBlock} data-testid="pro-image-block">
-            <EditorSelect
-              compact
-              label={lang === "zh" ? "画面语言" : "Visual Language"}
-              labelSuffix={activeProFields.imageProEffectIds.length > 0 ? "PRO" : undefined}
-              options={[
-                { label: lang === "zh" ? "未选择" : "None", value: "" },
-                ...imageProEffectOptions.map((o) => ({ label: o.label, value: o.id }))
-              ]}
+          <EditorSelect
+            compact
+            label={lang === "zh" ? "画面语言" : "Visual Language"}
+            options={[
+              { label: lang === "zh" ? "未选择" : "None", value: "" },
+              ...imageProEffectOptions.map((o) => ({ label: o.label, value: o.id }))
+            ]}
               value={imageProSelection[imageProSelection.length - 1] ?? ""}
               disabled={!imageProRule.enabled}
               title={imageProRule.reason}

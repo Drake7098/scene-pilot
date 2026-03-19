@@ -1,6 +1,6 @@
 {
   "workspace": "ScenePilot",
-  "generatedAt": "2026-03-18T18:19:53.574Z",
+  "generatedAt": "2026-03-19T05:16:11.713Z",
   "engineRegistry": {
     "quick": {
       "image": "IM v5",
@@ -28,7 +28,7 @@
   "fileHashes": {
     "src/utils/prompt.ts": "60c2a2f47a1068ce3a8c62c06d186d4e5e9a322184d4da9c49382447084862f0",
     "src/utils/promptEngine.ts": "a610cffc5aa0c4c9eaedbac117b7507613e2ed68f3a7fc12e1d21f06de9bb0d6",
-    "src/utils/promptEngines/builtin.ts": "fb206cc82fb10441cc11c23655cdc97af7646e8aff32af1714e7c578f08efaeb",
+    "src/utils/promptEngines/builtin.ts": "86de171f4910502d70a8d4452f151f7022f487169aef19f9670f79af488e7b00",
     "src/utils/promptEngines/index.ts": "3283c0c1e081d13e09ddb2c0307e3aeb81cb35dd1898420fa0df1f65de8786b9",
     "src/utils/promptEngines/shared.ts": "c9d77391afe350d6c8fb685dd1aa2d11ac54af83e43f3a3c2ce28c7a11137f54",
     "src/utils/promptEngines/types.ts": "cd15bfb3cdc87be83212906c3385942c03b9802315682725113e905f500ed4c7",
@@ -39,5 +39,5 @@
     "src/utils/structureDraftRules.ts": "44e56fa51edc2d8ea193f9caa720f6fde7a4678bf61c101507739e1f3e87faae",
     "src/utils/structureDraftToCanvas.ts": "e720b7d8e5301a65155d42c321728c7e0d9cdd4f1c59b880597506662cc43e9e"
   },
-  "lockHash": "d762b312db4865330a3fca7f5aede1ce6abe7ae810f2ce527688ba6cf97cc0fd"
+  "lockHash": "34e3f0ac184407c3bd178cf8e744490c42ef412ee5b55984232304989d04e4c4"
 }

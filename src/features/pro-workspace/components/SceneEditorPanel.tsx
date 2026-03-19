@@ -173,7 +173,6 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
         <EditorSelect
           compact
           label={lang === "zh" ? "运动" : "Movement"}
-          labelSuffix={hasProMotion ? "PRO" : undefined}
           value={scene.camera?.movement ?? ""}
           onChange={(v) =>
             onUpdateScene({

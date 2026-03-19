@@ -237,6 +237,7 @@ Last updated: 2026-03-19
 - 引擎锁 hash 变化（`docs/engine-library-lock.json` 变更）
 
 ## Recent Decisions
+- 2026-03-19：提示词引擎 `buildUniversalResult` 已切换为 `stripExecutionScaffold` 执行链，统一清理 platformGuide 脚手架行（含 Hard constraints / Conflict policy / Output policy / Platform Execution Contract）后再输出给模型。
 - 认证同意勾选已加硬拦截：未勾选 `Terms + Privacy` 时，账号中心不会继续触发邮箱发码、Google 登录或密码登录（仅提示并停留当前态）。
 - 维护清理接口 `/api/maintenance/prune` 与统计接口 token 已隔离：仅接受 `MAINTENANCE_API_TOKEN`（不再回退或复用 `STATS_API_TOKEN`）。
 - 已完成一轮全仓口径清理：产品流转文档、融资脚本、机器人配置与基准脚本统一为 Pro 单工作台，不再依赖旧 Quick 组件或 `quickWorkspacePromptV3` 路径。

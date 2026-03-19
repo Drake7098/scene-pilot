@@ -1016,9 +1016,11 @@ function variantRatio(v: TemplateVariant): UnifiedTemplate["ratio"] {
 
 /** Template cost: 0=free, 1=basic, 2=advanced, 3=director/continuity/multi-shot. */
 function templateCost(family: (typeof FAMILIES)[0], variant: TemplateVariant): number {
+  void family;
   if (variant === "free_starter") return 0;
-  if (family.category === "continuous") return 3;
-  if (variant === "multi_object" || variant === "advanced_motion") return 2;
+  if (variant === "vertical_9_16" || variant === "horizontal_16_9") return 1;
+  if (variant === "cinematic" || variant === "advanced_motion") return 2;
+  if (variant === "multi_object") return 3;
   return 1;
 }
 
