@@ -21,7 +21,8 @@ jobs:
       # Prefer repository secrets; fallback to historical account id as last resort.
       CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.CF_ACCOUNT_ID || '0b6b05a3bcbc3ad3ef0ec56d0405d24f' }}
       # Branch-specific tokens (prefer split secrets); fallback to shared token.
-      CF_API_TOKEN_TEST: ${{ secrets.CLOUDFLARE_API_TOKEN_TEST || secrets.CLOUDFLARE_API_TOKEN || secrets.CF_API_TOKEN }}
+      # Allow TEST to fallback to PROD token when users only configured one token.
+      CF_API_TOKEN_TEST: ${{ secrets.CLOUDFLARE_API_TOKEN_TEST || secrets.CLOUDFLARE_API_TOKEN_PROD || secrets.CLOUDFLARE_API_TOKEN || secrets.CF_API_TOKEN }}
       CF_API_TOKEN_PROD: ${{ secrets.CLOUDFLARE_API_TOKEN_PROD || secrets.CLOUDFLARE_API_TOKEN || secrets.CF_API_TOKEN }}
     steps:
       - name: Validate deploy credentials (develop)
