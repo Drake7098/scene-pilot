@@ -31,6 +31,8 @@ type SupabaseUser = {
 };
 
 const SUPABASE_SESSION_KEY = "sp_supabase_session_v1";
+const SUPABASE_PKCE_VERIFIER_KEY = "sp_supabase_pkce_verifier_v1";
+const SUPABASE_OAUTH_ERROR_KEY = "sp_supabase_oauth_error_v1";
 
 function getSupabaseConfig(): SupabaseConfig | null {
   const url = String(import.meta.env.VITE_SUPABASE_URL || "").trim().replace(/\/+$/, "");
@@ -51,7 +53,7 @@ function readSupabaseSession(): SupabaseSessionState | null {
     const raw = window.localStorage.getItem(SUPABASE_SESSION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as SupabaseSessionState;
-    if (!parsed?.accessToken || !parsed?.refreshToken || !parsed?.expiresAt) return null;
+    if (!parsed?.accessToken || !parsed?.expiresAt) return null;
     return parsed;
   } catch {
     return null;
@@ -60,7 +62,7 @@ function readSupabaseSession(): SupabaseSessionState | null {
 
 function readSupabaseSessionSync() {
   if (!getSupabaseConfig()) return null;
-  captureSupabaseSessionFromHash();
+  captureSupabaseSessionFromUrlSync();
   return readSupabaseSession();
 }
 
@@ -130,17 +132,92 @@ function mapSupabaseSessionToUserSession(user: SupabaseUser, session: SupabaseSe
   };
 }
 
-function captureSupabaseSessionFromHash() {
+function writePkceVerifier(verifier: string) {
   if (typeof window === "undefined") return;
-  const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
-  if (!hash) return;
-  const params = new URLSearchParams(hash);
-  const accessToken = String(params.get("access_token") || "");
-  const refreshToken = String(params.get("refresh_token") || "");
-  const tokenType = String(params.get("token_type") || "bearer");
-  const expiresIn = Number(params.get("expires_in") || "3600");
-  const providerToken = String(params.get("provider_token") || "").toLowerCase();
-  if (!accessToken || !refreshToken) return;
+  try {
+    if (verifier) {
+      window.sessionStorage.setItem(SUPABASE_PKCE_VERIFIER_KEY, verifier);
+      return;
+    }
+    window.sessionStorage.removeItem(SUPABASE_PKCE_VERIFIER_KEY);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function readPkceVerifier() {
+  if (typeof window === "undefined") return "";
+  try {
+    return String(window.sessionStorage.getItem(SUPABASE_PKCE_VERIFIER_KEY) || "");
+  } catch {
+    return "";
+  }
+}
+
+function writeOAuthError(errorCode: string) {
+  if (typeof window === "undefined") return;
+  try {
+    if (errorCode) {
+      window.sessionStorage.setItem(SUPABASE_OAUTH_ERROR_KEY, errorCode);
+      return;
+    }
+    window.sessionStorage.removeItem(SUPABASE_OAUTH_ERROR_KEY);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function stripOAuthParams(url: URL) {
+  const keys = [
+    "auth_provider",
+    "access_token",
+    "refresh_token",
+    "token_type",
+    "expires_in",
+    "expires_at",
+    "provider_token",
+    "provider_refresh_token",
+    "code",
+    "error",
+    "error_code",
+    "error_description"
+  ];
+  for (const key of keys) url.searchParams.delete(key);
+}
+
+function redirectToAuthEntryIfNeeded() {
+  if (typeof window === "undefined") return;
+  const path = window.location.pathname || "/";
+  if (path === "/app" || path === "/signin" || path === "/login" || path === "/register" || path === "/signup") return;
+  window.location.replace("/signin?redirect=%2Fapp");
+}
+
+function captureSupabaseSessionFromUrlSync() {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  const hash = url.hash.startsWith("#") ? url.hash.slice(1) : "";
+  const hashParams = new URLSearchParams(hash);
+  const searchParams = new URLSearchParams(url.search);
+  const tokenParams = hash ? hashParams : searchParams;
+  const fromGoogleOAuth = String(searchParams.get("auth_provider") || "").toLowerCase() === "google";
+  const oauthError = normalizeErrorCode(
+    searchParams.get("error") || searchParams.get("error_code") || ""
+  );
+  if (oauthError) {
+    writeOAuthError(oauthError);
+    stripOAuthParams(url);
+    url.hash = "";
+    window.history.replaceState({}, "", url.toString());
+    redirectToAuthEntryIfNeeded();
+    return;
+  }
+
+  const accessToken = String(tokenParams.get("access_token") || "");
+  if (!accessToken) return;
+  const refreshToken = String(tokenParams.get("refresh_token") || "");
+  const tokenType = String(tokenParams.get("token_type") || "bearer");
+  const expiresIn = Number(tokenParams.get("expires_in") || "3600");
+  const providerToken = String(tokenParams.get("provider_token") || "").toLowerCase();
 
   const session: SupabaseSessionState = {
     accessToken,
@@ -151,13 +228,36 @@ function captureSupabaseSessionFromHash() {
     createdAt: new Date().toISOString()
   };
   writeSupabaseSession(session);
+  writePkceVerifier("");
+  writeOAuthError("");
 
-  const url = new URL(window.location.href);
+  stripOAuthParams(url);
   url.hash = "";
-  if (url.searchParams.get("auth_provider") === "google") {
-    url.searchParams.delete("auth_provider");
-  }
   window.history.replaceState({}, "", url.toString());
+  if (fromGoogleOAuth) {
+    window.location.replace("/app");
+  }
+}
+
+function randomVerifier(length = 96) {
+  const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => charset[byte % charset.length]).join("");
+}
+
+function toBase64Url(input: Uint8Array) {
+  const binary = String.fromCharCode(...input);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+async function createPkcePair() {
+  const verifier = randomVerifier();
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
+  return {
+    verifier,
+    challenge: toBase64Url(new Uint8Array(digest))
+  };
 }
 
 async function supabaseRequest<T>(
@@ -189,6 +289,56 @@ async function supabaseRequest<T>(
   } catch {
     return { ok: false, status: 0, data: null, errorCode: "supabase_network_error" };
   }
+}
+
+async function exchangeAuthCodeIfPresent() {
+  if (typeof window === "undefined" || !getSupabaseConfig()) return;
+  const url = new URL(window.location.href);
+  const code = String(url.searchParams.get("code") || "");
+  if (!code) return;
+
+  const verifier = readPkceVerifier();
+  stripOAuthParams(url);
+  if (!verifier) {
+    writeOAuthError("google_pkce_verifier_missing");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    redirectToAuthEntryIfNeeded();
+    return;
+  }
+
+  const exchanged = await supabaseRequest<{
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+    token_type?: string;
+  }>("/auth/v1/token?grant_type=pkce", {
+    method: "POST",
+    body: {
+      auth_code: code,
+      code_verifier: verifier
+    }
+  });
+
+  if (!exchanged.ok || !exchanged.data?.access_token) {
+    writePkceVerifier("");
+    writeOAuthError(exchanged.errorCode || "google_oauth_exchange_failed");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    redirectToAuthEntryIfNeeded();
+    return;
+  }
+
+  const session: SupabaseSessionState = {
+    accessToken: String(exchanged.data.access_token),
+    refreshToken: String(exchanged.data.refresh_token || ""),
+    expiresAt: Date.now() + Math.max(1, Number(exchanged.data.expires_in || 3600)) * 1000,
+    tokenType: String(exchanged.data.token_type || "bearer"),
+    provider: "google",
+    createdAt: new Date().toISOString()
+  };
+  writeSupabaseSession(session);
+  writePkceVerifier("");
+  writeOAuthError("");
+  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
 async function refreshSupabaseSessionIfNeeded() {
@@ -225,7 +375,9 @@ async function refreshSupabaseSessionIfNeeded() {
 }
 
 async function getSupabaseAuthedUser() {
-  captureSupabaseSessionFromHash();
+  captureSupabaseSessionFromUrlSync();
+  await exchangeAuthCodeIfPresent();
+  captureSupabaseSessionFromUrlSync();
   const session = await refreshSupabaseSessionIfNeeded();
   if (!session) return null;
   const userResp = await supabaseRequest<{ id?: string }>("/auth/v1/user", {
@@ -312,10 +464,23 @@ export async function signInWithGoogle(): Promise<{ session: UserSession; user: 
   if (typeof window === "undefined") {
     throw new Error("google_not_configured");
   }
-  const redirectTo = `${window.location.origin}${window.location.pathname}?auth_provider=google`;
-  const authUrl = `${cfg.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
+  const { verifier, challenge } = await createPkcePair();
+  writePkceVerifier(verifier);
+  const redirectTo = `${window.location.origin}/?auth_provider=google`;
+  const authUrl = `${cfg.url}/auth/v1/authorize?provider=google&flow_type=pkce&code_challenge_method=s256&code_challenge=${encodeURIComponent(challenge)}&redirect_to=${encodeURIComponent(redirectTo)}`;
   window.location.assign(authUrl);
   throw new Error("auth_redirect_started");
+}
+
+export function consumeOAuthErrorCode(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const code = String(window.sessionStorage.getItem(SUPABASE_OAUTH_ERROR_KEY) || "");
+    if (code) window.sessionStorage.removeItem(SUPABASE_OAUTH_ERROR_KEY);
+    return code;
+  } catch {
+    return "";
+  }
 }
 
 export async function signInWithPassword(email: string, password: string): Promise<{ session: UserSession; user: UserState }> {

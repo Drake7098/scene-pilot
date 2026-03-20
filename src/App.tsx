@@ -60,6 +60,7 @@ import { GenerationGatePanel } from "./features/quick-generate/GenerationGatePan
 import type { AccountCenterSection, ApiCredentialState, UserState } from "./types/account";
 import type { CreditLedgerEntry, CreditPackConfig, ProPlanConfig, SubscriptionState } from "./types/billing";
 import {
+  consumeOAuthErrorCode,
   getCurrentUser,
   isGoogleSignInEnabled,
   logout,
@@ -240,6 +241,7 @@ const WORKSPACE_ENTRY_GUIDE_KEY = "sp_workspace_entry_guide_done_v1";
 const SIGNIN_QUERY_KEY = "signin";
 const REDIRECT_QUERY_KEY = "redirect";
 const AUTH_POST_LOGIN_REDIRECT_KEY = "sp_auth_post_login_redirect_v1";
+const SKIP_ONBOARDING_ONCE_KEY = "sp_skip_onboarding_once_v1";
 
 function normalizePostAuthRedirect(input: string | null | undefined): string {
   const raw = String(input || "").trim();
@@ -1696,6 +1698,15 @@ export default function App() {
     if (code.includes("google_not_configured") || code.includes("google_client_id_missing")) {
       return lang === "zh" ? "Google 登录未配置完成。" : "Google sign-in is not configured.";
     }
+    if (code.includes("google_pkce_verifier_missing")) {
+      return lang === "zh" ? "Google 登录会话已失效，请重试。" : "Google sign-in session expired. Please retry.";
+    }
+    if (code.includes("google_oauth_exchange_failed")) {
+      return lang === "zh" ? "Google 登录回调失败，请重试。" : "Google callback exchange failed. Please retry.";
+    }
+    if (code.includes("access_denied")) {
+      return lang === "zh" ? "你取消了 Google 登录。" : "Google sign-in was canceled.";
+    }
     if (code.includes("google_prompt_")) {
       return lang === "zh" ? "Google 登录窗口未完成，请重试。" : "Google prompt was not completed. Please retry.";
     }
@@ -2002,6 +2013,14 @@ export default function App() {
     void refreshAccountState();
   }, [refreshAccountState]);
 
+  useEffect(() => {
+    const code = consumeOAuthErrorCode();
+    if (!code) return;
+    setAuthHint(authErrorText(code));
+    setAccountCenterSection("auth");
+    setAccountCenterOpen(true);
+  }, [lang]);
+
   // Handle /signin -> /app?signin=1&redirect=... bootstrap in-app.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -2019,10 +2038,17 @@ export default function App() {
     }
 
     if (wantsSignin && !accountUser) {
+      try {
+        window.sessionStorage.setItem(SKIP_ONBOARDING_ONCE_KEY, "1");
+      } catch {
+        // ignore storage failures
+      }
       setAuthStep("email");
       setAuthPassword("");
       setAuthCode("");
       setAuthHint("");
+      setBillingPage(null);
+      setWizardOpen(false);
       setAccountCenterSection("auth");
       setAccountCenterOpen(true);
     }
@@ -2040,6 +2066,11 @@ export default function App() {
   useEffect(() => {
     if (!accountUser) return;
     try {
+      const skipOnce = window.sessionStorage.getItem(SKIP_ONBOARDING_ONCE_KEY) === "1";
+      if (skipOnce) {
+        window.sessionStorage.removeItem(SKIP_ONBOARDING_ONCE_KEY);
+        return;
+      }
       const hasPendingTemplateIntent = Boolean(localStorage.getItem("sp_template_pending_intent_v1"));
       const hasPendingSharePayload = Boolean(localStorage.getItem("sp_pending_share_payload_v1"));
       const url = new URL(window.location.href);
