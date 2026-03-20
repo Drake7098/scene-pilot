@@ -58,22 +58,14 @@ jobs:
 
       - name: Deploy to Cloudflare Pages (develop → scenepilotix)
         if: github.ref == 'refs/heads/develop'
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ env.CF_API_TOKEN_TEST }}
-          accountId: ${{ env.CF_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=scenepilotix
+        run: npx -y wrangler pages deploy dist --project-name=scenepilotix
         env:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_API_TOKEN_TEST }}
           CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
 
       - name: Deploy to Cloudflare Pages (main → scenepilotix1-prod)
         if: github.ref == 'refs/heads/main'
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ env.CF_API_TOKEN_PROD }}
-          accountId: ${{ env.CF_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=scenepilotix1-prod
+        run: npx -y wrangler pages deploy dist --project-name=scenepilotix1-prod
         env:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_API_TOKEN_PROD }}
           CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
