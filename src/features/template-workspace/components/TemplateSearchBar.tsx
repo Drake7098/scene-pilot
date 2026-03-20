@@ -5,13 +5,9 @@
 import React from "react";
 import { Search } from "lucide-react";
 import type { Lang } from "../../../i18n";
+import { TEMPLATE_WORKSPACE_UI } from "../constants/uiStyle";
 
-const colors = {
-  bg: "#1f2125",
-  border: "#3a3f46",
-  text: "#e5e7eb",
-  textMuted: "#9ca3af"
-};
+const colors = TEMPLATE_WORKSPACE_UI.colors;
 
 type Props = {
   lang: Lang;
@@ -54,6 +50,6 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     outline: "none",
     color: colors.text,
-    fontSize: 12
+    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.body
   }
 };

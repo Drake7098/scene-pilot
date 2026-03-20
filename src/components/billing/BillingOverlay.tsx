@@ -162,6 +162,7 @@ export function BillingOverlay(props: Props) {
                   <li>{t(lang, "无限项目", "Unlimited projects")}</li>
                   <li>{t(lang, "参考图上传", "Reference image upload")}</li>
                   <li>{t(lang, "多分镜连续调度", "Multi-scene continuity workflow")}</li>
+                  <li>{t(lang, "本地生成接入（Draw Things / ComfyUI）", "Local generation connectors (Draw Things / ComfyUI)")}</li>
                   <li>{t(lang, "专业镜头语言 & 导演风格包", "Pro camera language & director packs")}</li>
                   <li>{t(lang, `每月赠送 ${monthlyCredits} AI 积分`, `${monthlyCredits} AI credits every month`)}</li>
                   <li>{t(lang, "付费模版无限使用", "Unlimited paid templates")}</li>

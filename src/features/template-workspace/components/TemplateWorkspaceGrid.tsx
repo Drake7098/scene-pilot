@@ -1,104 +1,145 @@
 /**
  * Template grid/list view - uses TemplateIndex.
+ * Passes subTask sceneHints down to each TemplateCard so the card can show
+ * concrete scene examples instead of a generic description.
  */
 
 import React from "react";
-import { LayoutGrid, List } from "lucide-react";
 import type { Lang } from "../../../i18n";
 import type { TemplateIndex } from "../model/templateIndex";
 import type { UserPrivateTemplate } from "../../../lib/userTemplatesStore";
 import type { TemplatePricingResult } from "../../../pricing/templatePricingTypes";
 import { TemplateCard, isUserPrivateTemplate } from "./TemplateCard";
 import { PRO_TYPO } from "../../../uiTokens";
+import { TEMPLATE_WORKSPACE_UI } from "../constants/uiStyle";
 
-const colors = {
-  bg: "#1f2125",
-  border: "#3a3f46",
-  hover: "#343942",
-  textMuted: "#9ca3af",
-  accent: "#f59e0b"
-};
+const colors = TEMPLATE_WORKSPACE_UI.colors;
 
 type Props = {
   lang: Lang;
   items: (TemplateIndex | UserPrivateTemplate)[];
   view: "grid" | "list";
-  onViewChange: (v: "grid" | "list") => void;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onUse?: (item: TemplateIndex | UserPrivateTemplate) => void;
+  clickToUse?: boolean;
+  showSelectedState?: boolean;
   isFavorite?: (id: string) => boolean;
   onToggleFavorite?: (id: string) => void;
+  canToggleExpanded?: boolean;
+  expanded?: boolean;
+  hiddenCount?: number;
+  onToggleExpanded?: () => void;
   pricingMap?: Record<string, TemplatePricingResult | null>;
   isTemplateOwned?: (templateId: string) => boolean;
+  /** 当前子任务的场景提示，透传给每张 TemplateCard */
+  sceneHintsZh?: string[];
+  sceneHintsEn?: string[];
 };
 
 export function TemplateWorkspaceGrid({
   lang,
   items,
   view,
-  onViewChange,
   selectedId,
   onSelect,
   onUse,
+  clickToUse = false,
+  showSelectedState = true,
   isFavorite,
   onToggleFavorite,
+  canToggleExpanded = false,
+  expanded = false,
+  hiddenCount = 0,
+  onToggleExpanded,
   pricingMap = {},
-  isTemplateOwned
+  isTemplateOwned,
+  sceneHintsZh,
+  sceneHintsEn,
 }: Props) {
   const t = (zh: string, en: string) => (lang === "zh" ? zh : en);
+  const blurButton = (event: React.MouseEvent<HTMLButtonElement>) => {
+    window.requestAnimationFrame(() => {
+      event.currentTarget.blur();
+    });
+  };
+  const preventMouseFocus = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+  };
+
+  function renderCard(item: TemplateIndex | UserPrivateTemplate) {
+    return (
+      <TemplateCard
+        key={item.id}
+        lang={lang}
+        item={item}
+        view={view}
+        selected={selectedId === item.id}
+        showSelectedState={showSelectedState}
+        onSelect={() => onSelect(item.id)}
+        onUse={onUse ? () => onUse(item) : undefined}
+        clickToUse={clickToUse}
+        isFavorite={isFavorite?.(item.id)}
+        onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(item.id) : undefined}
+        pricing={pricingMap[item.id] ?? null}
+        owned={isUserPrivateTemplate(item) || (isTemplateOwned?.(item.id) ?? false)}
+        sceneHintsZh={sceneHintsZh}
+        sceneHintsEn={sceneHintsEn}
+      />
+    );
+  }
+
   return (
     <div style={styles.wrap}>
+      <style>{`
+        .template-grid-toolbar-btn {
+          transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+          outline: none;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .template-grid-toolbar-btn:hover {
+          background: ${colors.buttonHover} !important;
+          border-color: ${colors.buttonBorder} !important;
+          color: ${colors.text} !important;
+        }
+        .template-grid-toolbar-btn--active:hover {
+          background: ${colors.buttonHover} !important;
+          border-color: ${colors.buttonBorder} !important;
+          color: ${colors.accent} !important;
+        }
+        .template-grid-toolbar-btn:focus,
+        .template-grid-toolbar-btn:focus-visible {
+          outline: none !important;
+          box-shadow: none !important;
+        }
+      `}</style>
+
       <div style={styles.toolbar}>
-        <div style={styles.viewToggle}>
-          <button
-            type="button"
-            style={{ ...styles.viewBtn, ...(view === "grid" ? styles.viewBtnOn : {}) }}
-            onClick={() => onViewChange("grid")}
-            title={t("网格", "Grid")}
-          >
-            <LayoutGrid size={16} />
+        {canToggleExpanded ? (
+          <button type="button" className="template-grid-toolbar-btn" style={styles.expandBtn} onClick={onToggleExpanded} onMouseDown={preventMouseFocus} onMouseUp={blurButton}>
+            {expanded ? t("收起默认推荐", "Collapse") : t(`展开更多 (${hiddenCount})`, `Show More (${hiddenCount})`)}
           </button>
-          <button
-            type="button"
-            style={{ ...styles.viewBtn, ...(view === "list" ? styles.viewBtnOn : {}) }}
-            onClick={() => onViewChange("list")}
-            title={t("列表", "List")}
-          >
-            <List size={16} />
-          </button>
-        </div>
+        ) : null}
       </div>
+
       <div style={view === "grid" ? styles.grid : styles.list}>
         {items.length === 0 ? (
           <div style={styles.empty}>{t("暂无模板", "No templates")}</div>
         ) : view === "list" ? (
-          items.map((item) => (
-            <TemplateCard
-              key={item.id}
-              lang={lang}
-              item={item}
-              view={view}
-              selected={selectedId === item.id}
-              onSelect={() => onSelect(item.id)}
-              onUse={onUse ? () => onUse(item) : undefined}
-              isFavorite={isFavorite?.(item.id)}
-              onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(item.id) : undefined}
-              pricing={pricingMap[item.id] ?? null}
-              owned={isUserPrivateTemplate(item) || (isTemplateOwned?.(item.id) ?? false)}
-            />
-          ))
+          items.map((item) => renderCard(item))
         ) : (() => {
-          // 按 family 分组，相同 family 的模板归并到同一标题下
+          // 按 family 分组
           const groups: Array<{ familyId: string; familyName: string; items: typeof items }> = [];
           const seen = new Map<string, number>();
           for (const item of items) {
-            const familyId = isUserPrivateTemplate(item) ? "__mine__" : (item as import("../model/templateIndex").TemplateIndex).familyId ?? "__other__";
+            const familyId = isUserPrivateTemplate(item)
+              ? "__mine__"
+              : (item as TemplateIndex).familyId ?? "__other__";
             const familyName = isUserPrivateTemplate(item)
               ? t("我的模板", "My Templates")
               : ((lang === "zh"
-                  ? (item as import("../model/templateIndex").TemplateIndex).familyNameZh
-                  : (item as import("../model/templateIndex").TemplateIndex).familyNameEn)
+                  ? (item as TemplateIndex).familyNameZh
+                  : (item as TemplateIndex).familyNameEn)
                 ?? familyId);
             if (seen.has(familyId)) {
               groups[seen.get(familyId)!].items.push(item);
@@ -111,21 +152,7 @@ export function TemplateWorkspaceGrid({
             <div key={group.familyId} style={styles.familyGroup}>
               <div style={styles.familyGroupTitle}>{group.familyName}</div>
               <div style={styles.familyGroupGrid}>
-                {group.items.map((item) => (
-                  <TemplateCard
-                    key={item.id}
-                    lang={lang}
-                    item={item}
-                    view={view}
-                    selected={selectedId === item.id}
-                    onSelect={() => onSelect(item.id)}
-                    onUse={onUse ? () => onUse(item) : undefined}
-                    isFavorite={isFavorite?.(item.id)}
-                    onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(item.id) : undefined}
-                    pricing={pricingMap[item.id] ?? null}
-                    owned={isUserPrivateTemplate(item) || (isTemplateOwned?.(item.id) ?? false)}
-                  />
-                ))}
+                {group.items.map((item) => renderCard(item))}
               </div>
             </div>
           ));
@@ -147,20 +174,23 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "8px 12px",
     borderBottom: `1px solid ${colors.border}`,
     display: "flex",
-    justifyContent: "flex-end"
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8
   },
-  viewToggle: { display: "flex", gap: 4 },
-  viewBtn: {
-    padding: 6,
-    background: "transparent",
+  expandBtn: {
+    minHeight: 36,
+    padding: "6px 10px",
+    background: colors.bg,
     border: `1px solid ${colors.border}`,
-    borderRadius: 6,
+    borderRadius: 8,
     color: colors.textMuted,
-    cursor: "pointer"
-  },
-  viewBtnOn: {
-    background: colors.hover,
-    color: colors.accent
+    cursor: "pointer",
+    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.label,
+    fontWeight: 600,
+    appearance: "none",
+    outline: "none",
+    WebkitTapHighlightColor: "transparent"
   },
   familyGroup: {
     marginBottom: 20
@@ -172,7 +202,7 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: "uppercase",
     letterSpacing: "0.06em",
     padding: "6px 0 8px",
-    borderBottom: "1px solid #3a3f46",
+    borderBottom: `1px solid ${colors.border}`,
     marginBottom: 10
   },
   familyGroupGrid: {

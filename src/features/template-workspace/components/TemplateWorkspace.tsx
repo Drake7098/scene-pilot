@@ -3,7 +3,7 @@
  * View: market (全部模板) | my_templates (我的模板). My: owned | created.
  */
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import type { Lang } from "../../../i18n";
 import type { TemplateIndex } from "../model/templateIndex";
 import type { TemplateWorkspaceState } from "../state/templateWorkspaceState";
@@ -16,9 +16,9 @@ import { getUserPrivateTemplates } from "../../../lib/userTemplatesStore";
 import type { UserPrivateTemplate } from "../../../lib/userTemplatesStore";
 import { isUserPrivateTemplate } from "./TemplateCard";
 import { TemplateWorkspaceHeader } from "./TemplateWorkspaceHeader";
-import { TemplateFamilyList } from "./TemplateFamilyList";
 import { TemplateGridContainer } from "./TemplateGridContainer";
 import { TemplateWorkspaceDetail } from "./TemplateWorkspaceDetail";
+import { getIntentMeta, getSubTaskMeta } from "../model/templateIntent";
 
 import { editorTheme } from "../../../theme/editorTheme";
 
@@ -27,7 +27,7 @@ const colors = editorTheme.colors;
 export type TemplateWorkspaceProps = {
   lang: Lang;
   state: TemplateWorkspaceState;
-  onStateChange: (s: TemplateWorkspaceState) => void;
+  onStateChange: React.Dispatch<React.SetStateAction<TemplateWorkspaceState>>;
   onClose: () => void;
   onUseTemplate: (index: TemplateIndex | UserPrivateTemplate, applyMode: ApplyTemplateMode) => void;
   project?: import("../../../model").Project | null;
@@ -51,7 +51,7 @@ export function TemplateWorkspace({
   isTemplateOwned,
   templatesRefresh = 0
 }: TemplateWorkspaceProps) {
-  const { indexList, filtered, filteredBeforeFamily, selectedTemplate: selectedMarketTemplate, stats } = useTemplateWorkspace(state);
+  const { indexList, displayList: limitedMarketList, canToggleExpanded, hiddenCount, stats } = useTemplateWorkspace(state);
   const { toggleFavorite, isFavorite } = useTemplateFavorites();
   const createdList = useMemo(
     () => getUserPrivateTemplates(userId ?? ""),
@@ -65,14 +65,14 @@ export function TemplateWorkspace({
     [indexList, isTemplateOwned]
   );
   const displayList = useMemo(() => {
-    if (state.templateWorkspaceView === "market") return filtered;
+    if (state.templateWorkspaceView === "market") return limitedMarketList;
     if (state.myTemplateSection === "owned") return ownedFiltered;
     return createdList;
-  }, [state.templateWorkspaceView, state.myTemplateSection, filtered, ownedFiltered, createdList]);
+  }, [state.templateWorkspaceView, state.myTemplateSection, limitedMarketList, ownedFiltered, createdList]);
   const pricingMap = useTemplatePricingMap(
     displayList.filter((i): i is TemplateIndex => !isUserPrivateTemplate(i)).map((i) => i.id)
   );
-  const selectedTemplate = useMemo((): TemplateIndex | UserPrivateTemplate | null => {
+  const selectedDetailTemplate = useMemo((): TemplateIndex | UserPrivateTemplate | null => {
     const id = state.selectedTemplateId;
     if (!id) return null;
     if (state.templateWorkspaceView === "my_templates" && state.myTemplateSection === "created") {
@@ -80,91 +80,176 @@ export function TemplateWorkspace({
     }
     return indexList.find((t) => t.id === id) ?? null;
   }, [state.selectedTemplateId, state.templateWorkspaceView, state.myTemplateSection, indexList, createdList]);
-
   const update = useCallback(
     (patch: Partial<TemplateWorkspaceState>) => {
-      onStateChange({ ...state, ...patch });
+      onStateChange((prev) => ({ ...prev, ...patch }));
     },
-    [state, onStateChange]
+    [onStateChange]
   );
 
   const handleUse = useCallback(
     (template?: TemplateIndex | UserPrivateTemplate) => {
-      const target = template ?? selectedTemplate;
+      const target = template ?? selectedDetailTemplate;
       if (target) {
         if (!isUserPrivateTemplate(target)) addToRecent(target.id);
         onUseTemplate(target, state.applyMode);
         onClose();
       }
     },
-    [selectedTemplate, state.applyMode, onUseTemplate, onClose]
+    [selectedDetailTemplate, state.applyMode, onUseTemplate, onClose]
   );
+  const currentSubTaskMeta = useMemo(
+    () =>
+      state.selectedIntentId && state.selectedSubTaskId
+        ? getSubTaskMeta(state.selectedIntentId, state.selectedSubTaskId)
+        : undefined,
+    [state.selectedIntentId, state.selectedSubTaskId]
+  );
+
+  useEffect(() => {
+    if (displayList.length === 0) return;
+    const hasSelected = state.selectedTemplateId && displayList.some((item) => item.id === state.selectedTemplateId);
+    if (!hasSelected) {
+      onStateChange((prev) => ({ ...prev, selectedTemplateId: displayList[0]?.id ?? null }));
+    }
+  }, [displayList, state, onStateChange]);
 
   return (
     <div style={styles.wrap}>
       <TemplateWorkspaceHeader
         lang={lang}
         templateWorkspaceView={state.templateWorkspaceView}
-        onTemplateWorkspaceViewChange={(v) => update({ templateWorkspaceView: v, selectedTemplateId: null, selectedFamilyId: null })}
+        onPrimaryTabChange={(tab) => {
+          if (tab === "mine") {
+            update({
+              templateWorkspaceView: "my_templates",
+              myTemplateSection: "owned",
+              selectedTemplateId: null,
+              selectedFamilyId: null,
+              selectedIntentId: null,
+              selectedSubTaskId: null,
+              selectedCategory: null,
+              searchQuery: "",
+              filters: { mediaType: "all", storyPlan: "all", ratio: "all", pricing: "all", industry: "all" }
+            });
+            return;
+          }
+          if (tab === "all") {
+            update({
+              templateWorkspaceView: "market",
+              selectedTemplateId: null,
+              selectedFamilyId: null,
+              selectedIntentId: null,
+              selectedSubTaskId: null,
+              selectedCategory: null,
+              scope: "all",
+              searchQuery: "",
+              filters: { mediaType: "all", storyPlan: "all", ratio: "all", pricing: "all", industry: "all" },
+              showAllTemplatesInSubTask: false
+            });
+            return;
+          }
+          if (tab === "daily") {
+            const nextDailyIntent =
+              state.selectedIntentId && state.selectedIntentId !== "pro_workflows"
+                ? state.selectedIntentId
+                : "sell_product";
+            update({
+              templateWorkspaceView: "market",
+              selectedTemplateId: null,
+              selectedFamilyId: null,
+              selectedIntentId: nextDailyIntent,
+              selectedSubTaskId: null,
+              selectedCategory: null,
+              scope: "all",
+              searchQuery: "",
+              filters: { mediaType: "all", storyPlan: "all", ratio: "all", pricing: "all", industry: "all" },
+              showAllTemplatesInSubTask: false
+            });
+            return;
+          }
+          const firstProSubTask = getIntentMeta("pro_workflows")?.subTasks[0]?.id ?? null;
+          update({
+            templateWorkspaceView: "market",
+            selectedTemplateId: null,
+            selectedFamilyId: null,
+            selectedIntentId: "pro_workflows",
+            selectedSubTaskId: state.selectedIntentId === "pro_workflows" ? state.selectedSubTaskId : firstProSubTask,
+            selectedCategory: null,
+            scope: "all",
+            searchQuery: "",
+            filters: { mediaType: "all", storyPlan: "all", ratio: "all", pricing: "all", industry: "all" },
+            showAllTemplatesInSubTask: false
+          });
+        }}
         myTemplateSection={state.myTemplateSection}
         onMyTemplateSectionChange={(s) => update({ myTemplateSection: s, selectedTemplateId: null })}
         selectedIntentId={state.selectedIntentId}
+        selectedSubTaskId={state.selectedSubTaskId}
         onIntentChange={(intentId) => update({
+          templateWorkspaceView: "market",
           selectedIntentId: intentId,
-          scope: "recommended",
+          selectedSubTaskId: null,
+          scope: "all",
           selectedCategory: null,
           selectedFamilyId: null,
           selectedTemplateId: null,
           searchQuery: "",
+          showAllTemplatesInSubTask: false,
           filters: { ...state.filters, mediaType: "all", storyPlan: "all", ratio: "all", pricing: "all", industry: "all" }
         })}
+        onSubTaskChange={(subTaskId) => update({ selectedSubTaskId: subTaskId, selectedTemplateId: null, selectedFamilyId: null, showAllTemplatesInSubTask: false })}
+        onFamilyChange={(familyId) => update({ selectedFamilyId: familyId, selectedTemplateId: null, showAllTemplatesInSubTask: false })}
         searchQuery={state.searchQuery}
-        onSearchChange={(q) => update({ searchQuery: q, selectedTemplateId: null, selectedFamilyId: null })}
+        onSearchChange={(q) => update({ searchQuery: q, selectedTemplateId: null, selectedFamilyId: null, showAllTemplatesInSubTask: false })}
+        view={state.view}
+        onViewChange={(v) => update({ view: v })}
         filters={state.filters}
-        onFiltersChange={(f) => update({ filters: f, selectedTemplateId: null, selectedFamilyId: null })}
+        onFiltersChange={(f) => update({ filters: f, selectedTemplateId: null, selectedFamilyId: null, showAllTemplatesInSubTask: false })}
         onClose={onClose}
+        visibleCount={displayList.length}
         totalCount={stats.total}
         freeCount={stats.free}
         ownedCount={ownedFiltered.length}
         createdCount={createdList.length}
       />
       <div style={styles.body}>
-        <TemplateFamilyList
-          lang={lang}
-          items={state.templateWorkspaceView === "market" ? filteredBeforeFamily : []}
-          selectedFamilyId={state.selectedFamilyId}
-          onSelectFamily={(id) => update({ selectedFamilyId: id, selectedTemplateId: null })}
-        />
         <TemplateGridContainer
           lang={lang}
           items={displayList}
           view={state.view}
-          onViewChange={(v) => update({ view: v })}
           selectedId={state.selectedTemplateId}
-          onSelect={(id) => update({ selectedTemplateId: state.selectedTemplateId === id ? null : id })}
+          onSelect={(id) => update({ selectedTemplateId: id })}
           onUse={(item) => handleUse(item)}
+          clickToUse={false}
+          showSelectedState={true}
           isFavorite={isFavorite}
           onToggleFavorite={toggleFavorite}
+          canToggleExpanded={state.templateWorkspaceView === "market" && canToggleExpanded}
+          expanded={state.showAllTemplatesInSubTask}
+          hiddenCount={hiddenCount}
+          onToggleExpanded={() => update({ showAllTemplatesInSubTask: !state.showAllTemplatesInSubTask })}
           pricingMap={pricingMap}
           isTemplateOwned={isTemplateOwned}
+          sceneHintsZh={currentSubTaskMeta?.sceneHintsZh}
+          sceneHintsEn={currentSubTaskMeta?.sceneHintsEn}
         />
         <TemplateWorkspaceDetail
           lang={lang}
-          template={selectedTemplate}
+          template={selectedDetailTemplate}
           applyMode={state.applyMode}
           onApplyModeChange={(m) => update({ applyMode: m })}
           onUse={() => handleUse()}
-          isFavorite={selectedTemplate && !isUserPrivateTemplate(selectedTemplate) ? isFavorite(selectedTemplate.id) : false}
+          isFavorite={selectedDetailTemplate && !isUserPrivateTemplate(selectedDetailTemplate) ? isFavorite(selectedDetailTemplate.id) : false}
           onToggleFavorite={toggleFavorite}
           project={project}
           userCredits={userCredits}
           isTemplateOwned={isTemplateOwned}
           relatedTemplates={
-            state.templateWorkspaceView === "market" &&
-            selectedTemplate &&
-            !isUserPrivateTemplate(selectedTemplate)
+            selectedDetailTemplate &&
+            !isUserPrivateTemplate(selectedDetailTemplate)
               ? indexList.filter(
-                  (t) => t.familyId === (selectedTemplate as TemplateIndex).familyId && t.id !== selectedTemplate.id
+                  (t) => t.familyId === (selectedDetailTemplate as TemplateIndex).familyId && t.id !== selectedDetailTemplate.id
                 ).slice(0, 4)
               : []
           }

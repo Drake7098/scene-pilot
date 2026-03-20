@@ -7,7 +7,11 @@ import type {
   TemplateWorkspaceFilters,
   ApplyTemplateMode
 } from "../model/templateFilter";
-import { DEFAULT_TEMPLATE_INTENT_ID, loadLastTemplateIntent, type TemplateIntentId } from "../model/templateIntent";
+import {
+  DEFAULT_TEMPLATE_INTENT_ID,
+  loadLastTemplateIntent,
+  type TemplateIntentId
+} from "../model/templateIntent";
 
 /** Top-level view: market (all templates) vs my templates. */
 export type TemplateWorkspaceView = "market" | "my_templates";
@@ -23,12 +27,16 @@ export type TemplateWorkspaceState = {
   view: "grid" | "list";
   scope: TemplateWorkspaceScope;
   selectedIntentId: TemplateIntentId | null;
+  selectedSubTaskId: string | null;
   selectedCategory: string | null;
   selectedFamilyId: string | null;
   selectedTemplateId: string | null;
   searchQuery: string;
   filters: TemplateWorkspaceFilters;
   applyMode: ApplyTemplateMode;
+  isQuickModeActive: boolean;
+  quickModeDismissed: boolean;
+  showAllTemplatesInSubTask: boolean;
 };
 
 export const DEFAULT_TEMPLATE_WORKSPACE_STATE: TemplateWorkspaceState = {
@@ -37,6 +45,7 @@ export const DEFAULT_TEMPLATE_WORKSPACE_STATE: TemplateWorkspaceState = {
   view: "grid",
   scope: "recommended",
   selectedIntentId: loadLastTemplateIntent() ?? DEFAULT_TEMPLATE_INTENT_ID,
+  selectedSubTaskId: null,
   selectedCategory: null,
   selectedFamilyId: null,
   selectedTemplateId: null,
@@ -48,5 +57,8 @@ export const DEFAULT_TEMPLATE_WORKSPACE_STATE: TemplateWorkspaceState = {
     pricing: "all",
     industry: "all"
   },
-  applyMode: "layout_only"
+  applyMode: "layout_only",
+  isQuickModeActive: false,
+  quickModeDismissed: false,
+  showAllTemplatesInSubTask: false
 };

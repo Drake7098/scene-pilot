@@ -25,7 +25,6 @@ export function TemplateWorkspaceList(props: Props) {
     <TemplateWorkspaceGrid
       {...props}
       view="list"
-      onViewChange={() => {}}
     />
   );
 }

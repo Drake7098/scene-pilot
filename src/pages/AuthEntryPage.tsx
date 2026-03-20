@@ -8,7 +8,7 @@ function normalizeRedirect(raw: string | null): string {
     const parsed = new URL(value, window.location.origin);
     if (parsed.origin !== window.location.origin) return "";
     const target = `${parsed.pathname}${parsed.search}${parsed.hash}`;
-    if (!target.startsWith("/") || target.startsWith("/app")) return "";
+    if (!target.startsWith("/")) return "";
     return target;
   } catch {
     return "";

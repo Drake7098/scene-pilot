@@ -5,12 +5,9 @@
 import React from "react";
 import type { Lang } from "../../../i18n";
 import type { TemplateWorkspaceFilters } from "../model/templateFilter";
+import { TEMPLATE_WORKSPACE_UI } from "../constants/uiStyle";
 
-const colors = {
-  bg: "#1f2125",
-  border: "#3a3f46",
-  text: "#e5e7eb"
-};
+const colors = TEMPLATE_WORKSPACE_UI.colors;
 
 type Props = {
   lang: Lang;
@@ -81,7 +78,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: `1px solid ${colors.border}`,
     borderRadius: 8,
     color: colors.text,
-    fontSize: 11,
+    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.label,
     cursor: "pointer"
   }
 };

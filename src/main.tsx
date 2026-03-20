@@ -8,6 +8,7 @@ import LandingPage from "./pages/LandingPage";
 import ProductIntroPage from "./pages/ProductIntroPage";
 import UserManagementPage from "./pages/UserManagementPage";
 import AuthEntryPage from "./pages/AuthEntryPage";
+import SharePage from "./pages/SharePage";
 import { getCurrentUser } from "./services/authService";
 
 const pathnameRaw = typeof window !== "undefined" ? window.location.pathname : "/";
@@ -18,6 +19,7 @@ const isAppRoute = pathname === "/app";
 const isAuthEntryRoute = pathname === "/login" || pathname === "/signin" || pathname === "/register" || pathname === "/signup";
 const isPricingRoute = pathname === "/pricing" || pathname === "/pricing-test";
 const isUserManagementRoute = pathname === "/account" || pathname === "/user-management";
+const isShareRoute = pathname === "/s";
 const isTermsRoute = pathname === "/terms";
 const isPrivacyRoute = pathname === "/privacy";
 const isBillingTermsRoute = pathname === "/billing-terms" || pathname === "/billing";
@@ -32,7 +34,7 @@ function canBypassAppAuthGate() {
 
 function appAuthRedirectUrl() {
   if (typeof window === "undefined") return "/signin";
-  const target = "/app";
+  const target = `${window.location.pathname}${window.location.search}${window.location.hash}`;
   return `/signin?redirect=${encodeURIComponent(target)}`;
 }
 
@@ -81,6 +83,7 @@ function resolveRootComponent() {
   if (isAuthEntryRoute) return <AuthEntryPage />;
   if (isPricingRoute) return <PricingPage />;
   if (isUserManagementRoute) return <UserManagementPage />;
+  if (isShareRoute) return <SharePage />;
   if (isTermsRoute) return <LegalPolicyPage docId="terms" />;
   if (isPrivacyRoute) return <LegalPolicyPage docId="privacy" />;
   if (isBillingTermsRoute) return <LegalPolicyPage docId="billing" />;

@@ -5,7 +5,6 @@
  */
 
 import React from "react";
-import { LayoutGrid, List } from "lucide-react";
 import type { Lang } from "../../../i18n";
 import type { TemplateIndex } from "../model/templateIndex";
 import type { UserPrivateTemplate } from "../../../lib/userTemplatesStore";
@@ -13,66 +12,92 @@ import type { TemplatePricingResult } from "../../../pricing/templatePricingType
 import { TemplateCard, isUserPrivateTemplate } from "./TemplateCard";
 import { useVirtualizedTemplateGrid } from "../hooks/useVirtualizedTemplateGrid";
 import { PRO_TYPO } from "../../../uiTokens";
+import { TEMPLATE_WORKSPACE_UI } from "../constants/uiStyle";
 
-const colors = {
-  bg: "#1f2125",
-  border: "#3a3f46",
-  hover: "#343942",
-  textMuted: "#9ca3af",
-  accent: "#f59e0b"
-};
+const colors = TEMPLATE_WORKSPACE_UI.colors;
 
 type Props = {
   lang: Lang;
   items: (TemplateIndex | UserPrivateTemplate)[];
   view: "grid" | "list";
-  onViewChange: (v: "grid" | "list") => void;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onUse?: (item: TemplateIndex | UserPrivateTemplate) => void;
+  clickToUse?: boolean;
+  showSelectedState?: boolean;
   isFavorite?: (id: string) => boolean;
   onToggleFavorite?: (id: string) => void;
+  canToggleExpanded?: boolean;
+  expanded?: boolean;
+  hiddenCount?: number;
+  onToggleExpanded?: () => void;
   pricingMap?: Record<string, TemplatePricingResult | null>;
   isTemplateOwned?: (templateId: string) => boolean;
+  sceneHintsZh?: string[];
+  sceneHintsEn?: string[];
 };
 
 export function TemplateWorkspaceGridVirtual({
   lang,
   items,
   view,
-  onViewChange,
   selectedId,
   onSelect,
   onUse,
+  clickToUse = false,
+  showSelectedState = true,
   isFavorite,
   onToggleFavorite,
+  canToggleExpanded = false,
+  expanded = false,
+  hiddenCount = 0,
+  onToggleExpanded,
   pricingMap = {},
-  isTemplateOwned
+  isTemplateOwned,
+  sceneHintsZh,
+  sceneHintsEn
 }: Props) {
   const t = (zh: string, en: string) => (lang === "zh" ? zh : en);
+  const blurButton = (event: React.MouseEvent<HTMLButtonElement>) => {
+    window.requestAnimationFrame(() => {
+      event.currentTarget.blur();
+    });
+  };
+  const preventMouseFocus = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+  };
   const { visibleItems, containerRef } = useVirtualizedTemplateGrid({ items });
 
   return (
     <div style={styles.wrap} ref={containerRef}>
+      <style>{`
+        .template-grid-virtual-toolbar-btn {
+          transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+          outline: none;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .template-grid-virtual-toolbar-btn:hover {
+          background: ${colors.buttonHover} !important;
+          border-color: ${colors.buttonBorder} !important;
+          color: ${colors.text} !important;
+        }
+        .template-grid-virtual-toolbar-btn--active:hover {
+          background: ${colors.buttonHover} !important;
+          border-color: ${colors.buttonBorder} !important;
+          color: ${colors.accent} !important;
+        }
+        .template-grid-virtual-toolbar-btn:focus,
+        .template-grid-virtual-toolbar-btn:focus-visible {
+          outline: none !important;
+          box-shadow: none !important;
+        }
+      `}</style>
       <div style={styles.toolbar}>
-        <div style={styles.viewToggle}>
-          <button
-            type="button"
-            style={{ ...styles.viewBtn, ...(view === "grid" ? styles.viewBtnOn : {}) }}
-            onClick={() => onViewChange("grid")}
-            title={t("网格", "Grid")}
-          >
-            <LayoutGrid size={16} />
+        {canToggleExpanded ? (
+          <button type="button" className="template-grid-virtual-toolbar-btn" style={styles.expandBtn} onClick={onToggleExpanded} onMouseDown={preventMouseFocus} onMouseUp={blurButton}>
+            {expanded ? t("收起默认推荐", "Collapse") : t(`展开更多 (${hiddenCount})`, `Show More (${hiddenCount})`)}
           </button>
-          <button
-            type="button"
-            style={{ ...styles.viewBtn, ...(view === "list" ? styles.viewBtnOn : {}) }}
-            onClick={() => onViewChange("list")}
-            title={t("列表", "List")}
-          >
-            <List size={16} />
-          </button>
-        </div>
+        ) : null}
       </div>
       <div style={view === "grid" ? styles.grid : styles.list}>
         {visibleItems.length === 0 ? (
@@ -85,12 +110,16 @@ export function TemplateWorkspaceGridVirtual({
               item={item}
               view={view}
               selected={selectedId === item.id}
+              showSelectedState={showSelectedState}
               onSelect={() => onSelect(item.id)}
               onUse={onUse ? () => onUse(item) : undefined}
+              clickToUse={clickToUse}
               isFavorite={isFavorite?.(item.id)}
               onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(item.id) : undefined}
               pricing={pricingMap[item.id] ?? null}
               owned={isUserPrivateTemplate(item) || (isTemplateOwned?.(item.id) ?? false)}
+              sceneHintsZh={sceneHintsZh}
+              sceneHintsEn={sceneHintsEn}
             />
           ))
         )}
@@ -111,20 +140,23 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "8px 12px",
     borderBottom: `1px solid ${colors.border}`,
     display: "flex",
-    justifyContent: "flex-end"
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8
   },
-  viewToggle: { display: "flex", gap: 4 },
-  viewBtn: {
-    padding: 6,
-    background: "transparent",
+  expandBtn: {
+    minHeight: 36,
+    padding: "6px 10px",
+    background: colors.bg,
     border: `1px solid ${colors.border}`,
-    borderRadius: 6,
+    borderRadius: 8,
     color: colors.textMuted,
-    cursor: "pointer"
-  },
-  viewBtnOn: {
-    background: colors.hover,
-    color: colors.accent
+    cursor: "pointer",
+    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.label,
+    fontWeight: 600,
+    appearance: "none",
+    outline: "none",
+    WebkitTapHighlightColor: "transparent"
   },
   grid: {
     flex: 1,

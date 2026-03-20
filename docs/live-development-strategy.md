@@ -1,8 +1,9 @@
 # Live Development Strategy
 
-Last updated: 2026-03-19
+Last updated: 2026-03-20
 
 ## Purpose
+- 新线程开工顺序：先读 `/Users/dk/scene-pilot/AGENTS.md`，再读本文件。
 - 这是跨线程共享的单一事实源。
 - 所有涉及产品流程、交互、提示词引擎、Quick/Pro 边界、生成链路的开发，都应先读这里。
 - 当某次开发改变了主流程、主命名、主入口、平台执行策略、保存/导出规则或未完成项时，必须更新这里。
@@ -28,7 +29,8 @@ Last updated: 2026-03-19
 
 ### Public Routes
 - 根路径 `/` 为公开 Landing 页面（产品介绍、方案入口、合规链接）。
-- Landing 首屏已调整为“任务定向”入口：用户可直接选择 `卖货出图 / 人物出图 / 封面海报 / 口播讲解 / 剧情短视频 / 连续分镜`，不再只给产品介绍后再自行摸索模板库。
+- Landing 首屏已调整为“任务定向”入口：首屏采用 `5 个大众任务 + 更多专业任务` 结构，用户优先选择 `卖货出图 / 人物出图 / 封面海报 / 视频口播 / 剧情短视频`，专业工作流下沉到 `更多专业任务`。
+- `更多专业任务` 不单独跳页；Landing 内采用“原地切换的二级入口层”，保持同一容器与排版节奏，在首屏原位置切成 5 个专业子入口，并提供单一返回入口回到高频任务。
 - 工作台主界面改为 `/app`（直接进入 Pro 工作台）。
 - 新增正式认证入口别名：`/login`、`/signin`、`/register`、`/signup`（统一重定向到 `/app?signin=1`）。
 - `/app` 已启用强制登录闸门：未登录直访会跳 `/signin?redirect=/app`，仅登录态或 `signin=1` 认证入口可进入应用壳。
@@ -43,8 +45,20 @@ Last updated: 2026-03-19
 - 详见 `docs/prompt-preview-and-export-split.md`、`docs/prompt-readonly-positioning.md`、`docs/export-primary-actions-redesign.md`
 - Stage 可移动 Work Bar：选中对象时出现，仅开放结构安全动作（Select、Move、Center、Reset、Copy T0→T1、Lock、Assign Slot、Mark Anchor）；设计详见 `docs/stage-workbar-design.md`、`docs/stage-safe-editing-model.md`
 - 模板驱动工作流为主体验。
-- 模板库主入口已转为“任务先行”：默认以任务意图驱动推荐池，而不是让用户先学内部分类；当前 canonical intents 为 `卖货出图 / 人物出图 / 封面海报 / 口播讲解 / 剧情短视频 / 连续分镜`。
+- 模板库主入口已转为“任务先行”：默认以任务意图驱动推荐池，而不是让用户先学内部分类；当前 canonical intents 为 `卖货出图 / 人物出图 / 封面海报 / 视频口播 / 剧情短视频 / 更多专业任务`。
+- 模板工作流当前采用三级强引导：`任务 -> 子任务 -> 模板`。前端不直接暴露 family 语义，family 只在内部配置层承担映射与排序职责。
+- 任务与子任务的单一配置源已迁移到 `src/features/template-workspace/config/intentConfig.ts`；`src/features/template-workspace/model/templateIntent.ts` 负责状态、存储、路由辅助与排序，不再承载硬编码业务映射。
 - 模板任务意图会本地记忆；Landing 选中的任务会通过 pending intent 传递到 `/app`，登录后自动打开对应模板组。
+- Landing 二级专业入口会同时写入 pending subtask；登录后 `/app` 直接落到对应子任务，而不是只落到 `更多专业任务` 的默认子任务。
+- `更多专业任务` 在模板页已整理为两层：第一排固定 5 个专业方向，第二排展示当前方向下的真实细分类（family 级筛选），不再重复渲染同一组大类。
+- Landing 的任务卡、专业子任务卡、以及主引导按钮都必须写入对应 pending intent / subtask 后再进入 `/app`；不允许从引导页裸跳工作台导致模板上下文丢失。
+- 从 Landing / 分享链进入模板页时，模板头部默认进入“任务聚焦态”：先展示当前任务、子任务和搜索，任务切换与复杂筛选折叠到二级动作中，需要时再展开，减少通用模板库噪音。
+- 模板库顶部现为 canonical 任务入口与子任务入口；旧的正文侧二级入口已下沉，避免同一事件出现并列重复入口。
+- 模板页默认只展示当前 `任务 + 子任务` 下少量高命中模板；超出部分通过 `展开更多` 二级动作展开，避免用户首屏面对过多卡片。
+- 市场模板页已切到“点模板直接进工作台”主路径；不再要求先看右侧详情再点 `使用模板`。进入工作台后默认打开 `QuickGeneratePanel`。
+- 模板详情面板继续保留，但只服务决策：优先展示当前状态、套用结果、主要可改字段和相关模板；去掉重复解释和低价值噪音块。
+- 模板套用后默认进入 `快速生成` 浮层：先编辑最少字段（主体、参考图、比例），再决定复制提示词、站内生成或进入完整编辑。
+- 新增公开分享落点 `/s#payload`：可无登录查看提示词方案、复制提示词，并把方案挂起到登录后的 `/app` 继续复用。
 - Pro 权限闸门已收口：普通登录用户不可进入 Pro；所有入口统一先校验 `canUseProConsole`，不满足则进入升级路径。
 
 ### Top Menu
@@ -159,6 +173,7 @@ Last updated: 2026-03-19
 - 会员升级页新增“本地测试生成（跳过会员）”入口，仅用于本地调试链路。
 - 该入口支持手动选择 `ComfyUI` 或 `Draw Things` 并做严格单引擎执行（不自动 fallback），用于确认指定本地 API 是否畅通。
 - 本地测试生成链仍保持 `ComfyUI -> Draw Things fallback`，与严格单引擎测试入口分离。
+- 用户侧生成决策当前为三出口：`复制提示词`（免费主路径）/ `站内托管生成`（积分）/ `本地生成`（Pro + 已连接本地工具）。站内不再假设“大额免费补贴生成”。
 - 这是临时测试策略，未来会切回正式 provider adapter。
 - 当本地生成未产生可用媒体结果时，Quick 生成/Refine 的 credits 预留会自动回滚，不计费。
 - 本地运行健康检查统一命令：`npm run health:local`
@@ -240,6 +255,16 @@ Last updated: 2026-03-19
 - 引擎锁 hash 变化（`docs/engine-library-lock.json` 变更）
 
 ## Recent Decisions
+- 2026-03-20：模板页顶部交互改为同层四入口：`全部模板 / 我的模板 / 日常任务 / 更多任务`。`日常任务` 与 `更多任务` 位于 `我的模板` 同层；大按钮过滤按字面意图作用于整库（不再默认落子任务）。市场页恢复“左侧模板卡 + 右侧详情轨”布局，并保持左侧栏之外全宽占用。
+- 2026-03-20：模板页头部已取消 chooser 状态机，`market` 视图始终展示 6 个任务入口；`pro_workflows` 采用两层结构：第一排 5 个专业方向，第二排当前方向的 family 级筛选。`my_templates` 视图不再渲染右侧详情轨，模板列表恢复全宽。
+- 2026-03-20：模板详情面板已保留为辅助决策区，但信息结构改为“状态 -> 套用结果 -> 可改字段 -> 相关模板”，不再重复堆叠权限/复用说明。
+- 2026-03-20：Landing 主引导按钮已与任务入口统一走 pending intent / pending subtask 链路；当用户停留在 `更多专业任务` 层时，主按钮也会带着专业上下文进入模板页。
+- 2026-03-20：模板页默认结果进一步收缩到“每个子任务少量高命中模板”，并提供 `展开更多`；默认心智从“浏览模板库”继续收口到“快速选一个能用的模板”。
+- 2026-03-20：市场模板卡已改为直接套用模板并进入工作台，右侧详情面板退出主路径；模板应用后默认打开 `QuickGeneratePanel`。
+- 2026-03-19：模板入口从“单层任务卡”升级为 `任务 -> 子任务 -> family` 强引导模型；Landing 改为 `5 + 1` 任务入口，配置与排序已拆分为“`intentConfig.ts` 配置源 + `templateIntent.ts` 路由辅助”两层。
+- 2026-03-19：任务强引导第一版已落地到配置化模型；配置源改为 `src/features/template-workspace/config/intentConfig.ts`，模板库头部成为 canonical 的 `任务 + 子任务` 入口，推荐结果按 `免费优先 / family 去重 / 低成本付费后置` 排序。
+- 2026-03-19：模板套用后的默认第一屏改为 `QuickGeneratePanel`，主路径是 `复制提示词`，次路径是 `站内生成`，并通过 `GenerationGatePanel` 提供 `复制提示词 / 充值 / 本地生成` 三出口决策。
+- 2026-03-19：新增分享方案页 `/s#payload`，支持公开查看提示词方案、复制提示词、登录后挂起复用；分享对象是“任务 + 子任务 + 模板 + 提示词”，不是单张媒体。
 - 2026-03-19：模板主流程从“搜索/筛选优先”改为“任务定向优先”。Landing 新增 6 个任务入口，模板库顶部新增同一套 intent 卡片；系统会记忆最近一次 intent，并在登录后自动打开对应推荐模板组。
 - 2026-03-19：提示词引擎 `buildUniversalResult` 已切换为 `stripExecutionScaffold` 执行链，统一清理 platformGuide 脚手架行（含 Hard constraints / Conflict policy / Output policy / Platform Execution Contract）后再输出给模型。
 - 认证同意勾选已加硬拦截：未勾选 `Terms + Privacy` 时，账号中心不会继续触发邮箱发码、Google 登录或密码登录（仅提示并停留当前态）。

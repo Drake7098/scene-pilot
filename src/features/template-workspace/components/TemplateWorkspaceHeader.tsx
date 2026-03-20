@@ -1,38 +1,47 @@
-/**
- * Template workspace header - view switch, search + filters + close.
- */
-
 import React from "react";
-import { Search, X, LayoutGrid, User } from "lucide-react";
-import { PRO_TYPO } from "../../../uiTokens";
+import {
+  Search,
+  X,
+  LayoutGrid,
+  List,
+  User,
+  Layers,
+  MessagesSquare,
+  Crosshair,
+  Orbit,
+  Sparkles
+} from "lucide-react";
 import type { Lang } from "../../../i18n";
 import type { TemplateWorkspaceFilters } from "../model/templateFilter";
 import type { TemplateWorkspaceView, MyTemplateSection } from "../state/templateWorkspaceState";
 import { TEMPLATE_INDUSTRY_OPTIONS } from "../model/templateCategory";
-import { TEMPLATE_INTENTS, type TemplateIntentId } from "../model/templateIntent";
+import { TEMPLATE_INTENTS, getIntentMeta, type TemplateIntentId } from "../model/templateIntent";
+import { TaskIntentCard } from "./TaskIntentCard";
+import { TEMPLATE_WORKSPACE_UI } from "../constants/uiStyle";
+import { editorTheme } from "../../../theme/editorTheme";
 
-const colors = {
-  panel: "#24262b",
-  border: "#3a3f46",
-  bg: "#1f2125",
-  text: "#e5e7eb",
-  textMuted: "#9ca3af",
-  accent: "#f59e0b"
-};
+const colors = TEMPLATE_WORKSPACE_UI.colors;
+const DETAIL_RAIL_WIDTH = editorTheme.sizing.railWidth;
 
 type Props = {
   lang: Lang;
   templateWorkspaceView: TemplateWorkspaceView;
-  onTemplateWorkspaceViewChange: (v: TemplateWorkspaceView) => void;
+  onPrimaryTabChange: (tab: "all" | "mine" | "daily" | "more") => void;
   myTemplateSection?: MyTemplateSection;
   onMyTemplateSectionChange?: (s: MyTemplateSection) => void;
   selectedIntentId: TemplateIntentId | null;
+  selectedSubTaskId: string | null;
   onIntentChange: (intentId: TemplateIntentId) => void;
+  onSubTaskChange: (subTaskId: string) => void;
+  onFamilyChange: (familyId: string | null) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
+  view: "grid" | "list";
+  onViewChange: (v: "grid" | "list") => void;
   filters: TemplateWorkspaceFilters;
   onFiltersChange: (f: TemplateWorkspaceFilters) => void;
   onClose: () => void;
+  visibleCount?: number;
   totalCount?: number;
   freeCount?: number;
   ownedCount?: number;
@@ -42,173 +51,378 @@ type Props = {
 export function TemplateWorkspaceHeader({
   lang,
   templateWorkspaceView,
-  onTemplateWorkspaceViewChange,
+  onPrimaryTabChange,
   myTemplateSection = "owned",
   onMyTemplateSectionChange,
   selectedIntentId,
+  selectedSubTaskId,
   onIntentChange,
+  onSubTaskChange,
+  onFamilyChange,
   searchQuery,
   onSearchChange,
+  view,
+  onViewChange,
   filters,
   onFiltersChange,
   onClose,
+  visibleCount,
   totalCount,
-  freeCount,
   ownedCount,
   createdCount
 }: Props) {
   const t = (zh: string, en: string) => (lang === "zh" ? zh : en);
+  const isAllTemplatesActive = templateWorkspaceView === "market" && !selectedIntentId;
+  const isMyTemplatesActive = templateWorkspaceView === "my_templates";
+  const isDailyTasksActive =
+    templateWorkspaceView === "market" &&
+    !!selectedIntentId &&
+    selectedIntentId !== "pro_workflows";
+  const isMoreTasksActive =
+    templateWorkspaceView === "market" &&
+    selectedIntentId === "pro_workflows";
+  const blurButton = (event: React.MouseEvent<HTMLButtonElement>) => {
+    window.requestAnimationFrame(() => {
+      event.currentTarget.blur();
+    });
+  };
+  const preventMouseFocus = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+  };
+  const [showFilters, setShowFilters] = React.useState(false);
+  const [showProTasks, setShowProTasks] = React.useState(selectedIntentId === "pro_workflows");
+  const primaryIntents = TEMPLATE_INTENTS.filter((intent) => intent.id !== "pro_workflows");
+  const proIntent = getIntentMeta("pro_workflows");
+  const proSubTasks = proIntent?.subTasks ?? [];
+
+  const getProSubTaskIcon = (subTaskId: string) => {
+    if (subTaskId === "continuity") return Layers;
+    if (subTaskId === "dialogue") return MessagesSquare;
+    if (subTaskId === "action") return Crosshair;
+    if (subTaskId === "chase") return Orbit;
+    return Sparkles;
+  };
+
+  React.useEffect(() => {
+    setShowProTasks(selectedIntentId === "pro_workflows");
+  }, [selectedIntentId]);
+
   return (
     <div style={styles.wrap}>
-      <div style={styles.viewSwitch}>
-        <button
-          type="button"
-          style={{
-            ...styles.viewBtn,
-            ...(templateWorkspaceView === "market" ? styles.viewBtnActive : {})
-          }}
-          onClick={() => onTemplateWorkspaceViewChange("market")}
-        >
-          <LayoutGrid size={14} />
-          <span>{t("全部模板", "All Templates")}</span>
-        </button>
-        <button
-          type="button"
-          style={{
-            ...styles.viewBtn,
-            ...(templateWorkspaceView === "my_templates" ? styles.viewBtnActive : {})
-          }}
-          onClick={() => onTemplateWorkspaceViewChange("my_templates")}
-        >
-          <User size={14} />
-          <span>{t("我的模板", "My Templates")}</span>
-        </button>
-      </div>
+      <style>{`
+        .template-header-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          min-height: 36px;
+          padding: 6px 10px;
+          border-radius: 8px;
+          background: ${colors.bg};
+          border: 1px solid ${colors.border};
+          color: ${colors.textMuted};
+          font-size: ${TEMPLATE_WORKSPACE_UI.fontSize.body}px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+          outline: none;
+          appearance: none;
+          -webkit-tap-highlight-color: transparent;
+          box-shadow: none;
+          transform: none;
+          filter: none;
+        }
+        .template-header-btn:hover {
+          background: ${colors.buttonHover};
+          border-color: ${colors.buttonBorder};
+          color: ${colors.text};
+        }
+        .template-header-btn:focus,
+        .template-header-btn:focus-visible,
+        .template-header-btn:active {
+          outline: none;
+          box-shadow: none;
+          transform: none;
+        }
+        .template-header-btn--active {
+          background: ${colors.panel};
+          border-color: ${colors.accent};
+          color: ${colors.accent};
+        }
+        .template-header-btn--active:hover {
+          background: ${colors.panel};
+          border-color: ${colors.accent};
+          color: ${colors.accent};
+        }
+        .template-pro-toggle-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          min-height: 47px;
+          height: 47px;
+          width: 100%;
+          padding: 0 14px;
+          border-radius: 14px;
+          border: 1px solid ${colors.border};
+          background: ${colors.panel};
+          color: ${colors.text};
+          cursor: pointer;
+          transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+          outline: none;
+          appearance: none;
+          -webkit-tap-highlight-color: transparent;
+          box-shadow: none;
+          text-align: left;
+        }
+        button.template-pro-toggle-btn:hover:not(:disabled) {
+          background: ${colors.buttonHover};
+          border-color: ${colors.buttonBorder};
+          transform: none !important;
+        }
+        .template-pro-toggle-btn--active,
+        button.template-pro-toggle-btn--active:hover:not(:disabled) {
+          background: ${colors.panel};
+          border-color: ${colors.accent};
+          color: ${colors.accent};
+          transform: none !important;
+        }
+      `}</style>
+
+      <div style={styles.topRow}>
+        <div style={styles.viewSwitch}>
+          <button
+            type="button"
+            className={`template-header-btn ${isAllTemplatesActive ? "template-header-btn--active" : ""}`}
+            onClick={() => onPrimaryTabChange("all")}
+            onMouseDown={preventMouseFocus}
+            onMouseUp={blurButton}
+          >
+            <LayoutGrid size={14} />
+            <span>{t("全部模板", "All Templates")}</span>
+          </button>
+          <button
+            type="button"
+            className={`template-header-btn ${isMyTemplatesActive ? "template-header-btn--active" : ""}`}
+            onClick={() => onPrimaryTabChange("mine")}
+            onMouseDown={preventMouseFocus}
+            onMouseUp={blurButton}
+          >
+            <User size={14} />
+            <span>{t("我的模板", "My Templates")}</span>
+          </button>
+          <button
+            type="button"
+            className={`template-header-btn ${isDailyTasksActive ? "template-header-btn--active" : ""}`}
+            onClick={() => onPrimaryTabChange("daily")}
+            onMouseDown={preventMouseFocus}
+            onMouseUp={blurButton}
+          >
+            <span>{t("日常任务", "Daily Tasks")}</span>
+          </button>
+          <button
+            type="button"
+            className={`template-header-btn ${isMoreTasksActive ? "template-header-btn--active" : ""}`}
+            onClick={() => onPrimaryTabChange("more")}
+            onMouseDown={preventMouseFocus}
+            onMouseUp={blurButton}
+          >
+            <span>{t("专业任务", "Pro Tasks")}</span>
+          </button>
+        </div>
+          <button
+            type="button"
+            className="template-header-btn"
+            onClick={onClose}
+            onMouseDown={preventMouseFocus}
+            onMouseUp={blurButton}
+            style={styles.closeBtn}
+            aria-label={t("关闭", "Close")}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
       {templateWorkspaceView === "my_templates" && onMyTemplateSectionChange ? (
         <div style={styles.sectionSwitch}>
           <button
             type="button"
-            style={{
-              ...styles.sectionBtn,
-              ...(myTemplateSection === "owned" ? styles.sectionBtnActive : {})
-            }}
+            className={`template-header-btn ${myTemplateSection === "owned" ? "template-header-btn--active" : ""}`}
             onClick={() => onMyTemplateSectionChange("owned")}
+            onMouseDown={preventMouseFocus}
+            onMouseUp={blurButton}
           >
-            {t("已拥有", "Owned")}
-            {ownedCount != null ? ` (${ownedCount})` : ""}
+            {t("已拥有", "Owned")}{ownedCount != null ? ` (${ownedCount})` : ""}
           </button>
           <button
             type="button"
-            style={{
-              ...styles.sectionBtn,
-              ...(myTemplateSection === "created" ? styles.sectionBtnActive : {})
-            }}
+            className={`template-header-btn ${myTemplateSection === "created" ? "template-header-btn--active" : ""}`}
             onClick={() => onMyTemplateSectionChange("created")}
+            onMouseDown={preventMouseFocus}
+            onMouseUp={blurButton}
           >
-            {t("我创建的", "Created by me")}
-            {createdCount != null ? ` (${createdCount})` : ""}
+            {t("我创建的", "Created by me")}{createdCount != null ? ` (${createdCount})` : ""}
           </button>
         </div>
       ) : null}
-      {templateWorkspaceView === "market" ? (
-        <div style={styles.intentStrip}>
-          {TEMPLATE_INTENTS.map((intent) => (
-            <button
-              key={intent.id}
-              type="button"
-              style={{
-                ...styles.intentCard,
-                ...(selectedIntentId === intent.id ? styles.intentCardActive : {})
-              }}
-              onClick={() => onIntentChange(intent.id)}
-            >
-              <span style={styles.intentLabel}>{lang === "zh" ? intent.labelZh : intent.labelEn}</span>
-              <span style={styles.intentDesc}>{lang === "zh" ? intent.descriptionZh : intent.descriptionEn}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
-      <div style={styles.searchWrap}>
-        <Search size={14} style={styles.searchIcon} />
-        <input
-          type="text"
-          placeholder={t("搜索模板…", "Search templates…")}
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          style={styles.searchInput}
-        />
-      </div>
-      <div style={styles.filters}>
-        <select
-          value={filters.mediaType}
-          onChange={(e) =>
-            onFiltersChange({ ...filters, mediaType: e.target.value as TemplateWorkspaceFilters["mediaType"] })
-          }
-          style={{ ...styles.select, ...(filters.mediaType !== "all" ? styles.selectActive : {}) }}
-        >
-          <option value="all">{t("图/视频", "Image/Video")}</option>
-          <option value="image">{t("图", "Image")}</option>
-          <option value="video">{t("视频", "Video")}</option>
-        </select>
-        <select
-          value={filters.storyPlan}
-          onChange={(e) =>
-            onFiltersChange({ ...filters, storyPlan: e.target.value as TemplateWorkspaceFilters["storyPlan"] })
-          }
-          style={{ ...styles.select, ...(filters.storyPlan !== "all" ? styles.selectActive : {}) }}
-        >
-          <option value="all">{t("单镜/连续/多机位/剪辑", "Shot plan")}</option>
-          <option value="single">{t("单镜", "Single")}</option>
-          <option value="continuous">{t("连续", "Continuous")}</option>
-          <option value="multi_cam">{t("多机位", "Multi-cam")}</option>
-          <option value="edited">{t("剪辑", "Edit")}</option>
-        </select>
-        <select
-          value={filters.ratio}
-          onChange={(e) =>
-            onFiltersChange({ ...filters, ratio: e.target.value as TemplateWorkspaceFilters["ratio"] })
-          }
-          style={{ ...styles.select, ...(filters.ratio !== "all" ? styles.selectActive : {}) }}
-        >
-          <option value="all">{t("比例", "Ratio")}</option>
-          <option value="16:9">16:9</option>
-          <option value="9:16">9:16</option>
-          <option value="1:1">1:1</option>
-        </select>
 
-        {/* Industry filter - replaces old "全部域" domain dropdown */}
-        <select
-          value={filters.industry ?? "all"}
-          onChange={(e) =>
-            onFiltersChange({ ...filters, industry: e.target.value as TemplateWorkspaceFilters["industry"] })
-          }
+      {templateWorkspaceView === "market" ? (
+        <>
+          <div style={{ ...styles.intentRow, gridTemplateColumns: "repeat(5, minmax(140px, 1fr))" }}>
+            {showProTasks
+              ? proSubTasks.map((subTask) => {
+                  const Icon = getProSubTaskIcon(subTask.id);
+                  const active = selectedIntentId === "pro_workflows" && selectedSubTaskId === subTask.id;
+                  return (
+                    <button
+                      key={subTask.id}
+                      type="button"
+                      className={`template-pro-toggle-btn ${active ? "template-pro-toggle-btn--active" : ""}`}
+                      style={subTask.id === "continuity" ? styles.proContinuityBtn : undefined}
+                      onClick={() => {
+                        if (selectedIntentId !== "pro_workflows") {
+                          onIntentChange("pro_workflows");
+                        }
+                        onSubTaskChange(subTask.id);
+                        onFamilyChange(null);
+                      }}
+                      onMouseDown={preventMouseFocus}
+                      onMouseUp={blurButton}
+                    >
+                      <Icon size={16} style={{ flexShrink: 0, color: active ? colors.accent : colors.textMuted }} />
+                      <span style={styles.proToggleText}>{lang === "zh" ? subTask.labelZh : subTask.labelEn}</span>
+                    </button>
+                  );
+                })
+              : primaryIntents.map((intent) => (
+                  <TaskIntentCard
+                    key={intent.id}
+                    intent={intent}
+                    lang={lang}
+                    compact
+                    proLikeHover={intent.id === "sell_product"}
+                    active={selectedIntentId === intent.id}
+                    onClick={() => {
+                      onIntentChange(intent.id);
+                      onFamilyChange(null);
+                    }}
+                  />
+                ))}
+          </div>
+        </>
+      ) : null}
+
+      <div
+        style={{
+          ...styles.bottomRow,
+          maxWidth: `calc(100% - ${DETAIL_RAIL_WIDTH}px - 12px)`,
+          alignSelf: "flex-start"
+        }}
+      >
+        {templateWorkspaceView !== "my_templates" ? (
+          <div style={styles.countPill}>
+            {t("显示", "Showing")} {visibleCount ?? 0} / {t("共", "Total")} {totalCount ?? 0}
+          </div>
+        ) : null}
+        <div style={styles.searchWrap}>
+          <Search size={14} style={styles.searchIcon} />
+          <input
+            type="text"
+            placeholder={t("搜索模板…", "Search templates…")}
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            style={styles.searchInput}
+          />
+        </div>
+        <button
+          type="button"
+          className="template-header-btn"
+          onClick={() => setShowFilters((v) => !v)}
+          onMouseDown={preventMouseFocus}
+          onMouseUp={blurButton}
+        >
+          {showFilters ? t("收起筛选", "Hide Filters") : t("更多筛选", "More Filters")}
+        </button>
+        <div style={styles.viewToggle}>
+          <button
+            type="button"
+            className={`template-header-btn ${view === "grid" ? "template-header-btn--active" : ""}`}
+            onClick={() => onViewChange("grid")}
+            onMouseDown={preventMouseFocus}
+            onMouseUp={blurButton}
+            title={t("方块显示", "Grid View")}
+          >
+            <LayoutGrid size={14} />
+          </button>
+          <button
+            type="button"
+            className={`template-header-btn ${view === "list" ? "template-header-btn--active" : ""}`}
+            onClick={() => onViewChange("list")}
+            onMouseDown={preventMouseFocus}
+            onMouseUp={blurButton}
+            title={t("按行显示", "List View")}
+          >
+            <List size={14} />
+          </button>
+        </div>
+      </div>
+
+      {showFilters ? (
+        <div
           style={{
-            ...styles.select,
-            ...((filters.industry && filters.industry !== "all") ? styles.selectActive : {})
+            ...styles.filters,
+            maxWidth: `calc(100% - ${DETAIL_RAIL_WIDTH}px - 12px)`,
+            alignSelf: "flex-start"
           }}
         >
-          {TEMPLATE_INDUSTRY_OPTIONS.map((opt) => (
-            <option key={opt.id} value={opt.id}>
-              {lang === "zh" ? opt.labelZh : opt.labelEn}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={filters.pricing}
-          onChange={(e) =>
-            onFiltersChange({ ...filters, pricing: e.target.value as TemplateWorkspaceFilters["pricing"] })
-          }
-          style={{ ...styles.select, ...(filters.pricing !== "all" ? styles.selectActive : {}) }}
-        >
-          <option value="all">{t("免费/付费", "Free/Paid")}</option>
-          <option value="free">{t("免费", "Free")}</option>
-          <option value="paid">{t("付费", "Paid")}</option>
-        </select>
-      </div>
-      <button type="button" onClick={onClose} style={styles.closeBtn} aria-label={t("关闭", "Close")}>
-        <X size={18} />
-      </button>
+          <select
+            value={filters.mediaType}
+            onChange={(e) => onFiltersChange({ ...filters, mediaType: e.target.value as TemplateWorkspaceFilters["mediaType"] })}
+            style={{ ...styles.select, ...(filters.mediaType !== "all" ? styles.selectActive : {}) }}
+          >
+            <option value="all">{t("图/视频", "Image/Video")}</option>
+            <option value="image">{t("图", "Image")}</option>
+            <option value="video">{t("视频", "Video")}</option>
+          </select>
+          <select
+            value={filters.storyPlan}
+            onChange={(e) => onFiltersChange({ ...filters, storyPlan: e.target.value as TemplateWorkspaceFilters["storyPlan"] })}
+            style={{ ...styles.select, ...(filters.storyPlan !== "all" ? styles.selectActive : {}) }}
+          >
+            <option value="all">{t("单镜/连续/多机位/剪辑", "Shot plan")}</option>
+            <option value="single">{t("单镜", "Single")}</option>
+            <option value="continuous">{t("连续", "Continuous")}</option>
+            <option value="multi_cam">{t("多机位", "Multi-cam")}</option>
+            <option value="edited">{t("剪辑", "Edit")}</option>
+          </select>
+          <select
+            value={filters.ratio}
+            onChange={(e) => onFiltersChange({ ...filters, ratio: e.target.value as TemplateWorkspaceFilters["ratio"] })}
+            style={{ ...styles.select, ...(filters.ratio !== "all" ? styles.selectActive : {}) }}
+          >
+            <option value="all">{t("比例", "Ratio")}</option>
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+            <option value="1:1">1:1</option>
+          </select>
+          <select
+            value={filters.industry ?? "all"}
+            onChange={(e) => onFiltersChange({ ...filters, industry: e.target.value as TemplateWorkspaceFilters["industry"] })}
+            style={{ ...styles.select, ...((filters.industry && filters.industry !== "all") ? styles.selectActive : {}) }}
+          >
+            {TEMPLATE_INDUSTRY_OPTIONS.map((opt) => (
+              <option key={opt.id} value={opt.id}>{lang === "zh" ? opt.labelZh : opt.labelEn}</option>
+            ))}
+          </select>
+          <select
+            value={filters.pricing}
+            onChange={(e) => onFiltersChange({ ...filters, pricing: e.target.value as TemplateWorkspaceFilters["pricing"] })}
+            style={{ ...styles.select, ...(filters.pricing !== "all" ? styles.selectActive : {}) }}
+          >
+            <option value="all">{t("免费/付费", "Free/Paid")}</option>
+            <option value="free">{t("免费", "Free")}</option>
+            <option value="paid">{t("付费", "Paid")}</option>
+          </select>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -216,132 +430,105 @@ export function TemplateWorkspaceHeader({
 const styles: Record<string, React.CSSProperties> = {
   wrap: {
     display: "flex",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: 12,
-    padding: "8px 12px",
+    flexDirection: "column",
+    gap: 10,
+    padding: "10px 12px 12px",
     background: colors.panel,
     borderBottom: `1px solid ${colors.border}`,
     flexShrink: 0
   },
-  viewSwitch: { display: "flex", gap: 4 },
-  viewBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "6px 10px",
-    background: colors.bg,
-    border: `1px solid ${colors.border}`,
+  topRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  bottomRow: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 },
+  countPill: {
+    minHeight: 34,
+    padding: "0 10px",
     borderRadius: 8,
+    border: `1px solid ${colors.border}`,
+    background: colors.bg,
     color: colors.textMuted,
-    fontSize: PRO_TYPO["2xs"],
-    fontWeight: PRO_TYPO.weightRegular,
-    fontFamily: PRO_TYPO.fontFamily,
-    cursor: "pointer"
+    display: "inline-flex",
+    alignItems: "center",
+    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.body,
+    lineHeight: TEMPLATE_WORKSPACE_UI.lineHeight.normal,
+    whiteSpace: "nowrap"
   },
-  viewBtnActive: {
-    background: colors.panel,
-    borderColor: colors.accent,
-    color: colors.accent
-  },
-  sectionSwitch: { display: "flex", gap: 4 },
-  intentStrip: {
-    width: "100%",
+  viewSwitch: { display: "flex", gap: 6 },
+  viewToggle: { display: "flex", gap: 6 },
+  sectionSwitch: { display: "flex", gap: 6 },
+  intentGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
     gap: 8
   },
-  intentCard: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-start",
-    gap: 4,
-    minWidth: 0,
-    padding: "10px 12px",
-    borderRadius: 10,
-    border: `1px solid ${colors.border}`,
-    background: colors.bg,
-    color: colors.textMuted,
-    cursor: "pointer"
+  subTaskBlock: { display: "flex", flexDirection: "column", gap: 8 },
+  subTaskRow: { display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 },
+  taskToggleRow: { display: "flex", gap: 6, alignItems: "center" },
+  intentRow: {
+    display: "grid",
+    gridTemplateColumns: "repeat(6, minmax(120px, 1fr))",
+    gap: 8,
+    minHeight: 51,
+    width: "100%",
+    overflowX: "auto"
   },
-  intentCardActive: {
-    borderColor: colors.accent,
-    background: "rgba(245,158,11,0.08)",
-    color: colors.text
+  proToggleText: {
+    fontSize: 14,
+    fontWeight: 700,
+    lineHeight: TEMPLATE_WORKSPACE_UI.lineHeight.compact
   },
-  intentLabel: {
-    fontSize: PRO_TYPO.xs,
-    fontWeight: PRO_TYPO.weightMedium,
-    fontFamily: PRO_TYPO.fontFamily
-  },
-  intentDesc: {
-    fontSize: PRO_TYPO["2xs"],
-    lineHeight: 1.4,
-    color: colors.textMuted,
-    fontFamily: PRO_TYPO.fontFamily
-  },
-  sectionBtn: {
-    padding: "4px 8px",
-    background: "transparent",
-    border: "none",
-    borderRadius: 6,
-    color: colors.textMuted,
-    fontSize: PRO_TYPO["2xs"],
-    fontFamily: PRO_TYPO.fontFamily,
-    cursor: "pointer"
-  },
-  sectionBtnActive: {
-    color: colors.text,
-    background: colors.bg
+  proContinuityBtn: {
+    minHeight: 47,
+    height: 47
   },
   searchWrap: {
-    flex: 1,
-    maxWidth: 260,
+    width: 380,
+    maxWidth: "100%",
+    minWidth: 220,
     display: "flex",
     alignItems: "center",
     gap: 8,
-    padding: "6px 10px",
-    background: colors.bg,
+    borderRadius: 8,
     border: `1px solid ${colors.border}`,
-    borderRadius: 8
+    background: colors.bg,
+    padding: "0 10px"
   },
   searchIcon: { color: colors.textMuted, flexShrink: 0 },
   searchInput: {
+    height: 34,
     flex: 1,
-    background: "transparent",
+    minWidth: 0,
     border: "none",
     outline: "none",
-    color: colors.text,
-    fontSize: PRO_TYPO.xs,
-    fontWeight: PRO_TYPO.weightRegular,
-    fontFamily: PRO_TYPO.fontFamily
-  },
-  filters: { display: "flex", gap: 8 },
-  select: {
-    padding: "6px 10px",
-    background: colors.bg,
-    border: `1px solid ${colors.border}`,
-    borderRadius: 8,
-    color: colors.text,
-    fontSize: PRO_TYPO["2xs"],
-    fontWeight: PRO_TYPO.weightRegular,
-    fontFamily: PRO_TYPO.fontFamily,
-    cursor: "pointer",
-    outline: "none",
-    appearance: "none" as const,
-    WebkitAppearance: "none" as const,
-  },
-  selectActive: {
-    border: `1px solid ${colors.accent}`,
-    color: colors.accent,
-    background: `${colors.accent}18`,
-  },
-  closeBtn: {
-    padding: 6,
     background: "transparent",
-    border: `1px solid ${colors.border}`,
+    color: colors.text,
+    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.body
+  },
+  filters: { display: "flex", flexWrap: "wrap", gap: 8 },
+  select: {
+    minWidth: 108,
+    height: 34,
     borderRadius: 8,
+    border: `1px solid ${colors.border}`,
+    background: colors.bg,
     color: colors.textMuted,
-    cursor: "pointer"
+    padding: "0 10px",
+    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.body
+  },
+  selectActive: { borderColor: colors.accent, color: colors.text },
+  closeBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    border: `1px solid ${colors.border}`,
+    background: colors.bg,
+    color: colors.textMuted,
+    cursor: "pointer",
+    appearance: "none",
+    outline: "none",
+    WebkitTapHighlightColor: "transparent",
+    boxShadow: "none"
   }
 };

@@ -23,7 +23,7 @@ import {
   type WizardDraft
 } from "./components/CreateWizard";
 import { buildPromptForScene } from "./utils/promptEngine";
-import { getRefBlob, putRefBlob } from "./utils/localRefs";
+import { deleteRefBlob, getRefBlob, putRefBlob } from "./utils/localRefs";
 import { defaultObjectName, defaultProjectName, defaultSceneName, safeExportName } from "./utils/naming";
 import { getPlatformLabel, getPlatformPreset, PLATFORM_PRESETS } from "./config/platformPresets";
 import type { PlatformPresetId } from "./config/platformPresets";
@@ -55,6 +55,8 @@ import { ChevronDown, ChevronRight, CircleHelp, FolderOpen, Image as ImageIcon, 
 import { CreditCard, Crown, Cpu, KeyRound, LogOut, UserRound, Wallet } from "lucide-react";
 import { AccountCenterModal } from "./components/AccountCenterModal";
 import { BillingOverlay } from "./components/billing/BillingOverlay";
+import { QuickGeneratePanel } from "./features/quick-generate/QuickGeneratePanel";
+import { GenerationGatePanel } from "./features/quick-generate/GenerationGatePanel";
 import type { AccountCenterSection, ApiCredentialState, UserState } from "./types/account";
 import type { CreditLedgerEntry, CreditPackConfig, ProPlanConfig, SubscriptionState } from "./types/billing";
 import {
@@ -79,7 +81,15 @@ import {
   getTemplateIndex,
   type TemplateIndex
 } from "./features/template-workspace";
-import { consumePendingTemplateIntent, saveLastTemplateIntent } from "./features/template-workspace/model/templateIntent";
+import {
+  consumePendingTemplateIntent,
+  consumePendingTemplateSubTask,
+  getTemplatesForSubTask,
+  TEMPLATE_INTENTS,
+  pickDefaultTemplateForIntent,
+  saveLastTemplateIntent
+} from "./features/template-workspace/model/templateIntent";
+import { consumePendingSharePayload, encodeSharePayload, setPendingSharePayload, type SharePayload } from "./types/share";
 import { applyTemplateCharge } from "./features/billing";
 import { getTemplatePricingForTemplate } from "./pricing";
 import { createProjectFromTemplate, createProjectFromUserTemplate, duplicateProject } from "./lib/projectCreation";
@@ -240,7 +250,6 @@ function normalizePostAuthRedirect(input: string | null | undefined): string {
     if (parsed.origin !== window.location.origin) return "";
     const target = `${parsed.pathname}${parsed.search}${parsed.hash}`;
     if (!target.startsWith("/")) return "";
-    if (target === "/app" || target.startsWith("/app?")) return "";
     return target;
   } catch {
     return "";
@@ -522,6 +531,7 @@ export default function App() {
   const [templateWorkspaceState, setTemplateWorkspaceState] = useState<TemplateWorkspaceState>(
     DEFAULT_TEMPLATE_WORKSPACE_STATE
   );
+  const [generationGateOpen, setGenerationGateOpen] = useState(false);
   const [openExportNonce, setOpenExportNonce] = useState(0);
   const [openExportAction, setOpenExportAction] = useState<ExportPanelOpenAction>("open");
   const [miniPreviewCollapsed, setMiniPreviewCollapsed] = useState(true);
@@ -550,7 +560,7 @@ export default function App() {
     exportProject: () => undefined
   });
 
-
+  const quickRefInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const useDesktopFixedLayout = viewportWidth >= 1400;
   const showBrandZh = viewportWidth >= 980;
@@ -610,6 +620,36 @@ export default function App() {
   }
   function handleExportProject() {
     openExportPanel("open");
+  }
+
+  async function handleQuickPickReference() {
+    quickRefInputRef.current?.click();
+  }
+
+  async function handleQuickReferenceChange(file: File | null) {
+    if (!file) return;
+    const nextRef = {
+      id: `bgref_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      name: file.name,
+      mime: file.type,
+      size: file.size,
+      updatedAt: Date.now(),
+    };
+    await putRefBlob(nextRef.id, file);
+    const prev = scene.backgroundRef;
+    if (prev?.id) {
+      try {
+        await deleteRefBlob(prev.id);
+      } catch {
+        // noop
+      }
+    }
+    updateScene({ ...scene, backgroundRef: nextRef });
+    feedbackBarRef.current?.pushMessage(lang === "zh" ? "已更新参考图" : "Reference updated");
+  }
+
+  function openQuickGenerationGate() {
+    setGenerationGateOpen(true);
   }
 
   function handleProExportModeChange(mode: ExportMode) {
@@ -1495,6 +1535,7 @@ export default function App() {
       setFileLabel(name);
       setLabelPersist(name);
       setIsTemplateWorkspaceOpen(false);
+      setTemplateWorkspaceState((s) => ({ ...s, isQuickModeActive: true, quickModeDismissed: false }));
       feedbackBarRef.current?.pushMessage(lang === "zh" ? "已应用模板" : "Template applied");
       return;
     }
@@ -1573,6 +1614,7 @@ export default function App() {
     setFileLabel(name);
     setLabelPersist(name);
     setIsTemplateWorkspaceOpen(false);
+    setTemplateWorkspaceState((s) => ({ ...s, isQuickModeActive: true, quickModeDismissed: false }));
     feedbackBarRef.current?.pushMessage(lang === "zh" ? "已应用模板" : "Template applied");
   }
 
@@ -1968,6 +2010,14 @@ export default function App() {
   useEffect(() => {
     if (!accountUser) return;
     try {
+      const hasPendingTemplateIntent = Boolean(localStorage.getItem("sp_template_pending_intent_v1"));
+      const hasPendingSharePayload = Boolean(localStorage.getItem("sp_pending_share_payload_v1"));
+      const url = new URL(window.location.href);
+      const hasTemplateRoute =
+        url.searchParams.get("template") === "1" ||
+        Boolean(url.searchParams.get("intent")) ||
+        Boolean(url.searchParams.get("subtask"));
+      if (hasPendingTemplateIntent || hasPendingSharePayload || hasTemplateRoute) return;
       const done = localStorage.getItem(ONBOARDING_KEY);
       if (!done) {
         setWizardCancelable(false);
@@ -1978,19 +2028,76 @@ export default function App() {
   }, [accountUser?.id]);
 
   useEffect(() => {
-    if (!accountUser) return;
+    const url = new URL(window.location.href);
+    const urlIntentRaw = url.searchParams.get("intent");
+    const urlSubTask = url.searchParams.get("subtask");
+    const urlWantsTemplate = url.searchParams.get("template") === "1";
+    const urlIntent = TEMPLATE_INTENTS.some((item) => item.id === urlIntentRaw)
+      ? (urlIntentRaw as typeof TEMPLATE_INTENTS[number]["id"])
+      : null;
     const pendingIntent = consumePendingTemplateIntent();
-    if (!pendingIntent) return;
+    const resolvedIntent = urlIntent ?? pendingIntent;
+    if (!resolvedIntent) return;
+    const pendingSubTask = consumePendingTemplateSubTask();
+    const resolvedSubTask = urlSubTask
+      ?? (urlIntent ? null : pendingSubTask);
+    const fromLandingEntry = Boolean(pendingIntent || urlWantsTemplate);
+    const initialSubTaskId = fromLandingEntry ? null : resolvedSubTask;
+    const initialScope = fromLandingEntry ? "all" : "recommended";
+    const indexList = getTemplateIndex();
+    const defaultTemplateId = initialSubTaskId
+      ? getTemplatesForSubTask(indexList, resolvedIntent, initialSubTaskId)[0]?.id ?? null
+      : pickDefaultTemplateForIntent(resolvedIntent, indexList);
+    setTemplateWorkspaceState((s) => ({
+      ...s,
+      templateWorkspaceView: "market",
+      myTemplateSection: "owned",
+      scope: initialScope,
+      selectedIntentId: resolvedIntent,
+      selectedSubTaskId: initialSubTaskId,
+      selectedCategory: null,
+      selectedFamilyId: null,
+      selectedTemplateId: defaultTemplateId,
+      searchQuery: "",
+      showAllTemplatesInSubTask: false,
+      filters: {
+        mediaType: "all",
+        storyPlan: "all",
+        ratio: "all",
+        pricing: "all",
+        industry: "all"
+      }
+    }));
+    if (pendingIntent || urlWantsTemplate) {
+      setIsTemplateWorkspaceOpen(true);
+    }
+    if (urlIntent || urlWantsTemplate || urlSubTask) {
+      url.searchParams.delete("template");
+      url.searchParams.delete("intent");
+      url.searchParams.delete("subtask");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+  }, [accountUser?.id]);
+
+  useEffect(() => {
+    if (!accountUser) return;
+    const pendingShare = consumePendingSharePayload();
+    if (!pendingShare) return;
+    const template = getTemplateIndex().find(
+      (item) => item.familyId === pendingShare.familyId && item.variant === pendingShare.variantId
+    ) ?? null;
     setTemplateWorkspaceState((s) => ({
       ...s,
       templateWorkspaceView: "market",
       myTemplateSection: "owned",
       scope: "recommended",
-      selectedIntentId: pendingIntent,
+      selectedIntentId: (pendingShare.intentId as any) ?? s.selectedIntentId,
+      selectedSubTaskId: pendingShare.subTaskId ?? s.selectedSubTaskId,
       selectedCategory: null,
-      selectedFamilyId: null,
-      selectedTemplateId: null,
+      selectedFamilyId: pendingShare.familyId ?? template?.familyId ?? null,
+      selectedTemplateId: template?.id ?? null,
       searchQuery: "",
+      showAllTemplatesInSubTask: false,
       filters: {
         mediaType: "all",
         storyPlan: "all",
@@ -3181,6 +3288,57 @@ export default function App() {
     }).finalCopyPrompt.trim();
   }
 
+  function buildQuickSharePayload(): SharePayload {
+    const selectedPlatform = (() => {
+      const hit = (scene.notes ?? "").split("\n").find((line) => line.startsWith("quick_platform:"));
+      return hit?.slice("quick_platform:".length).trim() || savePlatformId;
+    })();
+    const selectedStyle = (() => {
+      const hit = (scene.notes ?? "").split("\n").find((line) => line.startsWith("quick_style:"));
+      return hit?.slice("quick_style:".length).trim() || undefined;
+    })();
+    const currentTemplate = safeProject.meta?.currentTemplate;
+    return {
+      intentId: templateWorkspaceState.selectedIntentId ?? "sell_product",
+      subTaskId: templateWorkspaceState.selectedSubTaskId ?? "default",
+      familyId: currentTemplate?.familyId ?? "custom",
+      variantId: currentTemplate?.variantId ?? "custom",
+      mainSubjectPrompt: scene.layers?.[0]?.externalPrompt ?? "",
+      aspectRatio: scene.aspectRatio ?? "16:9",
+      styleDirection: selectedStyle,
+      platformId: selectedPlatform,
+      promptText: buildScenePromptText(scene, selectedPlatform as SavePlatformId),
+      resultImageUrl: currentSceneActiveAsset?.imageUrl || currentSceneActiveAsset?.posterUrl || undefined,
+      createdAt: Date.now()
+    };
+  }
+
+  async function handleQuickShare() {
+    const payload = buildQuickSharePayload();
+    const url = `${window.location.origin}/s#${encodeSharePayload(payload)}`;
+    await navigator.clipboard.writeText(url);
+    feedbackBarRef.current?.pushMessage(lang === "zh" ? "已复制分享链接" : "Share link copied");
+  }
+
+  function handleQuickGenerate() {
+    if (!canUseHostedGeneration(accountUser)) {
+      openQuickGenerationGate();
+      return;
+    }
+    const seconds = Math.max(1, Math.ceil(Number(scene?.duration_s) || 5));
+    const cost = creditCostForProfile(currentGenProfile, mediaMode === "video" ? seconds : 1);
+    if (accountCredits < cost) {
+      openQuickGenerationGate();
+      return;
+    }
+    void generateProAsset();
+  }
+
+  function handleQuickLocalPath() {
+    setGenerationGateOpen(false);
+    openAccountCenter("local");
+  }
+
   async function ensureFreshSubDir(parent: any, dirName: string): Promise<any> {
     try {
       await parent.removeEntry(dirName, { recursive: true });
@@ -3932,7 +4090,8 @@ export default function App() {
               setTemplateWorkspaceState((s) => ({
                 ...s,
                 selectedTemplateId: templateId,
-                selectedFamilyId: index?.familyId ?? s.selectedFamilyId
+                selectedFamilyId: index?.familyId ?? s.selectedFamilyId,
+                showAllTemplatesInSubTask: false
               }));
               setIsTemplateWorkspaceOpen(true);
             }}
@@ -3942,15 +4101,15 @@ export default function App() {
           <div
             style={{
               gridColumn: useDesktopFixedLayout ? "2 / -1" : undefined,
-              display: useDesktopFixedLayout ? "grid" : "flex",
-              gridTemplateColumns: useDesktopFixedLayout ? "minmax(0, 1fr) clamp(240px, 26vw, 344px)" : undefined,
+              display: useDesktopFixedLayout && !isTemplateWorkspaceOpen ? "grid" : "flex",
+              gridTemplateColumns: useDesktopFixedLayout && !isTemplateWorkspaceOpen ? "minmax(0, 1fr) clamp(240px, 26vw, 344px)" : undefined,
               flex: useDesktopFixedLayout ? undefined : 1,
               minWidth: 0,
               minHeight: 0
             }}
           >
             {isTemplateWorkspaceOpen ? (
-              <div style={{ gridColumn: "1 / -1", minWidth: 0, minHeight: 0, display: "flex" }}>
+              <div style={{ gridColumn: "1 / -1", flex: 1, width: "100%", minWidth: 0, minHeight: 0, display: "flex" }}>
                 <TemplateWorkspace
                   lang={lang}
                   state={templateWorkspaceState}
@@ -3965,7 +4124,21 @@ export default function App() {
                 />
               </div>
             ) : canUseProConsole(accountUser) ? (
-              <div style={{ gridColumn: "1 / -1", minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
+              <div style={{ gridColumn: "1 / -1", minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", position: "relative" }}>
+                {templateWorkspaceState.isQuickModeActive && !templateWorkspaceState.quickModeDismissed ? (
+                  <div style={{ position: "absolute", top: 12, right: 12, zIndex: 30 }}>
+                    <QuickGeneratePanel
+                      scene={scene}
+                      lang={lang}
+                      onUpdateScene={(nextScene) => updateScene(nextScene)}
+                      onDismiss={() => setTemplateWorkspaceState((s) => ({ ...s, quickModeDismissed: true }))}
+                      onGenerate={handleQuickGenerate}
+                      onCopyPrompt={handleCopyPrompt}
+                      onShare={() => void handleQuickShare()}
+                      onPickReference={() => void handleQuickPickReference()}
+                    />
+                  </div>
+                ) : null}
                 <ProWorkspaceShell
                   lang={lang}
                   project={safeProject}
@@ -4459,29 +4632,6 @@ export default function App() {
               setEditT(tv);
               trackEditorChange("timeline", "set_t", { t: tv }, lang);
             }}
-            bottomSlot={
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {proGenerateHint ? (
-                  <div style={{ ...styles.proGenerateToast, position: "relative", right: "auto", bottom: "auto" }}>{proGenerateHint}</div>
-                ) : null}
-                <div style={{ ...styles.proCanvasFooter, justifyContent: "center" }}>
-                  <div style={styles.proGenerateHandle}>
-                    <button
-                      type="button"
-                      className="pro-btn-ghost"
-                      style={styles.proGenerateBtnSecondary}
-                      onClick={() => void generateProAsset()}
-                      disabled={proGenerateBusy}
-                      title={lang === "zh" ? "主生成区在下方" : "Main generate is below"}
-                    >
-                      {proGenerateBusy
-                        ? (lang === "zh" ? "生成中…" : "Generating…")
-                        : (lang === "zh" ? "生成" : "Generate")}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            }
           />
           </div>
 
@@ -4562,6 +4712,34 @@ export default function App() {
             return;
           }
           void handleOpenCustomerPortal();
+        }}
+      />
+
+      <GenerationGatePanel
+        open={generationGateOpen}
+        lang={lang}
+        canUseLocal={canUseProConsole(accountUser)}
+        onClose={() => setGenerationGateOpen(false)}
+        onCopyPrompt={() => {
+          setGenerationGateOpen(false);
+          handleCopyPrompt();
+        }}
+        onTopUp={() => {
+          setGenerationGateOpen(false);
+          openBillingPage("credits");
+        }}
+        onLocalGenerate={handleQuickLocalPath}
+      />
+
+      <input
+        ref={quickRefInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0] ?? null;
+          void handleQuickReferenceChange(file);
+          e.currentTarget.value = "";
         }}
       />
 
