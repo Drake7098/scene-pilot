@@ -2002,6 +2002,36 @@ export default function App() {
     void refreshAccountState();
   }, [refreshAccountState]);
 
+  // Handle /signin -> /app?signin=1&redirect=... bootstrap in-app.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const signinRaw = String(url.searchParams.get(SIGNIN_QUERY_KEY) || "").trim().toLowerCase();
+    const wantsSignin = ["1", "true", "yes"].includes(signinRaw);
+    const redirectRaw = url.searchParams.get(REDIRECT_QUERY_KEY);
+    const redirectTarget = normalizePostAuthRedirect(redirectRaw);
+
+    if (!wantsSignin && !redirectTarget) return;
+
+    if (redirectTarget) {
+      savePostAuthRedirect(redirectTarget);
+      setPostAuthRedirect(redirectTarget);
+    }
+
+    if (wantsSignin && !accountUser) {
+      setAuthStep("email");
+      setAuthPassword("");
+      setAuthCode("");
+      setAuthHint("");
+      setAccountCenterSection("auth");
+      setAccountCenterOpen(true);
+    }
+
+    url.searchParams.delete(SIGNIN_QUERY_KEY);
+    url.searchParams.delete(REDIRECT_QUERY_KEY);
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [accountUser]);
+
   useEffect(() => {
     saveLastTemplateIntent(templateWorkspaceState.selectedIntentId);
   }, [templateWorkspaceState.selectedIntentId]);

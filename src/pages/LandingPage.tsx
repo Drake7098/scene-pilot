@@ -114,7 +114,7 @@ const COPY = {
     title: "提示词写了十遍\n结果还是不对",
     subtitle: "提示词越写越长，结果越跑越偏。\nScenePilotix 用分镜结构替代自由文本——\n主体位置、镜头语言、光影情绪，一次说清。",
     tagline: "首次生成成功率提升 3×",
-    ctaMain: "免费开始",
+    ctaMain: "进入工作台",
     ctaSub: "工作台",
     taskTitle: "直接说你要做什么",
     painTitle: "你一定遇过这些",
@@ -144,7 +144,7 @@ const COPY = {
     title: "Wrote the prompt\nten times. Still wrong.",
     subtitle: "The longer your prompt, the further off the result.\nScenePilotix replaces free-text guessing with scene structure —\nsubject position, camera language, mood. Say it once, get it right.",
     tagline: "3× higher first-generation success rate",
-    ctaMain: "Start Free",
+    ctaMain: "Open Workspace",
     ctaSub: "Workspace",
     taskTitle: "Go straight to the job",
     painTitle: "Sound familiar?",
@@ -704,10 +704,11 @@ const taskSectionHead: CSSProperties = {
 };
 const sectionLead: CSSProperties = {
   margin: 0,
-  fontSize: 11,
-  fontWeight: 700,
+  fontSize: 12,
+  fontWeight: 600,
   color: C.textMuted,
-  letterSpacing: "0.08em",
+  lineHeight: 1.4,
+  letterSpacing: "0.05em",
   textTransform: "uppercase",
   textAlign: "left",
   paddingLeft: "calc((100% - 688px) / 6)",
@@ -823,10 +824,11 @@ const solveSectionWrap: CSSProperties = {
 };
 const sectionLabel: CSSProperties = {
   margin: 0,
-  fontSize: 11,
-  fontWeight: 700,
+  fontSize: 12,
+  fontWeight: 600,
   color: C.textMuted,
-  letterSpacing: "0.08em",
+  lineHeight: 1.4,
+  letterSpacing: "0.05em",
   textTransform: "uppercase",
   textAlign: "center",
 };
