@@ -7,6 +7,9 @@ import { getLayerAnchorId, stageMarkAnchor } from "../../../features/stage-edito
 import { getStageObjectState, writeLayoutLocked } from "../../../features/stage-editor/guards/stageObjectState";
 import { deleteRefBlob, getRefBlob, putRefBlob } from "../../../utils/localRefs";
 import { FIGMA_COLORS } from "../constants";
+import { editorTheme } from "../../../theme/editorTheme";
+
+const { typography, spacing, sizing, radius } = editorTheme;
 
 type Props = {
   lang: Lang;
@@ -194,7 +197,7 @@ export function ObjectEditorPanel({
         <EditorSection title={lang === "zh" ? "当前对象" : "Current object"} defaultOpen={true}>
           {/* Layer rename */}
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: FIGMA_COLORS.textMuted, marginBottom: 4 }}>
+            <div style={{ fontSize: typography.labelSize, fontWeight: typography.labelWeight, color: FIGMA_COLORS.textMuted, marginBottom: spacing.labelToControl }}>
               {lang === "zh" ? "对象 ID" : "Object ID"}
             </div>
             {idEditing ? (
@@ -212,24 +215,30 @@ export function ObjectEditorPanel({
                 onBlur={commitRename}
                 style={{
                   width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: 6,
+                  minHeight: sizing.controlHeight,
+                  padding: `0 ${spacing.inputPaddingX}px`,
+                  borderRadius: radius.input,
                   border: `1px solid ${FIGMA_COLORS.border}`,
                   background: FIGMA_COLORS.bg,
                   color: FIGMA_COLORS.text,
-                  fontSize: 12,
+                  fontSize: typography.bodySize,
+                  fontWeight: typography.bodyWeight,
                 }}
               />
             ) : (
               <div
                 onClick={() => onRenameLayer && setIdEditing(true)}
                 style={{
-                  padding: "6px 10px",
-                  borderRadius: 6,
+                  minHeight: sizing.controlHeight,
+                  padding: `0 ${spacing.inputPaddingX}px`,
+                  display: "flex",
+                  alignItems: "center",
+                  borderRadius: radius.input,
                   border: `1px solid ${FIGMA_COLORS.border}`,
                   background: FIGMA_COLORS.bg,
                   color: FIGMA_COLORS.text,
-                  fontSize: 12,
+                  fontSize: typography.bodySize,
+                  fontWeight: typography.bodyWeight,
                   cursor: onRenameLayer ? "pointer" : "default",
                 }}
                 title={onRenameLayer ? (lang === "zh" ? "点击改名" : "Click to rename") : undefined}
@@ -244,7 +253,7 @@ export function ObjectEditorPanel({
             value={selectedLayer.type ?? ""}
             onChange={(v) => onUpdateLayer(selectedLayer.id, { type: v })}
             options={[
-              { value: "", label: lang === "zh" ? "（未填）" : "(empty)" },
+              { value: "", label: lang === "zh" ? "未填" : "Unset" },
               { value: "character", label: lang === "zh" ? "人物" : "Character" },
               { value: "subject", label: lang === "zh" ? "主体" : "Subject" },
               { value: "station", label: lang === "zh" ? "空间站" : "Station" },
