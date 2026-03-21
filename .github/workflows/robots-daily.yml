@@ -1,6 +1,9 @@
 name: Robots Daily
 
 on:
+  push:
+    branches:
+      - develop
   workflow_dispatch:
   schedule:
     - cron: "0 1 * * *"
