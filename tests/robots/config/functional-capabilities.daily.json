@@ -1,0 +1,30 @@
+{
+  "requiredCapabilities": [
+    {
+      "id": "api.security.hardening",
+      "label": "API 鉴权/CORS/Webhook 安全基线",
+      "severity": "blocker",
+      "specs": [
+        "tests/robots/scenarios/security-hardening.spec.ts"
+      ]
+    },
+    {
+      "id": "prompt.structure.stability",
+      "label": "结构草稿与提示词尾部稳定性",
+      "severity": "blocker",
+      "specs": [
+        "tests/robots/scenarios/structure-draft-rules.spec.ts",
+        "tests/robots/scenarios/prompt-tail-split.spec.ts"
+      ]
+    },
+    {
+      "id": "prompt.reference.integrity",
+      "label": "参考图链接与自适应补丁完整性",
+      "severity": "high",
+      "specs": [
+        "tests/robots/scenarios/ref-attachment-guard.spec.ts",
+        "tests/robots/scenarios/combat-adaptive-patch.spec.ts"
+      ]
+    }
+  ]
+}

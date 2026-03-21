@@ -3,7 +3,9 @@ import path from "node:path";
 
 const artifactsDir = path.resolve("tests/robots/artifacts");
 const resultsPath = path.join(artifactsDir, "results.json");
-const manifestPath = path.resolve("tests/robots/config/functional-capabilities.json");
+const manifestPath = path.resolve(
+  process.env.ROBOT_FUNCTIONAL_MANIFEST || "tests/robots/config/functional-capabilities.json"
+);
 const outJsonPath = path.join(artifactsDir, "functional-audit.json");
 const outMdPath = path.join(artifactsDir, "functional-audit.md");
 

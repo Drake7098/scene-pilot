@@ -28,9 +28,8 @@ jobs:
 
       - name: Run robot suite (live)
         env:
-          APP_URL: http://127.0.0.1:5173
           ROBOT_E2E_LIVE: "1"
-        run: npm run robots:run
+        run: npm run engine:lock:check && node tests/robots/scripts/run-robots-daily.mjs
 
       - name: Upload robot artifacts
         if: always()
