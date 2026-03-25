@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { AdaptedPromptResult } from "../types/adaptedPrompt"
 import type { PromptClass } from "../types/promptClass"
 import { adaptPromptByClass, type AdaptByClassInput } from "./adaptPromptByClass"

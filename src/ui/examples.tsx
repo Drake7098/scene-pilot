@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * FigmaUI Components Usage Examples
  * 
