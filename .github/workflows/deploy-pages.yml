@@ -1,34 +1,20 @@
-# Deploy to Cloudflare Pages on push (Direct Upload path).
-# Requires GitHub Secrets: CLOUDFLARE_API_TOKEN, CF_ACCOUNT_ID.
-# Optional: disable this workflow and use Cloudflare "Connect to Git" instead (see docs/cloudflare-deploy-options.md).
-
 name: Deploy to Cloudflare Pages
 
 on:
   push:
     branches:
-      - develop
       - main
-
-concurrency:
-  group: deploy-pages-${{ github.ref }}
-  cancel-in-progress: true
+      - develop
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     env:
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
       CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
 
-      - name: Validate deploy credentials (main)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          if [ -z "${CF_API_TOKEN}" ]; then
-            echo "Missing prod deploy token. Set CF_API_TOKEN (or shared CLOUDFLARE_API_TOKEN / CF_API_TOKEN)." >&2
-            exit 1
-          fi
-
+    steps:
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -44,14 +30,14 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Deploy to Cloudflare Pages (develop → scenepilotix)
+      - name: Deploy develop → scenepilotix
         if: github.ref == 'refs/heads/develop'
         run: npx -y wrangler pages deploy dist --project-name=scenepilotix
         env:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
 
-      - name: Deploy to Cloudflare Pages (main → scenepilotix1-prod)
+      - name: Deploy main → scenepilotix1-prod
         if: github.ref == 'refs/heads/main'
         run: npx -y wrangler pages deploy dist --project-name=scenepilotix1-prod
         env:
