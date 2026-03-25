@@ -2333,7 +2333,7 @@ export default function App() {
         ),
     });
     if (!guardResult.allowed) return;
-    if (!requestProAccess("pro")) return;
+
     openCreateWizard(false);
     trackProjectFlow(
       "wizard_open",
@@ -2457,7 +2457,7 @@ export default function App() {
         ? await (maybe as Promise<boolean>)
         : false;
       if (!ok) return;
-      if (!requestProAccess("pro")) return;
+  
       setNewProjectConfirmOpen(false);
       openCreateWizard(false);
       trackProjectFlow("wizard_open", { withSave: true }, lang);
@@ -2468,7 +2468,7 @@ export default function App() {
 
   function createNewProjectDirectly() {
     setNewProjectConfirmOpen(false);
-    if (!enterProWorkspace()) return;
+
     setProjectSavePlatformLockedPersist(false);
     openCreateWizard(false);
     trackProjectFlow("wizard_open", { withSave: false }, lang);
@@ -2581,7 +2581,7 @@ export default function App() {
     setLabelPersist(projectFileName);
     setProjectSavePlatformLockedPersist(false);
     updateProject(p);
-    if (!enterProWorkspace()) return;
+
     setWizardOpen(false);
     markOnboardingDone();
     trackProjectFlow("project_create", { media: wizardDraft.mediaType, shotPlan: wizardDraft.shotPlan, sceneTier: wizardDraft.sceneTier }, lang);
@@ -3127,7 +3127,7 @@ export default function App() {
   }
 
   function openProWizardFromResults() {
-    if (!requestProAccess("pro")) return;
+
     openCreateWizard(false);
   }
 
