@@ -19,4 +19,5 @@ export type ProWorkspaceSection =
   | "constraints"
   | "prompt_preview"
   | "export"
-  | "platform";
+  | "platform"
+  | "scene";  // legacy alias

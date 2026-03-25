@@ -36,4 +36,14 @@ export type TemplateIndex = {
   featured: boolean;
   preview?: string;
   variant?: TemplateVariant;
+  /** Legacy templates are frozen for compare-only usage. */
+  isLegacy?: boolean;
+  /** Enabled templates are visible in UI and can be applied. */
+  isEnabled?: boolean;
+  /** Online templates are allowed for online/release pools. */
+  isOnline?: boolean;
+  /** Experiment-only templates. */
+  isExperiment?: boolean;
+  /** Benchmark templates for rebuild phases. */
+  isBenchmark?: boolean;
 };

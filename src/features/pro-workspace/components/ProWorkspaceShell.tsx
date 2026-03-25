@@ -34,7 +34,7 @@ import { PlatformAdaptPanel }       from "./PlatformAdaptPanel";
 
 import { Stage }                    from "../../../components/Stage";
 import { resolveSceneConfig }       from "../../../model";
-// GenerationSourceBar removed from canvas
+import type { GenerationSource } from "./EngineSelectSection";
 import type { ApiCredentialState } from "../../../types/account";
 import type { LocalProviderStatus } from "../../../utils/localGeneration";
 import { detectSceneConflicts }     from "../../../utils/conflictRules";
@@ -65,6 +65,9 @@ type Props = {
   onSelectLayer: (id: string | null) => void;
   onUpdateScene: (s: Scene) => void;
   onRenameLayer?: (oldId: string, newId: string) => void;
+  onAddLayer?: () => void;
+  onDeleteLayer?: (layerId: string) => void;
+  onUpdateLayer?: (layerId: string, patch: Partial<import("../../../model").Layer>) => void;
   editT: 0 | 1;
   setEditT: (t: 0 | 1) => void;
   platformId: string;

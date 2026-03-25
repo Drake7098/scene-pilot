@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom";
 import type { Lang } from "./i18n";
 import { defaultProject, resolveSceneConfig, sanitizeProject } from "./model";
-import type { Project, Scene, ShotPlan, TransitionType } from "./model";
+import type { Project, Scene, SceneCompiler, ShotPlan, TransitionType } from "./model";
 import { loadLang, saveLang, loadProject, saveProject } from "./utils/storage";
 
 import { Sidebar } from "./components/Sidebar";
@@ -2541,7 +2541,7 @@ export default function App() {
         layers: [buildDefaultObjectLayer(lang, 1)],
         config: {
           mediaMode: media,
-          compiler: "v3" as const,
+          compiler: "v3" as SceneCompiler,
           sceneTier,
           v2Mode: "strict",
           stability: "standard"
