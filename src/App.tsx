@@ -4262,7 +4262,7 @@ export default function App() {
                     setSelectedLayerId(newId);
                     trackEditorChange("layer", "add", { id: newId }, lang);
                   }}
-                  onDeleteLayer={(layerId) => {
+                  onDeleteLayer={(layerId: string) => {
                     updateScene({ ...scene, layers: (scene.layers ?? []).filter(l => l.id !== layerId) });
                     if (selectedLayerId === layerId) setSelectedLayerId(null);
                     trackEditorChange("layer", "delete", { id: layerId }, lang);
@@ -4274,7 +4274,7 @@ export default function App() {
                   onPlatformChange={(id) => syncSavePlatform(id as SavePlatformId)}
                   exportMode={proExportMode}
                   onExportModeChange={handleProExportModeChange}
-                  generationSource={proGenerationSource}
+                  generationSource={proGenerationSource ?? "hosted"}
                   onGenerationSourceChange={(s) => setProGenerationSourceAndPersist(s as any)}
                   canUseByo={canUseByoAccess}
                   onCopyPrompt={handleCopyPrompt}

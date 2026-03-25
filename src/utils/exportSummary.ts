@@ -15,7 +15,7 @@ export type ExportSummary = {
   sceneStrategyDirectorIds: string[];
   exportScope: "current_scene" | "continuous_sequence";
   mediaMode: "image" | "video";
-  compiler: "v1" | "v2";
+  compiler: "v1" | "v2" | "v3";
   workspace: "quick" | "pro";
   engineId: string;
   imageCleanupApplied: boolean;
