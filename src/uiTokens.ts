@@ -16,9 +16,9 @@ export const UI_FONT = {
 } as const;
 
 export const UI_RADIUS = {
-  panel: 16,
-  control: 12,
-  chip: 999
+  panel: 6,
+  control: 4,
+  chip: 4
 } as const;
 
 export const UI_SPACE = {

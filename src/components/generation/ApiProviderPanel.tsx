@@ -55,8 +55,10 @@ function Field({ label, value, onChange, placeholder, mono, type = "text", hint,
           placeholder={placeholder}
           style={{
             flex: 1, fontSize: 12, padding: "7px 10px",
-            background: C.bg, border: `1px solid ${C.border}`,
-            borderRadius: 6, color: C.text, outline: "none",
+            background: "transparent",
+            border: "none",
+            borderBottom: `1px solid ${C.border}`,
+            borderRadius: 0, color: C.text, outline: "none",
             fontFamily: mono ? "monospace" : "inherit",
           }}
         />
@@ -104,8 +106,8 @@ function ExternalProviderCard({ lang, id, cred, onChange, isDefault, onSetDefaul
 
   return (
     <div style={{
-      border: `1px solid ${cred.enabled ? C.border : "rgba(58,63,70,0.4)"}`,
-      borderRadius: 10, background: C.panel,
+      borderBottom: `1px solid ${C.border}`,
+      paddingBottom: 16,
       opacity: cred.enabled ? 1 : 0.55,
     }}>
       {/* Header */}
@@ -179,8 +181,8 @@ function LocalProviderCard({ lang, title, status, url, onUrl, urlPlaceholder, st
 
   return (
     <div style={{
-      border: `1px solid ${isReady ? C.green + "55" : C.border}`,
-      borderRadius: 10, background: C.panel, padding: "12px 14px",
+      borderLeft: `2px solid ${isReady ? C.green : C.border}`,
+      paddingLeft: 12, paddingBottom: 12,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
         <StatusDot ok={isReady ? true : status.state === "idle" ? undefined : false} checking={isChecking} />
@@ -266,10 +268,7 @@ export function ApiProviderPanel({ lang, apiCredentials, onSave, hasProAccess, o
   if (!hasProAccess) {
     return (
       <div style={{ padding: "16px 0" }}>
-        <div style={{
-          padding: "18px", borderRadius: 10,
-          background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)",
-        }}>
+        <div style={{ padding: "4px 0" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 }}>
             {t(lang, "API 接入（Pro 功能）", "API Access (Pro feature)")}
           </div>

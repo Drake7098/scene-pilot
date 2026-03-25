@@ -8,7 +8,7 @@ import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_INFO, UI_PALETTE, UI_RAD
 export type NewProjectMedia = "image" | "video";
 export type CreateStep = "media" | "setup" | "done";
 export type DurationMode = "average" | "manual";
-export type RatioOption = "16:9" | "9:16" | "1:1";
+export type RatioOption = "16:9" | "9:16" | "1:1" | "4:5" | "2:3" | "3:4" | "21:9";
 export type SceneTier = "indoor" | "small_plaza" | "open_space";
 export type WizardDraft = {
   projectName: string;
@@ -334,6 +334,10 @@ export function CreateWizard(props: Props) {
                 <option value="16:9">16:9</option>
                 <option value="9:16">9:16</option>
                 <option value="1:1">1:1</option>
+                <option value="4:5">4:5</option>
+                <option value="2:3">2:3</option>
+                <option value="3:4">3:4</option>
+                <option value="21:9">21:9</option>
               </select>
             </div>
             <div style={styles.modalBtns}>
@@ -364,7 +368,7 @@ export function CreateWizard(props: Props) {
             {stepHeader}
             <div style={styles.modalTitle}>{lang === "zh" ? "准备好了" : "You're all set"}</div>
             <ul style={{ margin: "16px 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.8, color: "rgba(229,231,235,0.95)" }}>
-              <li>{lang === "zh" ? "左侧面板：选镜头景别、运镜方式、光线情绪，600+ 场景模板直接套用" : "Left: shot type, camera movement, lighting mood — 600+ templates ready to apply"}</li>
+              <li>{lang === "zh" ? "左侧面板：选镜头景别、运镜方式、光线情绪，100+ V3商业模板直接套用" : "Left: shot type, camera movement, lighting mood — 100+ V3 commercial templates ready"}</li>
               <li>{lang === "zh" ? "右侧面板：设置背景氛围、上传参考图、逐一描述画面对象细节" : "Right: background style, reference images, per-object descriptions"}</li>
               <li>{lang === "zh" ? "填好结构，本地直接生成，或复制提示词到你常用的 AI 平台，多平台适配" : "Fill the structure, generate locally or copy the prompt to any AI platform — works everywhere"}</li>
             </ul>

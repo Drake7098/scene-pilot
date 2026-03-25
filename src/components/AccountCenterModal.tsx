@@ -109,6 +109,7 @@ export function AccountCenterModal(props: Props) {
   const [apiDraft, setApiDraft] = useState<ApiCredentialState>(() => normalizeApiCredentialsForForm(apiCredentials));
   const [activeLegalDoc, setActiveLegalDoc] = useState<LegalDocId | null>(null);
   const [consentShake, setConsentShake] = useState(false);
+  const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const consentRef = useRef<HTMLDivElement | null>(null);
 
   function shakeConsent() {
@@ -388,7 +389,7 @@ export function AccountCenterModal(props: Props) {
                 {/* User info card */}
                 <div style={{
                   display: "flex", alignItems: "center", gap: 14,
-                  padding: "16px", borderRadius: 10,
+                  padding: "16px", borderRadius: 6,
                   background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
                   marginBottom: 16,
                 }}>
@@ -405,7 +406,7 @@ export function AccountCenterModal(props: Props) {
                     </div>
                     <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3, display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{
-                        padding: "1px 7px", borderRadius: 8, fontSize: 10, fontWeight: 700,
+                        padding: "1px 7px", borderRadius: 4, fontSize: 10, fontWeight: 700,
                         background: hasProAccess ? "rgba(245,158,11,0.15)" : "rgba(156,163,175,0.15)",
                         color: hasProAccess ? "#f59e0b" : "#9ca3af",
                         border: `1px solid ${hasProAccess ? "rgba(245,158,11,0.3)" : "rgba(156,163,175,0.3)"}`,
@@ -421,7 +422,7 @@ export function AccountCenterModal(props: Props) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <button type="button" onClick={() => onSectionChange("credits")} style={{
                     display: "flex", alignItems: "center", gap: 10,
-                    padding: "11px 14px", borderRadius: 8, cursor: "pointer",
+                    padding: "11px 14px", borderRadius: 4, cursor: "pointer",
                     border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "#e5e7eb",
                     fontSize: 13, textAlign: "left" as const,
                   }}>
@@ -436,7 +437,7 @@ export function AccountCenterModal(props: Props) {
                   {!hasProAccess && (
                     <button type="button" onClick={() => onSectionChange("pro")} style={{
                       display: "flex", alignItems: "center", gap: 10,
-                      padding: "11px 14px", borderRadius: 8, cursor: "pointer",
+                      padding: "11px 14px", borderRadius: 4, cursor: "pointer",
                       border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.06)", color: "#e5e7eb",
                       fontSize: 13, textAlign: "left" as const,
                     }}>
@@ -452,7 +453,7 @@ export function AccountCenterModal(props: Props) {
                   {subscription?.status === "active" && (
                     <button type="button" onClick={onOpenCustomerPortal} disabled={!billingEnabled || billingBusy} style={{
                       display: "flex", alignItems: "center", gap: 10,
-                      padding: "11px 14px", borderRadius: 8, cursor: "pointer",
+                      padding: "11px 14px", borderRadius: 4, cursor: "pointer",
                       border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "#e5e7eb",
                       fontSize: 13, textAlign: "left" as const,
                     }}>
@@ -485,7 +486,7 @@ export function AccountCenterModal(props: Props) {
                 {/* Current balance */}
                 <div style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 16px", borderRadius: 10,
+                  padding: "14px 16px", borderRadius: 6,
                   background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)",
                   marginBottom: 16,
                 }}>
@@ -512,23 +513,23 @@ export function AccountCenterModal(props: Props) {
                       <button
                         key={pack.id}
                         type="button"
-                        onClick={() => onPurchasePack(pack.id)}
+                        onClick={() => setSelectedPackId(pack.id === selectedPackId ? null : pack.id)}
                         disabled={!billingEnabled || billingBusy || !billingLegalAccepted}
                         data-testid={`account-credit-pack-${pack.id}`}
                         style={{
-                          flex: 1, padding: "14px 10px", borderRadius: 10, cursor: "pointer",
-                          border: isBest ? "2px solid #f59e0b" : "1px solid #3a3f46",
-                          background: isBest ? "rgba(245,158,11,0.06)" : "#24262b",
+                          flex: 1, padding: "14px 10px", borderRadius: 6, cursor: "pointer",
+                          border: selectedPackId === pack.id ? "2px solid #f59e0b" : isBest ? "1px solid rgba(245,158,11,0.3)" : "1px solid #3a3f46",
+                          background: selectedPackId === pack.id ? "rgba(245,158,11,0.1)" : isBest ? "rgba(245,158,11,0.03)" : "#24262b",
                           color: "#e5e7eb", textAlign: "center", position: "relative",
                           transition: "border-color 0.1s",
-                          opacity: (!billingEnabled || billingBusy || !billingLegalAccepted) ? 0.5 : 1,
+                          opacity: (!billingEnabled || billingBusy) ? 0.5 : 1,
                         }}
                       >
                         {isBest && (
                           <div style={{
                             position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)",
                             background: "#f59e0b", color: "#111", fontSize: 9, fontWeight: 700,
-                            padding: "2px 8px", borderRadius: 10,
+                            padding: "2px 8px", borderRadius: 6,
                           }}>{t(lang, "最划算", "Best Value")}</div>
                         )}
                         <div style={{ fontSize: 20, fontWeight: 700, color: "#f59e0b", marginBottom: 2 }}>
@@ -547,6 +548,37 @@ export function AccountCenterModal(props: Props) {
                     );
                   })}
                 </div>
+
+                {/* Confirm button */}
+                {selectedPackId && (
+                  <button
+                    type="button"
+                    disabled={!billingEnabled || billingBusy}
+                    onClick={() => {
+                      if (!billingLegalAccepted) {
+                        setConsentShake(true);
+                        setTimeout(() => setConsentShake(false), 700);
+                        consentRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                        return;
+                      }
+                      onPurchasePack(selectedPackId);
+                    }}
+                    style={{
+                      width: "100%", padding: "11px 0", borderRadius: 4,
+                      border: "none",
+                      background: billingLegalAccepted ? "#f59e0b" : "#3a3f46",
+                      color: billingLegalAccepted ? "#111" : "#9ca3af",
+                      fontSize: 13, fontWeight: 700,
+                      cursor: (!billingEnabled || billingBusy) ? "not-allowed" : "pointer",
+                      marginBottom: 8,
+                    }}
+                  >
+                    {billingBusy ? t(lang, "处理中…", "Processing…") : (() => {
+                      const p = creditPacks.find(pk => pk.id === selectedPackId);
+                      return p ? t(lang, `购买 ${p.credits} 积分 — $${p.usdPrice}`, `Buy ${p.credits} credits — $${p.usdPrice}`) : t(lang, "确认购买", "Confirm");
+                    })()}
+                  </button>
+                )}
 
                 {/* Legal consent — compact */}
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 12 }}>
@@ -596,7 +628,7 @@ export function AccountCenterModal(props: Props) {
                   <div>
                     <div style={{
                       display: "flex", alignItems: "center", gap: 10,
-                      padding: "14px 16px", borderRadius: 10,
+                      padding: "14px 16px", borderRadius: 6,
                       background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)",
                       marginBottom: 16,
                     }}>
@@ -620,9 +652,8 @@ export function AccountCenterModal(props: Props) {
                   <div>
                     {/* Hero card */}
                     <div style={{
-                      padding: "20px", borderRadius: 12, marginBottom: 16,
-                      background: "linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.04) 100%)",
-                      border: "1px solid rgba(245,158,11,0.25)",
+                      padding: "16px 0", marginBottom: 16,
+                      borderBottom: "1px solid rgba(255,255,255,0.08)",
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                         <Crown size={20} style={{ color: "#f59e0b" }} />
@@ -633,10 +664,10 @@ export function AccountCenterModal(props: Props) {
                       </div>
                       {/* Benefits list */}
                       {[
-                        [t(lang, "每月 700 积分", "700 credits/month"), t(lang, "约 230 次图片生成", "≈ 230 image generations")],
+                        [t(lang, "每月积分补充", "Monthly credit refill"), t(lang, "每月随套餐配额", "Included with plan")],
                         [t(lang, "接入自己的 API Key", "Bring your own API key"), t(lang, "fal / Runway — 不消耗积分", "fal / Runway — no credits used")],
                         [t(lang, "本地生成", "Local generation"), t(lang, "ComfyUI / Draw Things 接入", "ComfyUI / Draw Things")],
-                        [t(lang, "专业模版全解锁", "All pro templates"), t(lang, "100+ 商业大片级别模版", "100+ commercial-grade templates")],
+                        [t(lang, "专业模版全解锁", "All pro templates"), t(lang, "商业大片级别模版", "Commercial-grade templates")],
                       ].map(([title, sub], i) => (
                         <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8 }}>
                           <span style={{ color: "#f59e0b", fontSize: 14, marginTop: 1 }}>✓</span>
@@ -665,11 +696,28 @@ export function AccountCenterModal(props: Props) {
                       </span>
                     </div>
 
-                    <button type="button" style={styles.primaryBtn} onClick={onUpgradePro}
-                      disabled={!billingEnabled || billingBusy || !proPlan || !billingLegalAccepted}
+                    <button type="button" style={{
+                        ...styles.primaryBtn,
+                        background: billingLegalAccepted ? "#f59e0b" : "#3a3f46",
+                        color: billingLegalAccepted ? "#111" : "#9ca3af",
+                        cursor: (!billingEnabled || billingBusy || !proPlan || !billingLegalAccepted) ? "not-allowed" : "pointer",
+                      }} onClick={() => {
+                        if (!billingLegalAccepted) {
+                          setConsentShake(true);
+                          setTimeout(() => setConsentShake(false), 700);
+                          return;
+                        }
+                        onUpgradePro();
+                      }}
+                      disabled={!billingEnabled || billingBusy || !proPlan}
                       data-testid="account-pro-upgrade">
-                      <Crown size={14} />{t(lang, "立即开通 Pro", "Start Pro Now")}
+                      <Crown size={14} />{t(lang, "开通 Pro", "Start Pro")} — ${proPlan?.monthlyUsdPrice ?? 12}{t(lang, "/月", "/mo")}
                     </button>
+                    {!billingLegalAccepted && (
+                      <div style={{ fontSize: 11, color: "#f87171", marginTop: 6 }}>
+                        {t(lang, "请先勾选同意服务条款", "Please agree to the terms first")}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -955,10 +1003,10 @@ const styles: Record<string, React.CSSProperties> = {
     width: "min(760px, calc(100vw - 32px))",
     maxHeight: "min(86vh, 920px)",
     overflowY: "auto",
-    borderRadius: 24,
+    borderRadius: 6,
     border: "1px solid rgba(255,255,255,0.08)",
-    background: "linear-gradient(180deg, rgba(12,14,20,0.97), rgba(9,10,16,0.94))",
-    boxShadow: "0 28px 80px rgba(0,0,0,0.38)",
+    background: "#16181d",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
     padding: 20,
     color: "#f7f7fb"
   },
@@ -987,13 +1035,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     letterSpacing: "0.12em",
     textTransform: "uppercase",
-    color: "rgba(255,255,255,0.46)",
+    color: "#6b7280",
     marginBottom: 4
   },
   title: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: 700,
-    letterSpacing: "-0.03em"
+    letterSpacing: "-0.01em"
   },
   iconBtn: {
     width: 34,
@@ -1014,34 +1062,41 @@ const styles: Record<string, React.CSSProperties> = {
   tabs: {
     display: "flex",
     flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 18
+    gap: 2,
+    marginBottom: 20,
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
   },
   tab: {
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(255,255,255,0.03)",
-    color: "#dfe3f4",
-    height: 34,
+    borderRadius: 0,
+    border: "none",
+    borderBottom: "2px solid transparent",
+    background: "transparent",
+    color: "#9ca3af",
+    height: 36,
     padding: "0 14px",
+    marginBottom: -1,
     display: "inline-flex",
     alignItems: "center",
-    gap: 8,
-    cursor: "pointer"
+    gap: 7,
+    cursor: "pointer",
+    fontSize: 13,
+    fontWeight: 500,
+    transition: "color 120ms, border-color 120ms",
   },
   tabOn: {
-    background: "rgba(255,255,255,0.1)",
-    color: "#ffffff"
+    borderBottom: "2px solid #f59e0b",
+    color: "#f7f7fb",
+    fontWeight: 600,
   },
   panelStack: {
     display: "grid",
     gap: 14
   },
   panel: {
-    borderRadius: 20,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(255,255,255,0.03)",
-    padding: 16,
+    borderRadius: 0,
+    border: "none",
+    background: "transparent",
+    padding: "4px 0",
     display: "grid",
     gap: 12
   },
@@ -1088,7 +1143,7 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 400,
     justifySelf: "center",
     height: 50,
-    borderRadius: 14,
+    borderRadius: 6,
     border: "1px solid rgba(20,24,32,0.15)",
     background: "rgba(255,255,255,0.76)",
     color: "#121622",
@@ -1204,7 +1259,7 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 400,
     justifySelf: "center",
     padding: "10px 14px",
-    borderRadius: 10,
+    borderRadius: 6,
     background: "rgba(255,180,80,0.12)",
     border: "1px solid rgba(255,180,80,0.35)",
     color: "rgba(40,28,10,0.9)",
@@ -1345,7 +1400,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     gap: 4,
     padding: "8px 10px",
-    borderRadius: 8,
+    borderRadius: 4,
     background: "rgba(239,68,68,0.08)",
     border: "1px solid rgba(239,68,68,0.2)"
   },
@@ -1412,12 +1467,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     color: "rgba(255,255,255,0.72)",
     lineHeight: 1.5,
-    borderRadius: 14,
+    borderRadius: 6,
     padding: "10px 12px",
     background: "rgba(255,255,255,0.04)",
     border: "1px solid rgba(255,255,255,0.06)"
   },
   summaryCard: {
+    /* removed nested card style */
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0,1fr))",
     gap: 10
@@ -1453,7 +1509,7 @@ const styles: Record<string, React.CSSProperties> = {
   input: {
     width: "100%",
     height: 46,
-    borderRadius: 14,
+    borderRadius: 6,
     border: "1px solid rgba(255,255,255,0.08)",
     background: "rgba(255,255,255,0.04)",
     color: "#f7f7fb",
@@ -1479,7 +1535,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   legalCard: {
     marginTop: 2,
-    borderRadius: 14,
+    borderRadius: 6,
     border: "1px solid rgba(255,255,255,0.08)",
     background: "rgba(255,255,255,0.04)",
     padding: 12,
@@ -1562,7 +1618,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    borderRadius: 14,
+    borderRadius: 6,
     background: "rgba(255,255,255,0.03)",
     padding: "10px 12px",
     fontSize: 13

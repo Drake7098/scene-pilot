@@ -1,7 +1,7 @@
 export type Mode = "static" | "storyboard";
 export type MediaType = "image" | "video";
 export type ShotPlan = "single" | "multicam" | "continuous" | "edit";
-export type SceneCompiler = "v1" | "v2";
+export type SceneCompiler = "v1" | "v2" | "v3";
 export type SceneTier = "indoor" | "small_plaza" | "open_space";
 export type SceneV2Mode = "strict" | "short";
 export type SceneStability = "off" | "standard" | "strict";
@@ -243,7 +243,7 @@ export function resolveSceneConfig(scene: Pick<Scene, "notes" | "config">): Reso
   const conf = scene?.config ?? {};
 
   const mediaFromMarker = parseMarker(notes, MEDIA_MARK) === "image" ? "image" : "video";
-  const compilerFromMarker = parseMarker(notes, COMPILER_MARK) === "v2" ? "v2" : "v1";
+  const compilerFromMarker: SceneCompiler = parseMarker(notes, COMPILER_MARK) === "v3" ? "v3" : parseMarker(notes, COMPILER_MARK) === "v2" ? "v2" : "v1";
   const tierRaw = parseMarker(notes, SCENE_TIER_MARK);
   const sceneTierFromMarker: SceneTier = tierRaw === "indoor" || tierRaw === "open_space" ? tierRaw : "small_plaza";
   const v2FromMarker: SceneV2Mode = parseMarker(notes, V2_MODE_MARK) === "short" ? "short" : "strict";
@@ -252,7 +252,7 @@ export function resolveSceneConfig(scene: Pick<Scene, "notes" | "config">): Reso
 
   return {
     mediaMode: conf.mediaMode === "image" || conf.mediaMode === "video" ? conf.mediaMode : mediaFromMarker,
-    compiler: conf.compiler === "v2" ? "v2" : conf.compiler === "v1" ? "v1" : compilerFromMarker,
+    compiler: conf.compiler === "v3" ? "v3" : conf.compiler === "v2" ? "v2" : conf.compiler === "v1" ? "v1" : compilerFromMarker,
     sceneTier:
       conf.sceneTier === "indoor" || conf.sceneTier === "small_plaza" || conf.sceneTier === "open_space"
         ? conf.sceneTier
@@ -671,12 +671,12 @@ export function defaultProject(): Project {
         ],
         config: {
           mediaMode: "video",
-          compiler: "v1",
+          compiler: "v3",
           sceneTier: "small_plaza",
           v2Mode: "strict",
           stability: "standard"
         },
-        notes: ""
+        notes: "@compiler:v3"
       }
     ]
   };

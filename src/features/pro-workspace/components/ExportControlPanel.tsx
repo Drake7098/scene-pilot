@@ -87,7 +87,7 @@ function PlatformSelector({ lang, value, onChange }: {
             position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
             zIndex: 50, background: C.panel,
             border: `1px solid ${C.border}`, borderRadius: 8,
-            overflow: "hidden", boxShadow: "0 8px 28px rgba(0,0,0,0.4)",
+            overflow: "hidden",
             maxHeight: 340, overflowY: "auto",
           }}>
             {PLATFORM_GROUPS.map((group, gi) => {

@@ -447,7 +447,7 @@ export function WorkspaceLeftPanel({
           left: menuPos.left,
           width: 210,
           background: BG_B, border: `1px solid ${BORDER}`,
-          borderRadius: 8, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
+          borderRadius: 4, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
           padding: "4px", zIndex: 9999,
         }}>
               {/* Account group */}

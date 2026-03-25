@@ -96,7 +96,10 @@
     "prompt-batch:analyze": "npx tsx scripts/prompt-batch/analyze-prompts.ts"
   },
   "dependencies": {
+    "@sentry/react": "^10.45.0",
+    "@upstash/redis": "^1.37.0",
     "lucide-react": "^0.575.0",
+    "posthog-js": "^1.363.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

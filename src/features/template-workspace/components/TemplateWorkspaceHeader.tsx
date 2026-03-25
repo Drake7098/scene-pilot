@@ -161,7 +161,7 @@ export function TemplateWorkspaceHeader({
           height: 47px;
           width: 100%;
           padding: 0 14px;
-          border-radius: 8px;
+          border-radius: 4px;
           border: 1px solid ${colors.border};
           background: ${colors.panel};
           color: ${colors.text};

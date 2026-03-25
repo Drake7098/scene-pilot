@@ -34,7 +34,7 @@ import { PlatformAdaptPanel }       from "./PlatformAdaptPanel";
 
 import { Stage }                    from "../../../components/Stage";
 import { resolveSceneConfig }       from "../../../model";
-import type { GenerationSource } from "./EngineSelectSection";
+import { GenerationSourceBar, type GenerationSource } from "./GenerationSourceBar";
 import type { ApiCredentialState } from "../../../types/account";
 import type { LocalProviderStatus } from "../../../utils/localGeneration";
 import { detectSceneConflicts }     from "../../../utils/conflictRules";
@@ -65,9 +65,6 @@ type Props = {
   onSelectLayer: (id: string | null) => void;
   onUpdateScene: (s: Scene) => void;
   onRenameLayer?: (oldId: string, newId: string) => void;
-  onAddLayer?: () => void;
-  onDeleteLayer?: (layerId: string) => void;
-  onUpdateLayer?: (layerId: string, patch: Partial<import("../../../model").Layer>) => void;
   editT: 0 | 1;
   setEditT: (t: 0 | 1) => void;
   platformId: string;
@@ -142,7 +139,7 @@ function RightPanelContent(props: Props & { section: ProWorkspaceSection }) {
     case "constraints":  return <ConstraintInspectorPanel lang={lang} scene={scene} project={project} selectedLayerId={selectedLayerId ?? null} onJumpToConflict={onJumpToConflict} />;
     case "prompt_preview": return <PromptPreviewPanel lang={lang} project={project} scene={scene} platformId={platformId} onCopyPrompt={onCopyPrompt} />;
     case "platform":     return <PlatformAdaptPanel lang={lang} project={project} scene={scene} platformId={platformId as PlatformPresetId} exportMode={exportMode ?? "prompt_only"} generationSource={generationSource ?? "hosted"} />;
-    case "export":       return <ExportControlPanel lang={lang} project={project} scene={scene} platformId={platformId as PlatformPresetId} onPlatformChange={onPlatformChange ?? (() => {})} exportMode={exportMode ?? "prompt_only"} onExportModeChange={onExportModeChange ?? (() => {})} generationSource={generationSource as any} onGenerationSourceChange={onGenerationSourceChange as any ?? (() => {})} canUseByo={canUseByo ?? false} byoCredentials={byoCredentials} comfyStatus={comfyStatus} drawStatus={drawStatus} creditCost={creditCost} userCredits={userCredits} onCopy={onCopyPrompt ?? (() => {})} onExport={onExport ?? (() => {})} onGenerate={onGenerate ?? (() => {})} generateBusy={generateBusy ?? false} />;
+    case "export":       return <ExportControlPanel lang={lang} project={project} scene={scene} platformId={platformId as PlatformPresetId} onPlatformChange={onPlatformChange ?? (() => {})} exportMode={exportMode ?? "prompt_only"} onExportModeChange={onExportModeChange ?? (() => {})} generationSource={generationSource} onGenerationSourceChange={onGenerationSourceChange ?? (() => {})} canUseByo={canUseByo ?? false} byoCredentials={byoCredentials} comfyStatus={comfyStatus} drawStatus={drawStatus} creditCost={creditCost} userCredits={userCredits} onCopy={onCopyPrompt ?? (() => {})} onExport={onExport ?? (() => {})} onGenerate={onGenerate ?? (() => {})} generateBusy={generateBusy ?? false} />;
     default: return null;
   }
 }
@@ -369,7 +366,7 @@ export function ProWorkspaceShell(props: Props) {
                 if (!hasByo && !hasLocal) { onGenerate?.(); } else { setShowGenMenu(v => !v); }
               }}
               style={{
-                height: 34, padding: "0 14px", borderRadius: "6px 0 0 6px",
+                height: 34, padding: "0 14px", borderRadius: "4px 0 0 4px",
                 border: "none", borderRight: "1px solid rgba(0,0,0,0.2)",
                 background: generateBusy ? "#8a6000" : ACCENT,
                 color: "#111", fontSize: 12, fontWeight: 700,
@@ -390,7 +387,7 @@ export function ProWorkspaceShell(props: Props) {
               return (
                 <button type="button" disabled={generateBusy} onClick={() => setShowGenMenu(v => !v)}
                   style={{
-                    height: 34, width: 28, borderRadius: "0 6px 6px 0", border: "none",
+                    height: 34, width: 28, borderRadius: "0 4px 4px 0", border: "none",
                     background: generateBusy ? "#8a6000" : ACCENT, color: "#111",
                     cursor: generateBusy ? "not-allowed" : "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center",
@@ -423,7 +420,7 @@ export function ProWorkspaceShell(props: Props) {
                   <div style={{
                     position: "absolute", bottom: "calc(100% + 8px)", right: 0, zIndex: 100,
                     minWidth: 220, background: PANEL, border: `1px solid ${BORDER}`,
-                    borderRadius: 10, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
+                    borderRadius: 4, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
                   }}>
                     <div style={{ padding: "8px 14px 6px", fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
                       {tl("选择生成方式","Choose generation source")}
@@ -569,7 +566,7 @@ function IconBtn({ onClick, children, danger }: { onClick: () => void; children:
   return (
     <button type="button" onClick={onClick} style={{
       width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
-      borderRadius: 6, border: `1px solid ${BORDER}`, background: "transparent",
+      borderRadius: 4, border: `1px solid ${BORDER}`, background: "transparent",
       color: danger ? "#ff8c8c" : MUTED, cursor: "pointer",
       transition: "background 0.12s, color 0.12s",
     }}
@@ -598,7 +595,7 @@ function StatusChip({ children, accent, danger }: { children: React.ReactNode; a
 
 // ── Style helpers ──────────────────────────────────────────────────────────
 const ghostBtnStyle: React.CSSProperties = {
-  height: 34, padding: "0 12px", borderRadius: 6,
+  height: 34, padding: "0 12px", borderRadius: 4,
   border: `1px solid ${BORDER}`, background: "transparent",
   color: MUTED, fontSize: 11, cursor: "pointer",
   display: "flex", alignItems: "center", gap: 5,
