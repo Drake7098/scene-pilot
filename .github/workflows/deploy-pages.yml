@@ -18,20 +18,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      # Prefer repository secrets; fallback to historical account id as last resort.
-      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID || secrets.CF_ACCOUNT_ID || '0b6b05a3bcbc3ad3ef0ec56d0405d24f' }}
-      # Branch-specific tokens (prefer split secrets); fallback to shared token.
-      # Allow TEST to fallback to PROD token when users only configured one token.
-      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN || secrets.CF_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN || secrets.CF_API_TOKEN }}
-      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN || secrets.CF_API_TOKEN }}
-    steps:
-      - name: Validate deploy credentials (develop)
-        if: github.ref == 'refs/heads/develop'
-        run: |
-          if [ -z "${CF_API_TOKEN}" ]; then
-            echo "Missing test deploy token. Set CF_API_TOKEN (or shared CLOUDFLARE_API_TOKEN / CF_API_TOKEN)." >&2
-            exit 1
-          fi
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
 
       - name: Validate deploy credentials (main)
         if: github.ref == 'refs/heads/main'
@@ -61,11 +49,11 @@ jobs:
         run: npx -y wrangler pages deploy dist --project-name=scenepilotix
         env:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_API_TOKEN }}
-          CF_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
 
       - name: Deploy to Cloudflare Pages (main → scenepilotix1-prod)
         if: github.ref == 'refs/heads/main'
         run: npx -y wrangler pages deploy dist --project-name=scenepilotix1-prod
         env:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_API_TOKEN }}
-          CF_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
