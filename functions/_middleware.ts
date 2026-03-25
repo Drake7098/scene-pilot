@@ -1,3 +1,1 @@
-export const onRequest = async (context: { next: () => Promise<Response> }) => {
-  return context.next();
-};
+export const onRequest = async ({ next }) => { return next(); };
