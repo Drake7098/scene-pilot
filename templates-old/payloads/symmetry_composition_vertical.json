@@ -1,0 +1,34 @@
+{
+  "projectDefaults": {
+    "mediaType": "image",
+    "storyPlan": "single",
+    "aspectRatio": "9:16",
+    "sceneCount": 1
+  },
+  "scenes": [
+    {
+      "nameZh": "\u5bf9\u79f0\u6784\u56fe",
+      "nameEn": "Symmetry Composition",
+      "duration": 5,
+      "classicShot": "ms",
+      "cameraLanguage": "product_quality",
+      "raw": {
+        "id": "s1",
+        "name": "Symmetry Composition",
+        "duration_s": 5,
+        "camera": {
+          "shot": "ms",
+          "movement": "static",
+          "keyframes": []
+        },
+        "lighting": {
+          "time": "day",
+          "key_dir": "top_left",
+          "mood": "bright"
+        },
+        "layers": [],
+        "notes": "camera_language: product_quality\nmedia: image"
+      }
+    }
+  ]
+}

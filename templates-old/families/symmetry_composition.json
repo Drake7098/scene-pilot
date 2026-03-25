@@ -1,0 +1,58 @@
+{
+  "id": "symmetry_composition",
+  "name": "Symmetry Composition",
+  "nameZh": "\u5bf9\u79f0\u6784\u56fe",
+  "category": "composition",
+  "description": "Symmetrical composition layout",
+  "descriptionZh": "\u5bf9\u79f0\u6784\u56fe\u5e03\u5c40",
+  "mediaType": "image",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": [
+    "cu",
+    "mcu",
+    "ms",
+    "fs"
+  ],
+  "movementRange": [
+    "static"
+  ],
+  "cameraLanguageRange": [
+    "product_quality",
+    "realistic_restrained"
+  ],
+  "lightingRange": {
+    "time": [
+      "day"
+    ],
+    "keyDir": [
+      "top_left",
+      "top_right"
+    ],
+    "mood": [
+      "bright"
+    ]
+  },
+  "compositionRange": [
+    "center_pressure",
+    "rule_of_thirds",
+    "hero_center"
+  ],
+  "objectTypes": [
+    "product",
+    "character",
+    "prop"
+  ],
+  "advancedTags": [
+    "multi_object"
+  ],
+  "variants": [
+    "symmetry_composition_free_starter",
+    "symmetry_composition_basic_wide",
+    "symmetry_composition_basic_medium",
+    "symmetry_composition_basic_close",
+    "symmetry_composition_cinematic",
+    "symmetry_composition_vertical",
+    "symmetry_composition_multi_object"
+  ]
+}

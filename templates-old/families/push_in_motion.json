@@ -1,0 +1,19 @@
+{
+  "id": "push_in_motion",
+  "name": "Push In Motion",
+  "nameZh": "推镜",
+  "category": "camera_move",
+  "description": "Push-in camera movement",
+  "descriptionZh": "推镜运动",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": ["ms", "mcu", "cu"],
+  "movementRange": ["slow_push_in", "fast_push"],
+  "cameraLanguageRange": ["cinematic_narrative"],
+  "lightingRange": { "time": ["day"], "keyDir": ["top_left"], "mood": ["cinematic"] },
+  "compositionRange": ["center_pressure", "rule_of_thirds"],
+  "objectTypes": ["character", "product"],
+  "advancedTags": ["advanced_camera", "drama_mode"],
+  "variants": ["push_in_motion_free_starter", "push_in_motion_basic_wide", "push_in_motion_basic_medium", "push_in_motion_cinematic", "push_in_motion_vertical"]
+}

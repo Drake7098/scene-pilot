@@ -1,0 +1,12 @@
+{
+  "id": "exp_semantic_story_01",
+  "name": "实验-语义叙事-剧情引导",
+  "combo": "F",
+  "payload": {
+    "subject": "two characters",
+    "storyPlan": "conflict -> pause -> reconciliation",
+    "sceneSemantic": "urban alley emotional confrontation",
+    "mood": "tense then warm",
+    "style": "neo-noir realism"
+  }
+}

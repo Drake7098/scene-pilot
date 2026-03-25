@@ -1,0 +1,19 @@
+{
+  "id": "center_composition",
+  "name": "Center Composition",
+  "nameZh": "居中构图",
+  "category": "composition",
+  "description": "Center-focused composition",
+  "descriptionZh": "居中聚焦构图",
+  "mediaType": "image",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": ["cu", "mcu", "ms"],
+  "movementRange": ["static"],
+  "cameraLanguageRange": ["product_quality", "realistic_restrained"],
+  "lightingRange": { "time": ["day"], "keyDir": ["top_left", "top_right"], "mood": ["bright"] },
+  "compositionRange": ["center_pressure", "rule_of_thirds"],
+  "objectTypes": ["product", "character", "prop"],
+  "advancedTags": ["multi_object"],
+  "variants": ["center_composition_free_starter", "center_composition_basic_wide", "center_composition_basic_medium", "center_composition_multi_object"]
+}

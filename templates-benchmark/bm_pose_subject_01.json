@@ -1,0 +1,18 @@
+{
+  "id": "bm_pose_subject_01",
+  "typeId": "pose_subject",
+  "name": "标杆-人物姿态-运动定格",
+  "payload": {
+    "camera": "70mm chest-level freeze frame",
+    "composition": "diagonal dynamic framing",
+    "space": "foreground dust particles, subject center-right, blurred crowd rear",
+    "layer": "motion trail front, athlete mid, stadium rear",
+    "lighting": "hard side key, warm rim, cool ambient fill",
+    "material": "breathable sports fabric with sweat sheen",
+    "detail": "muscle tension, shoe grip texture, chalk particles",
+    "mood": "high intensity determination",
+    "style": "sports documentary cinematic",
+    "semantic": "peak action commitment",
+    "subject": "sprinter pushing off starting block"
+  }
+}

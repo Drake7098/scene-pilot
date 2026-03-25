@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle, CheckCircle2, CreditCard, Crown, KeyRound, LogOut, Sparkles, UserRound, Wallet, X } from "lucide-react";
-import { LocalConnectionPanel } from "./LocalConnectionPanel";
+import { AlertCircle, CheckCircle2, CreditCard, Crown, KeyRound, Cpu, LogOut, Sparkles, UserRound, Wallet, X } from "lucide-react";
+import { ApiProviderPanel } from "./generation/ApiProviderPanel";
 import type { AccountCenterSection, ApiCredentialState, ApiProviderId, ApiProviderMode, ProviderConnectionStatus, UserState } from "../types/account";
+import { getProAccessState } from "../utils/entitlement";
 import type { CreditLedgerEntry, CreditPackConfig, ProPlanConfig, SubscriptionState } from "../types/billing";
 import type { Lang } from "../i18n";
 import { LEGAL_DOCS, legalText, type LegalDocId } from "../content/legal";
 import { PUBLIC_CONTACT_CHANNELS, SYSTEM_NOTIFICATION_MAILBOX } from "../config/contactChannels";
+
 
 function t(lang: Lang, zh: string, en: string) {
   return lang === "zh" ? zh : en;
@@ -132,7 +134,8 @@ export function AccountCenterModal(props: Props) {
     if (!user) return t(lang, "注册 / 登录", "Sign Up / Sign In");
     if (section === "credits") return t(lang, "点数与充值", "Credits");
     if (section === "pro") return "Pro";
-    if (section === "api") return t(lang, "AI Providers", "AI Providers");
+    if (section === "api") return t(lang, "API 接入", "API Access");
+    if (section === "local") return t(lang, "本地连接", "Local Connection");
     return t(lang, "我的账户", "My Account");
   }, [lang, section, user]);
   const authConsentLine1 = t(
@@ -156,6 +159,7 @@ export function AccountCenterModal(props: Props) {
     `Support: ${PUBLIC_CONTACT_CHANNELS.support} | Business: ${PUBLIC_CONTACT_CHANNELS.business} | Notifications: ${SYSTEM_NOTIFICATION_MAILBOX} (no reply)`
   );
   const legalDoc = activeLegalDoc ? LEGAL_DOCS[activeLegalDoc] : null;
+  const hasProAccess = getProAccessState(user).hasPro;
 
   if (!open) return null;
 
@@ -195,8 +199,9 @@ export function AccountCenterModal(props: Props) {
               <Crown size={14} />Pro
             </button>
             <button type="button" style={{ ...styles.tab, ...(section === "api" ? styles.tabOn : null) }} onClick={() => onSectionChange("api")}>
-              <KeyRound size={14} />{t(lang, "AI Providers", "AI Providers")}
+              <KeyRound size={14} />{t(lang, "API 接入", "API")}
             </button>
+
           </div>
         ) : null}
 
@@ -378,49 +383,98 @@ export function AccountCenterModal(props: Props) {
 
         {user ? (
           <div style={styles.panelStack}>
-            {(section === "overview" || section === "credits" || section === "pro") ? (
-              <div style={styles.summaryCard}>
-                <div style={styles.summaryItem}>
-                  <span style={styles.summaryLabel}>{t(lang, "邮箱", "Email")}</span>
-                  <span style={styles.summaryValue}>{user.email}</span>
-                </div>
-                <div style={styles.summaryItem}>
-                  <span style={styles.summaryLabel}>{t(lang, "层级", "Tier")}</span>
-                  <span style={styles.summaryValue}>{user.tier.toUpperCase()}</span>
-                </div>
-                <div style={styles.summaryItem}>
-                  <span style={styles.summaryLabel}>{t(lang, "点数余额", "Credits")}</span>
-                  <span style={styles.summaryValue}>{creditsBalance}</span>
-                </div>
-              </div>
-            ) : null}
-
-            {billingNotice ? (
-              <div style={styles.muted}>{billingNotice}</div>
-            ) : null}
-
             {section === "overview" ? (
               <div style={styles.panel}>
-                <div style={styles.blockTitle}>{t(lang, "账户操作", "Account Actions")}</div>
-                <div style={styles.actions}>
-                  <button type="button" style={styles.secondaryBtn} onClick={() => onSectionChange("credits")}>
-                    <CreditCard size={14} />{t(lang, "购买点数", "Buy Credits")}
+                {/* User info card */}
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 14,
+                  padding: "16px", borderRadius: 10,
+                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                  marginBottom: 16,
+                }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
+                    background: "#f59e0b22", border: "2px solid #f59e0b44",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <UserRound size={20} style={{ color: "#f59e0b" }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#e5e7eb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {user.email}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3, display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{
+                        padding: "1px 7px", borderRadius: 8, fontSize: 10, fontWeight: 700,
+                        background: hasProAccess ? "rgba(245,158,11,0.15)" : "rgba(156,163,175,0.15)",
+                        color: hasProAccess ? "#f59e0b" : "#9ca3af",
+                        border: `1px solid ${hasProAccess ? "rgba(245,158,11,0.3)" : "rgba(156,163,175,0.3)"}`,
+                      }}>
+                        {hasProAccess ? "PRO" : "FREE"}
+                      </span>
+                      <span>{creditsBalance} {t(lang, "积分", "credits")}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick actions */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <button type="button" onClick={() => onSectionChange("credits")} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "11px 14px", borderRadius: 8, cursor: "pointer",
+                    border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "#e5e7eb",
+                    fontSize: 13, textAlign: "left" as const,
+                  }}>
+                    <CreditCard size={15} style={{ color: "#9ca3af", flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 500 }}>{t(lang, "充值积分", "Buy Credits")}</div>
+                      <div style={{ fontSize: 11, color: "#6b7280" }}>{t(lang, "当前余额", "Balance")}: {creditsBalance}</div>
+                    </div>
+                    <span style={{ color: "#6b7280", fontSize: 16 }}>›</span>
                   </button>
-                  {user.tier !== "pro" ? (
-                    <button type="button" style={styles.primaryBtn} onClick={billingLegalAccepted ? onUpgradePro : () => onSectionChange("pro")} disabled={!billingEnabled || billingBusy}>
-                      <Sparkles size={14} />{t(lang, "升级 Pro", "Upgrade to Pro")}
+
+                  {!hasProAccess && (
+                    <button type="button" onClick={() => onSectionChange("pro")} style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "11px 14px", borderRadius: 8, cursor: "pointer",
+                      border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.06)", color: "#e5e7eb",
+                      fontSize: 13, textAlign: "left" as const,
+                    }}>
+                      <Crown size={15} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500, color: "#f59e0b" }}>{t(lang, "升级 Pro", "Upgrade to Pro")}</div>
+                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{t(lang, "解锁 API 接入、本地生成", "Unlock API access & local generation")}</div>
+                      </div>
+                      <span style={{ color: "#f59e0b", fontSize: 16 }}>›</span>
                     </button>
-                  ) : null}
-                  {subscription?.status === "active" ? (
-                    <button type="button" style={styles.secondaryBtn} onClick={onOpenCustomerPortal} disabled={!billingEnabled || billingBusy}>
-                      {t(lang, "管理订阅", "Manage Subscription")}
+                  )}
+
+                  {subscription?.status === "active" && (
+                    <button type="button" onClick={onOpenCustomerPortal} disabled={!billingEnabled || billingBusy} style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "11px 14px", borderRadius: 8, cursor: "pointer",
+                      border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "#e5e7eb",
+                      fontSize: 13, textAlign: "left" as const,
+                    }}>
+                      <CreditCard size={15} style={{ color: "#9ca3af", flexShrink: 0 }} />
+                      <span>{t(lang, "管理订阅", "Manage Subscription")}</span>
                     </button>
-                  ) : null}
-                  <a href="/account" style={styles.secondaryBtn}>
-                    <UserRound size={14} />{t(lang, "用户管理页面", "User Management Page")}
-                  </a>
-                  <button type="button" style={styles.ghostBtn} onClick={onLogout}>
-                    <LogOut size={14} />{t(lang, "退出登录", "Log Out")}
+                  )}
+                </div>
+
+                {billingNotice && (
+                  <div style={{ fontSize: 11, color: "#6b7280", marginTop: 12, lineHeight: 1.5 }}>{billingNotice}</div>
+                )}
+
+                <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                  <button type="button" onClick={onLogout} style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "8px 12px", borderRadius: 6, cursor: "pointer",
+                    border: "none", background: "transparent", color: "#f87171",
+                    fontSize: 12,
+                  }}>
+                    <LogOut size={13} />
+                    {t(lang, "退出登录", "Log Out")}
                   </button>
                 </div>
               </div>
@@ -428,217 +482,215 @@ export function AccountCenterModal(props: Props) {
 
             {section === "credits" ? (
               <div style={styles.panel}>
-                <div style={styles.blockTitle}>{t(lang, "充值点数", "Credit Packs")}</div>
-                <div style={styles.legalCard}>
-                  <label style={styles.checkboxRow}>
-                    <input
-                      type="checkbox"
-                      checked={billingLegalAccepted}
-                      onChange={(e) => onBillingLegalAcceptedChange(e.target.checked)}
-                      data-testid="account-billing-legal-consent"
-                    />
-                    <span>{billingConsentHint}</span>
-                  </label>
-                  <div style={styles.legalLinks}>
-                    <button type="button" style={styles.legalLinkBtn} onClick={() => setActiveLegalDoc("billing")} data-testid="account-legal-open-billing">
-                      {legalText(lang, LEGAL_DOCS.billing.title)}
-                    </button>
-                    <button type="button" style={styles.legalLinkBtn} onClick={() => setActiveLegalDoc("refund")} data-testid="account-legal-open-refund">
-                      {legalText(lang, LEGAL_DOCS.refund.title)}
-                    </button>
+                {/* Current balance */}
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "14px 16px", borderRadius: 10,
+                  background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)",
+                  marginBottom: 16,
+                }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 3 }}>{t(lang, "当前积分", "Current Balance")}</div>
+                    <div style={{ fontSize: 26, fontWeight: 700, color: "#f59e0b" }}>{creditsBalance.toLocaleString()}</div>
                   </div>
-                  <div style={styles.legalRouteLinks}>
-                    <a href="/billing-terms" style={styles.legalRouteLink}>{t(lang, "付费条款", "Billing Terms")}</a>
-                    <a href="/refund-policy" style={styles.legalRouteLink}>{t(lang, "退款政策", "Refund Policy")}</a>
-                    <a href="/terms" style={styles.legalRouteLink}>{t(lang, "用户协议", "Terms")}</a>
-                    <a href="/privacy" style={styles.legalRouteLink}>{t(lang, "隐私说明", "Privacy")}</a>
+                  <div style={{ fontSize: 11, color: "#6b7280", textAlign: "right", lineHeight: 1.6 }}>
+                    <div>{t(lang, "图片生成 3 积分", "Image gen 3 credits")}</div>
+                    <div>{t(lang, "视频生成 5 积分", "Video gen 5 credits")}</div>
+                    <div>{t(lang, "提示词导出免费", "Prompt export free")}</div>
                   </div>
-                  <div style={styles.legalContact}>{contactHint}</div>
                 </div>
-                <div style={styles.packGrid}>
-                  {creditPacks.map((pack) => (
-                    <button
-                      key={pack.id}
-                      type="button"
-                      style={styles.packCard}
-                      onClick={() => onPurchasePack(pack.id)}
-                      disabled={!billingEnabled || billingBusy || !billingLegalAccepted}
-                      data-testid={`account-credit-pack-${pack.id}`}
-                    >
-                      <div style={styles.packTitle}>{pack.name}</div>
-                      <div style={styles.packMeta}>{pack.usdPrice} USD</div>
-                    </button>
-                  ))}
+
+                {/* Credit packs */}
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#e5e7eb", marginBottom: 10 }}>
+                  {t(lang, "购买积分", "Buy Credits")}
                 </div>
-                <div style={styles.muted}>
-                  {t(
-                    lang,
-                    "提示词导出免费。点数仅用于生成与部分付费模板。",
-                    "Prompt export is free. Credits are used for generation and paid templates only."
-                  )}
+                <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+                  {creditPacks.map((pack) => {
+                    const perCredit = (pack.usdPrice / pack.credits * 100).toFixed(1);
+                    const isBest = pack.id === "pack_15";
+                    return (
+                      <button
+                        key={pack.id}
+                        type="button"
+                        onClick={() => onPurchasePack(pack.id)}
+                        disabled={!billingEnabled || billingBusy || !billingLegalAccepted}
+                        data-testid={`account-credit-pack-${pack.id}`}
+                        style={{
+                          flex: 1, padding: "14px 10px", borderRadius: 10, cursor: "pointer",
+                          border: isBest ? "2px solid #f59e0b" : "1px solid #3a3f46",
+                          background: isBest ? "rgba(245,158,11,0.06)" : "#24262b",
+                          color: "#e5e7eb", textAlign: "center", position: "relative",
+                          transition: "border-color 0.1s",
+                          opacity: (!billingEnabled || billingBusy || !billingLegalAccepted) ? 0.5 : 1,
+                        }}
+                      >
+                        {isBest && (
+                          <div style={{
+                            position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)",
+                            background: "#f59e0b", color: "#111", fontSize: 9, fontWeight: 700,
+                            padding: "2px 8px", borderRadius: 10,
+                          }}>{t(lang, "最划算", "Best Value")}</div>
+                        )}
+                        <div style={{ fontSize: 20, fontWeight: 700, color: "#f59e0b", marginBottom: 2 }}>
+                          {pack.credits}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>
+                          {t(lang, "积分", "credits")}
+                        </div>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: "#e5e7eb" }}>
+                          ${pack.usdPrice}
+                        </div>
+                        <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
+                          ≈ ¢{perCredit} / credit
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div style={styles.blockTitle}>{t(lang, "最近流水", "Recent Ledger")}</div>
-                <div style={styles.ledgerList}>
-                  {ledger.slice(0, 8).map((item) => (
-                    <div key={item.id} style={styles.ledgerRow}>
-                      <span>{ledgerLabel(lang, item.kind)}</span>
-                      <span>{item.credits > 0 ? `+${item.credits}` : item.credits}</span>
+
+                {/* Legal consent — compact */}
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 12 }}>
+                  <input
+                    type="checkbox"
+                    checked={billingLegalAccepted}
+                    onChange={(e) => onBillingLegalAcceptedChange(e.target.checked)}
+                    style={{ marginTop: 2, accentColor: "#f59e0b", flexShrink: 0 }}
+                    data-testid="account-billing-legal-consent"
+                  />
+                  <span style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
+                    {t(lang, "我已阅读并同意", "I agree to the")}{" "}
+                    <button type="button" style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline" }}
+                      onClick={() => setActiveLegalDoc("billing")}>{t(lang, "付款条款", "Billing Terms")}</button>
+                    {" "}{t(lang, "和", "and")}{" "}
+                    <button type="button" style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline" }}
+                      onClick={() => setActiveLegalDoc("refund")}>{t(lang, "退款政策", "Refund Policy")}</button>
+                  </span>
+                </div>
+
+                {/* Recent ledger — collapsed */}
+                {ledger.length > 0 && (
+                  <details style={{ cursor: "pointer" }}>
+                    <summary style={{ fontSize: 11, color: "#6b7280", userSelect: "none", listStyle: "none", display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
+                      <span style={{ fontSize: 10 }}>▸</span>
+                      {t(lang, "最近流水", "Recent transactions")}
+                    </summary>
+                    <div style={styles.ledgerList}>
+                      {ledger.slice(0, 6).map((item) => (
+                        <div key={item.id} style={styles.ledgerRow}>
+                          <span>{ledgerLabel(lang, item.kind)}</span>
+                          <span style={{ color: item.credits > 0 ? "#22c55e" : "#f87171" }}>
+                            {item.credits > 0 ? `+${item.credits}` : item.credits}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  {ledger.length === 0 ? <div style={styles.emptyText}>{t(lang, "还没有点数流水", "No credit history yet.")}</div> : null}
-                </div>
+                  </details>
+                )}
               </div>
             ) : null}
 
             {section === "pro" ? (
               <div style={styles.panel}>
-                <div style={styles.blockTitle}>Pro</div>
-                <div style={styles.muted}>
-                  {proPlan
-                    ? t(lang, `Pro 月费 ${proPlan.monthlyUsdPrice} 美元，含 ${proPlan.monthlyCredits} 点和结构控制台、自带 API。`, `Pro is ${proPlan.monthlyUsdPrice} USD/month with ${proPlan.monthlyCredits} credits, the advanced structure console, and bring-your-own API.`)
-                    : t(lang, "Pro 方案暂不可用。", "Pro plan is not available.")}
-                </div>
-                <div style={styles.legalCard}>
-                  <label style={styles.checkboxRow}>
-                    <input
-                      type="checkbox"
-                      checked={billingLegalAccepted}
-                      onChange={(e) => onBillingLegalAcceptedChange(e.target.checked)}
-                      data-testid="account-pro-legal-consent"
-                    />
-                    <span>{billingConsentHint}</span>
-                  </label>
-                  <div style={styles.legalLinks}>
-                    <button type="button" style={styles.legalLinkBtn} onClick={() => setActiveLegalDoc("billing")}>
-                      {legalText(lang, LEGAL_DOCS.billing.title)}
-                    </button>
-                    <button type="button" style={styles.legalLinkBtn} onClick={() => setActiveLegalDoc("refund")}>
-                      {legalText(lang, LEGAL_DOCS.refund.title)}
-                    </button>
-                  </div>
-                  <div style={styles.legalRouteLinks}>
-                    <a href="/billing-terms" style={styles.legalRouteLink}>{t(lang, "付费条款", "Billing Terms")}</a>
-                    <a href="/refund-policy" style={styles.legalRouteLink}>{t(lang, "退款政策", "Refund Policy")}</a>
-                    <a href="/terms" style={styles.legalRouteLink}>{t(lang, "用户协议", "Terms")}</a>
-                    <a href="/privacy" style={styles.legalRouteLink}>{t(lang, "隐私说明", "Privacy")}</a>
-                  </div>
-                  <div style={styles.legalContact}>{contactHint}</div>
-                </div>
-                {user.tier !== "pro" ? (
-                  <div style={styles.actions}>
-                    <button
-                      type="button"
-                      style={styles.primaryBtn}
-                      onClick={onUpgradePro}
-                      disabled={!billingEnabled || billingBusy || !proPlan || !billingLegalAccepted}
-                      data-testid="account-pro-upgrade"
-                    >
-                      <Crown size={14} />{t(lang, "开通 Pro", "Start Pro")}
-                    </button>
+                {user.tier === "pro" ? (
+                  /* Already Pro */
+                  <div>
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "14px 16px", borderRadius: 10,
+                      background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)",
+                      marginBottom: 16,
+                    }}>
+                      <Crown size={22} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#f59e0b" }}>{t(lang, "Pro 已激活", "Pro Active")}</div>
+                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
+                          {t(lang, `每月 ${proPlan?.monthlyCredits ?? 700} 积分 · API 接入 · 本地连接`, `${proPlan?.monthlyCredits ?? 700} credits/mo · API access · Local`)}
+                        </div>
+                      </div>
+                    </div>
+                    {subscription?.status === "active" && (
+                      <button type="button" style={styles.secondaryBtn} onClick={onOpenCustomerPortal}
+                        disabled={!billingEnabled || billingBusy}>
+                        {t(lang, "管理订阅", "Manage Subscription")}
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  <div style={styles.muted}>{t(lang, "当前已开通 Pro。", "Pro is active on this account.")}</div>
+                  /* Upgrade to Pro */
+                  <div>
+                    {/* Hero card */}
+                    <div style={{
+                      padding: "20px", borderRadius: 12, marginBottom: 16,
+                      background: "linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.04) 100%)",
+                      border: "1px solid rgba(245,158,11,0.25)",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                        <Crown size={20} style={{ color: "#f59e0b" }} />
+                        <div style={{ fontSize: 18, fontWeight: 700, color: "#f59e0b" }}>Pro</div>
+                        <div style={{ fontSize: 14, color: "#e5e7eb", fontWeight: 400 }}>
+                          ${proPlan?.monthlyUsdPrice ?? 12}{t(lang, " / 月", "/mo")}
+                        </div>
+                      </div>
+                      {/* Benefits list */}
+                      {[
+                        [t(lang, "每月 700 积分", "700 credits/month"), t(lang, "约 230 次图片生成", "≈ 230 image generations")],
+                        [t(lang, "接入自己的 API Key", "Bring your own API key"), t(lang, "fal / Runway — 不消耗积分", "fal / Runway — no credits used")],
+                        [t(lang, "本地生成", "Local generation"), t(lang, "ComfyUI / Draw Things 接入", "ComfyUI / Draw Things")],
+                        [t(lang, "专业模版全解锁", "All pro templates"), t(lang, "100+ 商业大片级别模版", "100+ commercial-grade templates")],
+                      ].map(([title, sub], i) => (
+                        <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+                          <span style={{ color: "#f59e0b", fontSize: 14, marginTop: 1 }}>✓</span>
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#e5e7eb" }}>{title}</div>
+                            <div style={{ fontSize: 11, color: "#9ca3af" }}>{sub}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Legal consent */}
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 14 }}>
+                      <input type="checkbox" checked={billingLegalAccepted}
+                        onChange={(e) => onBillingLegalAcceptedChange(e.target.checked)}
+                        style={{ marginTop: 2, accentColor: "#f59e0b", flexShrink: 0 }}
+                        data-testid="account-pro-legal-consent"
+                      />
+                      <span style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
+                        {t(lang, "我已阅读并同意", "I agree to the")}{" "}
+                        <button type="button" style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline" }}
+                          onClick={() => setActiveLegalDoc("billing")}>{t(lang, "付款条款", "Billing Terms")}</button>
+                        {" "}{t(lang, "和", "and")}{" "}
+                        <button type="button" style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline" }}
+                          onClick={() => setActiveLegalDoc("refund")}>{t(lang, "退款政策", "Refund Policy")}</button>
+                      </span>
+                    </div>
+
+                    <button type="button" style={styles.primaryBtn} onClick={onUpgradePro}
+                      disabled={!billingEnabled || billingBusy || !proPlan || !billingLegalAccepted}
+                      data-testid="account-pro-upgrade">
+                      <Crown size={14} />{t(lang, "立即开通 Pro", "Start Pro Now")}
+                    </button>
+                  </div>
                 )}
               </div>
             ) : null}
 
-            {section === "api" && user.tier !== "pro" ? (
+            {section === "api" ? (
               <div style={styles.panel}>
-                <div style={styles.upgradeCard}>
-                  <Crown size={24} style={{ color: "var(--pro-accent)", flexShrink: 0 }} />
-                  <div>
-                    <div style={styles.packTitle}>{t(lang, "配置自己的 API 接口", "Configure your own API endpoint")}</div>
-                    <div style={styles.apiMeta}>
-                      {t(
-                        lang,
-                        "Pro 权益：可配置自己的 API 接口，生成不扣 ScenePilot 点数；模板仍按规则扣费。",
-                        "Pro benefit: configure your own API endpoint; generation does not use ScenePilot credits; templates still apply."
-                      )}
-                    </div>
-                    <button type="button" style={styles.primaryBtn} onClick={onUpgradePro} data-testid="account-ai-providers-upgrade">
-                      {t(lang, "升级 Pro", "Upgrade to Pro")}
-                    </button>
-                  </div>
-                </div>
+                <ApiProviderPanel
+                  lang={lang}
+                  apiCredentials={apiCredentials}
+                  onSave={onSaveApiCredentials}
+                  hasProAccess={hasProAccess}
+                  onUpgradePro={onUpgradePro}
+                  comfyStatus={localComfyStatus ?? { provider: "comfyui", state: "idle" }}
+                  drawStatus={localDrawStatus ?? { provider: "drawthings", state: "idle" }}
+                  onRefreshLocal={onRefreshLocalProviders ?? (() => Promise.resolve())}
+                />
               </div>
             ) : null}
 
-            {section === "api" && user.tier === "pro" ? (
-              <div style={styles.panel}>
-                <div style={styles.blockTitle}>{t(lang, "AI Providers", "AI Providers")}</div>
-                <div style={styles.muted}>
-                  {t(
-                    lang,
-                    "Pro 权益：可配置自己的 API 接口。平台模式使用 ScenePilot 点数；我的 API 使用自填 key，生成不扣点数。",
-                    "Pro benefit: configure your own API endpoint. Platform mode uses ScenePilot credits; My API uses your key and does not consume credits."
-                  )}
-                </div>
-                <div style={styles.apiDefaultCard}>
-                  <div>
-                    <div style={styles.packTitle}>{t(lang, "默认提供商", "Default provider")}</div>
-                    <div style={styles.apiMeta}>{t(lang, "Pro 工作台优先使用的生成接口。", "Default provider for generation in Pro workspace.")}</div>
-                  </div>
-                  <select
-                    value={apiDraft.defaultProvider}
-                    onChange={(e) => setApiDraft((current) => ({ ...current, defaultProvider: e.target.value as ApiProviderId }))}
-                    style={styles.input}
-                    data-testid="account-api-default-provider"
-                  >
-                    <option value="fal">fal</option>
-                    <option value="runway">Runway</option>
-                  </select>
-                </div>
-                <div style={styles.providerGrid}>
-                  {renderProviderCard({
-                    lang,
-                    providerId: "fal",
-                    title: "fal",
-                    subtitle: t(lang, "图像/视频生成", "Image and video generation"),
-                    docsMeta: "queue.fal.run / fal.run",
-                    draft: apiDraft,
-                    setDraft: setApiDraft,
-                    savedCredentials: apiCredentials
-                  })}
-                  {renderProviderCard({
-                    lang,
-                    providerId: "runway",
-                    title: "Runway",
-                    subtitle: t(lang, "高质量视频生成", "High-quality video generation"),
-                    docsMeta: "api.dev.runwayml.com",
-                    draft: apiDraft,
-                    setDraft: setApiDraft,
-                    savedCredentials: apiCredentials
-                  })}
-                </div>
-                <div style={styles.actions}>
-                  <button
-                    type="button"
-                    style={styles.primaryBtn}
-                    onClick={() => {
-                      const stamp = new Date().toISOString();
-                      onSaveApiCredentials({
-                        ...apiDraft,
-                        updatedAt: stamp,
-                        fal: { ...apiDraft.fal, updatedAt: stamp },
-                        runway: { ...apiDraft.runway, updatedAt: stamp }
-                      });
-                    }}
-                    data-testid="account-api-save"
-                  >
-                    {t(lang, "保存", "Save")}
-                  </button>
-                </div>
-              </div>
-            ) : null}
 
-            {section === "local" ? (
-              <LocalConnectionPanel
-                lang={lang}
-                comfyStatus={localComfyStatus ?? { provider: "comfyui", state: "idle" }}
-                drawStatus={localDrawStatus ?? { provider: "drawthings", state: "idle" }}
-                onRefresh={onRefreshLocalProviders ?? (() => Promise.resolve())}
-              />
-            ) : null}
           </div>
         ) : null}
         {legalDoc ? (
@@ -896,7 +948,7 @@ const styles: Record<string, React.CSSProperties> = {
     backdropFilter: "blur(10px)",
     display: "grid",
     placeItems: "center",
-    zIndex: 90,
+    zIndex: 9000,
     padding: 16
   },
   modal: {
@@ -1572,7 +1624,7 @@ const styles: Record<string, React.CSSProperties> = {
     backdropFilter: "blur(10px)",
     display: "grid",
     placeItems: "center",
-    zIndex: 110,
+    zIndex: 9100,
     padding: 16
   },
   legalModal: {

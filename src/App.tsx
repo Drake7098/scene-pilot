@@ -50,6 +50,12 @@ import {
   type DrawThingsQueuePack,
   type LocalProviderStatus
 } from "./utils/localGeneration";
+import {
+  generateHosted,
+  generateByo,
+  generationErrorMessage,
+  type GenerationInput,
+} from "./services/generationService";
 
 import { ChevronDown, ChevronRight, CircleHelp, FolderOpen, Image as ImageIcon, Languages, Layout, MoreHorizontal } from "lucide-react";
 import { CreditCard, Crown, Cpu, KeyRound, LogOut, UserRound, Wallet } from "lucide-react";
@@ -73,6 +79,7 @@ import { PRICING_FINAL_CREDIT_PACKS, creditCostFor, creditCostForProfile, GENERA
 import { finalizeReservedCredits, getCreditLedger, getWalletState, reserveCredits, rollbackReservedCredits } from "./services/creditService";
 import { recordLegalConsent, syncPendingLegalConsents } from "./services/legalConsentService";
 import { getApiCredentials, setApiCredentials } from "./services/mockAccountStore";
+import { computeUnsavedChanges, runUnsavedChangesGuard, shouldBlockPageLeave } from "./services/unsavedChangesGuard";
 import { createTemplateFromScene, saveUserTemplate } from "./lib/templateStore";
 import {
   TemplateWorkspace,
@@ -98,12 +105,12 @@ import { isTemplateOwned, markTemplateOwned } from "./lib/ownedTemplatesStore";
 import { saveCurrentProjectAsTemplate } from "./lib/userTemplatesStore";
 import type { UserPrivateTemplate } from "./lib/userTemplatesStore";
 import { isUserPrivateTemplate } from "./features/template-workspace/components/TemplateCard";
-import { FeedbackBar, OutputConsole, ProWorkspaceShell, PromptMiniPreview, type FeedbackBarApi } from "./features/pro-workspace";
+import { FeedbackBar, OutputConsole, ProWorkspaceShell, PromptMiniPreview, WorkspaceLeftPanel, type FeedbackBarApi } from "./features/pro-workspace";
 import { addToRecent, type TemplateWorkspaceItem, type ApplyTemplateMode } from "./data/templateWorkspaceData";
 import type { ExportMode } from "./utils/exportViewModel";
 import type { PromptExportScope } from "./types/export";
 import { detectSceneConflicts } from "./utils/conflictRules";
-import { canOpenCustomerPortal, canUseBringYourOwnApi, canUseHostedGeneration, canUseProConsole, canUseUnlimitedTemplates } from "./utils/entitlement";
+import { canOpenCustomerPortal, canUseUnlimitedTemplates, getProAccessState } from "./utils/entitlement";
 import {
   loadGenerationPreferences,
   saveGenerationPreferences,
@@ -133,6 +140,10 @@ type LibraryEntry = { name: string; kind: "file" | "directory"; label: string };
 type SavePlatformId = PlatformPresetId;
 type SavePlatformPickMode = "save" | "save_as" | "save_all";
 type ExportPanelOpenAction = "open" | "copy" | "package" | "prompt_txt" | "prompt_plus_refs";
+type PendingTemplateSwitch = {
+  indexOrItem: TemplateIndex | TemplateWorkspaceItem | UserPrivateTemplate;
+  applyMode?: ApplyTemplateMode;
+};
 type TestBridge = {
   skipHandlePersistence?: boolean;
   showDirectoryPicker?: (options?: { mode?: "read" | "readwrite"; id?: string }) => Promise<any>;
@@ -287,6 +298,19 @@ function consumePostAuthRedirect() {
 
 function savePlatformLabel(id: SavePlatformId, lang: Lang) {
   return getPlatformLabel(id, lang === "zh" ? "zh" : "en");
+}
+
+function isOAuthCallbackBootstrap(url: URL) {
+  const hash = url.hash.startsWith("#") ? url.hash.slice(1) : "";
+  const hashParams = new URLSearchParams(hash);
+  return (
+    String(url.searchParams.get("auth_provider") || "").toLowerCase() === "google"
+    || Boolean(url.searchParams.get("code"))
+    || Boolean(url.searchParams.get("error"))
+    || Boolean(url.searchParams.get("error_code"))
+    || Boolean(hashParams.get("access_token"))
+    || Boolean(hashParams.get("refresh_token"))
+  );
 }
 
 const SAVE_PLATFORM_OPTIONS: SavePlatformId[] = PLATFORM_PRESETS.map((preset) => preset.id);
@@ -461,6 +485,7 @@ export default function App() {
   const [proGenerateHint, setProGenerateHint] = useState("");
   const [proAdvancedSettingsOpen, setProAdvancedSettingsOpen] = useState(false);
   const [proProfileDropdownOpen, setProProfileDropdownOpen] = useState(false);
+  const [proWorkspaceSection, setProWorkspaceSection] = useState<import("./features/pro-workspace").ProWorkspaceSection>("shot");
   const proProfileDropdownRef = useRef<HTMLDivElement | null>(null);
   const [proAssetsBySceneId, setProAssetsBySceneId] = useState<Record<string, ProGeneratedAsset[]>>({});
   const [proActiveAssetBySceneId, setProActiveAssetBySceneId] = useState<Record<string, string>>({});
@@ -508,6 +533,9 @@ export default function App() {
   const [, setLibraryHydrated] = useState(false);
   const [newProjectConfirmOpen, setNewProjectConfirmOpen] = useState(false);
   const [newProjectConfirmBusy, setNewProjectConfirmBusy] = useState(false);
+  const [templateSwitchConfirmOpen, setTemplateSwitchConfirmOpen] = useState(false);
+  const [templateSwitchConfirmBusy, setTemplateSwitchConfirmBusy] = useState(false);
+  const [pendingTemplateSwitch, setPendingTemplateSwitch] = useState<PendingTemplateSwitch | null>(null);
   const [savePlatformId, setSavePlatformId] = useState<SavePlatformId>(() => {
     try {
       const raw = localStorage.getItem(SAVE_PLATFORM_KEY) as SavePlatformId | null;
@@ -584,8 +612,12 @@ export default function App() {
     }
   }, [accountUser]);
   const accountEntryLabel = accountUser
-    ? (lang === "zh" ? "账户" : "Account")
+    ? ""
     : (lang === "zh" ? "登录 / 注册" : "Sign In / Sign Up");
+  const proAccess = useMemo(() => getProAccessState(accountUser), [accountUser]);
+  const hasProAccess = proAccess.hasPro;
+  const canUseByoAccess = hasProAccess;
+  const showDevProBadge = import.meta.env.DEV && proAccess.source === "dev_override";
 
   function syncSavePlatform(id: SavePlatformId) {
     setSavePlatformId(id);
@@ -663,7 +695,7 @@ export default function App() {
   }
 
   function enterProWorkspace() {
-    if (!canUseProConsole(accountUser)) {
+    if (!hasProAccess) {
       openAccountCenter("pro");
       return false;
     }
@@ -693,8 +725,13 @@ export default function App() {
     eventLang: Lang = lang
   ) => {
     if (!isTelemetryOn()) return;
-    track(event, props, eventLang);
-  }, [lang]);
+    track(event, {
+      ...props,
+      pro_access_source: proAccess.source,
+      is_dev_pro_override: proAccess.isDevOverride,
+      is_real_paid_pro: accountUser?.tier === "pro"
+    }, eventLang);
+  }, [lang, proAccess.source, proAccess.isDevOverride, accountUser?.tier]);
   const trackUiAction = useCallback((
     area: string,
     action: string,
@@ -752,7 +789,20 @@ export default function App() {
   );
   const currentLibrarySnapshot = useMemo(() => JSON.stringify({ project: safeProject, fileLabel: fileLabel || "" }), [safeProject, fileLabel]);
   const [lastLibrarySavedSnapshot, setLastLibrarySavedSnapshot] = useState<string>("");
-  const hasUnsavedLibraryChanges = currentLibrarySnapshot !== lastLibrarySavedSnapshot;
+  const hasUnsavedLibraryChanges = useMemo(
+    () => computeUnsavedChanges(currentLibrarySnapshot, lastLibrarySavedSnapshot),
+    [currentLibrarySnapshot, lastLibrarySavedSnapshot]
+  );
+
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!shouldBlockPageLeave(hasUnsavedLibraryChanges)) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasUnsavedLibraryChanges]);
 
   // ---------------------- mediaMode + editT lock (minimal) ----------------------
   const mediaMode = useMemo<"image" | "video">(() => resolveSceneConfig(scene).mediaMode, [scene]);
@@ -1229,7 +1279,7 @@ export default function App() {
     if (proGenerateBusy) return;
 
     if (requestedSource === "hosted") {
-      if (!canUseHostedGeneration(accountUser)) {
+      if (!hasProAccess) {
         openBillingPage("upgrade");
         return;
       }
@@ -1238,7 +1288,7 @@ export default function App() {
         openAccountCenter("auth");
         return;
       }
-      if (!canUseBringYourOwnApi(accountUser)) {
+      if (!canUseByoAccess) {
         openAccountCenter("api");
         return;
       }
@@ -1273,14 +1323,34 @@ export default function App() {
         reservedEntryId = reserved.id;
       }
 
-      if (mediaMode === "image") {
-        const localImage = await runPreferredLocalImage({
-          prompt,
-          resolution,
-          seed,
-          preferredCheckpoint: comfyStatus.checkpoint
-        });
+      // ── Generation dispatch ───────────────────────────────────────
+      const genInput: GenerationInput = {
+        prompt,
+        resolution,
+        mediaMode,
+        seed,
+        durationSeconds: mediaMode === "video" ? Math.max(1, Math.ceil(Number(scene?.duration_s) || 5)) : undefined,
+        qualityTier: currentGenProfile as any,
+      };
 
+      let genResult: { kind: "image" | "video"; url: string; posterUrl?: string; ownedUrls: string[] };
+
+      if (requestedSource === "hosted") {
+        // ── Platform generation (uses our fal/runway keys from env) ──
+        const result = await generateHosted(genInput);
+        genResult = { kind: result.kind, url: result.kind === "image" ? result.url : (result.kind === "video" ? "" : result.url), posterUrl: result.posterUrl, ownedUrls: result.ownedUrls };
+        if (result.kind === "video") genResult.url = result.url;
+        else genResult.url = result.url;
+
+      } else {
+        // ── BYO (user's own API key) ──────────────────────────────────
+        if (!accountApiCredentials) throw new Error("byo_api_key_missing");
+        const result = await generateByo(genInput, accountApiCredentials);
+        genResult = { kind: result.kind, url: result.url, posterUrl: result.posterUrl, ownedUrls: result.ownedUrls };
+      }
+
+      // ── Append result to canvas tab ───────────────────────────────
+      if (genResult.kind === "image") {
         const imageCount = currentSceneAssets.filter((item) => item.kind === "image").length + 1;
         appendProAsset(sceneAssetKey, {
           id: makeProAssetId("image"),
@@ -1290,47 +1360,25 @@ export default function App() {
           prompt,
           source: requestedSource,
           strategyPlatformId,
-          imageUrl: localImage.imageUrl,
-          ownedUrls: [localImage.imageUrl],
+          imageUrl: genResult.url,
+          ownedUrls: genResult.ownedUrls,
           createdAt: new Date().toISOString()
         });
       } else {
-        let anchor: { url: string; ownedUrls: string[] } | null = null;
-        try {
-          anchor = await buildSceneAnchorImage(prompt, resolution, seed);
-          const localVideo = await runComfyUiVideoPreview({
-            prompt,
-            anchorImageUrl: anchor.url,
-            resolution,
-            seed,
-            baseUrls: defaultComfyUiBaseUrls(),
-            prefix: `scenepilotix_scene_${sceneNo}_${Date.now()}`
-          });
-          const videoCount = currentSceneAssets.filter((item) => item.kind === "video").length + 1;
-          appendProAsset(sceneAssetKey, {
-            id: makeProAssetId("video"),
-            sceneId: sceneAssetKey,
-            kind: "video",
-            title: proAssetLabel("video", videoCount),
-            prompt,
-            source: requestedSource,
-            strategyPlatformId,
-            videoUrl: localVideo.videoUrl,
-            posterUrl: localVideo.posterUrl || anchor.url,
-            ownedUrls: [...new Set([localVideo.videoUrl, localVideo.posterUrl || "", ...(anchor.ownedUrls ?? [])].filter(Boolean))],
-            createdAt: new Date().toISOString()
-          });
-        } catch (error) {
-          // Revoke any anchor blobs we created but did not attach to an owned asset.
-          if (anchor?.ownedUrls) {
-            for (const url of anchor.ownedUrls) {
-              if (typeof url === "string" && url.startsWith("blob:")) {
-                URL.revokeObjectURL(url);
-              }
-            }
-          }
-          throw error;
-        }
+        const videoCount = currentSceneAssets.filter((item) => item.kind === "video").length + 1;
+        appendProAsset(sceneAssetKey, {
+          id: makeProAssetId("video"),
+          sceneId: sceneAssetKey,
+          kind: "video",
+          title: proAssetLabel("video", videoCount),
+          prompt,
+          source: requestedSource,
+          strategyPlatformId,
+          videoUrl: genResult.url,
+          posterUrl: genResult.posterUrl,
+          ownedUrls: genResult.ownedUrls,
+          createdAt: new Date().toISOString()
+        });
       }
 
       if (requestedSource === "hosted" && accountUser && reservedEntryId) {
@@ -1368,12 +1416,7 @@ export default function App() {
         await rollbackReservedCredits(accountUser.id, reservedEntryId);
         await refreshAccountState();
       }
-      const message = error instanceof Error ? error.message : String(error);
-      setProGenerateHint(
-        lang === "zh"
-          ? `生成失败：${message}`
-          : `Generation failed: ${message}`
-      );
+      setProGenerateHint(generationErrorMessage(error, lang));
     } finally {
       setProGenerateBusy(false);
     }
@@ -1523,7 +1566,7 @@ export default function App() {
   }
 
   /** Use Template = always create a new project (never append). Market: pricing resolver; user_private: free. */
-  async function handleUseTemplateFromWorkspace(
+  async function applyTemplateFromWorkspaceCore(
     indexOrItem: TemplateIndex | TemplateWorkspaceItem | UserPrivateTemplate,
     _applyMode?: ApplyTemplateMode
   ) {
@@ -1551,6 +1594,10 @@ export default function App() {
           })();
 
     if (!index) return;
+    if (index.isEnabled !== true) {
+      feedbackBarRef.current?.pushMessage(lang === "zh" ? "该模板已冻结，不可应用" : "This template is frozen and cannot be applied");
+      return;
+    }
 
     const meta = getTemplateMetadataFromIndex(index);
     addToRecent(meta.id);
@@ -1563,7 +1610,7 @@ export default function App() {
     const owned = Boolean(accountUser && isTemplateOwned(accountUser.id, index.id));
     const freeOrUnlimited = pricing.creditPrice <= 0 || canUseUnlimitedTemplates(accountUser);
 
-    if (!owned && pricing.accessTier === "pro_credits" && !canUseProConsole(accountUser)) {
+    if (!owned && pricing.accessTier === "pro_credits" && !hasProAccess) {
       openBillingPage("upgrade");
       return;
     }
@@ -1618,6 +1665,58 @@ export default function App() {
     setIsTemplateWorkspaceOpen(false);
     setTemplateWorkspaceState((s) => ({ ...s, isQuickModeActive: true, quickModeDismissed: false }));
     feedbackBarRef.current?.pushMessage(lang === "zh" ? "已应用模板" : "Template applied");
+  }
+
+  async function handleUseTemplateFromWorkspace(
+    indexOrItem: TemplateIndex | TemplateWorkspaceItem | UserPrivateTemplate,
+    applyMode?: ApplyTemplateMode
+  ) {
+    const guardResult = await runUnsavedChangesGuard({
+      hasUnsavedChanges: hasUnsavedLibraryChanges,
+      confirmSaveFirst: () =>
+        window.confirm(
+          lang === "zh"
+            ? "当前项目有未保存改动。点击“确定”先保存当前项目，再切换到新模板。"
+            : "Current project has unsaved changes. Click OK to save before switching template."
+        ),
+      runSave: async () => await (runProjectAction("save") as Promise<boolean>),
+      confirmDiscard: () =>
+        window.confirm(
+          lang === "zh"
+            ? "是否放弃未保存改动并切换模板？"
+            : "Discard unsaved changes and switch template?"
+        ),
+    });
+    if (!guardResult.allowed) {
+      return;
+    }
+    await applyTemplateFromWorkspaceCore(indexOrItem, applyMode);
+  }
+
+  async function applyPendingTemplateSwitchDirectly() {
+    if (!pendingTemplateSwitch) return;
+    const pending = pendingTemplateSwitch;
+    setTemplateSwitchConfirmOpen(false);
+    setPendingTemplateSwitch(null);
+    await applyTemplateFromWorkspaceCore(pending.indexOrItem, pending.applyMode);
+  }
+
+  async function applyPendingTemplateSwitchAfterSave() {
+    if (!pendingTemplateSwitch) return;
+    setTemplateSwitchConfirmBusy(true);
+    try {
+      const maybe = runProjectAction("save");
+      const ok = typeof maybe === "object" && typeof (maybe as Promise<unknown>).then === "function"
+        ? await (maybe as Promise<boolean>)
+        : false;
+      if (!ok) return;
+      const pending = pendingTemplateSwitch;
+      setTemplateSwitchConfirmOpen(false);
+      setPendingTemplateSwitch(null);
+      await applyTemplateFromWorkspaceCore(pending.indexOrItem, pending.applyMode);
+    } finally {
+      setTemplateSwitchConfirmBusy(false);
+    }
   }
 
   /** Proxy: duplicate via unified runProjectAction. */
@@ -1718,17 +1817,22 @@ export default function App() {
 
   const billingRuntimeEnabled = BILLING_ENABLED && !BILLING_LIVE_BLOCKED;
   const billingNotice = useMemo(() => {
+    const devOverrideNotice = showDevProBadge
+      ? (lang === "zh" ? "当前为开发者 Pro 覆盖，仅影响本地权限判断，不代表真实订阅。" : "Developer Pro override is active locally. Real subscription state is unchanged.")
+      : "";
     if (!BILLING_ENABLED) {
-      return lang === "zh" ? "支付通道即将上线，暂不可购买或开通。" : "Billing is coming soon. Purchases are temporarily unavailable.";
+      const base = lang === "zh" ? "支付通道即将上线，暂不可购买或开通。" : "Billing is coming soon. Purchases are temporarily unavailable.";
+      return [base, devOverrideNotice].filter(Boolean).join(" ");
     }
     if (BILLING_LIVE_BLOCKED) {
-      return lang === "zh" ? "当前环境已启用支付保护：禁止 live 扣费，请使用 sandbox。" : "Live billing is blocked in this environment. Use sandbox billing only.";
+      const base = lang === "zh" ? "当前环境已启用支付保护：禁止 live 扣费，请使用 sandbox。" : "Live billing is blocked in this environment. Use sandbox billing only.";
+      return [base, devOverrideNotice].filter(Boolean).join(" ");
     }
-    return "";
-  }, [lang]);
+    return devOverrideNotice;
+  }, [lang, showDevProBadge]);
 
   function requestProAccess(section: AccountCenterSection = "pro") {
-    if (canUseProConsole(accountUser)) return enterProWorkspace();
+    if (hasProAccess) return enterProWorkspace();
     openAccountCenter(section);
     return false;
   }
@@ -1951,7 +2055,7 @@ export default function App() {
   }
 
   function handleSaveApiCredentials(next: ApiCredentialState) {
-    if (!accountUser || !canUseBringYourOwnApi(accountUser)) return;
+    if (!accountUser || !canUseByoAccess) return;
     const current = getApiCredentials(accountUser.id);
     const now = new Date().toISOString();
     const effectiveFalKey = next.fal.mode === "personal" && next.fal.apiKey?.trim() ? next.fal.apiKey : (next.fal.mode === "personal" ? current.fal.apiKey : "");
@@ -2027,6 +2131,7 @@ export default function App() {
     const url = new URL(window.location.href);
     const signinRaw = String(url.searchParams.get(SIGNIN_QUERY_KEY) || "").trim().toLowerCase();
     const wantsSignin = ["1", "true", "yes"].includes(signinRaw);
+    const oauthCallback = isOAuthCallbackBootstrap(url);
     const redirectRaw = url.searchParams.get(REDIRECT_QUERY_KEY);
     const redirectTarget = normalizePostAuthRedirect(redirectRaw);
 
@@ -2037,7 +2142,7 @@ export default function App() {
       setPostAuthRedirect(redirectTarget);
     }
 
-    if (wantsSignin && !accountUser) {
+    if (wantsSignin && !accountUser && !oauthCallback) {
       try {
         window.sessionStorage.setItem(SKIP_ONBOARDING_ONCE_KEY, "1");
       } catch {
@@ -2210,14 +2315,52 @@ export default function App() {
     }
   }, [billingLegalAccepted]);
 
-  function requestNewProject() {
-    if (!hasUnsavedLibraryChanges) {
-      if (!requestProAccess("pro")) return;
-      openCreateWizard(false);
-      trackProjectFlow("wizard_open", { withSave: false, skippedSavePrompt: true }, lang);
-      return;
-    }
-    setNewProjectConfirmOpen(true);
+  async function requestNewProject() {
+    const guardResult = await runUnsavedChangesGuard({
+      hasUnsavedChanges: hasUnsavedLibraryChanges,
+      confirmSaveFirst: () =>
+        window.confirm(
+          lang === "zh"
+            ? "当前项目有未保存改动。点击“确定”先保存，再创建新项目。"
+            : "Current project has unsaved changes. Click OK to save before creating a new project."
+        ),
+      runSave: async () => await (runProjectAction("save") as Promise<boolean>),
+      confirmDiscard: () =>
+        window.confirm(
+          lang === "zh"
+            ? "是否放弃未保存改动并创建新项目？"
+            : "Discard unsaved changes and create a new project?"
+        ),
+    });
+    if (!guardResult.allowed) return;
+    if (!requestProAccess("pro")) return;
+    openCreateWizard(false);
+    trackProjectFlow(
+      "wizard_open",
+      { withSave: guardResult.outcome === "allow_after_save", skippedSavePrompt: guardResult.outcome === "allow_no_unsaved" },
+      lang
+    );
+  }
+
+  async function requestOpenProject() {
+    const guardResult = await runUnsavedChangesGuard({
+      hasUnsavedChanges: hasUnsavedLibraryChanges,
+      confirmSaveFirst: () =>
+        window.confirm(
+          lang === "zh"
+            ? "当前项目有未保存改动。点击“确定”先保存，再打开项目。"
+            : "Current project has unsaved changes. Click OK to save before opening a project."
+        ),
+      runSave: async () => await (runProjectAction("save") as Promise<boolean>),
+      confirmDiscard: () =>
+        window.confirm(
+          lang === "zh"
+            ? "是否放弃未保存改动并打开项目？"
+            : "Discard unsaved changes and open project?"
+        ),
+    });
+    if (!guardResult.allowed) return;
+    fileInputRef.current?.click();
   }
 
   function requestSavePlatform(mode: SavePlatformPickMode): Promise<SavePlatformId | null> {
@@ -2398,7 +2541,7 @@ export default function App() {
         layers: [buildDefaultObjectLayer(lang, 1)],
         config: {
           mediaMode: media,
-          compiler: media === "video" ? "v2" : "v1",
+          compiler: "v3",
           sceneTier,
           v2Mode: "strict",
           stability: "standard"
@@ -2406,7 +2549,7 @@ export default function App() {
         notes: [
           `media: ${media}`,
           "genmode: quick",
-          media === "video" ? "@compiler:v2" : "",
+          media === "video" ? "@compiler:v3" : "@compiler:v3",
           media === "video" ? `@scene_tier:${sceneTier}` : "",
           media === "video" ? "@v2_mode:strict" : ""
         ]
@@ -2763,7 +2906,7 @@ export default function App() {
   async function generateResultPlan() {
     const brief = resultBrief.trim();
     if (!brief || resultBusy) return;
-    if (!canUseHostedGeneration(accountUser)) {
+    if (!hasProAccess) {
       openBillingPage("upgrade");
       return;
     }
@@ -2907,7 +3050,7 @@ export default function App() {
 
   async function refineResultPlan() {
     if (!resultPlan || resultBusy) return;
-    if (!canUseHostedGeneration(accountUser)) {
+    if (!hasProAccess) {
       openBillingPage("upgrade");
       return;
     }
@@ -3007,21 +3150,18 @@ export default function App() {
   }
 
   async function saveAsToDisk(): Promise<boolean> {
-    const pickedPlatform = await requestSavePlatform("save_as");
-    if (!pickedPlatform) return false;
+    const pickedPlatform = savePlatformId;
     syncSavePlatform(pickedPlatform);
     setProjectSavePlatformLockedPersist(true);
     const defaultProjectDirName = safeExportName(fileLabel || defaultProjectName(lang)) || defaultProjectName(lang);
     const input = window.prompt(
-      lang === "zh" ? "另存为：输入项目目录名（同名将覆盖）" : "Save As: enter project folder name (same name will overwrite)",
+      lang === "zh" ? "另存为：输入项目名称（同名将覆盖）" : "Save As: enter project name (same name will overwrite)",
       defaultProjectDirName
     );
     if (input == null) return false;
     const pickedName = safeExportName(input) || defaultProjectDirName;
     setLibraryHint(
-      lang === "zh"
-        ? `另存项目：${pickedName}（适用大模型 ${savePlatformLabel(pickedPlatform, lang)}，同名覆盖）`
-        : `Save As project: ${pickedName} (target model ${savePlatformLabel(pickedPlatform, lang)}, same name will be overwritten)`
+      lang === "zh" ? `另存为：${pickedName}` : `Saved as: ${pickedName}`
     );
     const ok = await saveProjectToLibrary(pickedPlatform, pickedName);
     if (!ok) return false;
@@ -3031,15 +3171,10 @@ export default function App() {
   }
 
   async function saveToDisk(): Promise<boolean> {
-    const pickedPlatform = projectSavePlatformLocked ? savePlatformId : await requestSavePlatform("save");
-    if (!pickedPlatform) return false;
+    const pickedPlatform = savePlatformId;
     syncSavePlatform(pickedPlatform);
     setProjectSavePlatformLockedPersist(true);
-    setLibraryHint(
-      lang === "zh"
-        ? `保存当前项目到分镜库（适用大模型 ${savePlatformLabel(pickedPlatform, lang)}）。`
-        : `Saving current project to the library (target model ${savePlatformLabel(pickedPlatform, lang)}).`
-    );
+    setLibraryHint(lang === "zh" ? "正在保存项目..." : "Saving project...");
     const ok = await saveProjectToLibrary(pickedPlatform);
     if (!ok) return false;
     setLastLibrarySavedSnapshot(currentLibrarySnapshot);
@@ -3096,8 +3231,8 @@ export default function App() {
   }
 
   shortcutActionsRef.current = {
-    openProject: () => fileInputRef.current?.click(),
-    newProject: requestNewProject,
+    openProject: () => { void requestOpenProject(); },
+    newProject: () => { void requestNewProject(); },
     save: () => { void runProjectAction("save"); },
     saveAs: () => { void runProjectAction("save_as"); },
     copyPrompt: handleCopyPrompt,
@@ -3382,7 +3517,7 @@ export default function App() {
   }
 
   function handleQuickGenerate() {
-    if (!canUseHostedGeneration(accountUser)) {
+    if (!hasProAccess) {
       openQuickGenerationGate();
       return;
     }
@@ -3443,8 +3578,7 @@ export default function App() {
   }
 
   async function saveAllScenesToLibrary(): Promise<boolean> {
-    const pickedPlatform = await requestSavePlatform("save_all");
-    if (!pickedPlatform) return false;
+    const pickedPlatform = savePlatformId;
     syncSavePlatform(pickedPlatform);
     const ok = await saveProjectToLibrary(pickedPlatform);
     if (!ok) return false;
@@ -3454,20 +3588,23 @@ export default function App() {
   }
 
   async function ensureReadyForLibraryOpen(): Promise<boolean> {
-    if (!hasUnsavedLibraryChanges) return true;
-    const askSave = window.confirm(
-      lang === "zh"
-        ? "当前项目有未保存改动。点击“确定”先保存整个项目，再打开分镜库项目。"
-        : "Current project has unsaved changes. Click OK to save the whole project before opening a library project."
-    );
-    if (askSave) {
-      return await (runProjectAction("save") as Promise<boolean>);
-    }
-    return window.confirm(
-      lang === "zh"
-        ? "是否放弃未保存改动并直接打开分镜库项目？"
-        : "Discard unsaved changes and open the library project directly?"
-    );
+    const guardResult = await runUnsavedChangesGuard({
+      hasUnsavedChanges: hasUnsavedLibraryChanges,
+      confirmSaveFirst: () =>
+        window.confirm(
+          lang === "zh"
+            ? "当前项目有未保存改动。点击“确定”先保存整个项目，再打开分镜库项目。"
+            : "Current project has unsaved changes. Click OK to save the whole project before opening a library project."
+        ),
+      runSave: async () => await (runProjectAction("save") as Promise<boolean>),
+      confirmDiscard: () =>
+        window.confirm(
+          lang === "zh"
+            ? "是否放弃未保存改动并直接打开分镜库项目？"
+            : "Discard unsaved changes and open the library project directly?"
+        ),
+    });
+    return guardResult.allowed;
   }
 
   async function importLibraryEntryToEditor(entry: LibraryEntry) {
@@ -3692,7 +3829,7 @@ export default function App() {
             void handleOpenCustomerPortal();
           }
         },
-        ...(canUseBringYourOwnApi(accountUser)
+        ...(canUseByoAccess
           ? [
               {
                 key: "api",
@@ -3784,38 +3921,16 @@ export default function App() {
 
         <div style={{ flex: 1, minWidth: 0 }} />
 
-        <button style={styles.topBtn} onClick={toggleLang} type="button">
-          <Languages size={16} />
-          <span style={styles.topBtnText}>{lang === "zh" ? "EN" : "中文"}</span>
-        </button>
-
-        <button
-          data-testid="top-account-trigger"
-          style={{
-            ...styles.topAccountBtn,
-            ...(accountUser ? {} : {
-              background: "rgba(245,158,11,0.12)",
-              border: "1px solid rgba(245,158,11,0.35)",
-              borderRadius: 8,
-              padding: "0 12px",
-              color: "#f59e0b",
-              fontSize: 13
-            })
-          }}
-          onClick={() => setAccountMenuOpen((v) => !v)}
-          type="button"
-          aria-label={accountUser ? (lang === "zh" ? "账户中心" : "Account Center") : (lang === "zh" ? "登录 / 注册" : "Sign In")}
-          title={accountUser ? (lang === "zh" ? "账户中心" : "Account Center") : (lang === "zh" ? "登录 / 注册" : "Sign In")}
-        >
-          <span style={{ ...styles.topAccountAvatar, background: accountUser ? accountAvatarColor : "#3a3f46" }}>
-            {accountUser?.avatarUrl ? (
-              <img src={accountUser.avatarUrl} alt="" style={styles.topAvatarImage} />
-            ) : (
-              <UserRound size={14} style={{ color: accountUser ? "#f4fbff" : "#9ca3af" }} />
-            )}
+        {showDevProBadge && (
+          <span style={{
+            padding: "2px 8px", borderRadius: 999,
+            border: "1px solid rgba(245,158,11,0.5)",
+            background: "rgba(245,158,11,0.15)",
+            color: "#f59e0b", fontSize: 10, fontWeight: 700, letterSpacing: 0.2
+          }}>
+            DEV PRO
           </span>
-          <span style={styles.topBtnText}>{accountEntryLabel}</span>
-        </button>
+        )}
 
         {/* hidden file input for no FS access */}
         <input
@@ -3827,43 +3942,7 @@ export default function App() {
         />
       </div>
 
-      {accountMenuOpen ? (
-        <div
-          style={styles.menuMask}
-          onMouseDown={() => setAccountMenuOpen(false)}
-          role="presentation"
-        />
-      ) : null}
-
-      {accountMenuOpen ? (
-        <div style={styles.helpMenu} data-testid="top-account-menu">
-          {accountMenuEntries.map((entry) =>
-            "isGroupLabel" in entry && entry.isGroupLabel ? (
-              <div key={entry.key} style={styles.helpMenuGroupLabel} data-testid={`top-menu-group-${entry.key}`}>
-                {entry.label}
-              </div>
-            ) : (
-              (() => {
-                const item = entry as { key: string; label: string; icon: React.ReactNode; onClick: () => void };
-                return (
-                  <button
-                    key={item.key}
-                    data-testid={`top-help-item-${item.key}`}
-                    style={styles.helpMenuItem}
-                    type="button"
-                    onClick={item.onClick}
-                  >
-                    <span style={styles.helpMenuItemLabel}>
-                      {item.icon}
-                      <span>{item.label}</span>
-                    </span>
-                  </button>
-                );
-              })()
-            )
-          )}
-        </div>
-      ) : null}
+      {/* account menu now lives in WorkspaceLeftPanel user popup */}
 
       {newProjectConfirmOpen && (
         <div style={styles.modalMask} onMouseDown={() => !newProjectConfirmBusy && setNewProjectConfirmOpen(false)} role="presentation">
@@ -3912,58 +3991,58 @@ export default function App() {
         </div>
       )}
 
-      {savePlatformModalOpen && (
-        <div style={styles.modalMask} onMouseDown={() => closeSavePlatformModal(null)} role="presentation">
+      {templateSwitchConfirmOpen && (
+        <div
+          style={styles.modalMask}
+          onMouseDown={() => {
+            if (templateSwitchConfirmBusy) return;
+            setTemplateSwitchConfirmOpen(false);
+            setPendingTemplateSwitch(null);
+          }}
+          role="presentation"
+        >
           <div
             style={styles.modal}
-            data-testid="save-platform-modal"
             onMouseDown={(e) => {
+              e.preventDefault();
               e.stopPropagation();
             }}
           >
-            <div style={styles.modalTitle}>
-              {lang === "zh"
-                ? savePlatformPickMode === "save"
-                  ? "保存项目：选择适用大模型"
-                  : savePlatformPickMode === "save_all"
-                    ? "保存项目：选择适用大模型"
-                    : "另存为：选择适用大模型"
-                : savePlatformPickMode === "save"
-                  ? "Save Project: Choose Target Model"
-                  : savePlatformPickMode === "save_all"
-                    ? "Save Project: Choose Target Model"
-                    : "Save As: Choose Target Model"}
-            </div>
+            <div style={styles.modalTitle}>{lang === "zh" ? "切换模板" : "Switch Template"}</div>
             <div style={styles.modalText}>
               {lang === "zh"
-                ? savePlatformPickMode === "save_as"
-                  ? `另存项目时可以重新指定适用大模型。当前默认值是 ${savePlatformLabel(savePlatformId, lang)}。`
-                  : `首次保存项目时需要指定适用大模型。设置后，后续“保存项目”将直接沿用当前选择：${savePlatformLabel(savePlatformId, lang)}。`
-                : savePlatformPickMode === "save_as"
-                  ? `Save As lets you choose a different target model. Current default: ${savePlatformLabel(savePlatformId, lang)}.`
-                  : `Choose the target model the first time you save this project. Later saves will reuse: ${savePlatformLabel(savePlatformId, lang)}.`}
-            </div>
-            <div style={{ ...styles.modalFormRow, gridTemplateColumns: "minmax(88px,120px) minmax(0,1fr)" }}>
-              <div style={styles.modalLabel}>{lang === "zh" ? "适用大模型" : "Target Model"}</div>
-              <select
-                style={styles.modalSelect}
-                data-testid="save-platform-select"
-                value={pendingSavePlatformId}
-                onChange={(e) => setPendingSavePlatformId(e.target.value as SavePlatformId)}
-              >
-                {SAVE_PLATFORM_OPTIONS.map((id) => (
-                  <option key={id} value={id}>
-                    {savePlatformLabel(id, lang)}
-                  </option>
-                ))}
-              </select>
+                ? "当前项目有未保存改动。你可以先保存当前项目，再切换到新模板。"
+                : "Current project has unsaved changes. You can save first, then switch to the new template."}
             </div>
             <div style={styles.modalBtns}>
-              <button style={styles.modalBtnGhost} data-testid="save-platform-cancel" type="button" onClick={() => closeSavePlatformModal(null)}>
+              <button
+                style={styles.modalBtnGhost}
+                type="button"
+                disabled={templateSwitchConfirmBusy}
+                onClick={() => {
+                  setTemplateSwitchConfirmOpen(false);
+                  setPendingTemplateSwitch(null);
+                }}
+              >
                 {lang === "zh" ? "取消" : "Cancel"}
               </button>
-              <button style={styles.modalBtn} data-testid="save-platform-confirm" type="button" onClick={() => closeSavePlatformModal(pendingSavePlatformId)}>
-                {lang === "zh" ? "确认" : "Confirm"}
+              <button
+                style={styles.modalBtnGhost}
+                type="button"
+                disabled={templateSwitchConfirmBusy}
+                onClick={() => void applyPendingTemplateSwitchDirectly()}
+              >
+                {lang === "zh" ? "不保存，直接离开" : "Leave Without Saving"}
+              </button>
+              <button
+                style={styles.modalBtn}
+                type="button"
+                disabled={templateSwitchConfirmBusy}
+                onClick={() => void applyPendingTemplateSwitchAfterSave()}
+              >
+                {templateSwitchConfirmBusy
+                  ? lang === "zh" ? "保存中…" : "Saving..."
+                  : lang === "zh" ? "先保存并切换" : "Save Then Switch"}
               </button>
             </div>
           </div>
@@ -4087,23 +4166,22 @@ export default function App() {
 
       {
         <div style={{ ...styles.main, ...(useDesktopFixedLayout ? styles.mainDesktop : {}) }}>
-          <Sidebar
+          <WorkspaceLeftPanel
             lang={lang}
-            project={safeProject}
-            sceneIdx={sceneIdx}
-            projectLabel={fileLabel || defaultProjectName(lang)}
             isMac={isMac}
-            onOpenProject={() => fileInputRef.current?.click()}
-            onRenameProject={requestRenameProject}
-            onNewProject={requestNewProject}
+            section={proWorkspaceSection}
+            onSectionChange={setProWorkspaceSection}
+            activeGlobalNav={isTemplateWorkspaceOpen ? "templates" : "workspace"}
+            onGlobalNavChange={(nav) => {
+              if (nav === "templates") setIsTemplateWorkspaceOpen(true);
+              else setIsTemplateWorkspaceOpen(false);
+            }}
+            projectLabel={fileLabel || defaultProjectName(lang)}
+            onNewProject={() => void requestNewProject()}
+            onOpenProject={() => void requestOpenProject()}
             onSaveProject={() => void runProjectAction("save")}
-            onSaveAs={() => runProjectAction("save_as")}
-            onDuplicateProject={handleDuplicateProject}
-            onSaveAsTemplate={handleSaveAsTemplate}
-            onCopyPrompt={handleCopyPrompt}
-            onExportPromptTxt={() => openExportPanel("prompt_txt")}
-            onExportPromptPlusRefs={() => openExportPanel("prompt_plus_refs")}
-            onExportProject={handleExportProject}
+            onSaveAs={() => void runProjectAction("save_as")}
+            onRenameProject={requestRenameProject}
             onOpenLibrary={() => {
               setLibraryOpen(true);
               setLibraryProjectName(null);
@@ -4111,66 +4189,42 @@ export default function App() {
                 if (root) void refreshLibraryEntries(root, null);
               });
             }}
-            setSceneIdx={(i) => {
-              setSceneIdx(i);
-              setSelectedLayerId(null);
-              setEditT(0);
-              trackEditorChange("scene", "select", { idx: i }, lang);
+            onExportPromptPlusRefs={() => openExportPanel("prompt_plus_refs")}
+            onExportProject={handleExportProject}
+            onSaveAsTemplate={handleSaveAsTemplate}
+            user={accountUser ? {
+              displayName: accountUser.email?.split("@")[0] ?? "User",
+              email: accountUser.email,
+              isPro: hasProAccess,
+            } : null}
+            credits={accountCredits}
+            onOpenAccount={(section) => openAccountCenter((section as any) ?? "overview")}
+            onOpenBilling={() => openBillingPage("credits")}
+            onOpenUpgrade={() => openBillingPage("upgrade")}
+            onLogout={() => void handleLogout()}
+            onToggleLang={toggleLang}
+            onOpenApiSettings={() => openAccountCenter("api")}
+            onOpenLocalSettings={() => openAccountCenter("local")}
+            onOpenHelp={() => {
+              setFeedbackSent("");
+              setHelpCenterSection(DEFAULT_HELP_SECTION);
+              setHelpCenterOpen(true);
             }}
-            onUpdateProject={(p) => {
-              updateProject(p);
-              trackEditorChange("project", "update", { scenes: (p.scenes || []).length }, lang);
-            }}
-            scene={scene}
-            selectedLayerId={selectedLayerId}
-            onSelectLayer={(id) => {
-              setSelectedLayerId(id);
-              setEditT(0);
-              trackEditorChange("layer", "select", { id: id || "" }, lang);
-            }}
-            onUpdateScene={(s) => {
-              updateScene(s);
-              trackEditorChange("scene", "update", { idx: sceneIdx }, lang);
-            }}
-            isPro={canUseProConsole(accountUser)}
-            onLockedTemplateClick={() => setBillingPage("upgrade")}
-            onRequestSaveTemplate={() => {
-              const sc = safeProject?.scenes?.[sceneIdx];
-              if (!sc) return false;
-              const tpl = createTemplateFromScene(sc, {
-                name: (sc.name ?? "").trim() || (lang === "zh" ? "未命名模板" : "Untitled Template"),
-                category: "custom"
-              });
-              saveUserTemplate(tpl);
-              setTemplatesRefresh((r) => r + 1);
-              return true;
-            }}
-            onOpenTemplateWorkspace={() => setIsTemplateWorkspaceOpen(true)}
-            onOpenTemplateWorkspaceWithTemplate={(templateId) => {
-              const index = getTemplateIndex().find((t) => t.id === templateId);
-              setTemplateWorkspaceState((s) => ({
-                ...s,
-                selectedTemplateId: templateId,
-                selectedFamilyId: index?.familyId ?? s.selectedFamilyId,
-                showAllTemplatesInSubTask: false
-              }));
-              setIsTemplateWorkspaceOpen(true);
-            }}
-            onUseTemplateFromEntry={(item) => void handleUseTemplateFromWorkspace(item, "layout_only")}
           />
 
           <div
             style={{
               gridColumn: useDesktopFixedLayout ? "2 / -1" : undefined,
-              display: useDesktopFixedLayout && !isTemplateWorkspaceOpen ? "grid" : "flex",
-              gridTemplateColumns: useDesktopFixedLayout && !isTemplateWorkspaceOpen ? "minmax(0, 1fr) clamp(240px, 26vw, 344px)" : undefined,
-              flex: useDesktopFixedLayout ? undefined : 1,
+              display: "flex",
+              flexDirection: "column",
+              flex: 1,
               minWidth: 0,
-              minHeight: 0
+              minHeight: 0,
+              height: "100%",
             }}
           >
             {isTemplateWorkspaceOpen ? (
-              <div style={{ gridColumn: "1 / -1", flex: 1, width: "100%", minWidth: 0, minHeight: 0, display: "flex" }}>
+              <div style={{ flex: 1, width: "100%", minWidth: 0, minHeight: 0, display: "flex" }}>
                 <TemplateWorkspace
                   lang={lang}
                   state={templateWorkspaceState}
@@ -4184,264 +4238,63 @@ export default function App() {
                   templatesRefresh={templatesRefresh}
                 />
               </div>
-            ) : canUseProConsole(accountUser) ? (
-              <div style={{ gridColumn: "1 / -1", minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", position: "relative" }}>
-                {templateWorkspaceState.isQuickModeActive && !templateWorkspaceState.quickModeDismissed ? (
-                  <div style={{ position: "absolute", top: 12, right: 12, zIndex: 30 }}>
-                    <QuickGeneratePanel
-                      scene={scene}
-                      lang={lang}
-                      onUpdateScene={(nextScene) => updateScene(nextScene)}
-                      onDismiss={() => setTemplateWorkspaceState((s) => ({ ...s, quickModeDismissed: true }))}
-                      onGenerate={handleQuickGenerate}
-                      onCopyPrompt={handleCopyPrompt}
-                      onShare={() => void handleQuickShare()}
-                      onPickReference={() => void handleQuickPickReference()}
-                    />
-                  </div>
-                ) : null}
+            ) : (
+              <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
                 <ProWorkspaceShell
                   lang={lang}
                   project={safeProject}
                   scene={scene}
                   sceneIdx={sceneIdx}
                   selectedLayerId={selectedLayerId}
-                  onSelectLayer={(id) => {
-                    setSelectedLayerId(id);
-                    setEditT(0);
+                  onSelectLayer={(id) => { setSelectedLayerId(id); setEditT(0); }}
+                  onUpdateScene={(s) => { updateScene(s); trackEditorChange("scene", "update", { idx: sceneIdx }, lang); }}
+                  onRenameLayer={(oldId, newId) => { if (selectedLayerId === oldId) setSelectedLayerId(newId); trackEditorChange("layer", "rename", { oldId, newId }, lang); }}
+                  onAddLayer={() => {
+                    const newId = `obj_${Date.now().toString(36)}`;
+                    const newLayer: import("./model").Layer = {
+                      id: newId, type: "object", shape: "rect",
+                      look: "", shapeDesc: "", z: (scene.layers?.length ?? 0) + 1,
+                      color: "#888888", opacity: 1,
+                      kf: [{ t: 0, x: 50, y: 50, w: 30, h: 30, rot: 0 }],
+                      notes: "", externalPrompt: "", referenceLinks: "",
+                    };
+                    updateScene({ ...scene, layers: [...(scene.layers ?? []), newLayer] });
+                    setSelectedLayerId(newId);
+                    trackEditorChange("layer", "add", { id: newId }, lang);
                   }}
-                  onUpdateScene={(s) => {
-                    updateScene(s);
-                    trackEditorChange("scene", "update", { idx: sceneIdx }, lang);
-                  }}
-                  onRenameLayer={(oldId, newId) => {
-                    if (selectedLayerId === oldId) setSelectedLayerId(newId);
-                    trackEditorChange("layer", "rename", { oldId, newId }, lang);
+                  onDeleteLayer={(layerId) => {
+                    updateScene({ ...scene, layers: (scene.layers ?? []).filter(l => l.id !== layerId) });
+                    if (selectedLayerId === layerId) setSelectedLayerId(null);
+                    trackEditorChange("layer", "delete", { id: layerId }, lang);
                   }}
                   editT={effectiveEditT}
-                  setEditT={(t) => {
-                    if (mediaMode === "image" && t === 1) return;
-                    setEditT(t);
-                    trackEditorChange("timeline", "set_t", { t }, lang);
-                  }}
+                  setEditT={(t) => { if (mediaMode === "image" && t === 1) return; setEditT(t); }}
                   platformId={savePlatformId}
-                  onJumpToConflict={(layerId) => {
-                    if (layerId) setSelectedLayerId(layerId);
-                  }}
+                  onJumpToConflict={(layerId) => { if (layerId) setSelectedLayerId(layerId); }}
                   onPlatformChange={(id) => syncSavePlatform(id as SavePlatformId)}
                   exportMode={proExportMode}
                   onExportModeChange={handleProExportModeChange}
                   generationSource={proGenerationSource}
                   onGenerationSourceChange={setProGenerationSourceAndPersist}
-                  canUseByo={canUseBringYourOwnApi(accountUser)}
+                  canUseByo={canUseByoAccess}
                   onCopyPrompt={handleCopyPrompt}
                   onExport={handleExportProject}
                   onGenerate={() => void generateProAsset()}
                   generateBusy={proGenerateBusy}
-                  bottomSlot={
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                        {proGenerateHint ? (
-                          <div style={{ fontSize: 12, color: "var(--pro-text-muted)" }}>{proGenerateHint}</div>
-                        ) : null}
-                        <div style={{ display: "flex", alignItems: "stretch", gap: 0 }}>
-                          <button
-                            type="button"
-                            className="pro-btn-ghost"
-                            style={styles.proGenerateBtnSecondary}
-                            onClick={() => void generateProAsset()}
-                            disabled={proGenerateBusy}
-                            title={lang === "zh" ? "主生成区在下方" : "Main generate is below"}
-                          >
-                            {proGenerateBusy
-                              ? (lang === "zh" ? "生成中…" : "Generating…")
-                              : (lang === "zh" ? "生成" : "Generate")}
-                          </button>
-                          <div ref={proProfileDropdownRef} style={{ position: "relative" }}>
-                            <button
-                              type="button"
-                              className="pro-btn-ghost"
-                              style={{ ...styles.proGenerateBtnSecondary, minWidth: 32, paddingLeft: 8, paddingRight: 8 }}
-                              onClick={() => setProProfileDropdownOpen((o) => !o)}
-                              disabled={proGenerateBusy}
-                              aria-expanded={proProfileDropdownOpen}
-                              aria-haspopup="listbox"
-                            >
-                              <ChevronDown size={14} style={{ opacity: 0.9 }} />
-                            </button>
-                            {proProfileDropdownOpen ? (
-                              <div
-                                role="listbox"
-                                style={{
-                                  position: "absolute",
-                                  left: 0,
-                                  bottom: "100%",
-                                  marginBottom: 4,
-                                  background: "var(--pro-bg-panel)",
-                                  border: "1px solid var(--pro-border)",
-                                  borderRadius: 8,
-                                  boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-                                  zIndex: 100,
-                                  minWidth: 200,
-                                  overflow: "hidden",
-                                }}
-                              >
-                                {mediaMode === "image"
-                                  ? (["image_standard", "image_hq"] as const).map((id) => {
-                                      const meta = GENERATION_PROFILE_LABELS[id];
-                                      const label = lang === "zh" ? meta.labelZh : meta.labelEn;
-                                      const credits = lang === "zh" ? meta.creditsZh : meta.creditsEn;
-                                      return (
-                                        <button
-                                          key={id}
-                                          type="button"
-                                          role="option"
-                                          aria-selected={currentGenProfile === id}
-                                          style={{
-                                            display: "block",
-                                            width: "100%",
-                                            padding: "10px 14px",
-                                            textAlign: "left",
-                                            border: "none",
-                                            background: currentGenProfile === id ? "rgba(255,255,255,0.08)" : "transparent",
-                                            color: "var(--pro-text-primary)",
-                                            fontSize: 12,
-                                            cursor: "pointer",
-                                          }}
-                                          onClick={() => setGenerationProfile(id)}
-                                        >
-                                          {label} ({credits})
-                                        </button>
-                                      );
-                                    })
-                                  : (["video_standard", "video_hq"] as const).map((id) => {
-                                      const meta = GENERATION_PROFILE_LABELS[id];
-                                      const label = lang === "zh" ? meta.labelZh : meta.labelEn;
-                                      const credits = lang === "zh" ? meta.creditsZh : meta.creditsEn;
-                                      return (
-                                        <button
-                                          key={id}
-                                          type="button"
-                                          role="option"
-                                          aria-selected={currentGenProfile === id}
-                                          style={{
-                                            display: "block",
-                                            width: "100%",
-                                            padding: "10px 14px",
-                                            textAlign: "left",
-                                            border: "none",
-                                            background: currentGenProfile === id ? "rgba(255,255,255,0.08)" : "transparent",
-                                            color: "var(--pro-text-primary)",
-                                            fontSize: 12,
-                                            cursor: "pointer",
-                                          }}
-                                          onClick={() => setGenerationProfile(id)}
-                                        >
-                                          {label} ({credits})
-                                        </button>
-                                      );
-                                    })}
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className="pro-btn-ghost"
-                          onClick={handleCopyPrompt}
-                          style={{ padding: "8px 12px", fontSize: 12 }}
-                        >
-                          {lang === "zh" ? "复制提示词" : "Copy Prompt"}
-                        </button>
-                        <button
-                          type="button"
-                          className="pro-btn-ghost"
-                          onClick={handleExportProject}
-                          style={{ padding: "8px 12px", fontSize: 12 }}
-                        >
-                          {lang === "zh" ? "导出" : "Export"}
-                        </button>
-                      </div>
-                      {/* Advanced Settings (collapsed by default) */}
-                      <div style={{ borderTop: "1px solid var(--pro-border)", paddingTop: 8 }}>
-                        <button
-                          type="button"
-                          className="pro-btn-ghost"
-                          style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", fontSize: 11, color: "var(--pro-text-muted)" }}
-                          onClick={() => setProAdvancedSettingsOpen((o) => !o)}
-                        >
-                          {proAdvancedSettingsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                          {lang === "zh" ? "高级设置" : "Advanced Settings"}
-                        </button>
-                        {proAdvancedSettingsOpen ? (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <span style={{ fontSize: 11, color: "var(--pro-text-muted)" }}>{lang === "zh" ? "生成源" : "Provider"}</span>
-                              {canUseBringYourOwnApi(accountUser) ? (
-                                <>
-                                  <button
-                                    type="button"
-                                    style={{
-                                      padding: "4px 10px",
-                                      borderRadius: 6,
-                                      border: `1px solid ${proGenerationSource === "hosted" ? "var(--pro-accent)" : "var(--pro-border)"}`,
-                                      background: proGenerationSource === "hosted" ? "rgba(84,145,232,0.2)" : "transparent",
-                                      color: "var(--pro-text-primary)",
-                                      fontSize: 11,
-                                      cursor: "pointer",
-                                    }}
-                                    onClick={() => setProGenerationSourceAndPersist("hosted")}
-                                  >
-                                    {lang === "zh" ? "平台生成" : "Hosted"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    style={{
-                                      padding: "4px 10px",
-                                      borderRadius: 6,
-                                      border: `1px solid ${proGenerationSource === "byo" ? "var(--pro-accent)" : "var(--pro-border)"}`,
-                                      background: proGenerationSource === "byo" ? "rgba(84,145,232,0.2)" : "transparent",
-                                      color: "var(--pro-text-primary)",
-                                      fontSize: 11,
-                                      cursor: "pointer",
-                                    }}
-                                    onClick={() => setProGenerationSourceAndPersist("byo")}
-                                  >
-                                    {lang === "zh" ? "我的 API" : "My API"}
-                                  </button>
-                                </>
-                              ) : (
-                                <div style={{ fontSize: 11, color: "var(--pro-text-muted)" }}>
-                                  {lang === "zh" ? "Pro 可连接自己的 API" : "Pro unlocks My API"}
-                                  <button type="button" className="pro-btn-ghost" style={{ marginLeft: 8, fontSize: 11 }} onClick={() => openBillingPage("upgrade")}>
-                                    {lang === "zh" ? "升级" : "Upgrade"}
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                            {proGenerationSource === "hosted" ? (
-                              <div style={{ fontSize: 11, color: "var(--pro-text-muted)" }}>
-                                {lang === "zh" ? "费用预览" : "Cost"}: {currentGenProfile.startsWith("image") ? `${hostedCostPreview} Credits` : `${hostedCostPreview} Credits (${videoSeconds}s)`}
-                              </div>
-                            ) : canUseBringYourOwnApi(accountUser) ? (
-                              <div style={{ fontSize: 11, color: "var(--pro-text-muted)" }}>
-                                {lang === "zh" ? "生成不扣 Credits，模板仍扣" : "Generation does not consume Credits; templates still do."}
-                              </div>
-                            ) : null}
-                            <div style={{ fontSize: 10, color: "var(--pro-text-muted)", display: "flex", flexWrap: "wrap", gap: 6 }}>
-                              <span>{lang === "zh" ? "支持参考图" : "supports references"}</span>
-                              <span>·</span>
-                              <span>{lang === "zh" ? "支持连续镜头" : "supports continuity"}</span>
-                              <span>·</span>
-                              <span>{lang === "zh" ? "多分镜" : "multi-shot"}</span>
-                              <span>·</span>
-                              <span>{lang === "zh" ? "风格一致" : "style consistency"}</span>
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  }
+                  section={proWorkspaceSection}
+                  onSectionChange={setProWorkspaceSection}
+                  byoCredentials={accountApiCredentials}
+                  comfyStatus={comfyStatus}
+                  drawStatus={drawThingsStatus}
+                  creditCost={creditCostForProfile(currentGenProfile, mediaMode === "video" ? Math.max(1, Math.ceil(Number(scene?.duration_s) || 5)) : 1)}
+                  userCredits={accountCredits}
+                  currentAsset={currentSceneActiveAsset ?? null}
+                  assetList={currentSceneAssets}
+                  activeAssetId={currentSceneActiveAssetId}
+                  onSetActiveAsset={(id) => setActiveProAsset(sceneAssetKey, id)}
+                  onDownloadAsset={currentSceneActiveAsset ? () => downloadProAsset(currentSceneActiveAsset) : undefined}
+                  onDeleteAsset={currentSceneActiveAsset ? () => deleteProAsset(sceneAssetKey, currentSceneActiveAsset.id) : undefined}
+                  onRegenerateAsset={currentSceneActiveAsset ? () => void generateProAsset(currentSceneActiveAsset.source as any) : undefined}
                   exportPanelSlot={
                     <div style={{ position: "fixed", left: 0, top: 0, width: 0, height: 0, overflow: "hidden", visibility: "hidden", pointerEvents: "none", zIndex: -1 }}>
                       <ExportPanel
@@ -4455,278 +4308,19 @@ export default function App() {
                         promptExportNote=""
                         onPreparePromptExport={preparePromptExport}
                         onSettlePromptExport={settlePromptExport}
-                        onPlatformChange={(id) => {
-                          syncSavePlatform(id as SavePlatformId);
-                          feedbackBarRef.current?.pushMessage(lang === "zh" ? "已切换平台" : "Platform changed");
-                        }}
+                        onPlatformChange={(id) => { syncSavePlatform(id as SavePlatformId); feedbackBarRef.current?.pushMessage(lang === "zh" ? "已切换平台" : "Platform changed"); }}
                         exportScope={proExportScope}
-                        onExportScopeChange={(scope) => {
-                          setProExportScope(scope);
-                          feedbackBarRef.current?.pushMessage(lang === "zh" ? "已切换导出范围" : "Export scope changed");
-                        }}
+                        onExportScopeChange={(scope) => { setProExportScope(scope); feedbackBarRef.current?.pushMessage(lang === "zh" ? "已切换导出范围" : "Export scope changed"); }}
                         exportMode={proExportMode}
                         onExportModeChange={handleProExportModeChange}
                         selectedLayerId={selectedLayerId}
-                        onJumpToConflict={(layerId) => {
-                          if (layerId) setSelectedLayerId(layerId);
-                        }}
+                        onJumpToConflict={(layerId) => { if (layerId) setSelectedLayerId(layerId); }}
                         onFeedbackMessage={(msg) => feedbackBarRef.current?.pushMessage(msg)}
                       />
                     </div>
                   }
                 />
               </div>
-            ) : (
-              <>
-          <div style={styles.center}>
-            {/* Canvas tab bar (Figma-style browser tabs) */}
-            <div style={styles.proCanvasTabBar}>
-              <button
-                type="button"
-                className="pro-canvas-tab"
-                data-active={currentSceneActiveAssetId === "canvas" ? true : undefined}
-                style={{
-                  ...styles.proCanvasTab,
-                  ...(currentSceneActiveAssetId === "canvas" ? styles.proCanvasTabActive : null)
-                }}
-                onClick={() => setActiveProAsset(sceneAssetKey, "canvas")}
-                title={lang === "zh" ? "画布" : "Canvas"}
-              >
-                <Layout size={14} style={{ marginRight: 6, opacity: 0.8 }} />
-                {lang === "zh" ? "画布" : "Canvas"}
-                {currentSceneActiveAssetId === "canvas" ? (
-                  <div style={styles.proCanvasTabSeam} aria-hidden />
-                ) : null}
-              </button>
-              {currentSceneAssets.map((asset, index) => {
-                const tabLabel = asset.title?.trim() || proAssetLabel(asset.kind, index + 1);
-                const isActive = currentSceneActiveAssetId === asset.id;
-                return (
-                  <button
-                    key={asset.id}
-                    type="button"
-                    className="pro-canvas-tab"
-                    data-active={isActive ? true : undefined}
-                    style={{
-                      ...styles.proCanvasTab,
-                      ...(isActive ? styles.proCanvasTabActive : null)
-                    }}
-                    onClick={() => setActiveProAsset(sceneAssetKey, asset.id)}
-                    title={tabLabel}
-                  >
-                    <ImageIcon size={14} style={{ marginRight: 6, opacity: 0.8 }} />
-                    {tabLabel}
-                    {isActive ? <div style={styles.proCanvasTabSeam} aria-hidden /> : null}
-                  </button>
-                );
-              })}
-            </div>
-            <div style={styles.stageShell}>
-              <div
-                className={!currentSceneActiveAsset ? "pro-canvas-viewport" : undefined}
-                style={styles.proCanvasWorkspace}
-                data-view={!currentSceneActiveAsset ? "canvas" : "asset"}
-              >
-                {currentSceneActiveAsset ? (
-                  <div style={styles.proAssetStage}>
-                    <div style={styles.proAssetPreviewTop}>
-                      <div style={styles.proAssetMeta}>
-                        <span style={styles.proAssetMetaTitle}>{currentSceneActiveAsset.title}</span>
-                        <span style={styles.proAssetMetaChip}>
-                          {currentSceneActiveAsset.source === "hosted"
-                            ? (lang === "zh" ? "平台生成" : "Hosted")
-                            : (lang === "zh" ? "我的 API" : "My API")}
-                        </span>
-                        <span style={styles.proAssetMetaChip}>
-                          {getPlatformLabel(currentSceneActiveAsset.strategyPlatformId, lang)}
-                        </span>
-                      </div>
-
-                      <div style={{ position: "relative" }}>
-                        <button
-                          type="button"
-                          style={styles.proAssetMenuBtn}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={() => setProAssetMenuId((prev) => (prev === currentSceneActiveAsset.id ? null : currentSceneActiveAsset.id))}
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
-
-                        {proAssetMenuId === currentSceneActiveAsset.id ? (
-                          <div style={styles.proAssetMenu} onPointerDown={(e) => e.stopPropagation()}>
-                            <button
-                              type="button"
-                              className="pro-btn-ghost"
-                              style={styles.proAssetMenuItem}
-                              onClick={() => {
-                                downloadProAsset(currentSceneActiveAsset);
-                                setProAssetMenuId(null);
-                              }}
-                            >
-                              {lang === "zh" ? "下载" : "Download"}
-                            </button>
-                            <button
-                              type="button"
-                              className="pro-btn-ghost"
-                              style={styles.proAssetMenuItem}
-                              onClick={() => {
-                                setProAssetMenuId(null);
-                                void generateProAsset(currentSceneActiveAsset.source);
-                              }}
-                            >
-                              {lang === "zh" ? "继续生成" : "Generate Again"}
-                            </button>
-                            <button
-                              type="button"
-                              className="pro-btn-ghost"
-                              style={{ ...styles.proAssetMenuItem, ...styles.proAssetMenuDanger }}
-                              onClick={() => {
-                                deleteProAsset(sceneAssetKey, currentSceneActiveAsset.id);
-                              }}
-                            >
-                              {lang === "zh" ? "删除" : "Delete"}
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div style={styles.proAssetViewport}>
-                      {currentSceneActiveAsset.kind === "video" && currentSceneActiveAsset.videoUrl ? (
-                        <video
-                          key={currentSceneActiveAsset.id}
-                          src={currentSceneActiveAsset.videoUrl}
-                          poster={currentSceneActiveAsset.posterUrl}
-                          style={styles.proAssetVideo}
-                          controls
-                          playsInline
-                        />
-                      ) : currentSceneActiveAsset.imageUrl ? (
-                        <img
-                          src={currentSceneActiveAsset.imageUrl}
-                          alt={currentSceneActiveAsset.title}
-                          style={styles.proAssetImage}
-                        />
-                      ) : (
-                        <div style={styles.proAssetEmpty}>
-                          {lang === "zh" ? "结果暂不可预览" : "Preview unavailable"}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <Stage
-                    className="spx-pro-stage"
-                    project={safeProject}
-                    lang={lang}
-                    scene={scene}
-                    selectedLayerId={selectedLayerId}
-                    onSelectLayer={(id) => {
-                      setSelectedLayerId(id);
-                      if (!id) setEditT(0);
-                      trackEditorChange("stage", "select", { id: id || "" }, lang);
-                    }}
-                    onUpdateScene={(s) => {
-                      updateScene(s);
-                      trackEditorChange("stage", "update", { idx: sceneIdx }, lang);
-                    }}
-                    editT={effectiveEditT}
-                  />
-                )}
-
-              </div>
-            </div>
-
-            {/* Feedback bar + output console placeholders: reserve space so canvas is one grid unit up. */}
-            <FeedbackBar
-              ref={feedbackBarRef}
-              lang={lang}
-              platformLabel={feedbackBarPlatformLabel}
-              exportScopeLabel={feedbackBarScopeLabel}
-              statusLabel={lang === "zh" ? "可生成" : "Ready"}
-              conflicts={sceneConflicts}
-            />
-            <OutputConsole
-              lang={lang}
-              onGenerate={generateProAsset}
-              generateBusy={proGenerateBusy}
-              onCopyPrompt={handleCopyPrompt}
-            />
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
-            <PropsPanel
-            topSection={
-              <PromptMiniPreview
-                lang={lang}
-                prompt={promptForMiniPreview}
-                collapsed={miniPreviewCollapsed}
-                onToggleCollapse={() => setMiniPreviewCollapsed((v) => !v)}
-                onCopyPrompt={handleCopyPrompt}
-                onOpenExport={() => openExportPanel("open")}
-                embedded
-              />
-            }
-            lang={lang}
-            scene={scene}
-            selectedLayerId={selectedLayerId}
-            project={safeProject}
-            platformId={savePlatformId}
-            onPlatformChange={(id) => syncSavePlatform(id as SavePlatformId)}
-            exportMode={proExportMode}
-            onExportModeChange={handleProExportModeChange}
-            onUpdateProject={(p) => {
-              updateProject(p);
-              trackEditorChange("props", "update", {}, lang);
-            }}
-            onUpdateScene={(s) => {
-              updateScene(s);
-              trackEditorChange("props", "update", { idx: sceneIdx }, lang);
-            }}
-            onRenameLayer={(oldId, newId) => {
-              if (selectedLayerId === oldId) setSelectedLayerId(newId);
-              trackEditorChange("layer", "rename", { oldId, newId }, lang);
-            }}
-            editT={effectiveEditT}
-            setEditT={(tv) => {
-              if (mediaMode === "image" && tv === 1) return;
-              setEditT(tv);
-              trackEditorChange("timeline", "set_t", { t: tv }, lang);
-            }}
-          />
-          </div>
-
-          <div style={{ position: "fixed", left: 0, top: 0, width: 0, height: 0, overflow: "hidden", visibility: "hidden", pointerEvents: "none", zIndex: -1 }}>
-            <ExportPanel
-              lang={lang}
-              project={safeProject}
-              projectLabel={fileLabel}
-              sceneIdx={sceneIdx}
-              platformId={savePlatformId}
-              openExportNonce={openExportNonce}
-              openExportAction={openExportAction}
-              promptExportNote=""
-              onPreparePromptExport={preparePromptExport}
-              onSettlePromptExport={settlePromptExport}
-              onPlatformChange={(id) => {
-                syncSavePlatform(id as SavePlatformId);
-                feedbackBarRef.current?.pushMessage(lang === "zh" ? "已切换平台" : "Platform changed");
-              }}
-              exportScope={proExportScope}
-              onExportScopeChange={(scope) => {
-                setProExportScope(scope);
-                feedbackBarRef.current?.pushMessage(lang === "zh" ? "已切换导出范围" : "Export scope changed");
-              }}
-              exportMode={proExportMode}
-              onExportModeChange={handleProExportModeChange}
-              selectedLayerId={selectedLayerId}
-              onJumpToConflict={(layerId) => {
-                if (layerId) setSelectedLayerId(layerId);
-              }}
-              onFeedbackMessage={(msg) => feedbackBarRef.current?.pushMessage(msg)}
-            />
-          </div>
-              </>
             )}
           </div>
         </div>
@@ -4779,7 +4373,7 @@ export default function App() {
       <GenerationGatePanel
         open={generationGateOpen}
         lang={lang}
-        canUseLocal={canUseProConsole(accountUser)}
+        canUseLocal={hasProAccess}
         onClose={() => setGenerationGateOpen(false)}
         onCopyPrompt={() => {
           setGenerationGateOpen(false);
@@ -5051,7 +4645,7 @@ const styles: Record<string, React.CSSProperties> = {
     maskImage: "linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.12) 36%, transparent 72%)"
   },
   top: {
-    height: 56,
+    height: 48,
     display: "flex",
     alignItems: "center",
     gap: UI_SPACE.xs,
@@ -5308,8 +4902,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   mainDesktop: {
     display: "grid",
-    gridTemplateColumns: "clamp(232px, 24vw, 320px) minmax(0, 1fr) clamp(240px, 26vw, 344px)",
-    gridTemplateRows: "minmax(0, 1fr)"
+    gridTemplateColumns: "auto minmax(0, 1fr)",
+    gridTemplateRows: "1fr",
+    height: "100%",
   },
 
   center: {

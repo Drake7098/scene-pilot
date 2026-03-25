@@ -1,0 +1,18 @@
+{
+  "id": "bm_space_hierarchy_01",
+  "typeId": "space_hierarchy",
+  "name": "标杆-空间层级-人物环境",
+  "payload": {
+    "camera": "50mm eye-level static lock",
+    "composition": "triangular composition with leading lines",
+    "space": "foreground leaves, middle subject, far background architecture",
+    "layer": "three-layer depth with clear occlusion",
+    "lighting": "soft daylight key, subtle bounce, ambient sky fill",
+    "material": "cotton fabric and matte stone surface",
+    "detail": "hair strands, jacket folds, pavement texture",
+    "mood": "calm urban morning",
+    "style": "editorial lifestyle realism",
+    "semantic": "commute preparation moment",
+    "subject": "young commuter adjusting backpack"
+  }
+}

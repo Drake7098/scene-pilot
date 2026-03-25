@@ -123,6 +123,12 @@ function endpoint(base: string, path: string): string {
 }
 
 async function postWithFallback(path: string, payload: unknown): Promise<boolean> {
+  // 在本地开发环境中跳过 API 调用，避免 404 错误
+  if (import.meta.env?.DEV) {
+    console.log('Analytics API call skipped in dev mode:', path, payload);
+    return true;
+  }
+  
   const bases = apiBases();
   for (const base of bases) {
     try {

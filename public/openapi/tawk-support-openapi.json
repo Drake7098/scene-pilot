@@ -1,0 +1,392 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ScenePilot Tawk Support API",
+    "description": "为 Tawk AI Assist 提供的客服支持 API。支持查询用户计划、积分、账单状态、常见支持信息和系统状态。\n\n**重要提示：当前所有数据均为 MOCK 数据，用于开发和测试。**",
+    "version": "1.0.0-mock",
+    "contact": {
+      "name": "ScenePilot Support",
+      "url": "https://scenepilot.com/support"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://scenepilot.com",
+      "description": "Production server"
+    },
+    {
+      "url": "https://staging.scenepilot.com",
+      "description": "Staging server"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/api/tawk-support": {
+      "get": {
+        "operationId": "getSupportInfo",
+        "summary": "获取支持信息",
+        "description": "根据 action 参数获取不同类型的支持信息。当前所有返回数据均为 MOCK。",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "required": true,
+            "description": "要执行的操作类型",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "getUserPlan",
+                "getUserCredits",
+                "getBillingStatus",
+                "getCommonSupportInfo",
+                "getSystemStatus"
+              ]
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "description": "用户ID（用于用户相关查询）",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "required": false,
+            "description": "用户邮箱（用于用户相关查询）",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          {
+            "name": "topic",
+            "in": "query",
+            "required": false,
+            "description": "支持主题（用于 getCommonSupportInfo）",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pricing",
+                "credits",
+                "login",
+                "templates",
+                "export",
+                "refund",
+                "generation",
+                "api"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未授权 - API Key 无效或缺失",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源未找到（用户或 topic 不存在）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务器内部错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "Tawk Support API Key，从环境变量 TAWK_SUPPORT_API_KEY 获取"
+      }
+    },
+    "schemas": {
+      "SupportResponse": {
+        "type": "object",
+        "required": ["success", "mock", "meta"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "请求是否成功"
+          },
+          "data": {
+            "description": "响应数据，根据 action 不同而变化"
+          },
+          "error": {
+            "type": "string",
+            "description": "错误信息（仅在 success 为 false 时存在）"
+          },
+          "mock": {
+            "type": "boolean",
+            "description": "是否为 mock 数据（当前始终为 true）"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "ResponseMeta": {
+        "type": "object",
+        "required": ["timestamp", "action"],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "响应时间戳"
+          },
+          "action": {
+            "type": "string",
+            "description": "执行的操作类型"
+          },
+          "message": {
+            "type": "string",
+            "description": "附加说明信息"
+          }
+        }
+      },
+      "UserPlanInfo": {
+        "type": "object",
+        "required": ["userId", "email", "plan", "planStatus"],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "用户ID"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "用户邮箱"
+          },
+          "plan": {
+            "type": "string",
+            "enum": ["free", "pro", "enterprise"],
+            "description": "套餐类型"
+          },
+          "planStatus": {
+            "type": "string",
+            "enum": ["active", "inactive", "suspended"],
+            "description": "计划状态"
+          }
+        }
+      },
+      "UserCreditsInfo": {
+        "type": "object",
+        "required": ["userId", "email", "creditsBalance"],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "用户ID"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "用户邮箱"
+          },
+          "creditsBalance": {
+            "type": "number",
+            "description": "当前积分余额"
+          }
+        }
+      },
+      "BillingStatusInfo": {
+        "type": "object",
+        "required": ["userId", "email", "subscriptionStatus", "latestPaymentStatus"],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "用户ID"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "用户邮箱"
+          },
+          "subscriptionStatus": {
+            "type": "string",
+            "enum": ["active", "inactive", "past_due", "canceled"],
+            "description": "订阅状态"
+          },
+          "latestPaymentStatus": {
+            "type": "string",
+            "enum": ["succeeded", "failed", "pending", "unknown"],
+            "description": "最新支付状态"
+          }
+        }
+      },
+      "FAQInfo": {
+        "type": "object",
+        "required": ["id", "title", "contentEn", "contentZh"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "主题标识"
+          },
+          "title": {
+            "type": "string",
+            "description": "主题标题"
+          },
+          "contentEn": {
+            "type": "string",
+            "description": "英文内容"
+          },
+          "contentZh": {
+            "type": "string",
+            "description": "中文内容"
+          },
+          "cta": {
+            "$ref": "#/components/schemas/CTAInfo"
+          },
+          "safeNotes": {
+            "type": "string",
+            "description": "给 AI 的安全提示"
+          }
+        }
+      },
+      "CTAInfo": {
+        "type": "object",
+        "required": ["labelEn", "labelZh", "url"],
+        "properties": {
+          "labelEn": {
+            "type": "string",
+            "description": "英文按钮标签"
+          },
+          "labelZh": {
+            "type": "string",
+            "description": "中文按钮标签"
+          },
+          "url": {
+            "type": "string",
+            "description": "链接地址"
+          }
+        }
+      },
+      "SystemStatusInfo": {
+        "type": "object",
+        "required": [
+          "systemOk",
+          "generationOk",
+          "billingOk",
+          "timestamp"
+        ],
+        "properties": {
+          "systemOk": {
+            "type": "boolean",
+            "description": "系统整体状态是否正常"
+          },
+          "generationOk": {
+            "type": "boolean",
+            "description": "生成功能是否正常"
+          },
+          "billingOk": {
+            "type": "boolean",
+            "description": "账单功能是否正常"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "状态检查时间"
+          },
+          "lastIncident": {
+            "type": "string",
+            "nullable": true,
+            "description": "最近事件"
+          },
+          "maintenanceMode": {
+            "type": "boolean",
+            "description": "是否处于维护模式"
+          },
+          "version": {
+            "type": "string",
+            "description": "API 版本"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["success", "mock", "meta"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "description": "错误描述"
+          },
+          "mock": {
+            "type": "boolean",
+            "example": true,
+            "description": "是否为 mock 数据"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "User",
+      "description": "用户相关查询（MOCK 数据）"
+    },
+    {
+      "name": "Support",
+      "description": "支持信息查询（MOCK 数据）"
+    },
+    {
+      "name": "System",
+      "description": "系统状态查询（MOCK 数据）"
+    }
+  ]
+}

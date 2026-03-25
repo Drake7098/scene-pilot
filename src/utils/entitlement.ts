@@ -36,3 +36,13 @@ export function canOpenCustomerPortal(user: UserState | null) {
 export function canUseUnlimitedTemplates(user: UserState | null): boolean {
   return Boolean(user?.unlimitedTemplatesEnabled);
 }
+
+export function getProAccessState(user: UserState | null) {
+  const devOverride = isProConsoleDevOverride();
+  const hasPro = devOverride || Boolean(user?.tier === "pro");
+  return {
+    hasPro,
+    source: devOverride ? "dev_override" : user?.tier === "pro" ? "paid" : "free",
+    isDevOverride: devOverride
+  };
+}

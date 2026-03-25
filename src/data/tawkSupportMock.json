@@ -1,0 +1,309 @@
+{
+  "meta": {
+    "product": "ScenePilotix",
+    "version": "v1",
+    "language": "en+zh",
+    "note": "Mock support data for Tawk AI Assist and support API. Some billing, credits, and plan details are placeholders and must be replaced with real data before production-grade account-specific support."
+  },
+  "topics": {
+    "pricing": {
+      "id": "pricing",
+      "title": "Pricing and plans",
+      "aliases": [
+        "price",
+        "pricing",
+        "cost",
+        "plan",
+        "plans",
+        "membership",
+        "会员",
+        "价格",
+        "收费"
+      ],
+      "content_en": "ScenePilotix uses a combination of plan-based access and credits for some generation-related actions. Free access may include limited workflow or prompt-export functionality, while advanced workspace access and some generation actions may require a paid plan or credits. For the latest official pricing, users should check the pricing page.",
+      "content_zh": "ScenePilotix 采用“订阅权限 + 点数”的组合模式。免费版通常可提供有限工作流或提示词导出能力，高级工作台权限以及部分生成相关功能可能需要订阅或点数。最新价格请以官网 pricing 页面为准。",
+      "cta": {
+        "type": "link",
+        "label": "View pricing",
+        "url": "https://scenepilotix.com/pricing"
+      },
+      "safe_notes": [
+        "Do not invent exact prices unless connected to official source.",
+        "If user asks about exact plan differences, point to pricing page or human support."
+      ]
+    },
+    "credits": {
+      "id": "credits",
+      "title": "Credits usage",
+      "aliases": [
+        "credit",
+        "credits",
+        "points",
+        "balance",
+        "点数",
+        "次数",
+        "额度",
+        "生成次数"
+      ],
+      "content_en": "Credits are used for some generation-related actions in ScenePilotix, especially when using platform-side generation workflows. Prompt export may not require credits, depending on the current product rules. Exact consumption rules should come from the official pricing or billing configuration.",
+      "content_zh": "点数主要用于 ScenePilotix 中的部分生成相关操作，尤其是平台侧生成流程。提示词导出是否消耗点数，取决于当前产品规则。精确扣点规则应以官网 pricing 或 billing 配置为准。",
+      "cta": {
+        "type": "link",
+        "label": "Check pricing and credits",
+        "url": "https://scenepilotix.com/pricing"
+      },
+      "safe_notes": [
+        "Do not claim exact credit cost unless connected to live config.",
+        "If user asks for personal credit balance, require authenticated account lookup."
+      ]
+    },
+    "login": {
+      "id": "login",
+      "title": "Login and signup help",
+      "aliases": [
+        "login",
+        "signin",
+        "sign in",
+        "signup",
+        "register",
+        "account",
+        "登录",
+        "注册",
+        "账号"
+      ],
+      "content_en": "Users can sign in from the ScenePilotix login page. If login fails, recommended steps are: refresh the page, sign in again, clear cache, disable ad blockers, or try another browser. If the issue continues, contact human support.",
+      "content_zh": "用户可通过 ScenePilotix 登录页进入账号。如果登录失败，建议先刷新页面、重新登录、清理缓存、关闭广告拦截器，或更换浏览器。如果问题仍然存在，请联系人工支持。",
+      "cta": {
+        "type": "link",
+        "label": "Go to login",
+        "url": "https://scenepilotix.com/login"
+      },
+      "safe_notes": [
+        "Do not ask user for password in chat.",
+        "Account-specific failures should be escalated to human support if repeated."
+      ]
+    },
+    "templates": {
+      "id": "templates",
+      "title": "Templates overview",
+      "aliases": [
+        "template",
+        "templates",
+        "preset",
+        "presets",
+        "scene preset",
+        "模板",
+        "预设"
+      ],
+      "content_en": "Templates in ScenePilotix are structured scene or workflow presets. They may include layout, camera, lighting, style, continuity, and prompt structure defaults. Some templates may be free, while others may be tied to paid access or credit usage depending on the current product setup.",
+      "content_zh": "ScenePilotix 的模板本质上是结构化场景或工作流预设，可能包含布局、镜头、光线、风格、连续性和提示词结构默认值。部分模板可能免费，部分可能与订阅权限或点数使用相关，取决于当前产品设置。",
+      "cta": {
+        "type": "text",
+        "label": "Explain templates",
+        "value": "Templates are structured presets, not just prompt snippets."
+      },
+      "safe_notes": [
+        "Do not promise any exact number of templates unless connected to live catalog."
+      ]
+    },
+    "export": {
+      "id": "export",
+      "title": "Prompt export",
+      "aliases": [
+        "export",
+        "prompt export",
+        "download prompt",
+        "导出",
+        "提示词导出"
+      ],
+      "content_en": "ScenePilotix supports structured prompt export and workflow-ready content export. Export options depend on the workspace mode and current product setup. Prompt export is different from platform-side generation.",
+      "content_zh": "ScenePilotix 支持结构化提示词导出以及面向工作流的导出。具体导出方式取决于当前工作台模式和产品设置。提示词导出与平台侧生成是两件不同的事。",
+      "cta": {
+        "type": "text",
+        "label": "Need platform-specific export help?",
+        "value": "Ask which platform you want to export to."
+      },
+      "safe_notes": [
+        "Do not claim all platforms are supported unless verified."
+      ]
+    },
+    "generation": {
+      "id": "generation",
+      "title": "Image and video generation",
+      "aliases": [
+        "generate",
+        "generation",
+        "image",
+        "video",
+        "fal",
+        "runway",
+        "生成",
+        "图片生成",
+        "视频生成"
+      ],
+      "content_en": "ScenePilotix supports structured workflows for image and video creation. Depending on the mode, users may generate directly on supported platforms or export prompts and workflow information. If generation fails, support should ask whether it was image or video, which page the user was on, and what error appeared.",
+      "content_zh": "ScenePilotix 支持面向图片和视频创作的结构化工作流。根据不同模式，用户可以直接在支持的平台上生成，或导出提示词与工作流信息。如果生成失败，应先确认是图片还是视频、用户所在页面，以及出现的错误信息。",
+      "cta": {
+        "type": "text",
+        "label": "Troubleshoot generation",
+        "value": "Ask image or video, page, and exact error."
+      },
+      "safe_notes": [
+        "Do not promise guaranteed generation success.",
+        "Repeated technical failure should escalate to human support."
+      ]
+    },
+    "billing": {
+      "id": "billing",
+      "title": "Billing basics",
+      "aliases": [
+        "billing",
+        "payment",
+        "paid",
+        "subscription",
+        "付款",
+        "支付",
+        "订阅"
+      ],
+      "content_en": "Billing and access depend on the user’s subscription status and credits. If a payment succeeded but access did not update, or if a billing error appears, the case should usually be checked by a human agent because it may depend on account-specific data.",
+      "content_zh": "计费与访问权限取决于用户的订阅状态和点数情况。如果支付成功但权限没有更新，或者出现计费错误，通常应转人工处理，因为这类问题往往依赖账号级数据。",
+      "cta": {
+        "type": "handoff",
+        "label": "Contact human support"
+      },
+      "safe_notes": [
+        "Never ask for full card details.",
+        "Billing mismatches should escalate."
+      ]
+    },
+    "refund": {
+      "id": "refund",
+      "title": "Refund policy basics",
+      "aliases": [
+        "refund",
+        "cancel",
+        "cancellation",
+        "退款",
+        "取消",
+        "退费"
+      ],
+      "content_en": "Refund and cancellation depend on the product type and current policy. For accurate help, users should contact human support and include their account email, what they purchased, and when the payment happened.",
+      "content_zh": "退款与取消规则取决于购买的产品类型和当前政策。为了获得准确帮助，用户应联系人工支持，并提供账号邮箱、购买内容以及支付时间。",
+      "cta": {
+        "type": "handoff",
+        "label": "Talk to a human agent"
+      },
+      "safe_notes": [
+        "Refund answers should stay conservative.",
+        "Do not promise refunds automatically."
+      ]
+    },
+    "errors": {
+      "id": "errors",
+      "title": "Common troubleshooting",
+      "aliases": [
+        "error",
+        "bug",
+        "issue",
+        "not working",
+        "failed",
+        "失败",
+        "报错",
+        "出错",
+        "无法使用"
+      ],
+      "content_en": "Recommended first steps: refresh the page, sign in again, clear cache, disable ad blockers, and try another browser. If the issue still happens, the user should provide the exact page, action, and error message. Repeated technical failure should go to human support.",
+      "content_zh": "建议优先尝试：刷新页面、重新登录、清理缓存、关闭广告拦截器、换一个浏览器。如果问题仍然存在，应提供具体页面、操作步骤以及错误信息。重复性的技术故障建议转人工支持。",
+      "cta": {
+        "type": "handoff",
+        "label": "Escalate technical issue"
+      },
+      "safe_notes": [
+        "If exact error is unknown, ask for more detail before guessing."
+      ]
+    },
+    "api": {
+      "id": "api",
+      "title": "API and integrations",
+      "aliases": [
+        "api",
+        "integration",
+        "fal api",
+        "runway api",
+        "接口",
+        "集成"
+      ],
+      "content_en": "ScenePilotix may support platform generation, prompt export, and API-related workflows depending on the user’s setup. If the user wants account-specific API usage help, that should be handled through documentation or human support.",
+      "content_zh": "ScenePilotix 可根据不同配置支持平台生成、提示词导出以及与 API 相关的工作流。如果用户需要账号级 API 使用帮助，建议通过文档或人工支持处理。",
+      "cta": {
+        "type": "text",
+        "label": "Need API-specific help?",
+        "value": "Ask what platform or workflow the user is trying to use."
+      },
+      "safe_notes": [
+        "Do not expose private keys or internal endpoints."
+      ]
+    },
+    "contact": {
+      "id": "contact",
+      "title": "Contact support",
+      "aliases": [
+        "support",
+        "contact",
+        "human",
+        "agent",
+        "客服",
+        "联系",
+        "人工"
+      ],
+      "content_en": "A human support agent can help with account-specific questions, refunds, billing issues, and repeated technical failures. The user should leave their email and a short description of the issue.",
+      "content_zh": "人工支持可以协助处理账号级问题、退款、计费问题以及反复出现的技术故障。用户应留下邮箱和问题简述。",
+      "cta": {
+        "type": "handoff",
+        "label": "Leave message for support"
+      },
+      "safe_notes": [
+        "Human escalation is preferred for sensitive or account-specific cases."
+      ]
+    }
+  },
+  "mock_user_data": {
+    "note": "All data below is placeholder/mock only. Replace with live account data source before production use.",
+    "sample_users": [
+      {
+        "userId": "user_demo_free",
+        "email": "free@example.com",
+        "plan": "free",
+        "plan_status": "active",
+        "credits_balance": 0,
+        "subscription_status": "none",
+        "latest_payment_status": "none"
+      },
+      {
+        "userId": "user_demo_pro",
+        "email": "pro@example.com",
+        "plan": "pro",
+        "plan_status": "active",
+        "credits_balance": 120,
+        "subscription_status": "active",
+        "latest_payment_status": "paid"
+      },
+      {
+        "userId": "user_demo_expired",
+        "email": "expired@example.com",
+        "plan": "pro",
+        "plan_status": "expired",
+        "credits_balance": 8,
+        "subscription_status": "past_due",
+        "latest_payment_status": "failed"
+      }
+    ]
+  },
+  "mock_system_status": {
+    "note": "Placeholder system status. Replace with live health checks later.",
+    "system_ok": true,
+    "generation_ok": true,
+    "billing_ok": true,
+    "updated_at": "2026-03-25T00:00:00Z"
+  }
+}

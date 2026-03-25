@@ -1,0 +1,34 @@
+{
+  "projectDefaults": {
+    "mediaType": "video",
+    "storyPlan": "single",
+    "aspectRatio": "16:9",
+    "sceneCount": 1
+  },
+  "scenes": [
+    {
+      "nameZh": "双人对话",
+      "nameEn": "Dialogue Duo",
+      "duration": 5,
+      "classicShot": "ms",
+      "cameraLanguage": "dialogue_cover",
+      "raw": {
+        "id": "s1",
+        "name": "Dialogue Duo",
+        "duration_s": 5,
+        "camera": {
+          "shot": "ms",
+          "movement": "static",
+          "keyframes": []
+        },
+        "lighting": {
+          "time": "day",
+          "key_dir": "top_left",
+          "mood": "warm"
+        },
+        "layers": [],
+        "notes": "camera_language: dialogue_cover\nmedia: video"
+      }
+    }
+  ]
+}

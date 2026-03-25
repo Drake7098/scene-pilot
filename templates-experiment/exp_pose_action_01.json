@@ -1,0 +1,13 @@
+{
+  "id": "exp_pose_action_01",
+  "name": "实验-姿态动作-人物控制",
+  "combo": "D",
+  "payload": {
+    "subject": "female dancer",
+    "pose": "mid-spin with right arm extended",
+    "action": "rapid turn with fabric trail",
+    "orientation": "45deg toward camera",
+    "semantic": "dynamic elegance",
+    "atmosphere": "dramatic stage mood"
+  }
+}

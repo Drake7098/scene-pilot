@@ -29,7 +29,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "White background, ecommerce, packaging",
         sceneHintsZh: ["护肤品 / 食品 / 3C 白底棚拍", "直接上传电商平台的主图", "包装正面 + 细节展示"],
         sceneHintsEn: ["Skincare / food / gadget white-bg shot", "Ready-to-upload ecommerce hero", "Packaging front + detail"],
-        familyIds: ["white_bg_product", "product_minimal_flat", "product_packaging"],
+        familyIds: ["v3_white_bg"],
         freeFirst: 3
       },
       {
@@ -40,7 +40,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Hero visual, centered premium shot",
         sceneHintsZh: ["高端感品牌主视觉", "居中悬浮 + 光影衬托", "首图用、Banner 用"],
         sceneHintsEn: ["Premium brand hero shot", "Centered float with mood lighting", "For homepage or banner use"],
-        familyIds: ["product_hero", "product_center_display", "floating_product_showcase"],
+        familyIds: ["v3_product_hero", "v3_luxury_ad"],
         freeFirst: 2
       },
       {
@@ -51,7 +51,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Features, tags, grouped selling points",
         sceneHintsZh: ["多个卖点同框标注", "功能图 + 文字标签组合", "详情页中段分区展示"],
         sceneHintsEn: ["Multiple features in one frame", "Feature callout with text labels", "Mid-page detail section"],
-        familyIds: ["feature_breakdown", "selling_point_ad", "product_group_shot"],
+        familyIds: ["v3_product_detail", "v3_tech_ad"],
         freeFirst: 2
       },
       {
@@ -62,7 +62,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Lifestyle scene, actual use, in-hand",
         sceneHintsZh: ["真人手持 / 使用中的产品", "生活化场景里的自然摆放", "展示产品大小感和质感"],
         sceneHintsEn: ["Product held or in active use", "Natural placement in lifestyle scene", "Shows scale and texture in context"],
-        familyIds: ["product_in_hand", "product_lifestyle", "product_hand_use"],
+        familyIds: ["v3_product_lifestyle"],
         freeFirst: 2
       },
       {
@@ -73,7 +73,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Texture compare, side-by-side difference",
         sceneHintsZh: ["新旧 / 使用前后对比", "两款产品并排比较", "材质 / 颜色差异特写"],
         sceneHintsEn: ["Before / after or old vs new", "Two variants side by side", "Texture or color closeup diff"],
-        familyIds: ["product_compare", "product_texture_closeup"],
+        familyIds: ["v3_product_compare"],
         freeFirst: 1
       },
       {
@@ -84,7 +84,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Brand cover, ad visual, promo creative",
         sceneHintsZh: ["信息流广告首图", "大促 / 节日促销图", "品牌感强的视觉封面"],
         sceneHintsEn: ["Feed ad hero image", "Sale event or holiday promo", "Brand-forward visual cover"],
-        familyIds: ["brand_promo_cover", "cta_landing_layout", "food_beverage_ad", "cosmetics_display", "jewelry_showcase", "food_ad"],
+        familyIds: ["v3_product_video", "v3_food_ad", "v3_car_ad"],
         freeFirst: 2
       }
     ]
@@ -107,7 +107,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Natural light, relaxed realism",
         sceneHintsZh: ["窗边自然光、生活化穿搭", "户外公园 / 街头随拍感", "轻松状态、不刻意摆拍"],
         sceneHintsEn: ["Window light, casual outfit", "Outdoor park or street candid feel", "Relaxed, not overly posed"],
-        familyIds: ["portrait_natural_light", "lifestyle_casual", "lifestyle_scene"],
+        familyIds: ["v3_portrait_lifestyle", "v3_portrait_brand"],
         freeFirst: 2
       },
       {
@@ -118,7 +118,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Fashion, street, beauty detail",
         sceneHintsZh: ["杂志感构图 + 精致造型", "街头穿搭 + 强烈光影", "美妆 / 精致妆面特写"],
         sceneHintsEn: ["Editorial framing + polished styling", "Street outfit with strong light", "Beauty closeup or makeup detail"],
-        familyIds: ["portrait_fashion", "beauty_closeup", "portrait_street"],
+        familyIds: ["v3_portrait_editorial", "v3_portrait_luxury_fashion", "v3_portrait_fashion_video"],
         freeFirst: 2
       },
       {
@@ -129,7 +129,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Professional profile, studio headshot",
         sceneHintsZh: ["简历 / LinkedIn 头像", "企业官网形象照", "棚拍 + 纯色背景"],
         sceneHintsEn: ["Resume or LinkedIn profile photo", "Company website team photo", "Studio + solid background"],
-        familyIds: ["portrait_professional", "portrait_studio"],
+        familyIds: ["v3_portrait_corporate", "v3_portrait_bw"],
         freeFirst: 2
       },
       {
@@ -140,7 +140,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Emotional portrait, cinematic still",
         sceneHintsZh: ["电影剧照感 + 情绪表达", "强氛围光影 + 人物特写", "适合艺术写真 / 社交封面"],
         sceneHintsEn: ["Cinematic still with emotional beat", "Mood lighting + character closeup", "Art portrait or social cover"],
-        familyIds: ["poster_cover", "portrait_fashion"],
+        familyIds: ["v3_portrait_cinematic", "v3_portrait_director"],
         freeFirst: 1
       },
       {
@@ -151,7 +151,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Couple, duo, group portrait",
         sceneHintsZh: ["情侣 / 闺蜜合照", "多人团体形象照", "双人互动自然状态"],
         sceneHintsEn: ["Couple or best friends shot", "Group team or family portrait", "Duo in natural interaction"],
-        familyIds: ["portrait_couple", "portrait_group"],
+        familyIds: ["v3_portrait_couple", "v3_portrait_athlete"],
         freeFirst: 1
       }
     ]
@@ -174,7 +174,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Vertical social cover",
         sceneHintsZh: ["笔记首图 / 封面卡", "种草风 + 生活感构图", "竖版 3:4 比例"],
         sceneHintsEn: ["Note cover card or hero image", "Lifestyle discovery feed feel", "Vertical 3:4 ratio"],
-        familyIds: ["xiaohongshu_cover", "social_vertical_ad", "poster_cover"],
+        familyIds: ["v3_poster_social", "v3_poster_fashion"],
         freeFirst: 2
       },
       {
@@ -185,7 +185,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Short-video cover, promo visual",
         sceneHintsZh: ["短视频封面 + 大字标题", "卖点图 / 爆款视觉钩子", "9:16 竖屏封面"],
         sceneHintsEn: ["Short video cover + bold title", "Selling point or viral visual hook", "9:16 vertical cover"],
-        familyIds: ["douyin_cover", "selling_point_ad"],
+        familyIds: ["v3_poster_film_video", "v3_poster_brand_video"],
         freeFirst: 2
       },
       {
@@ -196,7 +196,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Thumbnail, title image",
         sceneHintsZh: ["YouTube 视频封面缩略图", "大表情 / 强对比吸睛构图", "16:9 横版，文字留位"],
         sceneHintsEn: ["YouTube video thumbnail", "Big reaction or high-contrast layout", "16:9 landscape with text space"],
-        familyIds: ["youtube_thumbnail", "app_promo_layout"],
+        familyIds: ["v3_poster_tech_brand", "v3_poster_corporate"],
         freeFirst: 1
       },
       {
@@ -207,7 +207,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Event poster, promo layout",
         sceneHintsZh: ["线下活动 / 演出宣传海报", "节日促销 / 大促主视觉", "标题 + 日期信息排版"],
         sceneHintsEn: ["Event or show promo poster", "Holiday or sale main visual", "Title + date info layout"],
-        familyIds: ["event_poster", "title_subtitle_layout"],
+        familyIds: ["v3_poster_event", "v3_poster_music"],
         freeFirst: 2
       },
       {
@@ -218,7 +218,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Course cover, branded title",
         sceneHintsZh: ["知识付费 / 课程主图", "品牌 Logo + 标题排版", "专栏封面 / 电子书封面"],
         sceneHintsEn: ["Online course or knowledge product cover", "Brand logo + title layout", "Column or ebook cover"],
-        familyIds: ["course_cover", "logo_copy_layout"],
+        familyIds: ["v3_poster_abstract", "v3_poster_luxury_brand"],
         freeFirst: 1
       },
       {
@@ -229,7 +229,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Brand visual, social campaign",
         sceneHintsZh: ["品牌感强的社媒宣传图", "大促 / 节日限定主视觉", "朋友圈 / Instagram 方图"],
         sceneHintsEn: ["Brand-forward social campaign image", "Sale or seasonal limited visual", "WeChat Moments or Instagram square"],
-        familyIds: ["brand_promo_cover", "sale_banner", "instagram_square", "wechat_moments_cover"],
+        familyIds: ["v3_poster_brand", "v3_poster_movie"],
         freeFirst: 2
       }
     ]
@@ -252,7 +252,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Single speaker, front-facing explainer",
         sceneHintsZh: ["一个人正面讲话 + 稳定构图", "带货口播 / 品牌讲解视频", "室内简洁背景 + 中景构图"],
         sceneHintsEn: ["Single speaker front-facing stable shot", "Selling or brand explainer video", "Clean indoor background, medium shot"],
-        familyIds: ["solo_speaker", "talking_head_ad"],
+        familyIds: ["v3_pro_commercial", "v3_pro_brand_film"],
         freeFirst: 2
       },
       {
@@ -263,7 +263,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Review, unboxing, product explainer",
         sceneHintsZh: ["手持产品 + 讲解镜头", "开箱 / 测评 / 上手体验", "产品近景 + 人物互动"],
         sceneHintsEn: ["Hand-holding product while explaining", "Unboxing or hands-on review shot", "Product closeup + person interaction"],
-        familyIds: ["product_tutorial", "product_review_shot"],
+        familyIds: ["v3_product_video", "v3_pro_tech"],
         freeFirst: 1
       },
       {
@@ -274,7 +274,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Tutorial, demo, step by step",
         sceneHintsZh: ["操作步骤演示镜头", "俯拍桌面 / 手部操作特写", "技能教学 / 工具演示"],
         sceneHintsEn: ["Step-by-step demo shot", "Top-down desk or hand operation closeup", "Skill or tool tutorial"],
-        familyIds: ["tutorial_demo"],
+        familyIds: ["v3_pro_food", "v3_pro_beauty"],
         freeFirst: 1
       },
       {
@@ -285,7 +285,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Review feel, interview tone",
         sceneHintsZh: ["轻采访 / 评测对话感镜头", "稍微侧角 + 自然互动", "测评博主常用构图"],
         sceneHintsEn: ["Light interview or review dialogue feel", "Slight angle + natural interaction", "Typical reviewer framing"],
-        familyIds: ["interview_layout", "comedy_reaction"],
+        familyIds: ["v3_portrait_video", "v3_portrait_cinematic_video"],
         freeFirst: 1
       },
       {
@@ -296,7 +296,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Presentation, briefing, interview-style",
         sceneHintsZh: ["演讲台 / 汇报场景", "正式访谈 + 双机位感", "知识分享 / 深度内容风格"],
         sceneHintsEn: ["Stage or podium presentation", "Formal interview two-camera feel", "Knowledge share or thought-leader style"],
-        familyIds: ["presentation_shot"],
+        familyIds: ["v3_pro_real_estate", "v3_pro_hospitality"],
         freeFirst: 1
       }
     ]
@@ -319,7 +319,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Opening shot, entrance, tone setting",
         sceneHintsZh: ["人物登场 + 环境建立镜头", "氛围渲染 + 悬念引入", "Vlog 开场 / 剧情起势"],
         sceneHintsEn: ["Character entrance + environment establish", "Mood build + suspense hook", "Vlog or drama opening beat"],
-        familyIds: ["opening_shot", "drama_opening", "vlog_opening", "character_entrance"],
+        familyIds: ["v3_story_vlog", "v3_story_documentary", "v3_story_nature", "v3_pro_formats"],
         freeFirst: 2
       },
       {
@@ -330,7 +330,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Confrontation, suspense buildup",
         sceneHintsZh: ["两人对峙 / 争执场景", "悬念铺垫 + 紧张节奏", "戏剧冲突高峰前镜头"],
         sceneHintsEn: ["Two-person standoff or argument", "Tension build before the peak", "Pre-climax drama confrontation"],
-        familyIds: ["drama_conflict", "faceoff_scene", "suspense_buildup"],
+        familyIds: ["v3_story_drama", "v3_story_crime", "v3_story_suspense"],
         freeFirst: 1
       },
       {
@@ -341,7 +341,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Peak emotion, climax, slow motion",
         sceneHintsZh: ["情绪最强烈的一刻", "慢动作 / 高光特写镜头", "剧情高潮 + 强情绪表达"],
         sceneHintsEn: ["The most intense emotional moment", "Slow motion or highlight closeup", "Drama climax with peak emotion"],
-        familyIds: ["emotional_peak", "drama_climax", "slow_motion_highlight"],
+        familyIds: ["v3_story_romance", "v3_story_action", "v3_story_sport"],
         freeFirst: 1
       },
       {
@@ -352,7 +352,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Turning point, flashback, reveal",
         sceneHintsZh: ["剧情反转 / 真相浮现时刻", "闪回记忆镜头", "悬疑 / 惊悚揭示场景"],
         sceneHintsEn: ["Plot twist or truth reveal moment", "Flashback memory shot", "Thriller or suspense reveal scene"],
-        familyIds: ["turning_point_shot", "thriller_reveal", "flashback_scene"],
+        familyIds: ["v3_story_scifi", "v3_story_historical", "v3_story_golden"],
         freeFirst: 1
       },
       {
@@ -363,7 +363,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Ending, closure, montage",
         sceneHintsZh: ["情感落定 / 故事收束镜头", "蒙太奇剪辑式结尾", "留白 + 余韵感收场"],
         sceneHintsEn: ["Emotional resolution or story close", "Montage-style ending beat", "Open-ended fade or lingering close"],
-        familyIds: ["ending_closure", "drama_ending", "montage_transition"],
+        familyIds: ["v3_story_fashion_film", "v3_story_music_video", "v3_story_product_film", "v3_pro_fashion_film", "v3_pro_music_video", "v3_pro_sports", "v3_pro_travel"],
         freeFirst: 1
       }
     ]
@@ -387,11 +387,11 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         sceneHintsZh: ["同一个人跨镜头还是同一个人", "空间方向和动作衔接不断", "短剧 / 剧情连续段落先搭好"],
         sceneHintsEn: ["The same character stays consistent across cuts", "Direction and movement hold together", "Build a continuous drama sequence first"],
         familyIds: [
-          "indoor_duo_continuity",
-          "office_negotiation_continuity",
-          "corridor_tracking_continuity",
-          "emotional_confrontation_continuity",
-          "chase_enter_continuity"
+          "v3_pro_director_style",
+          "v3_pro_commercial",
+          "v3_pro_brand_film",
+          "v3_pro_documentary",
+          "v3_pro_editorial",
         ],
         freeFirst: 1
       },
@@ -403,7 +403,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Dialogue coverage with movement and reaction beats",
         sceneHintsZh: ["双人对话正反打", "谈判 / 对峙 / 交流场面", "说话的人和听的人都能照顾到"],
         sceneHintsEn: ["Shot-reverse-shot for two people", "Negotiation, standoff, or conversation scenes", "Covers both speaker and listener clearly"],
-        familyIds: ["dialogue_duo", "indoor_duo_continuity", "office_negotiation_continuity", "emotional_confrontation_continuity"],
+        familyIds: ["v3_story_drama", "v3_portrait_cinematic"],
         freeFirst: 1
       },
       {
@@ -414,7 +414,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Plan fights, runs, bursts, and motion-heavy shots",
         sceneHintsZh: ["动作戏和冲突场面", "节奏快、动势强的镜头", "从起手到爆点的动作编排"],
         sceneHintsEn: ["Fight and conflict-heavy scenes", "Fast rhythm and strong motion", "From setup to impact in one action flow"],
-        familyIds: ["scene_push_forward", "battle_standoff_anime", "skill_release_anime", "anime_action"],
+        familyIds: ["v3_story_action", "v3_story_sport", "v3_story_scifi"],
         freeFirst: 1
       },
       {
@@ -425,7 +425,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "How the camera follows the chaser and the chased",
         sceneHintsZh: ["追逐、逃跑、逼近", "悬疑 / 惊悚的压迫感运动镜头", "先远后近、顺着紧张感推进"],
         sceneHintsEn: ["Chasing, escaping, closing in", "Suspense and thriller motion coverage", "Build tension by moving from wide to close"],
-        familyIds: ["thriller_chase", "chase_enter_continuity", "corridor_tracking_continuity"],
+        familyIds: ["v3_story_crime", "v3_story_suspense"],
         freeFirst: 1
       },
       {
@@ -436,7 +436,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Anime, cyberpunk, and stylized performance-driven visuals",
         sceneHintsZh: ["二次元角色和演出节奏", "赛博朋克 / 风格化视觉", "MV 感、情绪感、表演感画面"],
         sceneHintsEn: ["Anime-style characters and staging", "Cyberpunk and stylized visuals", "MV-like, emotional, performance-first frames"],
-        familyIds: ["anime_action", "anime_emotional", "battle_standoff_anime", "daily_dialogue_anime", "protagonist_entrance_anime", "skill_release_anime"],
+        familyIds: ["v3_story_anime", "v3_story_music_video", "v3_story_short_vertical"],
         freeFirst: 1
       }
     ]

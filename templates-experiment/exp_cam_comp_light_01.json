@@ -1,0 +1,14 @@
+{
+  "id": "exp_cam_comp_light_01",
+  "name": "实验-镜头构图光线-高控制",
+  "combo": "A",
+  "payload": {
+    "subject": "single product bottle",
+    "camera": "35mm low-angle dolly-in",
+    "composition": "rule-of-thirds with negative space right",
+    "lighting": "key light 45deg left, soft rim back",
+    "atmosphere": "clean premium studio haze",
+    "style": "cinematic product realism",
+    "semantic": "premium hero reveal"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "id": "pan_motion",
+  "name": "Pan Motion",
+  "nameZh": "\u6447\u955c",
+  "category": "camera_move",
+  "description": "Pan camera movement",
+  "descriptionZh": "\u6447\u955c\u8fd0\u52a8",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": [
+    "ms",
+    "fs",
+    "ls"
+  ],
+  "movementRange": [
+    "pan_left",
+    "pan_right",
+    "pan_slow"
+  ],
+  "cameraLanguageRange": [
+    "cinematic_narrative"
+  ],
+  "lightingRange": {
+    "time": [
+      "day"
+    ],
+    "keyDir": [
+      "top_left",
+      "top_right"
+    ],
+    "mood": [
+      "cinematic"
+    ]
+  },
+  "compositionRange": [
+    "rule_of_thirds",
+    "depth_split"
+  ],
+  "objectTypes": [
+    "character",
+    "product"
+  ],
+  "advancedTags": [
+    "advanced_camera",
+    "drama_mode"
+  ],
+  "variants": [
+    "pan_motion_free_starter",
+    "pan_motion_basic_wide",
+    "pan_motion_basic_medium",
+    "pan_motion_basic_close",
+    "pan_motion_cinematic",
+    "pan_motion_vertical",
+    "pan_motion_advanced_motion"
+  ]
+}

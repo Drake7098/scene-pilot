@@ -1,0 +1,19 @@
+{
+  "id": "visual_people_action_01",
+  "kind": "visual_benchmark",
+  "visualType": "人物动作",
+  "realPrompt": "A lone sprinter explodes out of the starting blocks on a rain-dark track at night, shoulders low and jaw locked, with breath visible in the cold air. The camera tracks from a low three-quarter angle for two beats, then settles into a tight side profile as droplets peel off the athlete's skin under stadium backlight. Keep the body line sharp, the lane markings streaking backward, and the emotional tone focused and relentless, like a championship final frozen at peak intent.",
+  "structure": {
+    "camera": "low 3/4 tracking to tight side profile, 70mm, fast shutter feel",
+    "space": "wet running track at night, long lane depth, background crowd blur",
+    "layer": "foreground rain particles, middle athlete, background stadium lights",
+    "lighting": "hard back rim + cool ambient + subtle warm side bounce",
+    "subject": "elite sprinter launching from blocks",
+    "semantic": "peak commitment at decisive race moment",
+    "material": "wet skin sheen, breathable race fabric, textured track rubber",
+    "detail": "calf tension, shoe spike bite, water spray from heel strike",
+    "mood": "intense, disciplined, no hesitation",
+    "composition": "diagonal motion line, subject on right-third during acceleration",
+    "style": "sports cinematic realism"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "bm_product_ad_01",
+  "typeId": "product_ad",
+  "name": "标杆-产品广告-护肤瓶",
+  "payload": {
+    "camera": "85mm macro close-up slight top tilt",
+    "composition": "centered symmetry with reflective base",
+    "space": "minimal gradient backdrop with controlled floor reflection",
+    "layer": "front droplets, middle bottle, rear glow band",
+    "lighting": "softbox overhead, side strip lights, rear kicker",
+    "material": "frosted glass with glossy cap",
+    "detail": "condensation droplets, logo emboss, liquid meniscus",
+    "mood": "clean and scientific",
+    "style": "high-end beauty advertising",
+    "semantic": "clinical trust and purity",
+    "subject": "serum bottle standing upright"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "exp_layout_anchor_01",
+  "name": "实验-布局定位-锚点控制",
+  "combo": "E",
+  "payload": {
+    "subject": "tech gadget",
+    "layout": "centered anchor with balanced side props",
+    "anchor": "primary object center lock",
+    "position": "x:0 y:0 z:1",
+    "scale": "1.1x subject",
+    "composition": "symmetry"
+  }
+}

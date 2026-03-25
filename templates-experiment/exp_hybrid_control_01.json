@@ -1,0 +1,13 @@
+{
+  "id": "exp_hybrid_control_01",
+  "name": "实验-混合控制-空间+镜头+光线",
+  "combo": "A+B",
+  "payload": {
+    "subject": "car interior dialogue",
+    "camera": "over-shoulder handheld slight push-in",
+    "layer": "foreground dashboard, middle characters, background rain street",
+    "depth": "medium-deep",
+    "lighting": "practical dashboard light + street neon spill",
+    "sceneSemantic": "night tension"
+  }
+}

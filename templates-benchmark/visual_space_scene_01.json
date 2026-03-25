@@ -1,0 +1,19 @@
+{
+  "id": "visual_space_scene_01",
+  "kind": "visual_benchmark",
+  "visualType": "空间场景",
+  "realPrompt": "Inside a narrow old apartment corridor, two people face each other in silence before one finally speaks. Hold a tense over-shoulder frame with deep perspective toward a half-open door, then cut to a restrained reverse angle that keeps the axis intact and the emotional distance readable. Let practical tungsten from the ceiling fight with cool spill from the doorway, preserving texture in the peeling walls and worn wood. The scene should feel intimate, claustrophobic, and narratively loaded, as if the next sentence will change everything.",
+  "structure": {
+    "camera": "35mm over-shoulder then restrained reverse angle, axis-safe framing",
+    "space": "narrow corridor with doorway vanishing point and compressed depth",
+    "layer": "foreground shoulder silhouette, middle dialogue pair, rear doorway spill",
+    "lighting": "practical tungsten top light mixed with cool door spill",
+    "subject": "two characters in pre-conflict negotiation",
+    "semantic": "suppressed confrontation before emotional turn",
+    "material": "peeling wall paint, worn wood trim, matte floor reflections",
+    "detail": "micro-expression flicker, finger twitch, fabric friction on sleeve",
+    "mood": "claustrophobic, tense, emotionally loaded",
+    "composition": "two-shot tension axis with controlled headroom and doorway depth",
+    "style": "narrative neo-noir realism"
+  }
+}

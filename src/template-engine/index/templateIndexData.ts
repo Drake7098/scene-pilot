@@ -1,33 +1,15 @@
 /**
- * Template index - 400 base + 100 webdrama + 100 anime = 600.
+ * Template index — V3 era.
+ * 使用 V3 结构化模版（100个），替换旧的400+webdrama+anime系统。
  */
-
 import type { TemplateIndex } from "../types/templateIndex";
-import type { TemplateVariant } from "../types/templateTypes";
-import { buildTemplateIndexFrom400 } from "../data/families/indexAdapter";
-import { buildWebdramaIndex } from "../data/families/continuity-webdrama/indexBuilder";
-import { buildAnimeIndex } from "../data/families/continuity-anime/indexBuilder";
-import { registerTemplate400BasesAndPatches } from "../data/families/register400";
-import { getCuratedPhase1Index } from "../../data/curatedTemplates_phase1_CL";
+import { getV3TemplateIndex } from "../data/v3/templateIndex";
 
 let _cached: TemplateIndex[] | null = null;
-let _initDone = false;
-
-function ensureInit(): void {
-  if (_initDone) return;
-  _initDone = true;
-  registerTemplate400BasesAndPatches();
-}
 
 export function getTemplateIndex(): TemplateIndex[] {
-  ensureInit();
   if (_cached) return _cached;
-  _cached = [
-    ...buildTemplateIndexFrom400(),
-    ...buildWebdramaIndex(),
-    ...buildAnimeIndex(),
-    ...getCuratedPhase1Index()
-  ];
+  _cached = getV3TemplateIndex();
   return _cached;
 }
 
@@ -41,7 +23,7 @@ export function getTemplateIndexById(id: string): TemplateIndex | undefined {
 
 export function getTemplateIndexByFamilyVariant(
   familyId: string,
-  variant: TemplateVariant
+  variant: string
 ): TemplateIndex | undefined {
   return getTemplateIndex().find(
     (t) => t.familyId === familyId && t.variant === variant

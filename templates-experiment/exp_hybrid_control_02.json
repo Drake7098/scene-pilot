@@ -1,0 +1,13 @@
+{
+  "id": "exp_hybrid_control_02",
+  "name": "实验-混合控制-材质+姿态+叙事",
+  "combo": "C+D+F",
+  "payload": {
+    "subject": "martial artist",
+    "material": "wet silk robe with metallic embroidery",
+    "pose": "defensive stance, knees bent",
+    "action": "forward step with sleeve motion",
+    "storyPlan": "anticipation -> strike",
+    "style": "high-contrast cinematic"
+  }
+}

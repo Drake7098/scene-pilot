@@ -1,0 +1,24 @@
+{
+  "projectDefaults": {
+    "mediaType": "image",
+    "storyPlan": "single",
+    "aspectRatio": "9:16",
+    "sceneCount": 1
+  },
+  "scenes": [{
+    "nameZh": "产品对比",
+    "nameEn": "Product Compare",
+    "duration": 4,
+    "classicShot": "mcu",
+    "cameraLanguage": "commercial_ad",
+    "raw": {
+      "id": "s1",
+      "name": "Product Compare",
+      "duration_s": 4,
+      "camera": { "shot": "mcu", "movement": "static", "keyframes": [] },
+      "lighting": { "time": "day", "key_dir": "top_left", "mood": "bright" },
+      "layers": [],
+      "notes": "camera_language: commercial_ad\nmedia: image"
+    }
+  }]
+}

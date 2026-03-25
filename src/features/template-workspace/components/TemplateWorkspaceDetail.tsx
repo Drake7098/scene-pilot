@@ -99,10 +99,11 @@ export function TemplateWorkspaceDetail({
   const owned = isPrivate || (isTemplateOwned?.(template.id) ?? false);
   const priceLabel = (() => {
     if (isPrivate) return t("已拥有", "Owned");
-    if (loading) return "…";
     if ((template as TemplateIndex).isFree) return t("免费", "Free");
+    const cost = (template as TemplateIndex).cost ?? 0;
+    if (cost > 0) return `${cost} ${t("积分", "credits")}`;
     if (pricing) return formatPricingBucketForDisplay(pricing.pricingBucket, lang);
-    return "—";
+    return t("免费", "Free");
   })();
   const capabilityTags = pricing?.capabilityTags?.slice(0, 4) ?? [];
 
@@ -138,11 +139,12 @@ export function TemplateWorkspaceDetail({
 
   const marketTemplate = template as TemplateIndex;
   const mediaLabel = marketTemplate.mediaType === "image" ? t("图片", "Image") : t("视频", "Video");
+  const templateCost = (marketTemplate as TemplateIndex).cost ?? (pricing?.creditPrice ?? 0);
   const insufficient =
     !owned &&
     !marketTemplate.isFree &&
-    (pricing?.creditPrice ?? 0) > 0 &&
-    userCredits < (pricing?.creditPrice ?? 0);
+    templateCost > 0 &&
+    userCredits < templateCost;
 
   return (
     <div className="pro-rail-scroll" style={styles.wrap}>
@@ -197,14 +199,27 @@ export function TemplateWorkspaceDetail({
         <div style={styles.metaChips}>
           <span style={styles.metaChip}>{lang === "zh" ? marketTemplate.familyNameZh : marketTemplate.familyNameEn}</span>
           <span style={styles.metaChip}>{mediaLabel}</span>
+          {marketTemplate.ratio && <span style={styles.metaChip}>{marketTemplate.ratio}</span>}
         </div>
+        {(marketTemplate.tags ?? []).length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
+            {(marketTemplate.tags ?? []).slice(0, 6).map((tag: string) => (
+              <span key={tag} style={{
+                fontSize: 10, padding: "2px 8px", borderRadius: 4,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#9ca3af",
+              }}>{tag}</span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={styles.actions}>
         <div style={styles.priceRow}>
           {insufficient ? (
             <span style={styles.insufficientHint}>
-              {t("需要", "Need")} {pricing?.creditPrice ?? 0} {t("积分", "credits")}
+              {t("需要", "Need")} {templateCost} {t("积分", "credits")}
             </span>
           ) : (
             <span style={styles.priceLabel}>
@@ -215,7 +230,7 @@ export function TemplateWorkspaceDetail({
         <button type="button" style={styles.useBtn} onClick={onUse} onMouseDown={preventMouseFocus} onMouseUp={blurButton}>
           {owned || marketTemplate.isFree
             ? t("使用模板", "Use Template")
-            : pricing?.creditPrice
+            : (marketTemplate.cost ?? 0) > 0
               ? t("购买并使用", "Buy & Use")
               : t("使用模板", "Use Template")}
         </button>

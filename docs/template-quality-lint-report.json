@@ -1,0 +1,5863 @@
+{
+  "generatedAt": "2026-03-21T18:07:17.871Z",
+  "summary": {
+    "total": 200,
+    "pass": 79,
+    "warn": 121,
+    "error": 0,
+    "highRisk": 121,
+    "rulesTriggered": {
+      "CORE_SCENE_HIERARCHY_WEAK": 121,
+      "OPT_CAMERA_UNDEFINED": 80,
+      "OPT_LIGHTING_UNDEFINED": 245
+    },
+    "highRiskTemplates": 121,
+    "errorList": []
+  },
+  "templates": [
+    {
+      "templateId": "tpl400_product_hero_free_starter",
+      "familyId": "product_hero",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_hero_cinematic",
+      "familyId": "product_hero",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_hero_multi_object",
+      "familyId": "product_hero",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_hero_advanced_motion",
+      "familyId": "product_hero",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_center_display_free_starter",
+      "familyId": "product_center_display",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_center_display_cinematic",
+      "familyId": "product_center_display",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_center_display_multi_object",
+      "familyId": "product_center_display",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_center_display_advanced_motion",
+      "familyId": "product_center_display",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_compare_cinematic",
+      "familyId": "product_compare",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_compare_multi_object",
+      "familyId": "product_compare",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_compare_advanced_motion",
+      "familyId": "product_compare",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_feature_breakdown_free_starter",
+      "familyId": "feature_breakdown",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_feature_breakdown_cinematic",
+      "familyId": "feature_breakdown",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_feature_breakdown_multi_object",
+      "familyId": "feature_breakdown",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_feature_breakdown_advanced_motion",
+      "familyId": "feature_breakdown",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_logo_copy_layout_free_starter",
+      "familyId": "logo_copy_layout",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_logo_copy_layout_cinematic",
+      "familyId": "logo_copy_layout",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_logo_copy_layout_multi_object",
+      "familyId": "logo_copy_layout",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_logo_copy_layout_advanced_motion",
+      "familyId": "logo_copy_layout",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_in_hand_free_starter",
+      "familyId": "product_in_hand",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_in_hand_cinematic",
+      "familyId": "product_in_hand",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_in_hand_multi_object",
+      "familyId": "product_in_hand",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_in_hand_advanced_motion",
+      "familyId": "product_in_hand",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_floating_product_showcase_free_starter",
+      "familyId": "floating_product_showcase",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_floating_product_showcase_cinematic",
+      "familyId": "floating_product_showcase",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_floating_product_showcase_multi_object",
+      "familyId": "floating_product_showcase",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_floating_product_showcase_advanced_motion",
+      "familyId": "floating_product_showcase",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_white_bg_product_free_starter",
+      "familyId": "white_bg_product",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_white_bg_product_cinematic",
+      "familyId": "white_bg_product",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_white_bg_product_advanced_motion",
+      "familyId": "white_bg_product",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_dialogue_duo_cinematic",
+      "familyId": "dialogue_duo",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_dialogue_duo_multi_object",
+      "familyId": "dialogue_duo",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_dialogue_duo_advanced_motion",
+      "familyId": "dialogue_duo",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_solo_speaker_free_starter",
+      "familyId": "solo_speaker",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_solo_speaker_cinematic",
+      "familyId": "solo_speaker",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_solo_speaker_advanced_motion",
+      "familyId": "solo_speaker",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_interview_layout_free_starter",
+      "familyId": "interview_layout",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_interview_layout_cinematic",
+      "familyId": "interview_layout",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_interview_layout_multi_object",
+      "familyId": "interview_layout",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_interview_layout_advanced_motion",
+      "familyId": "interview_layout",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_social_vertical_ad_free_starter",
+      "familyId": "social_vertical_ad",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_social_vertical_ad_cinematic",
+      "familyId": "social_vertical_ad",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_social_vertical_ad_multi_object",
+      "familyId": "social_vertical_ad",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_social_vertical_ad_advanced_motion",
+      "familyId": "social_vertical_ad",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_selling_point_ad_free_starter",
+      "familyId": "selling_point_ad",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_selling_point_ad_cinematic",
+      "familyId": "selling_point_ad",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_selling_point_ad_multi_object",
+      "familyId": "selling_point_ad",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_selling_point_ad_advanced_motion",
+      "familyId": "selling_point_ad",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_cta_landing_layout_free_starter",
+      "familyId": "cta_landing_layout",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_cta_landing_layout_cinematic",
+      "familyId": "cta_landing_layout",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_cta_landing_layout_multi_object",
+      "familyId": "cta_landing_layout",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_cta_landing_layout_advanced_motion",
+      "familyId": "cta_landing_layout",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_talking_head_ad_free_starter",
+      "familyId": "talking_head_ad",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_talking_head_ad_cinematic",
+      "familyId": "talking_head_ad",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_talking_head_ad_advanced_motion",
+      "familyId": "talking_head_ad",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_app_promo_layout_free_starter",
+      "familyId": "app_promo_layout",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_app_promo_layout_cinematic",
+      "familyId": "app_promo_layout",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_app_promo_layout_multi_object",
+      "familyId": "app_promo_layout",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_app_promo_layout_advanced_motion",
+      "familyId": "app_promo_layout",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_brand_promo_cover_free_starter",
+      "familyId": "brand_promo_cover",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_brand_promo_cover_cinematic",
+      "familyId": "brand_promo_cover",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_brand_promo_cover_multi_object",
+      "familyId": "brand_promo_cover",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_brand_promo_cover_advanced_motion",
+      "familyId": "brand_promo_cover",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_opening_shot_free_starter",
+      "familyId": "opening_shot",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_opening_shot_cinematic",
+      "familyId": "opening_shot",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_opening_shot_multi_object",
+      "familyId": "opening_shot",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_opening_shot_advanced_motion",
+      "familyId": "opening_shot",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_character_entrance_free_starter",
+      "familyId": "character_entrance",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_character_entrance_cinematic",
+      "familyId": "character_entrance",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_character_entrance_multi_object",
+      "familyId": "character_entrance",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_character_entrance_advanced_motion",
+      "familyId": "character_entrance",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_scene_push_forward_free_starter",
+      "familyId": "scene_push_forward",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_scene_push_forward_cinematic",
+      "familyId": "scene_push_forward",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_scene_push_forward_multi_object",
+      "familyId": "scene_push_forward",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_scene_push_forward_advanced_motion",
+      "familyId": "scene_push_forward",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_emotional_peak_free_starter",
+      "familyId": "emotional_peak",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_emotional_peak_cinematic",
+      "familyId": "emotional_peak",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_emotional_peak_multi_object",
+      "familyId": "emotional_peak",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_emotional_peak_advanced_motion",
+      "familyId": "emotional_peak",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_turning_point_shot_free_starter",
+      "familyId": "turning_point_shot",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_turning_point_shot_cinematic",
+      "familyId": "turning_point_shot",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_turning_point_shot_multi_object",
+      "familyId": "turning_point_shot",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_turning_point_shot_advanced_motion",
+      "familyId": "turning_point_shot",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_ending_closure_free_starter",
+      "familyId": "ending_closure",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_ending_closure_cinematic",
+      "familyId": "ending_closure",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_ending_closure_multi_object",
+      "familyId": "ending_closure",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_ending_closure_advanced_motion",
+      "familyId": "ending_closure",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_poster_cover_free_starter",
+      "familyId": "poster_cover",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_poster_cover_cinematic",
+      "familyId": "poster_cover",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_poster_cover_multi_object",
+      "familyId": "poster_cover",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_poster_cover_advanced_motion",
+      "familyId": "poster_cover",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_title_subtitle_layout_free_starter",
+      "familyId": "title_subtitle_layout",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_title_subtitle_layout_cinematic",
+      "familyId": "title_subtitle_layout",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_title_subtitle_layout_multi_object",
+      "familyId": "title_subtitle_layout",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_title_subtitle_layout_advanced_motion",
+      "familyId": "title_subtitle_layout",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_portrait_fashion_free_starter",
+      "familyId": "portrait_fashion",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_portrait_fashion_cinematic",
+      "familyId": "portrait_fashion",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_portrait_fashion_advanced_motion",
+      "familyId": "portrait_fashion",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_lifestyle_casual_free_starter",
+      "familyId": "lifestyle_casual",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_lifestyle_casual_cinematic",
+      "familyId": "lifestyle_casual",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_lifestyle_casual_multi_object",
+      "familyId": "lifestyle_casual",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_lifestyle_casual_advanced_motion",
+      "familyId": "lifestyle_casual",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_beauty_closeup_free_starter",
+      "familyId": "beauty_closeup",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_beauty_closeup_cinematic",
+      "familyId": "beauty_closeup",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_beauty_closeup_advanced_motion",
+      "familyId": "beauty_closeup",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_food_showcase_free_starter",
+      "familyId": "food_showcase",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_food_showcase_cinematic",
+      "familyId": "food_showcase",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_food_showcase_multi_object",
+      "familyId": "food_showcase",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_food_showcase_advanced_motion",
+      "familyId": "food_showcase",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_anime_action_free_starter",
+      "familyId": "anime_action",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_anime_action_cinematic",
+      "familyId": "anime_action",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_anime_action_multi_object",
+      "familyId": "anime_action",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_anime_action_advanced_motion",
+      "familyId": "anime_action",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_anime_emotional_free_starter",
+      "familyId": "anime_emotional",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_anime_emotional_cinematic",
+      "familyId": "anime_emotional",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_anime_emotional_advanced_motion",
+      "familyId": "anime_emotional",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_opening_free_starter",
+      "familyId": "drama_opening",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_opening_cinematic",
+      "familyId": "drama_opening",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_opening_multi_object",
+      "familyId": "drama_opening",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_opening_advanced_motion",
+      "familyId": "drama_opening",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_conflict_free_starter",
+      "familyId": "drama_conflict",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_conflict_cinematic",
+      "familyId": "drama_conflict",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_conflict_multi_object",
+      "familyId": "drama_conflict",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_conflict_advanced_motion",
+      "familyId": "drama_conflict",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_climax_free_starter",
+      "familyId": "drama_climax",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_climax_cinematic",
+      "familyId": "drama_climax",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_climax_multi_object",
+      "familyId": "drama_climax",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_climax_advanced_motion",
+      "familyId": "drama_climax",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_ending_free_starter",
+      "familyId": "drama_ending",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_ending_cinematic",
+      "familyId": "drama_ending",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_ending_multi_object",
+      "familyId": "drama_ending",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_drama_ending_advanced_motion",
+      "familyId": "drama_ending",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_thriller_chase_free_starter",
+      "familyId": "thriller_chase",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_thriller_chase_cinematic",
+      "familyId": "thriller_chase",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_thriller_chase_multi_object",
+      "familyId": "thriller_chase",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_thriller_chase_advanced_motion",
+      "familyId": "thriller_chase",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_thriller_reveal_free_starter",
+      "familyId": "thriller_reveal",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_thriller_reveal_cinematic",
+      "familyId": "thriller_reveal",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_thriller_reveal_multi_object",
+      "familyId": "thriller_reveal",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_thriller_reveal_advanced_motion",
+      "familyId": "thriller_reveal",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_tech_product_free_starter",
+      "familyId": "tech_product",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_tech_product_cinematic",
+      "familyId": "tech_product",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_tech_product_multi_object",
+      "familyId": "tech_product",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_tech_product_advanced_motion",
+      "familyId": "tech_product",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_food_ad_free_starter",
+      "familyId": "food_ad",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_food_ad_cinematic",
+      "familyId": "food_ad",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_food_ad_multi_object",
+      "familyId": "food_ad",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_food_ad_advanced_motion",
+      "familyId": "food_ad",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 镜头字段未定义（可选项，仅记录）",
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_CAMERA_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 镜头字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_tutorial_demo_free_starter",
+      "familyId": "tutorial_demo",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_tutorial_demo_cinematic",
+      "familyId": "tutorial_demo",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_tutorial_demo_advanced_motion",
+      "familyId": "tutorial_demo",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_tutorial_free_starter",
+      "familyId": "product_tutorial",
+      "variantId": "free_starter",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_tutorial_cinematic",
+      "familyId": "product_tutorial",
+      "variantId": "cinematic",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_tutorial_multi_object",
+      "familyId": "product_tutorial",
+      "variantId": "multi_object",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl400_product_tutorial_advanced_motion",
+      "familyId": "product_tutorial",
+      "variantId": "advanced_motion",
+      "riskLevel": "medium",
+      "highRisk": true,
+      "warnings": [
+        "scene[0] 主次层级弱（层数或 z 关系不足）"
+      ],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "CORE_SCENE_HIERARCHY_WEAK",
+          "tier": "core_strict",
+          "severity": "warn",
+          "message": "scene[0] 主次层级弱（层数或 z 关系不足）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_starter",
+      "familyId": "indoor_duo_continuity",
+      "variantId": "starter",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_close_emotion",
+      "familyId": "indoor_duo_continuity",
+      "variantId": "close_emotion",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_multi_angle",
+      "familyId": "indoor_duo_continuity",
+      "variantId": "multi_angle",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_high_tension",
+      "familyId": "indoor_duo_continuity",
+      "variantId": "high_tension",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_advanced_continuity",
+      "familyId": "indoor_duo_continuity",
+      "variantId": "advanced_continuity",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_starter",
+      "familyId": "corridor_tracking_continuity",
+      "variantId": "starter",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_close_emotion",
+      "familyId": "corridor_tracking_continuity",
+      "variantId": "close_emotion",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_multi_angle",
+      "familyId": "corridor_tracking_continuity",
+      "variantId": "multi_angle",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_high_tension",
+      "familyId": "corridor_tracking_continuity",
+      "variantId": "high_tension",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_advanced_continuity",
+      "familyId": "corridor_tracking_continuity",
+      "variantId": "advanced_continuity",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_starter",
+      "familyId": "emotional_confrontation_continuity",
+      "variantId": "starter",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_close_emotion",
+      "familyId": "emotional_confrontation_continuity",
+      "variantId": "close_emotion",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_multi_angle",
+      "familyId": "emotional_confrontation_continuity",
+      "variantId": "multi_angle",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_high_tension",
+      "familyId": "emotional_confrontation_continuity",
+      "variantId": "high_tension",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_advanced_continuity",
+      "familyId": "emotional_confrontation_continuity",
+      "variantId": "advanced_continuity",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_starter",
+      "familyId": "chase_enter_continuity",
+      "variantId": "starter",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_close_emotion",
+      "familyId": "chase_enter_continuity",
+      "variantId": "close_emotion",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_multi_angle",
+      "familyId": "chase_enter_continuity",
+      "variantId": "multi_angle",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_high_tension",
+      "familyId": "chase_enter_continuity",
+      "variantId": "high_tension",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_advanced_continuity",
+      "familyId": "chase_enter_continuity",
+      "variantId": "advanced_continuity",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_starter",
+      "familyId": "office_negotiation_continuity",
+      "variantId": "starter",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_close_emotion",
+      "familyId": "office_negotiation_continuity",
+      "variantId": "close_emotion",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_multi_angle",
+      "familyId": "office_negotiation_continuity",
+      "variantId": "multi_angle",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_high_tension",
+      "familyId": "office_negotiation_continuity",
+      "variantId": "high_tension",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_advanced_continuity",
+      "familyId": "office_negotiation_continuity",
+      "variantId": "advanced_continuity",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_starter",
+      "familyId": "daily_dialogue_anime",
+      "variantId": "starter",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_vertical_short",
+      "familyId": "daily_dialogue_anime",
+      "variantId": "vertical_short",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_battle_motion",
+      "familyId": "daily_dialogue_anime",
+      "variantId": "battle_motion",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_cinematic_anime",
+      "familyId": "daily_dialogue_anime",
+      "variantId": "cinematic_anime",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_advanced_continuity",
+      "familyId": "daily_dialogue_anime",
+      "variantId": "advanced_continuity",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_starter",
+      "familyId": "protagonist_entrance_anime",
+      "variantId": "starter",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_vertical_short",
+      "familyId": "protagonist_entrance_anime",
+      "variantId": "vertical_short",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_battle_motion",
+      "familyId": "protagonist_entrance_anime",
+      "variantId": "battle_motion",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_cinematic_anime",
+      "familyId": "protagonist_entrance_anime",
+      "variantId": "cinematic_anime",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_advanced_continuity",
+      "familyId": "protagonist_entrance_anime",
+      "variantId": "advanced_continuity",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_starter",
+      "familyId": "skill_release_anime",
+      "variantId": "starter",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_vertical_short",
+      "familyId": "skill_release_anime",
+      "variantId": "vertical_short",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_battle_motion",
+      "familyId": "skill_release_anime",
+      "variantId": "battle_motion",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_cinematic_anime",
+      "familyId": "skill_release_anime",
+      "variantId": "cinematic_anime",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_advanced_continuity",
+      "familyId": "skill_release_anime",
+      "variantId": "advanced_continuity",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_starter",
+      "familyId": "battle_standoff_anime",
+      "variantId": "starter",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_vertical_short",
+      "familyId": "battle_standoff_anime",
+      "variantId": "vertical_short",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_battle_motion",
+      "familyId": "battle_standoff_anime",
+      "variantId": "battle_motion",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_cinematic_anime",
+      "familyId": "battle_standoff_anime",
+      "variantId": "cinematic_anime",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_advanced_continuity",
+      "familyId": "battle_standoff_anime",
+      "variantId": "advanced_continuity",
+      "riskLevel": "low",
+      "highRisk": false,
+      "warnings": [],
+      "errors": [],
+      "infos": [
+        "scene[0] 灯光字段未定义（可选项，仅记录）",
+        "scene[1] 灯光字段未定义（可选项，仅记录）"
+      ],
+      "triggeredRules": [
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[0] 灯光字段未定义（可选项，仅记录）"
+        },
+        {
+          "code": "OPT_LIGHTING_UNDEFINED",
+          "tier": "optional_enhancement",
+          "severity": "info",
+          "message": "scene[1] 灯光字段未定义（可选项，仅记录）"
+        }
+      ]
+    }
+  ],
+  "hardErrors": []
+}

@@ -1,0 +1,13 @@
+{
+  "id": "exp_material_detail_01",
+  "name": "实验-材质细节-纹理增强",
+  "combo": "C",
+  "payload": {
+    "subject": "leather shoes",
+    "material": "grain leather with stitched edge",
+    "detail": "micro scratches and stitching highlights",
+    "semantic": "craftsmanship focus",
+    "lighting": "top softbox with side kicker",
+    "style": "commercial macro"
+  }
+}

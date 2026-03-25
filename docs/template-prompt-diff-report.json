@@ -1,0 +1,4512 @@
+{
+  "generatedAt": "2026-03-21T18:18:05.884Z",
+  "standardInput": {
+    "lang": "zh",
+    "platformId": "fal",
+    "workspace": "pro",
+    "baselinePromptLength": 438
+  },
+  "summary": {
+    "total": 200,
+    "highGain": 0,
+    "mediumGain": 18,
+    "lowGain": 182,
+    "nearNoGain": 0,
+    "suspectTemplates": [
+      {
+        "templateId": "tpl400_product_hero_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.4,
+        "similarity": 0.2016
+      },
+      {
+        "templateId": "tpl400_product_hero_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.55,
+        "similarity": 0.2093
+      },
+      {
+        "templateId": "tpl400_product_hero_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.4,
+        "similarity": 0.2031
+      },
+      {
+        "templateId": "tpl400_product_center_display_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.7,
+        "similarity": 0.2
+      },
+      {
+        "templateId": "tpl400_product_center_display_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.7,
+        "similarity": 0.2
+      },
+      {
+        "templateId": "tpl400_product_compare_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.7,
+        "similarity": 0.194
+      },
+      {
+        "templateId": "tpl400_feature_breakdown_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.05,
+        "similarity": 0.2016
+      },
+      {
+        "templateId": "tpl400_feature_breakdown_cinematic",
+        "reason": "low_gain",
+        "diffScore": 1.05,
+        "similarity": 0.2061
+      },
+      {
+        "templateId": "tpl400_feature_breakdown_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.05,
+        "similarity": 0.2031
+      },
+      {
+        "templateId": "tpl400_logo_copy_layout_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.35,
+        "similarity": 0.2
+      },
+      {
+        "templateId": "tpl400_logo_copy_layout_cinematic",
+        "reason": "low_gain",
+        "diffScore": 1.05,
+        "similarity": 0.2137
+      },
+      {
+        "templateId": "tpl400_logo_copy_layout_multi_object",
+        "reason": "low_gain",
+        "diffScore": 1.15,
+        "similarity": 0.1986
+      },
+      {
+        "templateId": "tpl400_logo_copy_layout_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.4,
+        "similarity": 0.2171
+      },
+      {
+        "templateId": "tpl400_product_in_hand_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.4,
+        "similarity": 0.2
+      },
+      {
+        "templateId": "tpl400_product_in_hand_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.6,
+        "similarity": 0.2093
+      },
+      {
+        "templateId": "tpl400_product_in_hand_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.4,
+        "similarity": 0.2016
+      },
+      {
+        "templateId": "tpl400_floating_product_showcase_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.4,
+        "similarity": 0.2
+      },
+      {
+        "templateId": "tpl400_floating_product_showcase_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1985
+      },
+      {
+        "templateId": "tpl400_white_bg_product_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.6,
+        "similarity": 0.2
+      },
+      {
+        "templateId": "tpl400_white_bg_product_cinematic",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.2077
+      },
+      {
+        "templateId": "tpl400_white_bg_product_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.6,
+        "similarity": 0.2016
+      },
+      {
+        "templateId": "tpl400_dialogue_duo_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_dialogue_duo_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.8,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_dialogue_duo_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_solo_speaker_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_solo_speaker_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_solo_speaker_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_interview_layout_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.5,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_interview_layout_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.5,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_interview_layout_multi_object",
+        "reason": "low_gain",
+        "diffScore": 1.1,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_interview_layout_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.5,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_social_vertical_ad_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.75,
+        "similarity": 0.203
+      },
+      {
+        "templateId": "tpl400_social_vertical_ad_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.5,
+        "similarity": 0.2154
+      },
+      {
+        "templateId": "tpl400_social_vertical_ad_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.75,
+        "similarity": 0.2045
+      },
+      {
+        "templateId": "tpl400_selling_point_ad_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.75,
+        "similarity": 0.203
+      },
+      {
+        "templateId": "tpl400_selling_point_ad_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.45,
+        "similarity": 0.2077
+      },
+      {
+        "templateId": "tpl400_selling_point_ad_multi_object",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1844
+      },
+      {
+        "templateId": "tpl400_selling_point_ad_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.05,
+        "similarity": 0.2016
+      },
+      {
+        "templateId": "tpl400_cta_landing_layout_free_starter",
+        "reason": "low_gain",
+        "diffScore": 1.05,
+        "similarity": 0.203
+      },
+      {
+        "templateId": "tpl400_cta_landing_layout_cinematic",
+        "reason": "low_gain",
+        "diffScore": 1.05,
+        "similarity": 0.2137
+      },
+      {
+        "templateId": "tpl400_cta_landing_layout_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.85,
+        "similarity": 0.2061
+      },
+      {
+        "templateId": "tpl400_talking_head_ad_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1287
+      },
+      {
+        "templateId": "tpl400_talking_head_ad_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1313
+      },
+      {
+        "templateId": "tpl400_talking_head_ad_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1313
+      },
+      {
+        "templateId": "tpl400_app_promo_layout_free_starter",
+        "reason": "low_gain",
+        "diffScore": 1.05,
+        "similarity": 0.203
+      },
+      {
+        "templateId": "tpl400_app_promo_layout_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.75,
+        "similarity": 0.1985
+      },
+      {
+        "templateId": "tpl400_brand_promo_cover_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.75,
+        "similarity": 0.203
+      },
+      {
+        "templateId": "tpl400_brand_promo_cover_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.25,
+        "similarity": 0.2154
+      },
+      {
+        "templateId": "tpl400_brand_promo_cover_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.85,
+        "similarity": 0.1986
+      },
+      {
+        "templateId": "tpl400_brand_promo_cover_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1985
+      },
+      {
+        "templateId": "tpl400_opening_shot_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.35,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_opening_shot_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.35,
+        "similarity": 0.1354
+      },
+      {
+        "templateId": "tpl400_opening_shot_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.95,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_opening_shot_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.35,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_character_entrance_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.55,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_character_entrance_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.55,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_character_entrance_multi_object",
+        "reason": "low_gain",
+        "diffScore": 1.15,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_character_entrance_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.55,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_scene_push_forward_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_scene_push_forward_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1354
+      },
+      {
+        "templateId": "tpl400_scene_push_forward_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.8,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_scene_push_forward_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_emotional_peak_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_emotional_peak_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1354
+      },
+      {
+        "templateId": "tpl400_emotional_peak_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.8,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_emotional_peak_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_turning_point_shot_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.35,
+        "similarity": 0.1287
+      },
+      {
+        "templateId": "tpl400_turning_point_shot_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.35,
+        "similarity": 0.1313
+      },
+      {
+        "templateId": "tpl400_turning_point_shot_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.95,
+        "similarity": 0.0932
+      },
+      {
+        "templateId": "tpl400_turning_point_shot_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.35,
+        "similarity": 0.1287
+      },
+      {
+        "templateId": "tpl400_ending_closure_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_ending_closure_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_ending_closure_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.8,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_ending_closure_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_poster_cover_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.75,
+        "similarity": 0.2045
+      },
+      {
+        "templateId": "tpl400_poster_cover_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.4,
+        "similarity": 0.2171
+      },
+      {
+        "templateId": "tpl400_poster_cover_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.85,
+        "similarity": 0.1769
+      },
+      {
+        "templateId": "tpl400_poster_cover_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.2171
+      },
+      {
+        "templateId": "tpl400_title_subtitle_layout_free_starter",
+        "reason": "low_gain",
+        "diffScore": 1.05,
+        "similarity": 0.203
+      },
+      {
+        "templateId": "tpl400_title_subtitle_layout_cinematic",
+        "reason": "low_gain",
+        "diffScore": 1.05,
+        "similarity": 0.2137
+      },
+      {
+        "templateId": "tpl400_title_subtitle_layout_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.5,
+        "similarity": 0.2154
+      },
+      {
+        "templateId": "tpl400_portrait_fashion_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.75,
+        "similarity": 0.2045
+      },
+      {
+        "templateId": "tpl400_portrait_fashion_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.4,
+        "similarity": 0.2171
+      },
+      {
+        "templateId": "tpl400_portrait_fashion_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1912
+      },
+      {
+        "templateId": "tpl400_lifestyle_casual_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.9,
+        "similarity": 0.2045
+      },
+      {
+        "templateId": "tpl400_lifestyle_casual_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.95,
+        "similarity": 0.2164
+      },
+      {
+        "templateId": "tpl400_lifestyle_casual_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.25,
+        "similarity": 0.2171
+      },
+      {
+        "templateId": "tpl400_beauty_closeup_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.75,
+        "similarity": 0.2045
+      },
+      {
+        "templateId": "tpl400_beauty_closeup_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.45,
+        "similarity": 0.2093
+      },
+      {
+        "templateId": "tpl400_beauty_closeup_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.2
+      },
+      {
+        "templateId": "tpl400_food_showcase_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.05,
+        "similarity": 0.2016
+      },
+      {
+        "templateId": "tpl400_food_showcase_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.65,
+        "similarity": 0.2093
+      },
+      {
+        "templateId": "tpl400_food_showcase_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.05,
+        "similarity": 0.2031
+      },
+      {
+        "templateId": "tpl400_anime_action_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_anime_action_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_anime_action_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.8,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_anime_action_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_anime_emotional_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_anime_emotional_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1354
+      },
+      {
+        "templateId": "tpl400_anime_emotional_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_drama_opening_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_drama_opening_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1354
+      },
+      {
+        "templateId": "tpl400_drama_opening_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.8,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_drama_opening_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_drama_conflict_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_drama_conflict_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_drama_conflict_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.8,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_drama_conflict_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_drama_climax_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_drama_climax_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_drama_climax_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.8,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_drama_climax_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_drama_ending_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_drama_ending_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_drama_ending_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.8,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_drama_ending_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_thriller_chase_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_thriller_chase_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_thriller_chase_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.8,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_thriller_chase_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.55,
+        "similarity": 0.1296
+      },
+      {
+        "templateId": "tpl400_thriller_reveal_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_thriller_reveal_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_thriller_reveal_multi_object",
+        "reason": "low_gain",
+        "diffScore": 0.8,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_thriller_reveal_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_tech_product_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.4,
+        "similarity": 0.2016
+      },
+      {
+        "templateId": "tpl400_tech_product_cinematic",
+        "reason": "low_gain",
+        "diffScore": 1.15,
+        "similarity": 0.2061
+      },
+      {
+        "templateId": "tpl400_tech_product_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.2
+      },
+      {
+        "templateId": "tpl400_food_ad_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.75,
+        "similarity": 0.2045
+      },
+      {
+        "templateId": "tpl400_food_ad_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.55,
+        "similarity": 0.2109
+      },
+      {
+        "templateId": "tpl400_food_ad_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.25,
+        "similarity": 0.2016
+      },
+      {
+        "templateId": "tpl400_tutorial_demo_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_tutorial_demo_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_tutorial_demo_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.2,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_product_tutorial_free_starter",
+        "reason": "low_gain",
+        "diffScore": 0.55,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl400_product_tutorial_cinematic",
+        "reason": "low_gain",
+        "diffScore": 0.55,
+        "similarity": 0.1327
+      },
+      {
+        "templateId": "tpl400_product_tutorial_multi_object",
+        "reason": "low_gain",
+        "diffScore": 1.15,
+        "similarity": 0.094
+      },
+      {
+        "templateId": "tpl400_product_tutorial_advanced_motion",
+        "reason": "low_gain",
+        "diffScore": 0.55,
+        "similarity": 0.13
+      },
+      {
+        "templateId": "tpl600_webdrama_indoor_duo_continuity_starter",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1062
+      },
+      {
+        "templateId": "tpl600_webdrama_indoor_duo_continuity_close_emotion",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1062
+      },
+      {
+        "templateId": "tpl600_webdrama_indoor_duo_continuity_multi_angle",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1062
+      },
+      {
+        "templateId": "tpl600_webdrama_indoor_duo_continuity_high_tension",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1062
+      },
+      {
+        "templateId": "tpl600_webdrama_indoor_duo_continuity_advanced_continuity",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1062
+      },
+      {
+        "templateId": "tpl600_webdrama_corridor_tracking_continuity_starter",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_corridor_tracking_continuity_close_emotion",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_corridor_tracking_continuity_multi_angle",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_corridor_tracking_continuity_high_tension",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_corridor_tracking_continuity_advanced_continuity",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_emotional_confrontation_continuity_starter",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_emotional_confrontation_continuity_close_emotion",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_emotional_confrontation_continuity_multi_angle",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_emotional_confrontation_continuity_high_tension",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_emotional_confrontation_continuity_advanced_continuity",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_chase_enter_continuity_starter",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_chase_enter_continuity_close_emotion",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_chase_enter_continuity_multi_angle",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_chase_enter_continuity_high_tension",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_chase_enter_continuity_advanced_continuity",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_office_negotiation_continuity_starter",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_office_negotiation_continuity_close_emotion",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_office_negotiation_continuity_multi_angle",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_office_negotiation_continuity_high_tension",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_webdrama_office_negotiation_continuity_advanced_continuity",
+        "reason": "low_gain",
+        "diffScore": 1,
+        "similarity": 0.1071
+      },
+      {
+        "templateId": "tpl600_anime_daily_dialogue_anime_starter",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_daily_dialogue_anime_vertical_short",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_daily_dialogue_anime_battle_motion",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_daily_dialogue_anime_cinematic_anime",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_daily_dialogue_anime_advanced_continuity",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_protagonist_entrance_anime_starter",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_protagonist_entrance_anime_vertical_short",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_protagonist_entrance_anime_battle_motion",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_protagonist_entrance_anime_cinematic_anime",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_protagonist_entrance_anime_advanced_continuity",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_skill_release_anime_starter",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_skill_release_anime_vertical_short",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_skill_release_anime_battle_motion",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_skill_release_anime_cinematic_anime",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_skill_release_anime_advanced_continuity",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_battle_standoff_anime_starter",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_battle_standoff_anime_vertical_short",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_battle_standoff_anime_battle_motion",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_battle_standoff_anime_cinematic_anime",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      },
+      {
+        "templateId": "tpl600_anime_battle_standoff_anime_advanced_continuity",
+        "reason": "low_gain",
+        "diffScore": 0.1,
+        "similarity": 0.1154
+      }
+    ]
+  },
+  "templates": [
+    {
+      "templateId": "tpl400_product_hero_free_starter",
+      "familyId": "product_hero",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.4,
+      "similarity": 0.2016,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 707,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_product_hero_cinematic",
+      "familyId": "product_hero",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.55,
+      "similarity": 0.2093,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 714,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_product_hero_multi_object",
+      "familyId": "product_hero",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.55,
+      "similarity": 0.1844,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 811,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 2,
+        "layout": 2,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_product_hero_advanced_motion",
+      "familyId": "product_hero",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.4,
+      "similarity": 0.2031,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 710,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_product_center_display_free_starter",
+      "familyId": "product_center_display",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.7,
+      "similarity": 0.2,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 717,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_product_center_display_cinematic",
+      "familyId": "product_center_display",
+      "variantId": "cinematic",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.4,
+      "similarity": 0.2137,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 722,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 2,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_product_center_display_multi_object",
+      "familyId": "product_center_display",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.45,
+      "similarity": 0.1844,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 823,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 3,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_product_center_display_advanced_motion",
+      "familyId": "product_center_display",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.7,
+      "similarity": 0.2,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 727,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_product_compare_cinematic",
+      "familyId": "product_compare",
+      "variantId": "cinematic",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.7,
+      "similarity": 0.2121,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 709,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_product_compare_multi_object",
+      "familyId": "product_compare",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.2,
+      "similarity": 0.1793,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 830,
+      "dimensionDelta": {
+        "subject": 3,
+        "background": 0,
+        "layout": 1,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_product_compare_advanced_motion",
+      "familyId": "product_compare",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.7,
+      "similarity": 0.194,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 733,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_feature_breakdown_free_starter",
+      "familyId": "feature_breakdown",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.05,
+      "similarity": 0.2016,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 712,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_feature_breakdown_cinematic",
+      "familyId": "feature_breakdown",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1.05,
+      "similarity": 0.2061,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 712,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_feature_breakdown_multi_object",
+      "familyId": "feature_breakdown",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.4,
+      "similarity": 0.1844,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 812,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 0,
+        "layout": 4,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_feature_breakdown_advanced_motion",
+      "familyId": "feature_breakdown",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.05,
+      "similarity": 0.2031,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 715,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_logo_copy_layout_free_starter",
+      "familyId": "logo_copy_layout",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.35,
+      "similarity": 0.2,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 711,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 0,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_logo_copy_layout_cinematic",
+      "familyId": "logo_copy_layout",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1.05,
+      "similarity": 0.2137,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 716,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_logo_copy_layout_multi_object",
+      "familyId": "logo_copy_layout",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1.15,
+      "similarity": 0.1986,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 848,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_logo_copy_layout_advanced_motion",
+      "familyId": "logo_copy_layout",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.4,
+      "similarity": 0.2171,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 745,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_product_in_hand_free_starter",
+      "familyId": "product_in_hand",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.4,
+      "similarity": 0.2,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 710,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_product_in_hand_cinematic",
+      "familyId": "product_in_hand",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.6,
+      "similarity": 0.2093,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 714,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 1,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_product_in_hand_multi_object",
+      "familyId": "product_in_hand",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.65,
+      "similarity": 0.1844,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 815,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_product_in_hand_advanced_motion",
+      "familyId": "product_in_hand",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.4,
+      "similarity": 0.2016,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 713,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_floating_product_showcase_free_starter",
+      "familyId": "floating_product_showcase",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.4,
+      "similarity": 0.2,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 720,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_floating_product_showcase_cinematic",
+      "familyId": "floating_product_showcase",
+      "variantId": "cinematic",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.4,
+      "similarity": 0.2045,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 720,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 2,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_floating_product_showcase_multi_object",
+      "familyId": "floating_product_showcase",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.75,
+      "similarity": 0.1831,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 820,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 4,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_floating_product_showcase_advanced_motion",
+      "familyId": "floating_product_showcase",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1985,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 722,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_white_bg_product_free_starter",
+      "familyId": "white_bg_product",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.6,
+      "similarity": 0.2,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 719,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 1,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_white_bg_product_cinematic",
+      "familyId": "white_bg_product",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.2077,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 720,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 3,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_white_bg_product_advanced_motion",
+      "familyId": "white_bg_product",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.6,
+      "similarity": 0.2016,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 722,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 1,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_dialogue_duo_cinematic",
+      "familyId": "dialogue_duo",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 311,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_dialogue_duo_multi_object",
+      "familyId": "dialogue_duo",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.8,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 390,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_dialogue_duo_advanced_motion",
+      "familyId": "dialogue_duo",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 324,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_solo_speaker_free_starter",
+      "familyId": "solo_speaker",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 314,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_solo_speaker_cinematic",
+      "familyId": "solo_speaker",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 311,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_solo_speaker_advanced_motion",
+      "familyId": "solo_speaker",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 324,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_interview_layout_free_starter",
+      "familyId": "interview_layout",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.5,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 318,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_interview_layout_cinematic",
+      "familyId": "interview_layout",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.5,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 315,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_interview_layout_multi_object",
+      "familyId": "interview_layout",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1.1,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 394,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 4,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_interview_layout_advanced_motion",
+      "familyId": "interview_layout",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.5,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 328,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_social_vertical_ad_free_starter",
+      "familyId": "social_vertical_ad",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.75,
+      "similarity": 0.203,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 721,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_social_vertical_ad_cinematic",
+      "familyId": "social_vertical_ad",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.5,
+      "similarity": 0.2154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 709,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 0,
+        "layout": 1,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_social_vertical_ad_multi_object",
+      "familyId": "social_vertical_ad",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.5,
+      "similarity": 0.1888,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 822,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_social_vertical_ad_advanced_motion",
+      "familyId": "social_vertical_ad",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.75,
+      "similarity": 0.2045,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 724,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_selling_point_ad_free_starter",
+      "familyId": "selling_point_ad",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.75,
+      "similarity": 0.203,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 719,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_selling_point_ad_cinematic",
+      "familyId": "selling_point_ad",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.45,
+      "similarity": 0.2077,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 712,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_selling_point_ad_multi_object",
+      "familyId": "selling_point_ad",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1844,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 817,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 2,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_selling_point_ad_advanced_motion",
+      "familyId": "selling_point_ad",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.05,
+      "similarity": 0.2016,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 714,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_cta_landing_layout_free_starter",
+      "familyId": "cta_landing_layout",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1.05,
+      "similarity": 0.203,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 721,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_cta_landing_layout_cinematic",
+      "familyId": "cta_landing_layout",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1.05,
+      "similarity": 0.2137,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 718,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_cta_landing_layout_multi_object",
+      "familyId": "cta_landing_layout",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 2.3,
+      "similarity": 0.1875,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 826,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 3,
+        "layout": 5,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_cta_landing_layout_advanced_motion",
+      "familyId": "cta_landing_layout",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.85,
+      "similarity": 0.2061,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 727,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_talking_head_ad_free_starter",
+      "familyId": "talking_head_ad",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1287,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 317,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_talking_head_ad_cinematic",
+      "familyId": "talking_head_ad",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1313,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 314,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_talking_head_ad_advanced_motion",
+      "familyId": "talking_head_ad",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1313,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 327,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_app_promo_layout_free_starter",
+      "familyId": "app_promo_layout",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1.05,
+      "similarity": 0.203,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 719,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_app_promo_layout_cinematic",
+      "familyId": "app_promo_layout",
+      "variantId": "cinematic",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.65,
+      "similarity": 0.2105,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 710,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 4,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_app_promo_layout_multi_object",
+      "familyId": "app_promo_layout",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.2,
+      "similarity": 0.1757,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 833,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 2,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_app_promo_layout_advanced_motion",
+      "familyId": "app_promo_layout",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.75,
+      "similarity": 0.1985,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 716,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_brand_promo_cover_free_starter",
+      "familyId": "brand_promo_cover",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.75,
+      "similarity": 0.203,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 720,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_brand_promo_cover_cinematic",
+      "familyId": "brand_promo_cover",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.25,
+      "similarity": 0.2154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 750,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_brand_promo_cover_multi_object",
+      "familyId": "brand_promo_cover",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.85,
+      "similarity": 0.1986,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 849,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 2,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_brand_promo_cover_advanced_motion",
+      "familyId": "brand_promo_cover",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1985,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 726,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_opening_shot_free_starter",
+      "familyId": "opening_shot",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.35,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 314,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_opening_shot_cinematic",
+      "familyId": "opening_shot",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.35,
+      "similarity": 0.1354,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 318,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_opening_shot_multi_object",
+      "familyId": "opening_shot",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.95,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 390,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_opening_shot_advanced_motion",
+      "familyId": "opening_shot",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.35,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 317,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_character_entrance_free_starter",
+      "familyId": "character_entrance",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.55,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 320,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_character_entrance_cinematic",
+      "familyId": "character_entrance",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.55,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 317,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_character_entrance_multi_object",
+      "familyId": "character_entrance",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1.15,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 396,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_character_entrance_advanced_motion",
+      "familyId": "character_entrance",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.55,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 323,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_scene_push_forward_free_starter",
+      "familyId": "scene_push_forward",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 320,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_scene_push_forward_cinematic",
+      "familyId": "scene_push_forward",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1354,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 324,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_scene_push_forward_multi_object",
+      "familyId": "scene_push_forward",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.8,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 396,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_scene_push_forward_advanced_motion",
+      "familyId": "scene_push_forward",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 330,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_emotional_peak_free_starter",
+      "familyId": "emotional_peak",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 316,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_emotional_peak_cinematic",
+      "familyId": "emotional_peak",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1354,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 320,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_emotional_peak_multi_object",
+      "familyId": "emotional_peak",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.8,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 392,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_emotional_peak_advanced_motion",
+      "familyId": "emotional_peak",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 319,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_turning_point_shot_free_starter",
+      "familyId": "turning_point_shot",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.35,
+      "similarity": 0.1287,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 320,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_turning_point_shot_cinematic",
+      "familyId": "turning_point_shot",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.35,
+      "similarity": 0.1313,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 317,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_turning_point_shot_multi_object",
+      "familyId": "turning_point_shot",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.95,
+      "similarity": 0.0932,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 396,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_turning_point_shot_advanced_motion",
+      "familyId": "turning_point_shot",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.35,
+      "similarity": 0.1287,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 323,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_ending_closure_free_starter",
+      "familyId": "ending_closure",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 316,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_ending_closure_cinematic",
+      "familyId": "ending_closure",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 313,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_ending_closure_multi_object",
+      "familyId": "ending_closure",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.8,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 392,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_ending_closure_advanced_motion",
+      "familyId": "ending_closure",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 319,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_poster_cover_free_starter",
+      "familyId": "poster_cover",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.75,
+      "similarity": 0.2045,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 715,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_poster_cover_cinematic",
+      "familyId": "poster_cover",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.4,
+      "similarity": 0.2171,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 735,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_poster_cover_multi_object",
+      "familyId": "poster_cover",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.85,
+      "similarity": 0.1769,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 822,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": 0
+      }
+    },
+    {
+      "templateId": "tpl400_poster_cover_advanced_motion",
+      "familyId": "poster_cover",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.2171,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 736,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_title_subtitle_layout_free_starter",
+      "familyId": "title_subtitle_layout",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1.05,
+      "similarity": 0.203,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 724,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_title_subtitle_layout_cinematic",
+      "familyId": "title_subtitle_layout",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1.05,
+      "similarity": 0.2137,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 721,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_title_subtitle_layout_multi_object",
+      "familyId": "title_subtitle_layout",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.45,
+      "similarity": 0.1972,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 847,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 4,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_title_subtitle_layout_advanced_motion",
+      "familyId": "title_subtitle_layout",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.5,
+      "similarity": 0.2154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 745,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_portrait_fashion_free_starter",
+      "familyId": "portrait_fashion",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.75,
+      "similarity": 0.2045,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 719,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_portrait_fashion_cinematic",
+      "familyId": "portrait_fashion",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.4,
+      "similarity": 0.2171,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 739,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_portrait_fashion_advanced_motion",
+      "familyId": "portrait_fashion",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1912,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 728,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": -1,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_lifestyle_casual_free_starter",
+      "familyId": "lifestyle_casual",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.9,
+      "similarity": 0.2045,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 719,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 1,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_lifestyle_casual_cinematic",
+      "familyId": "lifestyle_casual",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.95,
+      "similarity": 0.2164,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 724,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 3,
+        "layout": 0,
+        "cameraStyleConstraint": 0
+      }
+    },
+    {
+      "templateId": "tpl400_lifestyle_casual_multi_object",
+      "familyId": "lifestyle_casual",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 2,
+      "similarity": 0.1905,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 832,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 3,
+        "layout": 3,
+        "cameraStyleConstraint": 1
+      }
+    },
+    {
+      "templateId": "tpl400_lifestyle_casual_advanced_motion",
+      "familyId": "lifestyle_casual",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.25,
+      "similarity": 0.2171,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 751,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_beauty_closeup_free_starter",
+      "familyId": "beauty_closeup",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.75,
+      "similarity": 0.2045,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 717,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_beauty_closeup_cinematic",
+      "familyId": "beauty_closeup",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.45,
+      "similarity": 0.2093,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 710,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_beauty_closeup_advanced_motion",
+      "familyId": "beauty_closeup",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.2,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 722,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_food_showcase_free_starter",
+      "familyId": "food_showcase",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.05,
+      "similarity": 0.2016,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 708,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_food_showcase_cinematic",
+      "familyId": "food_showcase",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.65,
+      "similarity": 0.2093,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 706,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 0,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_food_showcase_multi_object",
+      "familyId": "food_showcase",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.3,
+      "similarity": 0.1857,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 813,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_food_showcase_advanced_motion",
+      "familyId": "food_showcase",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.05,
+      "similarity": 0.2031,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 711,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_anime_action_free_starter",
+      "familyId": "anime_action",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 314,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_anime_action_cinematic",
+      "familyId": "anime_action",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 311,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_anime_action_multi_object",
+      "familyId": "anime_action",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.8,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 390,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_anime_action_advanced_motion",
+      "familyId": "anime_action",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 317,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_anime_emotional_free_starter",
+      "familyId": "anime_emotional",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 317,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_anime_emotional_cinematic",
+      "familyId": "anime_emotional",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1354,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 321,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_anime_emotional_advanced_motion",
+      "familyId": "anime_emotional",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 320,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_opening_free_starter",
+      "familyId": "drama_opening",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 315,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_opening_cinematic",
+      "familyId": "drama_opening",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1354,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 319,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_opening_multi_object",
+      "familyId": "drama_opening",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.8,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 391,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_opening_advanced_motion",
+      "familyId": "drama_opening",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 318,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_conflict_free_starter",
+      "familyId": "drama_conflict",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 316,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_conflict_cinematic",
+      "familyId": "drama_conflict",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 313,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_conflict_multi_object",
+      "familyId": "drama_conflict",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.8,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 392,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_conflict_advanced_motion",
+      "familyId": "drama_conflict",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 319,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_climax_free_starter",
+      "familyId": "drama_climax",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 314,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_climax_cinematic",
+      "familyId": "drama_climax",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 311,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_climax_multi_object",
+      "familyId": "drama_climax",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.8,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 390,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_climax_advanced_motion",
+      "familyId": "drama_climax",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 317,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_ending_free_starter",
+      "familyId": "drama_ending",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 314,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_ending_cinematic",
+      "familyId": "drama_ending",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 311,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_ending_multi_object",
+      "familyId": "drama_ending",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.8,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 390,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_drama_ending_advanced_motion",
+      "familyId": "drama_ending",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 317,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_thriller_chase_free_starter",
+      "familyId": "thriller_chase",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 316,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_thriller_chase_cinematic",
+      "familyId": "thriller_chase",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 313,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_thriller_chase_multi_object",
+      "familyId": "thriller_chase",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.8,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 392,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_thriller_chase_advanced_motion",
+      "familyId": "thriller_chase",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.55,
+      "similarity": 0.1296,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 394,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_thriller_reveal_free_starter",
+      "familyId": "thriller_reveal",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 317,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_thriller_reveal_cinematic",
+      "familyId": "thriller_reveal",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 314,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_thriller_reveal_multi_object",
+      "familyId": "thriller_reveal",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.8,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 393,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_thriller_reveal_advanced_motion",
+      "familyId": "thriller_reveal",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 320,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_tech_product_free_starter",
+      "familyId": "tech_product",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.4,
+      "similarity": 0.2016,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 707,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_tech_product_cinematic",
+      "familyId": "tech_product",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1.15,
+      "similarity": 0.2061,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 715,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 2,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_tech_product_multi_object",
+      "familyId": "tech_product",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 2.15,
+      "similarity": 0.1818,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 809,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 2,
+        "layout": 4,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_tech_product_advanced_motion",
+      "familyId": "tech_product",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.2,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 709,
+      "dimensionDelta": {
+        "subject": 2,
+        "background": 0,
+        "layout": 2,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_food_ad_free_starter",
+      "familyId": "food_ad",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.75,
+      "similarity": 0.2045,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 710,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_food_ad_cinematic",
+      "familyId": "food_ad",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.55,
+      "similarity": 0.2109,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 705,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_food_ad_multi_object",
+      "familyId": "food_ad",
+      "variantId": "multi_object",
+      "gainLevel": "mediumGain",
+      "nearNoGain": false,
+      "diffScore": 1.5,
+      "similarity": 0.1844,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 814,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -1
+      }
+    },
+    {
+      "templateId": "tpl400_food_ad_advanced_motion",
+      "familyId": "food_ad",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.25,
+      "similarity": 0.2016,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 712,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_tutorial_demo_free_starter",
+      "familyId": "tutorial_demo",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 315,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_tutorial_demo_cinematic",
+      "familyId": "tutorial_demo",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 312,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_tutorial_demo_advanced_motion",
+      "familyId": "tutorial_demo",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.2,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 318,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_product_tutorial_free_starter",
+      "familyId": "product_tutorial",
+      "variantId": "free_starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.55,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 318,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_product_tutorial_cinematic",
+      "familyId": "product_tutorial",
+      "variantId": "cinematic",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.55,
+      "similarity": 0.1327,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 315,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_product_tutorial_multi_object",
+      "familyId": "product_tutorial",
+      "variantId": "multi_object",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1.15,
+      "similarity": 0.094,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 394,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl400_product_tutorial_advanced_motion",
+      "familyId": "product_tutorial",
+      "variantId": "advanced_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.55,
+      "similarity": 0.13,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 321,
+      "dimensionDelta": {
+        "subject": 1,
+        "background": 1,
+        "layout": 1,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_starter",
+      "familyId": "indoor_duo_continuity",
+      "variantId": "starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1062,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 401,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_close_emotion",
+      "familyId": "indoor_duo_continuity",
+      "variantId": "close_emotion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1062,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 401,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_multi_angle",
+      "familyId": "indoor_duo_continuity",
+      "variantId": "multi_angle",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1062,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 401,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_high_tension",
+      "familyId": "indoor_duo_continuity",
+      "variantId": "high_tension",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1062,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 401,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_advanced_continuity",
+      "familyId": "indoor_duo_continuity",
+      "variantId": "advanced_continuity",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1062,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 401,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_starter",
+      "familyId": "corridor_tracking_continuity",
+      "variantId": "starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 399,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_close_emotion",
+      "familyId": "corridor_tracking_continuity",
+      "variantId": "close_emotion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 399,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_multi_angle",
+      "familyId": "corridor_tracking_continuity",
+      "variantId": "multi_angle",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 399,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_high_tension",
+      "familyId": "corridor_tracking_continuity",
+      "variantId": "high_tension",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 399,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_advanced_continuity",
+      "familyId": "corridor_tracking_continuity",
+      "variantId": "advanced_continuity",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 399,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_starter",
+      "familyId": "emotional_confrontation_continuity",
+      "variantId": "starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 405,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_close_emotion",
+      "familyId": "emotional_confrontation_continuity",
+      "variantId": "close_emotion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 405,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_multi_angle",
+      "familyId": "emotional_confrontation_continuity",
+      "variantId": "multi_angle",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 405,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_high_tension",
+      "familyId": "emotional_confrontation_continuity",
+      "variantId": "high_tension",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 405,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_advanced_continuity",
+      "familyId": "emotional_confrontation_continuity",
+      "variantId": "advanced_continuity",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 405,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_starter",
+      "familyId": "chase_enter_continuity",
+      "variantId": "starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 393,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_close_emotion",
+      "familyId": "chase_enter_continuity",
+      "variantId": "close_emotion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 393,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_multi_angle",
+      "familyId": "chase_enter_continuity",
+      "variantId": "multi_angle",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 393,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_high_tension",
+      "familyId": "chase_enter_continuity",
+      "variantId": "high_tension",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 393,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_advanced_continuity",
+      "familyId": "chase_enter_continuity",
+      "variantId": "advanced_continuity",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 393,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_starter",
+      "familyId": "office_negotiation_continuity",
+      "variantId": "starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 400,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_close_emotion",
+      "familyId": "office_negotiation_continuity",
+      "variantId": "close_emotion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 400,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_multi_angle",
+      "familyId": "office_negotiation_continuity",
+      "variantId": "multi_angle",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 400,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_high_tension",
+      "familyId": "office_negotiation_continuity",
+      "variantId": "high_tension",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 400,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_advanced_continuity",
+      "familyId": "office_negotiation_continuity",
+      "variantId": "advanced_continuity",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 1,
+      "similarity": 0.1071,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 400,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 3,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_starter",
+      "familyId": "daily_dialogue_anime",
+      "variantId": "starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 351,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_vertical_short",
+      "familyId": "daily_dialogue_anime",
+      "variantId": "vertical_short",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 351,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_battle_motion",
+      "familyId": "daily_dialogue_anime",
+      "variantId": "battle_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 351,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_cinematic_anime",
+      "familyId": "daily_dialogue_anime",
+      "variantId": "cinematic_anime",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 351,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_advanced_continuity",
+      "familyId": "daily_dialogue_anime",
+      "variantId": "advanced_continuity",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 351,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_starter",
+      "familyId": "protagonist_entrance_anime",
+      "variantId": "starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 357,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_vertical_short",
+      "familyId": "protagonist_entrance_anime",
+      "variantId": "vertical_short",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 357,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_battle_motion",
+      "familyId": "protagonist_entrance_anime",
+      "variantId": "battle_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 357,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_cinematic_anime",
+      "familyId": "protagonist_entrance_anime",
+      "variantId": "cinematic_anime",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 357,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_advanced_continuity",
+      "familyId": "protagonist_entrance_anime",
+      "variantId": "advanced_continuity",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 357,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_starter",
+      "familyId": "skill_release_anime",
+      "variantId": "starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 350,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_vertical_short",
+      "familyId": "skill_release_anime",
+      "variantId": "vertical_short",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 350,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_battle_motion",
+      "familyId": "skill_release_anime",
+      "variantId": "battle_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 350,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_cinematic_anime",
+      "familyId": "skill_release_anime",
+      "variantId": "cinematic_anime",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 350,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_advanced_continuity",
+      "familyId": "skill_release_anime",
+      "variantId": "advanced_continuity",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 350,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_starter",
+      "familyId": "battle_standoff_anime",
+      "variantId": "starter",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 352,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_vertical_short",
+      "familyId": "battle_standoff_anime",
+      "variantId": "vertical_short",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 352,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_battle_motion",
+      "familyId": "battle_standoff_anime",
+      "variantId": "battle_motion",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 352,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_cinematic_anime",
+      "familyId": "battle_standoff_anime",
+      "variantId": "cinematic_anime",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 352,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_advanced_continuity",
+      "familyId": "battle_standoff_anime",
+      "variantId": "advanced_continuity",
+      "gainLevel": "lowGain",
+      "nearNoGain": false,
+      "diffScore": 0.1,
+      "similarity": 0.1154,
+      "baselinePromptLength": 438,
+      "templatedPromptLength": 352,
+      "dimensionDelta": {
+        "subject": 0,
+        "background": 2,
+        "layout": 0,
+        "cameraStyleConstraint": -2
+      }
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "id": "faceoff_scene",
+  "name": "Faceoff Scene",
+  "nameZh": "\u5bf9\u5cd9\u573a\u666f",
+  "category": "dialogue",
+  "description": "Face-off/standoff dialogue scene",
+  "descriptionZh": "\u5bf9\u5cd9\u5bf9\u8bdd\u573a\u666f",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": [
+    "mcu",
+    "ms",
+    "over_shoulder"
+  ],
+  "movementRange": [
+    "static",
+    "slow_push_in"
+  ],
+  "cameraLanguageRange": [
+    "dialogue_cover",
+    "cinematic_narrative"
+  ],
+  "lightingRange": {
+    "time": [
+      "day"
+    ],
+    "keyDir": [
+      "top_left",
+      "top_right"
+    ],
+    "mood": [
+      "warm",
+      "cinematic"
+    ]
+  },
+  "compositionRange": [
+    "left_right_standoff",
+    "eyeline_tension",
+    "rule_of_thirds"
+  ],
+  "objectTypes": [
+    "character",
+    "character"
+  ],
+  "advancedTags": [
+    "director_preset",
+    "drama_mode"
+  ],
+  "variants": [
+    "faceoff_scene_free_starter",
+    "faceoff_scene_basic_wide",
+    "faceoff_scene_basic_medium",
+    "faceoff_scene_basic_close",
+    "faceoff_scene_cinematic",
+    "faceoff_scene_vertical",
+    "faceoff_scene_multi_object"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "visual_product_ad_01",
+  "kind": "visual_benchmark",
+  "visualType": "产品广告",
+  "realPrompt": "A premium serum bottle stands on polished black stone as a thin veil of condensation catches a controlled studio key. Start with a calm centered composition, then introduce a subtle downward glide that reveals the embossed logo and the meniscus line through frosted glass. The frame should feel expensive and clinical at once: clean negative space, disciplined highlights, no visual clutter, and a finish suitable for a global beauty campaign hero shot.",
+  "structure": {
+    "camera": "85mm macro close-up, subtle top-down glide, stable center lock",
+    "space": "minimal studio with controlled reflective base and soft gradient backdrop",
+    "layer": "foreground micro droplets, middle bottle, background soft glow band",
+    "lighting": "large soft overhead key, side strip accent, controlled rear kicker",
+    "subject": "premium serum bottle hero product",
+    "semantic": "clinical trust plus luxury desirability",
+    "material": "frosted glass body, glossy cap, polished black stone base",
+    "detail": "embossed logo edge, condensation distribution, liquid meniscus clarity",
+    "mood": "clean, precise, premium confidence",
+    "composition": "center symmetry with disciplined negative space",
+    "style": "high-end beauty commercial"
+  }
+}

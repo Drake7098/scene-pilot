@@ -1,0 +1,34 @@
+{
+  "projectDefaults": {
+    "mediaType": "image",
+    "storyPlan": "single",
+    "aspectRatio": "16:9",
+    "sceneCount": 1
+  },
+  "scenes": [
+    {
+      "nameZh": "居中构图",
+      "nameEn": "Center Composition",
+      "duration": 5,
+      "classicShot": "cu",
+      "cameraLanguage": "product_quality",
+      "raw": {
+        "id": "s1",
+        "name": "Center Composition",
+        "duration_s": 5,
+        "camera": {
+          "shot": "cu",
+          "movement": "static",
+          "keyframes": []
+        },
+        "lighting": {
+          "time": "day",
+          "key_dir": "top_left",
+          "mood": "bright"
+        },
+        "layers": [],
+        "notes": "camera_language: product_quality\nmedia: image"
+      }
+    }
+  ]
+}

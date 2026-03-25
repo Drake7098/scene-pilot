@@ -6,6 +6,7 @@
  */
 
 export { ProWorkspaceShell } from "./components/ProWorkspaceShell";
+export { WorkspaceLeftPanel } from "./components/WorkspaceLeftPanel";
 export { PromptMiniPreview } from "./components/PromptMiniPreview";
 export { FeedbackBar } from "./components/FeedbackBar";
 export type { FeedbackBarApi } from "./components/FeedbackBar";

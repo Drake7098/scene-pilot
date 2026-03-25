@@ -1,0 +1,18 @@
+{
+  "id": "bm_hybrid_control_01",
+  "typeId": "hybrid_control",
+  "name": "标杆-混合控制-车内连续动作",
+  "payload": {
+    "camera": "handheld over-shoulder push then lateral pan continuity",
+    "composition": "asymmetric frame with moving anchor on driver",
+    "space": "dashboard foreground, driver/passenger middle, rain street background",
+    "layer": "glass reflections front, characters mid, neon traffic rear",
+    "lighting": "dashboard practical key, neon side spill, street back rim",
+    "material": "wet leather seats, fogged glass, brushed metal trim",
+    "detail": "breath fog, finger tension on wheel, raindrop streaks",
+    "mood": "urgent nocturnal suspense",
+    "style": "cinematic thriller realism",
+    "semantic": "pursuit escape decision moment",
+    "subject": "driver making split-second turn in traffic"
+  }
+}

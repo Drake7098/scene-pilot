@@ -1,0 +1,18 @@
+{
+  "id": "bm_shot_master_01",
+  "typeId": "shot_master",
+  "name": "标杆-镜头控制-产品发布",
+  "payload": {
+    "camera": "35mm low-angle push-in, stable dolly, medium speed",
+    "composition": "rule-of-thirds, subject on left third, negative space right",
+    "space": "clean studio depth with soft rear falloff",
+    "layer": "foreground haze, middle product, background gradient wall",
+    "lighting": "key 45deg left, soft fill front, rim back right",
+    "material": "brushed aluminum with subtle micro-scratch",
+    "detail": "edge highlight, engraved logo, fine chamfer",
+    "mood": "premium confident",
+    "style": "commercial cinematic realism",
+    "semantic": "hero launch reveal",
+    "subject": "wireless headphone case"
+  }
+}

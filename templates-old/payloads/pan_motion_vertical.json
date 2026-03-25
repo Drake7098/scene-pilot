@@ -1,0 +1,34 @@
+{
+  "projectDefaults": {
+    "mediaType": "video",
+    "storyPlan": "single",
+    "aspectRatio": "9:16",
+    "sceneCount": 1
+  },
+  "scenes": [
+    {
+      "nameZh": "\u6447\u955c",
+      "nameEn": "Pan Motion",
+      "duration": 5,
+      "classicShot": "ms",
+      "cameraLanguage": "cinematic_narrative",
+      "raw": {
+        "id": "s1",
+        "name": "Pan Motion",
+        "duration_s": 5,
+        "camera": {
+          "shot": "ms",
+          "movement": "pan_slow",
+          "keyframes": []
+        },
+        "lighting": {
+          "time": "day",
+          "key_dir": "top_left",
+          "mood": "warm"
+        },
+        "layers": [],
+        "notes": "camera_language: cinematic_narrative\nmedia: video"
+      }
+    }
+  ]
+}

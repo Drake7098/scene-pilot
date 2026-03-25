@@ -1,0 +1,19 @@
+{
+  "id": "tracking_motion",
+  "name": "Tracking Motion",
+  "nameZh": "跟拍运动",
+  "category": "camera_move",
+  "description": "Tracking/follow camera movement",
+  "descriptionZh": "跟拍镜头运动",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": ["ms", "fs", "mcu"],
+  "movementRange": ["follow_front", "follow_back", "side_follow"],
+  "cameraLanguageRange": ["cinematic_narrative", "realistic_restrained"],
+  "lightingRange": { "time": ["day"], "keyDir": ["top_left", "top_right"], "mood": ["cinematic"] },
+  "compositionRange": ["rule_of_thirds", "depth_split"],
+  "objectTypes": ["character", "product"],
+  "advancedTags": ["advanced_camera", "drama_mode"],
+  "variants": ["tracking_motion_free_starter", "tracking_motion_basic_wide", "tracking_motion_basic_medium", "tracking_motion_cinematic", "tracking_motion_vertical"]
+}

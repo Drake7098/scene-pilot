@@ -1,0 +1,25 @@
+{
+  "generatedAt": "2026-03-21T17:47:32.071Z",
+  "summary": {
+    "total": 200,
+    "ok": 200,
+    "warn": 0,
+    "error": 0,
+    "errors": [],
+    "warnings": []
+  },
+  "scans": {
+    "templatesJson": {
+      "totals": {
+        "families": 20,
+        "variants": 120,
+        "payloads": 120
+      }
+    },
+    "templateEngine": {
+      "totalIndex": 200
+    }
+  },
+  "errors": [],
+  "warnings": []
+}

@@ -1,0 +1,60 @@
+{
+  "id": "character_entrance",
+  "name": "Character Entrance",
+  "nameZh": "\u89d2\u8272\u5165\u573a",
+  "category": "short_video",
+  "description": "Character entrance shot",
+  "descriptionZh": "\u89d2\u8272\u5165\u573a\u955c\u5934",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": [
+    "fs",
+    "ms",
+    "ls"
+  ],
+  "movementRange": [
+    "static",
+    "slow_push_in",
+    "follow_front"
+  ],
+  "cameraLanguageRange": [
+    "cinematic_narrative",
+    "premium_blockbuster"
+  ],
+  "lightingRange": {
+    "time": [
+      "day",
+      "golden_hour"
+    ],
+    "keyDir": [
+      "top_left",
+      "backlight"
+    ],
+    "mood": [
+      "cinematic"
+    ]
+  },
+  "compositionRange": [
+    "rule_of_thirds",
+    "depth_split",
+    "cinematic_air"
+  ],
+  "objectTypes": [
+    "character",
+    "product"
+  ],
+  "advancedTags": [
+    "advanced_camera",
+    "cinematic_mode"
+  ],
+  "variants": [
+    "character_entrance_free_starter",
+    "character_entrance_basic_wide",
+    "character_entrance_basic_medium",
+    "character_entrance_basic_close",
+    "character_entrance_cinematic",
+    "character_entrance_vertical",
+    "character_entrance_multi_object"
+  ]
+}

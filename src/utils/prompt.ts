@@ -1,7 +1,8 @@
 import type { Lang } from "../i18n";
-import type { Project, Scene, Layer, LayerKF, ShotPlan, Direction } from "../model";
+import type { Project, Scene, Layer, LayerKF, ShotPlan, Direction, SceneCompiler } from "../model";
 import { resolveSceneConfig } from "../model";
 import { compileScenePromptV2 } from "./compileV2";
+import { compileV3 } from "./compileV3";
 import type { SceneTier, V2Mode } from "./compileV2";
 import { optimizeV2ScenePrompt } from "./adaptivePatch";
 import { adaptPromptToPlatform } from "./platformAdapter";
@@ -10,6 +11,8 @@ import { buildImageProPromptLine } from "../content/proCreativeModes";
 import { proPromptQualityGate } from "../content/proPlusDirectorModules";
 import { resolveEffectiveMotion } from "./proMotionResolver";
 import { resolveSceneStrategy } from "./sceneStrategyResolver";
+import { buildShotModel } from "../shot-model/buildShotModel";
+import { describeShot } from "../shot-model/describeShot";
 
 /**
  * ScenePilot prompts generator
@@ -82,6 +85,213 @@ function parseBg(notes: string): string {
   const hit = lines.find((l) => l.trim().toLowerCase().startsWith(BG_MARK));
   if (!hit) return "";
   return hit.trim().slice(BG_MARK.length).trim();
+}
+
+/**
+ * Generic marker parser — reads "mark:value" lines from scene.notes
+ */
+function parseNoteMark(notes: string, mark: string): string {
+  const lines = (notes ?? "").split("\n");
+  const hit = lines.find((l) => l.trim().startsWith(mark));
+  return hit ? hit.trim().slice(mark.length).trim() : "";
+}
+
+/**
+ * Reads all ScenePilot workflow markers from scene.notes and returns
+ * a structured object that the prompt builder can compose into the final prompt.
+ */
+function parseWorkflowMarkers(notes: string) {
+  return {
+    // Step 1: Shot
+    camAngle:        parseNoteMark(notes, "cam_angle:"),
+    // Step 2: Director
+    narrativeRhythm: parseNoteMark(notes, "narrative_rhythm:"),
+    visualTension:   parseNoteMark(notes, "visual_tension:"),
+    // Step 3: Output
+    renderStyle:     parseNoteMark(notes, "render_style:"),
+    // Step 4: Camera Lang
+    focalLength:     parseNoteMark(notes, "focal_length:"),
+    depthOfField:    parseNoteMark(notes, "depth_of_field:"),
+    // Step 5: Scene BG
+    envMood:         parseNoteMark(notes, "env_mood:"),
+    // Step 7: Lighting
+    colorTemp:       parseNoteMark(notes, "color_temp:"),
+    specLight:       parseNoteMark(notes, "spec_light:"),
+    // Step 8: Style
+    colorGrade:      parseNoteMark(notes, "color_grade:"),
+    filmLook:        parseNoteMark(notes, "film_look:"),
+    postProcess:     parseNoteMark(notes, "post_process:"),
+  };
+}
+
+/**
+ * Converts human-readable marker values into professional prompt fragments.
+ * This is the "specialist → AI language" translation layer.
+ */
+function buildWorkflowPromptSegments(
+  markers: ReturnType<typeof parseWorkflowMarkers>,
+  mediaMode: "image" | "video",
+  lang: "zh" | "en"
+): { cinematic: string; lighting: string; style: string; tech: string } {
+  const en = lang !== "zh";
+
+  // ── Camera angle ──────────────────────────────────────────────────────
+  const angleMap: Record<string, string> = {
+    eye_level:  en ? "eye-level angle"        : "平视机位",
+    low_angle:  en ? "low angle"              : "低机位仰拍",
+    high_angle: en ? "high angle"             : "高机位俯拍",
+    dutch:      en ? "dutch angle"            : "荷兰倾斜角",
+    worm_eye:   en ? "extreme low angle, worm's eye" : "极低机位虫眼",
+  };
+  const angleStr = markers.camAngle ? (angleMap[markers.camAngle] ?? markers.camAngle) : "";
+
+  // ── Focal length ──────────────────────────────────────────────────────
+  const focalMap: Record<string, string> = {
+    "14mm": en ? "14mm ultra-wide lens"    : "14mm 超广角镜头",
+    "24mm": en ? "24mm wide lens"          : "24mm 广角镜头",
+    "35mm": en ? "35mm lens"              : "35mm 标准镜头",
+    "50mm": en ? "50mm standard lens"     : "50mm 标准镜头",
+    "85mm": en ? "85mm portrait lens"     : "85mm 人像镜头",
+    "135mm":en ? "135mm medium telephoto" : "135mm 中长焦",
+    "200mm":en ? "200mm telephoto"        : "200mm 长焦",
+    "macro":en ? "macro lens, extreme close-up detail" : "微距镜头",
+    "anamorphic":en ? "anamorphic lens, widescreen, horizontal lens flare" : "变形宽银幕镜头",
+  };
+  const focalStr = markers.focalLength ? (focalMap[markers.focalLength] ?? markers.focalLength) : "";
+
+  // ── Depth of field ────────────────────────────────────────────────────
+  const dofMap: Record<string, string> = {
+    very_shallow: en ? "extremely shallow depth of field, bokeh background" : "极浅景深，虚化背景",
+    shallow:      en ? "shallow depth of field, soft background blur"       : "浅景深，背景柔化",
+    medium:       en ? "medium depth of field"                               : "中等景深",
+    deep:         en ? "deep depth of field, all elements sharp"            : "深景深，全景清晰",
+    full_focus:   en ? "pan focus, everything in sharp focus"               : "全焦，全画面清晰",
+  };
+  const dofStr = markers.depthOfField ? (dofMap[markers.depthOfField] ?? markers.depthOfField) : "";
+
+  // ── Render style ──────────────────────────────────────────────────────
+  const renderMap: Record<string, string> = {
+    photorealistic:  en ? "photorealistic, ultra realistic"                        : "照片级写实",
+    cinematic_still: en ? "cinematic romantic film scene"                          : "电影场景感",
+    editorial:       en ? "editorial photography, magazine look"                   : "杂志编辑摄影感",
+    concept_art:     en ? "concept art, detailed illustration"                     : "概念艺术风格",
+    illustration:    en ? "digital illustration style"                             : "插画风格",
+    anime:           en ? "anime style, 2D animation"                              : "动漫风格",
+    "3d_render":     en ? "3D render, CGI"                                        : "三维渲染",
+    filmic:          en ? "filmic look, cinematic quality"                         : "电影质感",
+    documentary:     en ? "documentary style, naturalistic"                        : "纪录片风格",
+    commercial:      en ? "luxury product advertisement, cinematic studio photography" : "奢华商业广告摄影",
+    social_native:   en ? "social media native style"                             : "社媒原生风格",
+    music_video:     en ? "music video aesthetics"                                : "MV 视觉风格",
+    animation:       en ? "animation style"                                       : "动画风格",
+    vfx_heavy:       en ? "VFX-heavy, cinematic visual effects"                   : "重度 VFX 特效",
+  };
+  const renderStr = markers.renderStyle ? (renderMap[markers.renderStyle] ?? markers.renderStyle) : "";
+
+  // ── Lighting extras ───────────────────────────────────────────────────
+  const colorTempMap: Record<string, string> = {
+    "3200K": en ? "3200K tungsten warm light" : "3200K 钨丝暖光",
+    "4000K": en ? "4000K warm white"         : "4000K 暖白光",
+    "5600K": en ? "5600K daylight balanced"  : "5600K 日光平衡",
+    "6500K": en ? "6500K cool white"         : "6500K 冷白光",
+    "8000K": en ? "8000K blue hour sky"      : "8000K 蓝调天空",
+  };
+  const ctStr = markers.colorTemp ? (colorTempMap[markers.colorTemp] ?? markers.colorTemp) : "";
+
+  const specLightMap: Record<string, string> = {
+    volumetric:   en ? "volumetric light, god rays"      : "丁达尔体积光",
+    lens_flare:   en ? "lens flare"                      : "镜头光晕",
+    practical:    en ? "practical lights in scene"       : "场景实用光",
+    neon_spill:   en ? "neon light spill"                : "霓虹溢色光",
+    candlelight:  en ? "candlelight"                     : "烛光",
+    strobe:       en ? "strobe light, flash"             : "频闪光",
+    fire_glow:    en ? "fire glow illumination"          : "火光映照",
+    screen_glow:  en ? "screen glow fill light"          : "屏幕反光补光",
+    bokeh_lights: en ? "bokeh lights in background"      : "背景焦外光斑",
+  };
+  const specStr = markers.specLight ? (specLightMap[markers.specLight] ?? markers.specLight) : "";
+
+  // ── Style / Color grade ───────────────────────────────────────────────
+  const colorGradeMap: Record<string, string> = {
+    natural:       en ? "natural color grading"              : "自然色彩调色",
+    cinematic:     en ? "cinematic color grading"            : "电影调色",
+    teal_orange:   en ? "teal and orange color grading"     : "青橙色调",
+    bleach_bypass: en ? "bleach bypass, desaturated shadows" : "漂白旁路处理",
+    warm_vintage:  en ? "warm vintage color tone"            : "暖色复古调",
+    cool_steel:    en ? "cool steel color grade"             : "冷调钢铁色",
+    high_key:      en ? "high key, bright tones"             : "高调亮白",
+    low_key:       en ? "low key, dark noir tones"           : "低调暗黑",
+    pastel:        en ? "pastel tones, soft palette"         : "粉彩柔和色调",
+    desaturated:   en ? "desaturated, muted tones"           : "低饱和色调",
+    neon_pop:      en ? "neon saturated colors"              : "霓虹高饱和",
+  };
+  const cgStr = markers.colorGrade ? (colorGradeMap[markers.colorGrade] ?? markers.colorGrade) : "";
+
+  const filmLookMap: Record<string, string> = {
+    digital_clean:  "",
+    film_grain:     en ? "35mm film grain"                          : "35mm 胶片颗粒",
+    super8:         en ? "Super 8 vintage film look"                : "Super 8 复古胶片",
+    vhs:            en ? "VHS tape look"                            : "VHS 录像带质感",
+    anamorphic:     en ? "anamorphic lens flare, widescreen format" : "变形镜头光晕",
+    imax:           en ? "IMAX format, large format quality"        : "IMAX 大画幅质感",
+    drone_raw:      en ? "drone footage, RAW aerial"                : "航拍原始素材感",
+  };
+  const flStr = markers.filmLook && markers.filmLook !== "digital_clean"
+    ? (filmLookMap[markers.filmLook] ?? markers.filmLook)
+    : "";
+
+  const postMap: Record<string, string> = {
+    none:           "",
+    subtle_grade:   en ? "subtle color correction"  : "轻度调色",
+    heavy_grade:    en ? "heavy color grade"        : "重度调色",
+    vfx_composite:  en ? "VFX composite"            : "VFX 合成",
+    slow_motion:    en ? "slow motion"              : "慢动作",
+    timelapse:      en ? "timelapse"                : "延时摄影",
+    hyperlapse:     en ? "hyperlapse"               : "移动延时",
+  };
+  const postStr = markers.postProcess ? (postMap[markers.postProcess] ?? markers.postProcess) : "";
+
+  // ── Env mood ──────────────────────────────────────────────────────────
+  const envMoodMap: Record<string, string> = {
+    bright:   en ? "bright and airy atmosphere" : "明亮清透氛围",
+    moody:    en ? "moody, dark atmosphere"     : "暗调氛围感",
+    foggy:    en ? "foggy, hazy atmosphere"     : "雾气朦胧",
+    warm:     en ? "warm golden atmosphere"     : "暖金调氛围",
+    cold:     en ? "cold, steel-blue tone"      : "冷调蓝灰氛围",
+    neon:     en ? "neon colored environment"   : "霓虹色彩环境",
+    minimal:  en ? "minimal, clean environment" : "极简留白",
+    dramatic: en ? "dramatic high-contrast"     : "戏剧对比",
+  };
+  const envStr = markers.envMood ? (envMoodMap[markers.envMood] ?? markers.envMood) : "";
+
+  // ── Compose output segments ────────────────────────────────────────────
+  const cinematicParts = [angleStr, focalStr, dofStr].filter(Boolean);
+  const lightingParts  = [ctStr, specStr, envStr].filter(Boolean);
+  const styleParts     = [cgStr, flStr, postStr].filter(Boolean);
+
+  // Quality / tech suffix — context-aware per render style
+  const techSuffixMap: Record<string, string> = {
+    photorealistic:  en ? "photorealistic, ultra realistic, high detail, realistic skin texture, natural fabric detail, sharp focus, professional cinematography, high dynamic range" : "照片写实，超级写实，高细节，真实皮肤，锐焦，高动态范围",
+    cinematic_still: en ? "emotional film still, high detail, realistic skin texture, natural fabric detail, sharp focus, professional cinematography, high dynamic range" : "电影静帧感，高细节，真实皮肤，锐焦，高动态范围",
+    commercial:      en ? "premium commercial photography, luxury brand style, high-end advertising, ultra sharp focus, 8k detail, high dynamic range" : "高端商业摄影，奢侈品牌风格，超锐焦，8k细节",
+    editorial:       en ? "editorial photography, high detail, sharp focus, professional lighting, high dynamic range" : "杂志编辑摄影，高细节，锐焦，专业布光",
+    filmic:          en ? "cinematic quality, high detail, realistic textures, sharp focus, professional cinematography, high dynamic range" : "电影质感，高细节，写实材质，锐焦",
+  };
+  const techSuffix = techSuffixMap[markers.renderStyle ?? ""]
+    ?? (en
+      ? (mediaMode === "image"
+        ? "photorealistic, professional photography, high detail, sharp focus, high dynamic range"
+        : "cinematic quality, professional cinematography, high detail, sharp focus, high dynamic range")
+      : (mediaMode === "image"
+        ? "照片写实，专业摄影，高细节，锐焦，高动态范围"
+        : "电影质感，专业摄影，高细节，锐焦，高动态范围"));
+
+  return {
+    cinematic: cinematicParts.join(", "),
+    lighting:  lightingParts.join(", "),
+    style:     styleParts.join(", "),
+    tech:      techSuffix,
+  };
 }
 
 /* -------------------- Media Mode (per-scene) -------------------- */
@@ -212,7 +422,7 @@ function parseMedia(input: Scene | string): MediaMode {
   return resolved.mediaMode;
 }
 
-function parseCompiler(input: Scene | string): "v1" | "v2" {
+function parseCompiler(input: Scene | string): SceneCompiler {
   const resolved = typeof input === "string" ? resolveSceneConfig({ notes: input, config: undefined }) : resolveSceneConfig(input);
   return resolved.compiler;
 }
@@ -285,7 +495,7 @@ function formatLayerLine(lang: Lang, layer: Layer, mode: MediaMode): string {
 /**
  * ✅ FIX: camera/lighting 未选择（空字符串/undefined）时，不输出默认 wide/static/sunset...
  */
-function formatScenePrompt(lang: Lang, scene: Scene): string {
+function formatScenePrompt(project: Project, lang: Lang, scene: Scene, sceneIndex: number): string {
   const camera = (scene.camera ?? {}) as any;
   const lighting = (scene.lighting ?? {}) as any;
   const cameraPreset = ((scene as any).cameraPreset ?? "").toString().trim();
@@ -312,11 +522,8 @@ function formatScenePrompt(lang: Lang, scene: Scene): string {
   const keyDir = (typeof lighting.key_dir === "string" ? lighting.key_dir.trim() : "") || sceneStrategy.defaults.keyDir;
   const mood = (typeof lighting.mood === "string" ? lighting.mood.trim() : "") || sceneStrategy.defaults.mood;
 
-  const layerLines = (scene.layers ?? [])
-    .slice()
-    .sort((a, b) => (Number.isFinite(a.z) ? a.z : 0) - (Number.isFinite(b.z) ? b.z : 0))
-    .map((l) => formatLayerLine(lang, l, mode))
-    .join("\n\n");
+  const shotModel = buildShotModel({ project, scene, sceneIndex });
+  const shotDescription = describeShot(shotModel, lang);
 
   if (lang === "zh") {
     const header =
@@ -336,9 +543,23 @@ function formatScenePrompt(lang: Lang, scene: Scene): string {
 
     const noteLine = shotNote ? `分镜说明：${shotNote}` : "";
     const strategyLines = sceneStrategy.promptLines;
-    const sceneMeta = [bg ? `背景：${bg}` : "", cameraLine, lightingLine, noteLine, ...strategyLines, proMotionLine, imageProLine].filter(Boolean).join("\n");
-
-    return [header, sceneMeta, layerLines].filter(Boolean).join("\n\n");
+    // ── Workflow marker segments (新工作流注入) ──
+    const wm = parseWorkflowMarkers(scene.notes ?? "");
+    const wmSegs = buildWorkflowPromptSegments(wm, mode, "zh");
+    const sceneMeta = [
+      bg ? `背景：${bg}` : "",
+      cameraLine,
+      wmSegs.cinematic,       // cam angle, focal, dof
+      lightingLine,
+      wmSegs.lighting,        // color temp, special light, env mood
+      noteLine,
+      ...strategyLines,
+      proMotionLine,
+      imageProLine,
+      wmSegs.style,           // color grade, film look, post
+      wmSegs.tech,            // quality suffix
+    ].filter(Boolean).join("\n");
+    return [header, shotDescription.text, sceneMeta].filter(Boolean).join("\n\n");
   }
 
   const header =
@@ -360,9 +581,23 @@ function formatScenePrompt(lang: Lang, scene: Scene): string {
 
   const noteLine = shotNote ? `Shot note: ${shotNote}` : "";
   const strategyLines = sceneStrategy.promptLines;
-  const sceneMeta = [bg ? `Background: ${bg}` : "", cameraLine, lightingLine, noteLine, ...strategyLines, proMotionLine, imageProLine].filter(Boolean).join("\n");
-
-  return [header, sceneMeta, layerLines].filter(Boolean).join("\n\n");
+  // ── Workflow marker segments (new workflow injection) ──
+  const wm = parseWorkflowMarkers(scene.notes ?? "");
+  const wmSegs = buildWorkflowPromptSegments(wm, mode, "en");
+  const sceneMeta = [
+    bg ? `Background: ${bg}` : "",
+    cameraLine,
+    wmSegs.cinematic,         // cam angle, focal, dof
+    lightingLine,
+    wmSegs.lighting,          // color temp, special light, env mood
+    noteLine,
+    ...strategyLines,
+    proMotionLine,
+    imageProLine,
+    wmSegs.style,             // color grade, film look, post
+    wmSegs.tech,              // quality suffix
+  ].filter(Boolean).join("\n");
+  return [header, shotDescription.text, sceneMeta].filter(Boolean).join("\n\n");
 }
 
 /* -------------------- System Structural Control Layer (ALWAYS ON) -------------------- */
@@ -912,7 +1147,28 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
 
   const out: string[] = [];
   const anyVideo = scenes.some((s) => parseMedia(s) === "video");
+  const hasV3 = scenes.some((s) => parseCompiler(s) === "v3");
   const hasV2 = scenes.some((s) => parseCompiler(s) === "v2");
+
+  // ── V3 route — short-circuit, bypasses all legacy pipeline ──────────
+  if (hasV3) {
+    const v3Parts: string[] = [];
+    scenes.forEach((s) => {
+      if (parseCompiler(s) === "v3") {
+        const v3result = compileV3({
+          scene: s,
+          lang,
+          mediaMode: parseMedia(s),
+          aspectRatio: s.aspectRatio,
+        });
+        v3Parts.push(v3result);
+      } else {
+        // fallback for mixed scenes
+        v3Parts.push(formatScenePrompt(project, lang, s, 0));
+      }
+    });
+    return v3Parts.filter(Boolean).join("\n\n---\n\n");
+  }
 
   if (lang === "zh") {
     const lines = [
@@ -929,19 +1185,20 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
   }
 
   if (hasV2) {
-    scenes.forEach((s) => {
+    scenes.forEach((s, idx) => {
+      const described = formatScenePrompt(project, lang, s, idx);
       if (parseCompiler(s) === "v2") {
         const tier = parseSceneTier(s);
         const v2Mode = parseV2Mode(s);
         const compiled = compileScenePromptV2(s, lang, tier, v2Mode, s.aspectRatio);
-        out.push(optimizeV2ScenePrompt(compiled, s, lang, tier, v2Mode));
+        out.push([described, optimizeV2ScenePrompt(compiled, s, lang, tier, v2Mode)].join("\n\n"));
       } else {
-        out.push(formatScenePrompt(lang, s));
+        out.push(described);
       }
     });
     return proPromptQualityGate(
       finalizeByPlatform(
-        optimizeFinalPrompt(appendUnifiedTail(out.join("\n\n---\n\n"), lang, project)),
+        optimizeFinalPrompt(out.join("\n\n---\n\n")),
         profile, lang, anyVideo ? "video" : "image"
       )
     );
@@ -970,32 +1227,7 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
     }
 
     scenes.forEach((s, i) => {
-      const shotTitle = (s.name ?? "").trim() || (lang === "zh" ? `分镜 ${i + 1}` : `Shot ${i + 1}`);
-      const layerSummary = (s.layers ?? [])
-        .map((l) => {
-          const parts = [
-            l.id,
-            l.type,
-            l.look,
-            l.notes,
-            compactLocalPrompt(l.externalPrompt ?? ""),
-            summarizeKfPath(lang, l),
-            extractContinuousIntent(lang, l)
-          ].filter(Boolean);
-          return parts.join(" | ");
-        })
-        .filter(Boolean)
-        .join(lang === "zh" ? "；" : "; ");
-      const shotLine =
-        lang === "zh"
-          ? `镜头 ${String(i + 1).padStart(2, "0")}：${shotTitle}（${Math.max(1, Math.round(Number(s.duration_s) || 0))}秒）`
-          : `Shot ${String(i + 1).padStart(2, "0")}: ${shotTitle} (${Math.max(1, Math.round(Number(s.duration_s) || 0))}s)`;
-      const noteLine = (s as any).shotNote ? (lang === "zh" ? `说明：${(s as any).shotNote}` : `Note: ${(s as any).shotNote}`) : "";
-      const doorLine =
-        lang === "zh"
-          ? [s.entryDir ? `入场方向：${DIRECTION_TO_MOVE_ZH[s.entryDir as Direction] ?? "自动"}` : "", s.exitDir ? `离场方向：${DIRECTION_TO_MOVE_ZH[s.exitDir as Direction] ?? "自动"}` : ""].filter(Boolean).join("；")
-          : [s.entryDir ? `Entry: ${DIRECTION_TO_MOVE[s.entryDir as Direction] ?? "auto"}` : "", s.exitDir ? `Exit: ${DIRECTION_TO_MOVE[s.exitDir as Direction] ?? "auto"}` : ""].filter(Boolean).join(" | ");
-      out.push([shotLine, noteLine, doorLine, layerSummary].filter(Boolean).join("\n"));
+      out.push(formatScenePrompt(project, lang, s, i));
 
       if (i < scenes.length - 1) {
         out.push(buildContinuousBridge(lang, s, scenes[i + 1], i));
@@ -1004,7 +1236,7 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
 
     const prompt = out.join("\n\n---\n\n");
     return proPromptQualityGate(
-      finalizeByPlatform(optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project)), profile, lang, "video")
+      finalizeByPlatform(optimizeFinalPrompt(prompt), profile, lang, "video")
     );
   }
 
@@ -1023,7 +1255,7 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
       );
     }
     scenes.forEach((s, i) => {
-      out.push(formatScenePrompt(lang, s));
+      out.push(formatScenePrompt(project, lang, s, i));
       if (i < scenes.length - 1) {
         const strategy = resolveSceneStrategy(s, lang, parseMedia(s));
         const t = (s as any).transitionType ?? strategy.defaults.transitionType ?? (shotPlan === "multicam" ? "reverse_angle" : "cut");
@@ -1032,16 +1264,16 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
     });
     const prompt = out.join("\n\n---\n\n");
     return proPromptQualityGate(
-      finalizeByPlatform(optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project)), profile, lang, anyVideo ? "video" : "image")
+      finalizeByPlatform(optimizeFinalPrompt(prompt), profile, lang, anyVideo ? "video" : "image")
     );
   }
 
-  scenes.forEach((s) => {
-    out.push(formatScenePrompt(lang, s));
+  scenes.forEach((s, i) => {
+    out.push(formatScenePrompt(project, lang, s, i));
   });
 
   const prompt = out.join("\n\n---\n\n");
   return proPromptQualityGate(
-    finalizeByPlatform(optimizeFinalPrompt(appendUnifiedTail(prompt, lang, project)), profile, lang, anyVideo ? "video" : "image")
+    finalizeByPlatform(optimizeFinalPrompt(prompt), profile, lang, anyVideo ? "video" : "image")
   );
 }

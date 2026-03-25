@@ -1,0 +1,77 @@
+{
+  "input": {
+    "scene": {
+      "id": "scene_1",
+      "name": "Luxury Watch Advertisement",
+      "duration_s": 8,
+      "camera": {
+        "shot": "medium",
+        "movement": "orbit",
+        "keyframes": [
+          {
+            "t": 0,
+            "x": 0,
+            "y": 0,
+            "zoom": 1,
+            "rot": 0
+          },
+          {
+            "t": 1,
+            "x": 0,
+            "y": 0,
+            "zoom": 1,
+            "rot": 360
+          }
+        ]
+      },
+      "lighting": {
+        "time": "studio",
+        "key_dir": "",
+        "mood": ""
+      },
+      "layers": [
+        {
+          "id": "layer_1",
+          "type": "subject",
+          "shape": "rect",
+          "look": "luxury mechanical wristwatch, polished gold case, brushed metal finishing, textured dial, applied hour markers, engraved crown, sapphire crystal glass, dark brown leather strap, fine stitching",
+          "shapeDesc": "pedestal display",
+          "z": 1,
+          "color": "#b7c3ff",
+          "opacity": 1,
+          "kf": [
+            {
+              "t": 0,
+              "x": 50,
+              "y": 50,
+              "w": 40,
+              "h": 40,
+              "rot": 0
+            },
+            {
+              "t": 1,
+              "x": 50,
+              "y": 50,
+              "w": 40,
+              "h": 40,
+              "rot": 0
+            }
+          ],
+          "notes": "",
+          "externalPrompt": "",
+          "referenceLinks": ""
+        }
+      ],
+      "config": {
+        "mediaMode": "image",
+        "compiler": "v3"
+      },
+      "notes": "@compiler: v3\nmedia: image\nrender_style:commercial\nshot_size:MS\nfocal_length:85mm\ndepth_of_field:very_shallow\ncam_movement:orbit\nbg_preset:gradient_black\nenv_mood:luxurious\nkey_light_time:studio\ncolor_temp:3200K\nspec_light:rim_light\ncolor_grade:warm_golden\nfilm_look:digital_clean\nnarrative_rhythm:meditative\nvisual_tension:none",
+      "aspectRatio": "1:1"
+    },
+    "lang": "en",
+    "mediaMode": "image",
+    "aspectRatio": "1:1"
+  },
+  "result": "luxury product advertisement, high-end commercial film, cinematic studio photography,\nmedium shot, 85mm prime lens, extremely shallow depth of field, subject sharp, background dissolved into bokeh,\nluxury mechanical wristwatch, polished gold case, brushed metal finishing, textured dial, applied hour markers, engraved crown, sapphire crystal glass, dark brown leather strap, fine stitching, pedestal display, centered, mid-frame, prominently sized,\nperfect centered composition, clean negative space, 1:1 aspect ratio,\nstudio lighting setup, 3200K tungsten warm light, strong rim light on subject edges,\ndeep gradient dark background, near-black to pure black,\nquiet opulence, premium atmosphere, meditative pace, still and contemplative,\nwarm golden grade, luxurious amber, photorealistic, professional commercial cinematography, high dynamic range, 8K ultra detail"
+}

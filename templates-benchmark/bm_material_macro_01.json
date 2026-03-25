@@ -1,0 +1,18 @@
+{
+  "id": "bm_material_macro_01",
+  "typeId": "material_macro",
+  "name": "标杆-材质细节-腕表特写",
+  "payload": {
+    "camera": "100mm macro with shallow DOF rack focus",
+    "composition": "radial composition centered on watch face",
+    "space": "dark neutral void with controlled specular points",
+    "layer": "front bokeh sparks, mid watch body, rear soft gradient",
+    "lighting": "narrow spot key, soft side fill, tiny edge sparkle",
+    "material": "brushed steel, sapphire crystal, leather strap grain",
+    "detail": "minute markers, knurling, stitching seams",
+    "mood": "precision luxury craft",
+    "style": "luxury product macro realism",
+    "semantic": "precision engineering and craftsmanship",
+    "subject": "mechanical wristwatch close-up"
+  }
+}

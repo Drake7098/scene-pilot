@@ -1,0 +1,34 @@
+{
+  "projectDefaults": {
+    "mediaType": "video",
+    "storyPlan": "single",
+    "aspectRatio": "9:16",
+    "sceneCount": 1
+  },
+  "scenes": [
+    {
+      "nameZh": "\u8f6c\u6298\u955c\u5934",
+      "nameEn": "Turning Point Shot",
+      "duration": 4,
+      "classicShot": "mcu",
+      "cameraLanguage": "cinematic_narrative",
+      "raw": {
+        "id": "s1",
+        "name": "Turning Point Shot",
+        "duration_s": 4,
+        "camera": {
+          "shot": "mcu",
+          "movement": "static",
+          "keyframes": []
+        },
+        "lighting": {
+          "time": "day",
+          "key_dir": "top_left",
+          "mood": "warm"
+        },
+        "layers": [],
+        "notes": "camera_language: cinematic_narrative\nmedia: video"
+      }
+    }
+  ]
+}

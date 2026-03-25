@@ -116,7 +116,7 @@ export function TemplateWorkspaceHeader({
           gap: 6px;
           min-height: 36px;
           padding: 6px 10px;
-          border-radius: 8px;
+          border-radius: 6px;
           background: ${colors.bg};
           border: 1px solid ${colors.border};
           color: ${colors.textMuted};
@@ -161,7 +161,7 @@ export function TemplateWorkspaceHeader({
           height: 47px;
           width: 100%;
           padding: 0 14px;
-          border-radius: 14px;
+          border-radius: 8px;
           border: 1px solid ${colors.border};
           background: ${colors.panel};
           color: ${colors.text};
@@ -442,7 +442,7 @@ const styles: Record<string, React.CSSProperties> = {
   countPill: {
     minHeight: 34,
     padding: "0 10px",
-    borderRadius: 8,
+    borderRadius: 6,
     border: `1px solid ${colors.border}`,
     background: colors.bg,
     color: colors.textMuted,
@@ -487,7 +487,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: 8,
-    borderRadius: 8,
+    borderRadius: 6,
     border: `1px solid ${colors.border}`,
     background: colors.bg,
     padding: "0 10px"
@@ -507,7 +507,7 @@ const styles: Record<string, React.CSSProperties> = {
   select: {
     minWidth: 108,
     height: 34,
-    borderRadius: 8,
+    borderRadius: 6,
     border: `1px solid ${colors.border}`,
     background: colors.bg,
     color: colors.textMuted,
@@ -521,7 +521,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: 6,
     border: `1px solid ${colors.border}`,
     background: colors.bg,
     color: colors.textMuted,

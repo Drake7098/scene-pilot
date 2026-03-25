@@ -1,0 +1,15 @@
+{
+  "id": "exp_space_layer_01",
+  "name": "实验-空间层级-前中后景",
+  "combo": "B",
+  "payload": {
+    "subject": "athlete portrait",
+    "foreground": "blurred fence",
+    "middleGround": "athlete torso",
+    "background": "stadium lights",
+    "depth": "deep",
+    "entryDirection": "left-to-right",
+    "exitDirection": "toward camera",
+    "layout": "subject at left third"
+  }
+}

@@ -1,0 +1,1034 @@
+{
+  "generatedAt": "2026-03-21T18:34:18.425Z",
+  "policy": {
+    "mode": "control_priority",
+    "statement": "本版按控制力优先筛选，不以对象数量作为主要标准。"
+  },
+  "inputs": {
+    "qualityReport": "docs/template-quality-lint-report.json",
+    "diffReport": "docs/template-prompt-diff-report.json",
+    "applyReport": "docs/template-apply-report.json",
+    "previousFilterReport": "docs/template-keep-filter-report.json",
+    "applySummary": {
+      "total": 200,
+      "ok": 200,
+      "warn": 0,
+      "error": 0,
+      "errors": []
+    }
+  },
+  "summary": {
+    "total": 200,
+    "keep": 200,
+    "revise": 0,
+    "drop": 0
+  },
+  "total": 200,
+  "keep": 200,
+  "revise": 0,
+  "drop": 0,
+  "keepList": [
+    {
+      "templateId": "tpl400_product_hero_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_product_hero_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_product_hero_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_product_hero_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_product_center_display_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_product_center_display_cinematic",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_product_center_display_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_product_center_display_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_product_compare_cinematic",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_product_compare_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_product_compare_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_feature_breakdown_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_feature_breakdown_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_feature_breakdown_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_feature_breakdown_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_logo_copy_layout_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_logo_copy_layout_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_logo_copy_layout_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_logo_copy_layout_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_product_in_hand_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_product_in_hand_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_product_in_hand_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_product_in_hand_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_floating_product_showcase_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_floating_product_showcase_cinematic",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_floating_product_showcase_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_floating_product_showcase_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_white_bg_product_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_white_bg_product_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_white_bg_product_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_dialogue_duo_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_dialogue_duo_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_dialogue_duo_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_solo_speaker_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_solo_speaker_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_solo_speaker_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_interview_layout_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_interview_layout_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_interview_layout_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_interview_layout_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_social_vertical_ad_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_social_vertical_ad_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_social_vertical_ad_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_social_vertical_ad_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_selling_point_ad_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_selling_point_ad_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_selling_point_ad_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_selling_point_ad_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_cta_landing_layout_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_cta_landing_layout_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_cta_landing_layout_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_cta_landing_layout_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_talking_head_ad_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_talking_head_ad_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_talking_head_ad_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_app_promo_layout_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_app_promo_layout_cinematic",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_app_promo_layout_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_app_promo_layout_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_brand_promo_cover_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_brand_promo_cover_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_brand_promo_cover_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_brand_promo_cover_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_opening_shot_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_opening_shot_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_opening_shot_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_opening_shot_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_character_entrance_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_character_entrance_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_character_entrance_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_character_entrance_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_scene_push_forward_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_scene_push_forward_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_scene_push_forward_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_scene_push_forward_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_emotional_peak_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_emotional_peak_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_emotional_peak_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_emotional_peak_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_turning_point_shot_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_turning_point_shot_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_turning_point_shot_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_turning_point_shot_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_ending_closure_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_ending_closure_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_ending_closure_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_ending_closure_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_poster_cover_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_poster_cover_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_poster_cover_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_poster_cover_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_title_subtitle_layout_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_title_subtitle_layout_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_title_subtitle_layout_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_title_subtitle_layout_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_portrait_fashion_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_portrait_fashion_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_portrait_fashion_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_lifestyle_casual_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_lifestyle_casual_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_lifestyle_casual_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "镜头控制强 + 空间控制强 + 细节控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_lifestyle_casual_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_beauty_closeup_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_beauty_closeup_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_beauty_closeup_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_food_showcase_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_food_showcase_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_food_showcase_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_food_showcase_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_anime_action_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_anime_action_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_anime_action_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_anime_action_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_anime_emotional_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_anime_emotional_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_anime_emotional_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_drama_opening_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_drama_opening_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_drama_opening_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_drama_opening_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_drama_conflict_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_drama_conflict_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_drama_conflict_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_drama_conflict_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_drama_climax_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_drama_climax_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_drama_climax_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_drama_climax_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_drama_ending_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_drama_ending_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_drama_ending_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_drama_ending_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_thriller_chase_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_thriller_chase_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_thriller_chase_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_thriller_chase_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_thriller_reveal_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_thriller_reveal_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_thriller_reveal_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_thriller_reveal_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_tech_product_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_tech_product_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_tech_product_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_tech_product_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_food_ad_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_food_ad_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_food_ad_multi_object",
+      "gainLevel": "mediumGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强 + mediumGain 且有真实控制增量"
+    },
+    {
+      "templateId": "tpl400_food_ad_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "细节控制强"
+    },
+    {
+      "templateId": "tpl400_tutorial_demo_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_tutorial_demo_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_tutorial_demo_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强"
+    },
+    {
+      "templateId": "tpl400_product_tutorial_free_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_product_tutorial_cinematic",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl400_product_tutorial_multi_object",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl400_product_tutorial_advanced_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 细节控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_close_emotion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_multi_angle",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_high_tension",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_indoor_duo_continuity_advanced_continuity",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_close_emotion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_multi_angle",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_high_tension",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_corridor_tracking_continuity_advanced_continuity",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_close_emotion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_multi_angle",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_high_tension",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_emotional_confrontation_continuity_advanced_continuity",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_close_emotion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_multi_angle",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_high_tension",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_chase_enter_continuity_advanced_continuity",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_close_emotion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_multi_angle",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_high_tension",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_webdrama_office_negotiation_continuity_advanced_continuity",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_vertical_short",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_battle_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_cinematic_anime",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_daily_dialogue_anime_advanced_continuity",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_vertical_short",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_battle_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_cinematic_anime",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_protagonist_entrance_anime_advanced_continuity",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_vertical_short",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_battle_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_cinematic_anime",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_skill_release_anime_advanced_continuity",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_starter",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_vertical_short",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_battle_motion",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_cinematic_anime",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    },
+    {
+      "templateId": "tpl600_anime_battle_standoff_anime_advanced_continuity",
+      "gainLevel": "lowGain",
+      "reason": "空间控制强 + 结构控制强"
+    }
+  ],
+  "reviseList": [],
+  "dropList": []
+}

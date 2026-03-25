@@ -1,0 +1,19 @@
+{
+  "id": "dialogue_duo",
+  "name": "Dialogue Duo",
+  "nameZh": "双人对话",
+  "category": "dialogue",
+  "description": "Two-person dialogue layout",
+  "descriptionZh": "双人对话布局",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": ["mcu", "ms", "over_shoulder"],
+  "movementRange": ["static", "slow_push_in"],
+  "cameraLanguageRange": ["dialogue_cover", "cinematic_narrative"],
+  "lightingRange": { "time": ["day"], "keyDir": ["top_left", "top_right"], "mood": ["warm", "cinematic"] },
+  "compositionRange": ["rule_of_thirds", "eyeline_tension", "left_right_standoff"],
+  "objectTypes": ["character", "character"],
+  "advancedTags": ["advanced_camera", "director_preset", "drama_mode"],
+  "variants": ["dialogue_duo_free_starter", "dialogue_duo_basic_wide", "dialogue_duo_basic_medium", "dialogue_duo_cinematic", "dialogue_duo_advanced_motion"]
+}

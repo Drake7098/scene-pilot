@@ -1,0 +1,57 @@
+{
+  "id": "turning_point_shot",
+  "name": "Turning Point Shot",
+  "nameZh": "\u8f6c\u6298\u955c\u5934",
+  "category": "short_video",
+  "description": "Story turning point shot",
+  "descriptionZh": "\u6545\u4e8b\u8f6c\u6298\u955c\u5934",
+  "mediaType": "video",
+  "storyPlan": "single",
+  "defaultSceneCount": 1,
+  "shotRange": [
+    "mcu",
+    "cu",
+    "ms"
+  ],
+  "movementRange": [
+    "static",
+    "slow_push_in"
+  ],
+  "cameraLanguageRange": [
+    "cinematic_narrative",
+    "emotional_peak"
+  ],
+  "lightingRange": {
+    "time": [
+      "day"
+    ],
+    "keyDir": [
+      "top_left"
+    ],
+    "mood": [
+      "cinematic",
+      "warm"
+    ]
+  },
+  "compositionRange": [
+    "rule_of_thirds",
+    "center_pressure"
+  ],
+  "objectTypes": [
+    "character",
+    "prop"
+  ],
+  "advancedTags": [
+    "cinematic_mode",
+    "drama_mode"
+  ],
+  "variants": [
+    "turning_point_shot_free_starter",
+    "turning_point_shot_basic_wide",
+    "turning_point_shot_basic_medium",
+    "turning_point_shot_basic_close",
+    "turning_point_shot_cinematic",
+    "turning_point_shot_vertical",
+    "turning_point_shot_multi_object"
+  ]
+}

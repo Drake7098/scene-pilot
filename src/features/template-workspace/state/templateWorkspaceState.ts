@@ -43,7 +43,7 @@ export const DEFAULT_TEMPLATE_WORKSPACE_STATE: TemplateWorkspaceState = {
   templateWorkspaceView: "market",
   myTemplateSection: "owned",
   view: "grid",
-  scope: "recommended",
+  scope: "all",
   selectedIntentId: loadLastTemplateIntent() ?? DEFAULT_TEMPLATE_INTENT_ID,
   selectedSubTaskId: null,
   selectedCategory: null,

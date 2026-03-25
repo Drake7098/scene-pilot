@@ -172,7 +172,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   toolbar: {
     padding: "8px 12px",
-    borderBottom: `1px solid ${colors.border}`,
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",

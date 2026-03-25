@@ -1,0 +1,18 @@
+{
+  "id": "bm_scene_story_01",
+  "typeId": "scene_story",
+  "name": "标杆-叙事场景-室内对峙",
+  "payload": {
+    "camera": "35mm over-shoulder to reverse shot continuity",
+    "composition": "two-shot tension axis with controlled headroom",
+    "space": "narrow room depth with doorway vanishing point",
+    "layer": "foreground shoulder silhouette, mid dialogue pair, rear door light",
+    "lighting": "motivated practical lamp, edge backlight, low fill contrast",
+    "material": "aged wood, worn leather, matte wall paint",
+    "detail": "micro expressions, hand tremor, table scratches",
+    "mood": "suppressed tension before resolution",
+    "style": "neo-noir narrative realism",
+    "semantic": "conflict pause and emotional turn",
+    "subject": "two characters negotiating in cramped room"
+  }
+}
