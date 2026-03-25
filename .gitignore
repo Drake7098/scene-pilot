@@ -50,4 +50,8 @@ trea-work.md
 
 # Artifacts directories
 artifacts/
-tests/robots/artifacts/
+tests/robots/artifacts/v3/.next/
+v3/
+backups/
+backup/
+artifacts/
