@@ -244,7 +244,7 @@ function GenSourceSelector({ lang, source, onChange, canUseByo, byoCredentials,
               padding: "8px 6px", borderRadius: 6,
               border: `1px solid ${isActive ? C.accent : C.border}`,
               background: isActive ? `${C.accent}10` : "transparent",
-              color: isActive ? C.accent : C.muted,
+              color: isActive ? C.accent : C.textMuted,
               cursor: "pointer", transition: "all 0.1s",
             }}
           >

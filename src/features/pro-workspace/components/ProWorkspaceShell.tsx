@@ -34,7 +34,7 @@ import { PlatformAdaptPanel }       from "./PlatformAdaptPanel";
 
 import { Stage }                    from "../../../components/Stage";
 import { resolveSceneConfig }       from "../../../model";
-import { GenerationSourceBar, type GenerationSource } from "./GenerationSourceBar";
+// GenerationSourceBar removed from canvas
 import type { ApiCredentialState } from "../../../types/account";
 import type { LocalProviderStatus } from "../../../utils/localGeneration";
 import { detectSceneConflicts }     from "../../../utils/conflictRules";
@@ -139,7 +139,7 @@ function RightPanelContent(props: Props & { section: ProWorkspaceSection }) {
     case "constraints":  return <ConstraintInspectorPanel lang={lang} scene={scene} project={project} selectedLayerId={selectedLayerId ?? null} onJumpToConflict={onJumpToConflict} />;
     case "prompt_preview": return <PromptPreviewPanel lang={lang} project={project} scene={scene} platformId={platformId} onCopyPrompt={onCopyPrompt} />;
     case "platform":     return <PlatformAdaptPanel lang={lang} project={project} scene={scene} platformId={platformId as PlatformPresetId} exportMode={exportMode ?? "prompt_only"} generationSource={generationSource ?? "hosted"} />;
-    case "export":       return <ExportControlPanel lang={lang} project={project} scene={scene} platformId={platformId as PlatformPresetId} onPlatformChange={onPlatformChange ?? (() => {})} exportMode={exportMode ?? "prompt_only"} onExportModeChange={onExportModeChange ?? (() => {})} generationSource={generationSource} onGenerationSourceChange={onGenerationSourceChange ?? (() => {})} canUseByo={canUseByo ?? false} byoCredentials={byoCredentials} comfyStatus={comfyStatus} drawStatus={drawStatus} creditCost={creditCost} userCredits={userCredits} onCopy={onCopyPrompt ?? (() => {})} onExport={onExport ?? (() => {})} onGenerate={onGenerate ?? (() => {})} generateBusy={generateBusy ?? false} />;
+    case "export":       return <ExportControlPanel lang={lang} project={project} scene={scene} platformId={platformId as PlatformPresetId} onPlatformChange={onPlatformChange ?? (() => {})} exportMode={exportMode ?? "prompt_only"} onExportModeChange={onExportModeChange ?? (() => {})} generationSource={generationSource as any} onGenerationSourceChange={onGenerationSourceChange as any ?? (() => {})} canUseByo={canUseByo ?? false} byoCredentials={byoCredentials} comfyStatus={comfyStatus} drawStatus={drawStatus} creditCost={creditCost} userCredits={userCredits} onCopy={onCopyPrompt ?? (() => {})} onExport={onExport ?? (() => {})} onGenerate={onGenerate ?? (() => {})} generateBusy={generateBusy ?? false} />;
     default: return null;
   }
 }

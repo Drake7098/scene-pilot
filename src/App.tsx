@@ -1594,7 +1594,7 @@ export default function App() {
           })();
 
     if (!index) return;
-    if (index.isEnabled !== true) {
+    if ((index as any).isEnabled !== true) {
       feedbackBarRef.current?.pushMessage(lang === "zh" ? "该模板已冻结，不可应用" : "This template is frozen and cannot be applied");
       return;
     }
@@ -2541,7 +2541,7 @@ export default function App() {
         layers: [buildDefaultObjectLayer(lang, 1)],
         config: {
           mediaMode: media,
-          compiler: "v3",
+          compiler: "v3" as const,
           sceneTier,
           v2Mode: "strict",
           stability: "standard"
@@ -4275,7 +4275,7 @@ export default function App() {
                   exportMode={proExportMode}
                   onExportModeChange={handleProExportModeChange}
                   generationSource={proGenerationSource}
-                  onGenerationSourceChange={setProGenerationSourceAndPersist}
+                  onGenerationSourceChange={(s) => setProGenerationSourceAndPersist(s as any)}
                   canUseByo={canUseByoAccess}
                   onCopyPrompt={handleCopyPrompt}
                   onExport={handleExportProject}

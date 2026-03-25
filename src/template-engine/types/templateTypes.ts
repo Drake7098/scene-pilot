@@ -25,10 +25,10 @@ export type TemplateStoryPlan = "single" | "continuous" | "multi_cam" | "edited"
 
 export type TemplateMediaType = "image" | "video";
 
-export type TemplateRatio = "16:9" | "9:16" | "1:1";
+export type TemplateRatio = "16:9" | "9:16" | "1:1" | "4:5" | "2:3" | "3:4" | "21:9";
 
 /** Internal technical domain - for engine routing */
-export type TemplateDomain = "base" | "webdrama_continuity" | "anime_continuity";
+export type TemplateDomain = "base" | "webdrama_continuity" | "anime_continuity" | "product" | "people" | "brand" | "drama" | "action" | "romance" | "nature" | "fashion" | "music" | "lifestyle" | "anime" | "documentary";
 
 /**
  * Industry/scene classification - for UI filtering.

@@ -1147,14 +1147,14 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
 
   const out: string[] = [];
   const anyVideo = scenes.some((s) => parseMedia(s) === "video");
-  const hasV3 = scenes.some((s) => parseCompiler(s) === "v3");
-  const hasV2 = scenes.some((s) => parseCompiler(s) === "v2");
+  const hasV3 = scenes.some((s) => String(parseCompiler(s)) === "v3");
+  const hasV2 = scenes.some((s) => String(parseCompiler(s)) === "v2");
 
   // ── V3 route — short-circuit, bypasses all legacy pipeline ──────────
   if (hasV3) {
     const v3Parts: string[] = [];
     scenes.forEach((s) => {
-      if (parseCompiler(s) === "v3") {
+      if (String(parseCompiler(s)) === "v3") {
         const v3result = compileV3({
           scene: s,
           lang,
@@ -1187,7 +1187,7 @@ export function generatePrompts(project: Project, lang: Lang, profile: PromptPro
   if (hasV2) {
     scenes.forEach((s, idx) => {
       const described = formatScenePrompt(project, lang, s, idx);
-      if (parseCompiler(s) === "v2") {
+      if (String(parseCompiler(s)) === "v2") {
         const tier = parseSceneTier(s);
         const v2Mode = parseV2Mode(s);
         const compiled = compileScenePromptV2(s, lang, tier, v2Mode, s.aspectRatio);

@@ -39,7 +39,7 @@ export function loadV3TemplatePayload(templateId: string): TemplatePayload | nul
   const def = payloadMap.get(templateId);
   const mediaMode = def?.mediaMode ?? index.mediaType ?? "image";
   const duration = def?.duration ?? (mediaMode === "video" ? 6 : 0);
-  const aspectRatio = def?.aspectRatio ?? index.ratio ?? "16:9";
+  const aspectRatio = (def?.aspectRatio ?? index.ratio ?? "16:9") as import("../../types/templateTypes").TemplateRatio;
 
   const sceneNotes = def?.sceneNotes ?? buildDefaultNotes(mediaMode as "image" | "video");
 
