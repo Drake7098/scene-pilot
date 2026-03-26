@@ -219,14 +219,14 @@ export function AccountCenterModal(props: Props) {
               <div style={styles.authHeroSub}>
                 {authStep === "code"
                   ? t(lang, `验证码已发送至 ${authEmail}`, `We sent a code to ${authEmail}`)
-                  : t(lang, "登录或注册，新用户自动创建账号", "Sign in or sign up — new users are registered automatically")}
+                  : t(lang, "输入邮箱，我们会发送登录链接", "Enter your email — we will send you a login link")}
               </div>
             </div>
 
             {/* ── 服务不可用提示 ── */}
             {!googleSignInEnabled ? (
               <div style={styles.authEnvHint} data-testid="account-auth-env-hint">
-                {lang === "zh" ? "登录服务暂时不可用，请稍后重试。" : "Sign-in is temporarily unavailable. Please try again later."}
+                {lang === "zh" ? "登录失败，请重试。" : "Login failed. Please try again."}
               </div>
             ) : null}
 
@@ -263,7 +263,7 @@ export function AccountCenterModal(props: Props) {
                   disabled={authBusy}
                   data-testid="account-auth-send-code"
                 >
-                  {authBusy ? t(lang, "发送中…", "Sending…") : t(lang, "继续", "Continue")}
+                  {authBusy ? t(lang, "发送中…", "Sending…") : t(lang, "发送登录链接", "Send login link")}
                 </button>
 
                 {/* OR + Google */}
