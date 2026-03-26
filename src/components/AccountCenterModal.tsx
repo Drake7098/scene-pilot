@@ -219,7 +219,7 @@ export function AccountCenterModal(props: Props) {
               <div style={styles.authHeroSub}>
                 {authStep === "code"
                   ? t(lang, `验证码已发送至 ${authEmail}`, `We sent a code to ${authEmail}`)
-                  : t(lang, "输入邮箱，我们会发送6位验证码", "Enter your email — we will send a 6-digit code")}
+                  : t(lang, "输入邮箱，我们会发送验证码", "Enter your email — we will send a code")}
               </div>
             </div>
 
@@ -296,11 +296,11 @@ export function AccountCenterModal(props: Props) {
                 <input
                   value={authCode}
                   onChange={(e) => onAuthCodeChange(e.target.value)}
-                  placeholder={t(lang, "6 位验证码", "6-digit code")}
+                  placeholder={t(lang, "验证码", "code")}
                   style={{ ...styles.authInput, textAlign: "center", letterSpacing: "0.25em", fontSize: 22, fontWeight: 700 }}
                   autoComplete="one-time-code"
                   inputMode="numeric"
-                  maxLength={6}
+                  maxLength={8}
                   autoFocus
                   onKeyDown={(e) => { if (e.key === "Enter" && authCode.trim().length >= 4) onVerifyCode(); }}
                 />
