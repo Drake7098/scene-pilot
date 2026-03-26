@@ -219,7 +219,7 @@ export function AccountCenterModal(props: Props) {
               <div style={styles.authHeroSub}>
                 {authStep === "code"
                   ? t(lang, `验证码已发送至 ${authEmail}`, `We sent a code to ${authEmail}`)
-                  : t(lang, "输入邮箱，我们会发送登录链接", "Enter your email — we will send you a login link")}
+                  : t(lang, "输入邮箱，我们会发送6位验证码", "Enter your email — we will send a 6-digit code")}
               </div>
             </div>
 
@@ -263,7 +263,7 @@ export function AccountCenterModal(props: Props) {
                   disabled={authBusy}
                   data-testid="account-auth-send-code"
                 >
-                  {authBusy ? t(lang, "发送中…", "Sending…") : t(lang, "发送登录链接", "Send login link")}
+                  {authBusy ? t(lang, "发送中…", "Sending…") : t(lang, "发送验证码", "Send code")}
                 </button>
 
                 {/* OR + Google */}
