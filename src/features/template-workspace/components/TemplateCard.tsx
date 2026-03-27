@@ -581,7 +581,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   cardShareBtn: {
     padding: "3px 8px",
-    background: colors.panelSoft,
+    background: colors.panel,
     border: `1px solid ${colors.border}`,
     borderRadius: 6,
     color: colors.textMuted,
@@ -607,7 +607,7 @@ const styles: Record<string, React.CSSProperties> = {
   listShareBtn: {
     width: "100%",
     border: `1px solid ${colors.border}`,
-    background: colors.panelSoft,
+    background: colors.panel,
     color: colors.textMuted,
     borderRadius: 7,
     fontSize: TEMPLATE_WORKSPACE_UI.fontSize.caption,
