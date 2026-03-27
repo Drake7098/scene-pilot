@@ -23,6 +23,7 @@ import {
   type WizardDraft
 } from "./components/CreateWizard";
 import { buildPromptForScene } from "./utils/promptEngine";
+import { getCanonicalPromptV3 } from "./utils/promptPipeline";
 import { deleteRefBlob, getRefBlob, putRefBlob } from "./utils/localRefs";
 import { defaultObjectName, defaultProjectName, defaultSceneName, safeExportName } from "./utils/naming";
 import { getPlatformLabel, getPlatformPreset, PLATFORM_PRESETS } from "./config/platformPresets";
@@ -92,11 +93,13 @@ import {
 import {
   consumePendingTemplateIntent,
   consumePendingTemplateSubTask,
+  findIntentByFamilyId,
   getTemplatesForSubTask,
   TEMPLATE_INTENTS,
   pickDefaultTemplateForIntent,
   saveLastTemplateIntent
 } from "./features/template-workspace/model/templateIntent";
+import { findTemplateBySlug } from "./features/template-workspace/utils/templateShare";
 import { consumePendingSharePayload, encodeSharePayload, setPendingSharePayload, type SharePayload } from "./types/share";
 import { applyTemplateCharge } from "./features/billing";
 import { getTemplatePricingForTemplate } from "./pricing";
@@ -160,6 +163,11 @@ const AUTH_EMAIL_DRAFT_KEY = "sp_auth_email_draft_v1";
 const BILLING_LEGAL_CONSENT_KEY = "sp_billing_legal_consent_v1";
 const PROJECT_SAVE_PLATFORM_LOCK_KEY = "sp_project_save_platform_locked";
 const GUEST_AVATAR_COLOR_KEY = "sp_guest_avatar_color_v1";
+const FILE_RUNTIME_KEY = "sp_file_runtime_v1";
+const HANDLE_KEY_PROJECT_DIR = "last_project_dir";
+const HANDLE_KEY_EXPORT_DIR = "last_export_dir";
+const HANDLE_KEY_PROJECT_FILE = "current_project_file";
+const DEFAULT_PROJECT_DIR_LABEL = "Documents/ScenePilotix Projects";
 type SerializedLibraryRefAsset = {
   id: string;
   name: string;
@@ -175,6 +183,21 @@ type SerializedLibraryProject = {
   assets?: {
     refs: SerializedLibraryRefAsset[];
   };
+};
+
+type RecentProjectItem = {
+  name: string;
+  path: string;
+  updatedAt: number;
+  sourceTemplateId?: string;
+  sourceTemplateName?: string;
+};
+
+type FileRuntimeState = {
+  lastProjectDirectory: string;
+  lastExportDirectory: string;
+  recentProjects: RecentProjectItem[];
+  currentProjectFilePath: string;
 };
 
 type ProGenerationSource = "hosted" | "byo";
@@ -243,6 +266,103 @@ async function loadPersistedLibraryRootHandle(): Promise<any | null> {
       reject(tx.error);
     };
   });
+}
+
+async function savePersistedHandle(key: string, handle: any): Promise<void> {
+  if (getTestBridge()?.skipHandlePersistence) return;
+  const db = await openLibDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(LIB_DB_STORE, "readwrite");
+    const store = tx.objectStore(LIB_DB_STORE);
+    const req = store.put(handle, key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
+  });
+}
+
+async function loadPersistedHandle(key: string): Promise<any | null> {
+  if (getTestBridge()?.skipHandlePersistence) return null;
+  const db = await openLibDb();
+  return await new Promise<any | null>((resolve, reject) => {
+    const tx = db.transaction(LIB_DB_STORE, "readonly");
+    const store = tx.objectStore(LIB_DB_STORE);
+    const req = store.get(key);
+    req.onsuccess = () => resolve(req.result ?? null);
+    req.onerror = () => reject(req.error);
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
+  });
+}
+
+function loadFileRuntimeState(): FileRuntimeState {
+  try {
+    const raw = localStorage.getItem(FILE_RUNTIME_KEY);
+    if (!raw) {
+      return {
+        lastProjectDirectory: DEFAULT_PROJECT_DIR_LABEL,
+        lastExportDirectory: "",
+        recentProjects: [],
+        currentProjectFilePath: ""
+      };
+    }
+    const parsed = JSON.parse(raw) as Partial<FileRuntimeState>;
+    const recent = Array.isArray(parsed.recentProjects)
+      ? parsed.recentProjects
+          .filter((item): item is RecentProjectItem => !!item && typeof item.path === "string" && typeof item.name === "string")
+          .slice(0, 30)
+      : [];
+    return {
+      lastProjectDirectory:
+        typeof parsed.lastProjectDirectory === "string" && parsed.lastProjectDirectory.trim()
+          ? parsed.lastProjectDirectory.trim()
+          : DEFAULT_PROJECT_DIR_LABEL,
+      lastExportDirectory: typeof parsed.lastExportDirectory === "string" ? parsed.lastExportDirectory.trim() : "",
+      recentProjects: recent,
+      currentProjectFilePath: typeof parsed.currentProjectFilePath === "string" ? parsed.currentProjectFilePath.trim() : ""
+    };
+  } catch {
+    return {
+      lastProjectDirectory: DEFAULT_PROJECT_DIR_LABEL,
+      lastExportDirectory: "",
+      recentProjects: [],
+      currentProjectFilePath: ""
+    };
+  }
+}
+
+function persistFileRuntimeState(next: FileRuntimeState) {
+  try {
+    localStorage.setItem(FILE_RUNTIME_KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+}
+
+function basenameWithoutExt(name: string) {
+  return String(name || "").replace(/\.[^.]+$/, "").trim();
+}
+
+function joinPath(dir: string, fileName: string) {
+  const d = String(dir || "").trim().replace(/[\\/]+$/, "");
+  const f = String(fileName || "").trim().replace(/^[\\/]+/, "");
+  if (!d) return f;
+  return `${d}/${f}`;
+}
+
+function dirnameFromPath(path: string) {
+  const cleaned = String(path || "").trim().replace(/[\\/]+$/, "");
+  if (!cleaned) return "";
+  const idx = Math.max(cleaned.lastIndexOf("/"), cleaned.lastIndexOf("\\"));
+  if (idx <= 0) return "";
+  return cleaned.slice(0, idx);
 }
 
 const ONBOARDING_KEY = "sp_onboarding_done";
@@ -403,6 +523,7 @@ function buildDefaultObjectLayer(lang: Lang, index: number) {
 }
 
 export default function App() {
+  const runtimeStateInit = useMemo(() => loadFileRuntimeState(), []);
   const [lang, setLang] = useState<Lang>(() => loadLang());
   const [project, setProject] = useState<Project>(() => loadProject() ?? defaultProject());
   const workspaceMode: ResultConsoleMode = "pro";
@@ -491,7 +612,13 @@ export default function App() {
   const [proActiveAssetBySceneId, setProActiveAssetBySceneId] = useState<Record<string, string>>({});
   const [proAssetMenuId, setProAssetMenuId] = useState<string | null>(null);
 
-  const [, setFileHandle] = useState<any | null>(null);
+  const [fileHandle, setFileHandle] = useState<any | null>(null);
+  const [projectFilePath, setProjectFilePath] = useState<string>(runtimeStateInit.currentProjectFilePath || "");
+  const [lastProjectDirectory, setLastProjectDirectory] = useState<string>(runtimeStateInit.lastProjectDirectory || DEFAULT_PROJECT_DIR_LABEL);
+  const [lastExportDirectory, setLastExportDirectory] = useState<string>(runtimeStateInit.lastExportDirectory || "");
+  const [recentProjects, setRecentProjects] = useState<RecentProjectItem[]>(runtimeStateInit.recentProjects || []);
+  const [lastProjectDirHandle, setLastProjectDirHandle] = useState<any | null>(null);
+  const [lastExportDirHandle, setLastExportDirHandle] = useState<any | null>(null);
   const [fileLabel, setFileLabel] = useState<string>(() => {
     try {
       return localStorage.getItem("scene_pilot_last_file_label") || "";
@@ -637,22 +764,76 @@ export default function App() {
     }
   }
 
+  function upsertRecentProject(item: RecentProjectItem) {
+    setRecentProjects((prev) => {
+      const next = [item, ...prev.filter((p) => p.path !== item.path)].slice(0, 30);
+      return next;
+    });
+  }
+
+  function rememberProjectDirectory(label: string, handle?: any | null) {
+    const next = (label || DEFAULT_PROJECT_DIR_LABEL).trim();
+    setLastProjectDirectory(next);
+    if (handle) {
+      setLastProjectDirHandle(handle);
+      void savePersistedHandle(HANDLE_KEY_PROJECT_DIR, handle);
+    }
+  }
+
+  function rememberExportDirectory(label: string, handle?: any | null) {
+    const next = (label || "").trim();
+    if (!next) return;
+    setLastExportDirectory(next);
+    if (handle) {
+      setLastExportDirHandle(handle);
+      void savePersistedHandle(HANDLE_KEY_EXPORT_DIR, handle);
+    }
+  }
+
+  function clearCurrentFileBinding() {
+    setFileHandle(null);
+    setProjectFilePath("");
+  }
+
+  function rememberCurrentFileBinding(nextHandle: any, nextPath: string) {
+    setFileHandle(nextHandle ?? null);
+    setProjectFilePath(nextPath || "");
+    if (nextHandle) {
+      void savePersistedHandle(HANDLE_KEY_PROJECT_FILE, nextHandle);
+    }
+  }
+
   function openExportPanel(action: ExportPanelOpenAction) {
     setOpenExportAction(action);
     setOpenExportNonce((v) => v + 1);
   }
 
-  /** Unified handlers for Prompt/Export convergence. All copy/export flows go through ExportPanel pipeline. */
+  /** Export actions stay in ExportPanel pipeline; copy prompt is independent. */
   function handleCopyPrompt() {
-    openExportPanel("copy");
+    void (async () => {
+      const text = promptForMiniPreview.trim();
+      if (!text) {
+        feedbackBarRef.current?.pushMessage(lang === "zh" ? "暂无可复制提示词" : "No prompt to copy");
+        return;
+      }
+      const ok = await copyToClipboard(text);
+      feedbackBarRef.current?.pushMessage(
+        ok ? (lang === "zh" ? "已复制当前提示词" : "Current prompt copied")
+          : (lang === "zh" ? "复制失败，请重试" : "Copy failed, please retry")
+      );
+      trackExportFlow("copy_prompt", { result: ok ? "success" : "fail" }, lang);
+    })();
   }
   function handleExportTxt() {
+    rememberExportDirectory(dirnameFromPath(projectFilePath) || lastProjectDirectory || DEFAULT_PROJECT_DIR_LABEL);
     openExportPanel("prompt_txt");
   }
   function handleExportZip() {
+    rememberExportDirectory(dirnameFromPath(projectFilePath) || lastProjectDirectory || DEFAULT_PROJECT_DIR_LABEL);
     openExportPanel("prompt_plus_refs");
   }
   function handleExportProject() {
+    rememberExportDirectory(dirnameFromPath(projectFilePath) || lastProjectDirectory || DEFAULT_PROJECT_DIR_LABEL);
     openExportPanel("open");
   }
 
@@ -719,6 +900,38 @@ export default function App() {
     const mode = project?.meta?.proExportMode === "package" ? "package" : "prompt_only";
     setProExportMode(mode);
   }, [project?.meta?.proExportMode]);
+
+  useEffect(() => {
+    persistFileRuntimeState({
+      lastProjectDirectory,
+      lastExportDirectory,
+      recentProjects,
+      currentProjectFilePath: projectFilePath
+    });
+  }, [lastProjectDirectory, lastExportDirectory, recentProjects, projectFilePath]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [projDir, expDir, file] = await Promise.all([
+          loadPersistedHandle(HANDLE_KEY_PROJECT_DIR),
+          loadPersistedHandle(HANDLE_KEY_EXPORT_DIR),
+          loadPersistedHandle(HANDLE_KEY_PROJECT_FILE)
+        ]);
+        if (cancelled) return;
+        if (projDir) setLastProjectDirHandle(projDir);
+        if (expDir) setLastExportDirHandle(expDir);
+        if (file && projectFilePath) setFileHandle(file);
+      } catch {
+        // ignore persisted handle load failures
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectFilePath]);
+
   const emitEvent = useCallback((
     event: "ui_action" | "project_flow" | "editor_change" | "export_flow",
     props: Record<string, any>,
@@ -758,23 +971,17 @@ export default function App() {
   }, [safeProject, sceneIdx]);
   const sceneNo = useMemo(() => clampInt(sceneIdx, 0, Math.max(0, safeProject.scenes.length - 1)) + 1, [sceneIdx, safeProject.scenes.length]);
   const sceneAssetKey = scene.id || `scene_${sceneNo}`;
-  /** Prompt for Mini Preview only; reuses buildPromptForScene, no extra engine. */
+  /** Prompt for Mini Preview and copy path: canonical V3 only. */
   const promptForMiniPreview = useMemo(() => {
     try {
-      const preset = getPlatformPreset(savePlatformId);
-      const out = buildPromptForScene({
-        project: safeProject,
-        scene,
-        lang,
-        platformId: savePlatformId,
-        profile: preset?.baseProfile,
-        workspace: "pro",
-      });
-      return out?.finalCopyPrompt?.trim() ?? "";
+      return getCanonicalPromptV3({
+        project: { ...safeProject, scenes: [scene] },
+        lang
+      }).trim();
     } catch {
       return "";
     }
-  }, [safeProject, scene, lang, savePlatformId]);
+  }, [safeProject, scene, lang]);
   const sceneConflicts = useMemo(
     () => detectSceneConflicts(scene, lang, safeProject),
     [scene, lang, safeProject]
@@ -1565,6 +1772,39 @@ export default function App() {
     setBillingPage(null);
   }
 
+  function nextUntitledProjectName() {
+    const base = lang === "zh" ? "未命名项目" : "Untitled Project";
+    const names = new Set<string>([
+      ...(recentProjects ?? []).map((item) => String(item.name || "").trim()),
+      String(project?.name || "").trim(),
+      String(fileLabel || "").trim()
+    ].filter(Boolean));
+    if (!names.has(base)) return base;
+    let n = 2;
+    while (names.has(`${base} ${n}`)) n += 1;
+    return `${base} ${n}`;
+  }
+
+  function nextTemplateProjectName(templateDisplayName: string) {
+    const base = String(templateDisplayName || "").trim() || (lang === "zh" ? "模板项目" : "Template Project");
+    const esc = base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`^${esc}\\s+(\\d{2})$`);
+    let max = 0;
+    const names = [
+      ...(recentProjects ?? []).map((item) => String(item.name || "").trim()),
+      String(project?.name || "").trim(),
+      String(fileLabel || "").trim()
+    ];
+    for (const name of names) {
+      const hit = name.match(re);
+      if (!hit) continue;
+      const num = Number.parseInt(hit[1], 10);
+      if (Number.isFinite(num)) max = Math.max(max, num);
+    }
+    const next = max + 1;
+    return `${base} ${String(next).padStart(2, "0")}`;
+  }
+
   /** Use Template = always create a new project (never append). Market: pricing resolver; user_private: free. */
   async function applyTemplateFromWorkspaceCore(
     indexOrItem: TemplateIndex | TemplateWorkspaceItem | UserPrivateTemplate,
@@ -1572,99 +1812,111 @@ export default function App() {
   ) {
     if (indexOrItem && isUserPrivateTemplate(indexOrItem)) {
       const userTpl = indexOrItem as UserPrivateTemplate;
-      const newProject = createProjectFromUserTemplate(userTpl);
+      const newProject = {
+        ...createProjectFromUserTemplate(userTpl),
+        name: nextTemplateProjectName(userTpl.name || (lang === "zh" ? "我的模板" : "My Template"))
+      };
       updateProject(newProject);
       setSceneIdx(0);
       setSelectedLayerId(null);
       const name = (newProject as Project & { name?: string }).name ?? defaultProjectName(lang);
-      setFileLabel(name);
       setLabelPersist(name);
+      clearCurrentFileBinding();
       setIsTemplateWorkspaceOpen(false);
       setTemplateWorkspaceState((s) => ({ ...s, isQuickModeActive: true, quickModeDismissed: false }));
       feedbackBarRef.current?.pushMessage(lang === "zh" ? "已应用模板" : "Template applied");
       return;
     }
 
-    const index: TemplateIndex | null =
-      "familyId" in indexOrItem
-        ? (indexOrItem as TemplateIndex)
-        : (() => {
-            const item = indexOrItem as TemplateWorkspaceItem;
-            return getTemplateIndex().find((t) => t.id === item.id) ?? null;
-          })();
+    try {
+      const index: TemplateIndex | null =
+        "familyId" in indexOrItem
+          ? (indexOrItem as TemplateIndex)
+          : (() => {
+              const item = indexOrItem as TemplateWorkspaceItem;
+              return getTemplateIndex().find((t) => t.id === item.id) ?? null;
+            })();
 
-    if (!index) return;
-    if ((index as any).isEnabled !== true) {
-      feedbackBarRef.current?.pushMessage(lang === "zh" ? "该模板已冻结，不可应用" : "This template is frozen and cannot be applied");
-      return;
-    }
-
-    const meta = getTemplateMetadataFromIndex(index);
-    addToRecent(meta.id);
-
-    const pricing = await getTemplatePricingForTemplate(index.id);
-    if (import.meta.env?.DEV && pricing.debugReasons?.length) {
-      console.log("[template pricing]", index.id, pricing.debugReasons);
-    }
-
-    const owned = Boolean(accountUser && isTemplateOwned(accountUser.id, index.id));
-    const freeOrUnlimited = pricing.creditPrice <= 0 || canUseUnlimitedTemplates(accountUser);
-
-    if (!owned && pricing.accessTier === "pro_credits" && !hasProAccess) {
-      openBillingPage("upgrade");
-      return;
-    }
-
-    if (!freeOrUnlimited && !owned) {
-      if (!accountUser) {
-        setTemplateCreditsNeeded(pricing.creditPrice);
-        setTemplateCreditsHave(0);
-        setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
-        setTemplateCreditsInsufficientOpen(true);
+      if (!index) return;
+      if ((index as any).isEnabled !== true) {
+        feedbackBarRef.current?.pushMessage(lang === "zh" ? "该模板已冻结，不可应用" : "This template is frozen and cannot be applied");
         return;
       }
-      if (accountCredits < pricing.creditPrice) {
-        setTemplateCreditsNeeded(pricing.creditPrice);
-        setTemplateCreditsHave(accountCredits);
-        setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
-        setTemplateCreditsInsufficientOpen(true);
+
+      const meta = getTemplateMetadataFromIndex(index);
+      addToRecent(meta.id);
+
+      const pricing = await getTemplatePricingForTemplate(index.id);
+      if (import.meta.env?.DEV && pricing.debugReasons?.length) {
+        console.log("[template pricing]", index.id, pricing.debugReasons);
+      }
+
+      const owned = Boolean(accountUser && isTemplateOwned(accountUser.id, index.id));
+      const freeOrUnlimited = pricing.creditPrice <= 0 || canUseUnlimitedTemplates(accountUser);
+
+      if (!owned && pricing.accessTier === "pro_credits" && !hasProAccess) {
+        openBillingPage("upgrade");
         return;
       }
-    }
 
-    let newProject = await createProjectFromTemplate(index, {
-      templateOwnedAtCreation: freeOrUnlimited || owned,
-      pricingBucketAtCreation: pricing.pricingBucket
-    });
+      if (!freeOrUnlimited && !owned) {
+        if (!accountUser) {
+          setTemplateCreditsNeeded(pricing.creditPrice);
+          setTemplateCreditsHave(0);
+          setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
+          setTemplateCreditsInsufficientOpen(true);
+          return;
+        }
+        if (accountCredits < pricing.creditPrice) {
+          setTemplateCreditsNeeded(pricing.creditPrice);
+          setTemplateCreditsHave(accountCredits);
+          setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
+          setTemplateCreditsInsufficientOpen(true);
+          return;
+        }
+      }
 
-    if (!freeOrUnlimited && !owned && accountUser) {
-      const chargeResult = await applyTemplateCharge(
-        accountUser.id,
-        newProject,
-        index,
-        pricing.creditPrice
+      let newProject = await createProjectFromTemplate(index, {
+        templateOwnedAtCreation: freeOrUnlimited || owned,
+        pricingBucketAtCreation: pricing.pricingBucket
+      });
+      const templateDisplayName = lang === "zh" ? (index.nameZh || index.nameEn) : (index.nameEn || index.nameZh);
+      newProject = { ...newProject, name: nextTemplateProjectName(templateDisplayName) };
+
+      if (!freeOrUnlimited && !owned && accountUser) {
+        const chargeResult = await applyTemplateCharge(
+          accountUser.id,
+          newProject,
+          index,
+          pricing.creditPrice
+        );
+        if (!chargeResult.success) {
+          setTemplateCreditsNeeded(pricing.creditPrice);
+          setTemplateCreditsHave(accountCredits);
+          setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
+          setTemplateCreditsInsufficientOpen(true);
+          return;
+        }
+        newProject = chargeResult.project;
+        markTemplateOwned(accountUser.id, index.id);
+        await refreshAccountState();
+      }
+
+      updateProject(newProject);
+      setSceneIdx(0);
+      setSelectedLayerId(null);
+      const name = (newProject as Project & { name?: string }).name ?? defaultProjectName(lang);
+      setLabelPersist(name);
+      clearCurrentFileBinding();
+      setIsTemplateWorkspaceOpen(false);
+      setTemplateWorkspaceState((s) => ({ ...s, isQuickModeActive: true, quickModeDismissed: false }));
+      feedbackBarRef.current?.pushMessage(lang === "zh" ? "已应用模板" : "Template applied");
+    } catch (error) {
+      console.error("[template apply failed]", error);
+      feedbackBarRef.current?.pushMessage(
+        lang === "zh" ? "模板应用失败，请稍后重试或更换模板。" : "Failed to apply template. Please retry or try another template."
       );
-      if (!chargeResult.success) {
-        setTemplateCreditsNeeded(pricing.creditPrice);
-        setTemplateCreditsHave(accountCredits);
-        setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
-        setTemplateCreditsInsufficientOpen(true);
-        return;
-      }
-      newProject = chargeResult.project;
-      markTemplateOwned(accountUser.id, index.id);
-      await refreshAccountState();
     }
-
-    updateProject(newProject);
-    setSceneIdx(0);
-    setSelectedLayerId(null);
-    const name = (newProject as Project & { name?: string }).name ?? defaultProjectName(lang);
-    setFileLabel(name);
-    setLabelPersist(name);
-    setIsTemplateWorkspaceOpen(false);
-    setTemplateWorkspaceState((s) => ({ ...s, isQuickModeActive: true, quickModeDismissed: false }));
-    feedbackBarRef.current?.pushMessage(lang === "zh" ? "已应用模板" : "Template applied");
   }
 
   async function handleUseTemplateFromWorkspace(
@@ -2100,8 +2352,12 @@ export default function App() {
       openAccountCenter("auth");
       return { allowed: false };
     }
+    const fallbackExportDir = dirnameFromPath(projectFilePath) || lastProjectDirectory || DEFAULT_PROJECT_DIR_LABEL;
+    if (fallbackExportDir) {
+      setLastExportDirectory(fallbackExportDir);
+    }
     return { allowed: true };
-  }, [accountUser]);
+  }, [accountUser, projectFilePath, lastProjectDirectory]);
 
   const settlePromptExport = useCallback(async (reservationId: string | undefined, committed: boolean) => {
     if (!accountUser || !reservationId) return;
@@ -2181,6 +2437,8 @@ export default function App() {
       const url = new URL(window.location.href);
       const hasTemplateRoute =
         url.searchParams.get("template") === "1" ||
+        Boolean(url.searchParams.get("template_slug")) ||
+        Boolean(url.searchParams.get("template_id")) ||
         Boolean(url.searchParams.get("intent")) ||
         Boolean(url.searchParams.get("subtask"));
       if (hasPendingTemplateIntent || hasPendingSharePayload || hasTemplateRoute) return;
@@ -2198,9 +2456,48 @@ export default function App() {
     const urlIntentRaw = url.searchParams.get("intent");
     const urlSubTask = url.searchParams.get("subtask");
     const urlWantsTemplate = url.searchParams.get("template") === "1";
+    const urlTemplateSlug = (url.searchParams.get("template_slug") ?? "").trim();
+    const urlTemplateId = (url.searchParams.get("template_id") ?? "").trim();
     const urlIntent = TEMPLATE_INTENTS.some((item) => item.id === urlIntentRaw)
       ? (urlIntentRaw as typeof TEMPLATE_INTENTS[number]["id"])
       : null;
+    const indexList = getTemplateIndex();
+    const routeTemplate =
+      (urlTemplateId ? indexList.find((item) => item.id === urlTemplateId) ?? null : null)
+      ?? (urlTemplateSlug ? findTemplateBySlug(indexList, urlTemplateSlug) : null);
+
+    if (routeTemplate) {
+      const inferred = findIntentByFamilyId(routeTemplate.familyId);
+      setTemplateWorkspaceState((s) => ({
+        ...s,
+        templateWorkspaceView: "market",
+        myTemplateSection: "owned",
+        scope: "all",
+        selectedIntentId: inferred?.intentId ?? s.selectedIntentId,
+        selectedSubTaskId: inferred?.subTaskId ?? null,
+        selectedCategory: null,
+        selectedFamilyId: routeTemplate.familyId ?? null,
+        selectedTemplateId: routeTemplate.id,
+        searchQuery: "",
+        showAllTemplatesInSubTask: false,
+        filters: {
+          mediaType: "all",
+          storyPlan: "all",
+          ratio: "all",
+          pricing: "all",
+          industry: "all"
+        }
+      }));
+      setIsTemplateWorkspaceOpen(true);
+      url.searchParams.delete("template");
+      url.searchParams.delete("template_slug");
+      url.searchParams.delete("template_id");
+      url.searchParams.delete("intent");
+      url.searchParams.delete("subtask");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      return;
+    }
+
     const pendingIntent = consumePendingTemplateIntent();
     const resolvedIntent = urlIntent ?? pendingIntent;
     if (!resolvedIntent) return;
@@ -2210,7 +2507,6 @@ export default function App() {
     const fromLandingEntry = Boolean(pendingIntent || urlWantsTemplate);
     const initialSubTaskId = fromLandingEntry ? null : resolvedSubTask;
     const initialScope = fromLandingEntry ? "all" : "recommended";
-    const indexList = getTemplateIndex();
     const defaultTemplateId = initialSubTaskId
       ? getTemplatesForSubTask(indexList, resolvedIntent, initialSubTaskId)[0]?.id ?? null
       : pickDefaultTemplateForIntent(resolvedIntent, indexList);
@@ -2237,8 +2533,10 @@ export default function App() {
     if (pendingIntent || urlWantsTemplate) {
       setIsTemplateWorkspaceOpen(true);
     }
-    if (urlIntent || urlWantsTemplate || urlSubTask) {
+    if (urlIntent || urlWantsTemplate || urlSubTask || urlTemplateSlug || urlTemplateId) {
       url.searchParams.delete("template");
+      url.searchParams.delete("template_slug");
+      url.searchParams.delete("template_id");
       url.searchParams.delete("intent");
       url.searchParams.delete("subtask");
       window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
@@ -2360,6 +2658,65 @@ export default function App() {
         ),
     });
     if (!guardResult.allowed) return;
+    try {
+      if (typeof window !== "undefined" && "showOpenFilePicker" in window) {
+        const picker = (window as any).showOpenFilePicker;
+        const handles = await picker({
+          id: "scenepilotix-open-project",
+          multiple: false,
+          types: [{
+            description: "ScenePilotix Project",
+            accept: { "application/json": [".json", ".spx"] }
+          }],
+          ...(lastProjectDirHandle ? { startIn: lastProjectDirHandle } : {})
+        });
+        const picked = handles?.[0];
+        if (!picked) return;
+        const file = await picked.getFile();
+        const text = await file.text();
+        const obj = JSON.parse(text);
+        const parsed = parseProjectPayload(obj);
+        if (!parsed) {
+          setLibraryHint(lang === "zh" ? "打开失败：项目文件无效" : "Open failed: invalid project file");
+          return;
+        }
+        if (parsed.platformId && SAVE_PLATFORM_OPTIONS.includes(parsed.platformId)) {
+          syncSavePlatform(parsed.platformId);
+          setProjectSavePlatformLockedPersist(true);
+        }
+        await restoreProjectAssetsFromLibrary(parsed.payload);
+        const opened = sanitizeProject({
+          project: parsed.payload.project ?? { mode: "storyboard" },
+          scenes: parsed.payload.scenes
+        });
+        const nextName = basenameWithoutExt(file.name) || opened.name || defaultProjectName(lang);
+        opened.name = nextName;
+        const dirLabel = lastProjectDirectory || DEFAULT_PROJECT_DIR_LABEL;
+        const nextPath = joinPath(dirLabel, file.name);
+        resetProGeneratedAssets();
+        updateProject(opened);
+        setSceneIdx(0);
+        setSelectedLayerId(null);
+        setEditT(0);
+        rememberCurrentFileBinding(picked, nextPath);
+        rememberProjectDirectory(dirLabel, lastProjectDirHandle);
+        setLabelPersist(nextName);
+        upsertRecentProject({
+          name: nextName,
+          path: nextPath,
+          updatedAt: Date.now(),
+          sourceTemplateId: opened.meta?.sourceTemplateId,
+          sourceTemplateName: opened.meta?.currentTemplate
+            ? (lang === "zh" ? opened.meta.currentTemplate.titleZh : opened.meta.currentTemplate.titleEn)
+            : undefined
+        });
+        setLastLibrarySavedSnapshot(JSON.stringify({ project: opened, fileLabel: nextName }));
+        trackProjectFlow("project_open", { via: "picker" }, lang);
+        return;
+      }
+    } catch {
+      // fallback to input picker
+    }
     fileInputRef.current?.click();
   }
 
@@ -2389,6 +2746,17 @@ export default function App() {
       updateProject({ ...safeProject, name: trimmed });
       setFileLabel(trimmed);
       setLabelPersist(trimmed);
+      if (projectFilePath) {
+        upsertRecentProject({
+          name: trimmed,
+          path: projectFilePath,
+          updatedAt: Date.now(),
+          sourceTemplateId: safeProject.meta?.sourceTemplateId,
+          sourceTemplateName: safeProject.meta?.currentTemplate
+            ? (lang === "zh" ? safeProject.meta.currentTemplate.titleZh : safeProject.meta.currentTemplate.titleEn)
+            : undefined
+        });
+      }
       setRenameProjectOpen(false);
       feedbackBarRef.current?.pushMessage(lang === "zh" ? "已重命名项目" : "Project renamed");
       return;
@@ -2417,8 +2785,8 @@ export default function App() {
       setSceneIdx(0);
       setSelectedLayerId(null);
       const name = (dup as Project & { name?: string }).name ?? defaultProjectName(lang);
-      setFileLabel(name);
       setLabelPersist(name);
+      clearCurrentFileBinding();
       feedbackBarRef.current?.pushMessage(lang === "zh" ? "已复制项目" : "Project duplicated");
       return;
     }
@@ -2571,13 +2939,13 @@ export default function App() {
 
   function createProjectFromWizard() {
     const p = sanitizeProject(buildProjectFromWizard(wizardDraft));
-    const fallbackName = defaultProjectName(lang);
-    const projectFileName = wizardDraft.projectName.trim() || fallbackName;
+    const projectFileName = wizardDraft.projectName.trim() || nextUntitledProjectName();
     resetProGeneratedAssets();
     setSceneIdx(0);
     setSelectedLayerId(null);
     setEditT(0);
-    setFileHandle(null);
+    clearCurrentFileBinding();
+    p.name = projectFileName;
     setLabelPersist(projectFileName);
     setProjectSavePlatformLockedPersist(false);
     updateProject(p);
@@ -3149,23 +3517,104 @@ export default function App() {
     }
   }
 
+  function parseProjectPayload(raw: any): { payload: SerializedLibraryProject; platformId?: SavePlatformId } | null {
+    if (!raw || typeof raw !== "object") return null;
+    if (Array.isArray(raw.scenes)) {
+      const payload: SerializedLibraryProject = {
+        version: 2,
+        project: raw.project ?? { mode: "storyboard" },
+        scenes: raw.scenes,
+        assets: raw.assets && typeof raw.assets === "object" ? raw.assets : { refs: [] }
+      };
+      const platformId = raw.exportProfile?.platformId;
+      return { payload, platformId };
+    }
+    return null;
+  }
+
+  async function writeProjectToFileHandle(nextProject: Project, target: any, platformId: SavePlatformId): Promise<void> {
+    const payload = await serializeProjectForLibrary(nextProject);
+    const exported = {
+      ...payload,
+      exportProfile: {
+        platformId,
+        platformLabel: savePlatformLabel(platformId, lang)
+      }
+    };
+    const writable = await target.createWritable();
+    await writable.write(JSON.stringify(exported, null, 2));
+    await writable.close();
+  }
+
   async function saveAsToDisk(): Promise<boolean> {
     const pickedPlatform = savePlatformId;
     syncSavePlatform(pickedPlatform);
     setProjectSavePlatformLockedPersist(true);
-    const defaultProjectDirName = safeExportName(fileLabel || defaultProjectName(lang)) || defaultProjectName(lang);
+    const suggestedName = `${safeExportName((safeProject.name || fileLabel || defaultProjectName(lang)).trim()) || "project"}.json`;
+    try {
+      if (typeof window !== "undefined" && "showSaveFilePicker" in window) {
+        const picker = (window as any).showSaveFilePicker;
+        const file = await picker({
+          id: "scenepilotix-save-project",
+          suggestedName,
+          types: [{
+            description: "ScenePilotix Project",
+            accept: { "application/json": [".json", ".spx"] }
+          }],
+          ...(lastProjectDirHandle ? { startIn: lastProjectDirHandle } : {})
+        });
+        const fileName = String(file?.name || suggestedName);
+        const nextName = basenameWithoutExt(fileName) || safeProject.name || defaultProjectName(lang);
+        const nextProject = { ...safeProject, name: nextName };
+        await writeProjectToFileHandle(nextProject, file, pickedPlatform);
+        const dirLabel = lastProjectDirectory || DEFAULT_PROJECT_DIR_LABEL;
+        const nextPath = joinPath(dirLabel, fileName);
+        updateProject(nextProject);
+        setLabelPersist(nextName);
+        rememberCurrentFileBinding(file, nextPath);
+        rememberProjectDirectory(dirLabel, lastProjectDirHandle);
+        upsertRecentProject({
+          name: nextName,
+          path: nextPath,
+          updatedAt: Date.now(),
+          sourceTemplateId: nextProject.meta?.sourceTemplateId,
+          sourceTemplateName: nextProject.meta?.currentTemplate
+            ? (lang === "zh" ? nextProject.meta.currentTemplate.titleZh : nextProject.meta.currentTemplate.titleEn)
+            : undefined
+        });
+        setLastLibrarySavedSnapshot(JSON.stringify({ project: nextProject, fileLabel: nextName }));
+        trackExportFlow("save_as", { via: "file", platform: pickedPlatform, scope: "project" }, lang);
+        return true;
+      }
+    } catch {
+      // fallback below
+    }
+
+    const fallbackName = safeExportName(fileLabel || safeProject.name || defaultProjectName(lang)) || defaultProjectName(lang);
     const input = window.prompt(
-      lang === "zh" ? "另存为：输入项目名称（同名将覆盖）" : "Save As: enter project name (same name will overwrite)",
-      defaultProjectDirName
+      lang === "zh" ? "另存为：输入项目名称" : "Save As: enter project name",
+      fallbackName
     );
     if (input == null) return false;
-    const pickedName = safeExportName(input) || defaultProjectDirName;
-    setLibraryHint(
-      lang === "zh" ? `另存为：${pickedName}` : `Saved as: ${pickedName}`
-    );
+    const pickedName = safeExportName(input) || fallbackName;
+    const nextProject = { ...safeProject, name: pickedName };
     const ok = await saveProjectToLibrary(pickedPlatform, pickedName);
     if (!ok) return false;
-    setLastLibrarySavedSnapshot(currentLibrarySnapshot);
+    updateProject(nextProject);
+    setLabelPersist(pickedName);
+    const nextPath = joinPath(lastProjectDirectory || DEFAULT_PROJECT_DIR_LABEL, `${pickedName}.json`);
+    clearCurrentFileBinding();
+    setProjectFilePath(nextPath);
+    upsertRecentProject({
+      name: pickedName,
+      path: nextPath,
+      updatedAt: Date.now(),
+      sourceTemplateId: nextProject.meta?.sourceTemplateId,
+      sourceTemplateName: nextProject.meta?.currentTemplate
+        ? (lang === "zh" ? nextProject.meta.currentTemplate.titleZh : nextProject.meta.currentTemplate.titleEn)
+        : undefined
+    });
+    setLastLibrarySavedSnapshot(JSON.stringify({ project: nextProject, fileLabel: pickedName }));
     trackExportFlow("save_as", { via: "library", platform: pickedPlatform, scope: "project" }, lang);
     return true;
   }
@@ -3174,12 +3623,52 @@ export default function App() {
     const pickedPlatform = savePlatformId;
     syncSavePlatform(pickedPlatform);
     setProjectSavePlatformLockedPersist(true);
-    setLibraryHint(lang === "zh" ? "正在保存项目..." : "Saving project...");
-    const ok = await saveProjectToLibrary(pickedPlatform);
-    if (!ok) return false;
-    setLastLibrarySavedSnapshot(currentLibrarySnapshot);
-    trackExportFlow("save", { via: "library", platform: pickedPlatform, scope: "project" }, lang);
-    return true;
+    if (!fileHandle) {
+      if (projectFilePath) {
+        const filePart = projectFilePath.split(/[\\/]/).pop() || `${fileLabel || safeProject.name || defaultProjectName(lang)}.json`;
+        const saveName = basenameWithoutExt(filePart) || safeProject.name || fileLabel || defaultProjectName(lang);
+        const nextProject = { ...safeProject, name: saveName };
+        const ok = await saveProjectToLibrary(pickedPlatform, saveName);
+        if (ok) {
+          updateProject(nextProject);
+          setLabelPersist(saveName);
+          upsertRecentProject({
+            name: saveName,
+            path: projectFilePath,
+            updatedAt: Date.now(),
+            sourceTemplateId: nextProject.meta?.sourceTemplateId,
+            sourceTemplateName: nextProject.meta?.currentTemplate
+              ? (lang === "zh" ? nextProject.meta.currentTemplate.titleZh : nextProject.meta.currentTemplate.titleEn)
+              : undefined
+          });
+          setLastLibrarySavedSnapshot(JSON.stringify({ project: nextProject, fileLabel: saveName }));
+          trackExportFlow("save", { via: "library", platform: pickedPlatform, scope: "project" }, lang);
+          return true;
+        }
+      }
+      return await saveAsToDisk();
+    }
+    try {
+      await writeProjectToFileHandle(safeProject, fileHandle, pickedPlatform);
+      const nextName = safeProject.name || fileLabel || defaultProjectName(lang);
+      setLabelPersist(nextName);
+      upsertRecentProject({
+        name: nextName,
+        path: projectFilePath || joinPath(lastProjectDirectory || DEFAULT_PROJECT_DIR_LABEL, `${nextName}.json`),
+        updatedAt: Date.now(),
+        sourceTemplateId: safeProject.meta?.sourceTemplateId,
+        sourceTemplateName: safeProject.meta?.currentTemplate
+          ? (lang === "zh" ? safeProject.meta.currentTemplate.titleZh : safeProject.meta.currentTemplate.titleEn)
+          : undefined
+      });
+      setLastLibrarySavedSnapshot(JSON.stringify({ project: safeProject, fileLabel: nextName }));
+      trackExportFlow("save", { via: "file", platform: pickedPlatform, scope: "project" }, lang);
+      return true;
+    } catch {
+      setLibraryHint(lang === "zh" ? "保存失败，已切换到另存为" : "Save failed, switched to Save As");
+      clearCurrentFileBinding();
+      return await saveAsToDisk();
+    }
   }
 
   async function onUploadFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -3199,15 +3688,38 @@ export default function App() {
     try {
       const text = await f.text();
       const obj = JSON.parse(text);
-      if (!obj || !Array.isArray(obj.scenes)) return;
+      const parsed = parseProjectPayload(obj);
+      if (!parsed) return;
+      if (parsed.platformId && SAVE_PLATFORM_OPTIONS.includes(parsed.platformId)) {
+        syncSavePlatform(parsed.platformId);
+        setProjectSavePlatformLockedPersist(true);
+      }
+      await restoreProjectAssetsFromLibrary(parsed.payload);
       resetProGeneratedAssets();
-      setProject(sanitizeProject(obj as Project));
+      const opened = sanitizeProject({
+        project: parsed.payload.project ?? { mode: "storyboard" },
+        scenes: parsed.payload.scenes
+      });
+      const nextName = basenameWithoutExt(f.name) || opened.name || defaultProjectName(lang);
+      opened.name = nextName;
+      updateProject(opened);
       setSceneIdx(0);
       setSelectedLayerId(null);
       setEditT(0);
-      setFileHandle(null);
-      setLabelPersist(f.name);
-      setProjectSavePlatformLockedPersist(false);
+      clearCurrentFileBinding();
+      const pseudoPath = joinPath(lastProjectDirectory || DEFAULT_PROJECT_DIR_LABEL, f.name);
+      setProjectFilePath(pseudoPath);
+      setLabelPersist(nextName);
+      upsertRecentProject({
+        name: nextName,
+        path: pseudoPath,
+        updatedAt: Date.now(),
+        sourceTemplateId: opened.meta?.sourceTemplateId,
+        sourceTemplateName: opened.meta?.currentTemplate
+          ? (lang === "zh" ? opened.meta.currentTemplate.titleZh : opened.meta.currentTemplate.titleEn)
+          : undefined
+      });
+      setLastLibrarySavedSnapshot(JSON.stringify({ project: opened, fileLabel: nextName }));
 
       trackProjectFlow("project_open", { via: "upload" }, lang);
     } catch {
@@ -3564,6 +4076,7 @@ export default function App() {
         }
       };
       await writeTextToDirectory(root, projectJsonFileName(pickedName), JSON.stringify(exported, null, 2));
+      rememberProjectDirectory(String(root?.name || lastProjectDirectory || DEFAULT_PROJECT_DIR_LABEL), root);
       await refreshLibraryEntries(root, libraryProjectName);
       setLibraryHint(lang === "zh" ? `已保存项目：${proj}` : `Saved project: ${proj}`);
       trackExportFlow("save_project", { platform: platformId, scenes: safeProject.scenes.length, result: "success" }, lang);
@@ -3674,10 +4187,24 @@ export default function App() {
         setLibraryHint(lang === "zh" ? "导入失败：项目无效" : "Import failed: invalid project");
         return;
       }
+      const nextName = basenameWithoutExt(entry.label) || entry.label || opened.name || defaultProjectName(lang);
+      opened.name = nextName;
+      const openedPath = joinPath(lastProjectDirectory || DEFAULT_PROJECT_DIR_LABEL, entry.name);
       resetProGeneratedAssets();
       updateProject(opened);
-      setLabelPersist(entry.label);
-      setLastLibrarySavedSnapshot(JSON.stringify({ project: opened, fileLabel: entry.label }));
+      setLabelPersist(nextName);
+      clearCurrentFileBinding();
+      setProjectFilePath(openedPath);
+      upsertRecentProject({
+        name: nextName,
+        path: openedPath,
+        updatedAt: Date.now(),
+        sourceTemplateId: opened.meta?.sourceTemplateId,
+        sourceTemplateName: opened.meta?.currentTemplate
+          ? (lang === "zh" ? opened.meta.currentTemplate.titleZh : opened.meta.currentTemplate.titleEn)
+          : undefined
+      });
+      setLastLibrarySavedSnapshot(JSON.stringify({ project: opened, fileLabel: nextName }));
       setSceneIdx(0);
       setSelectedLayerId(null);
       setEditT(0);
@@ -3936,7 +4463,7 @@ export default function App() {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".json,application/json"
+          accept=".json,.spx,application/json"
           style={{ display: "none" }}
           onChange={onUploadFile}
         />
@@ -4250,12 +4777,28 @@ export default function App() {
                   onUpdateScene={(s) => { updateScene(s); trackEditorChange("scene", "update", { idx: sceneIdx }, lang); }}
                   onRenameLayer={(oldId, newId) => { if (selectedLayerId === oldId) setSelectedLayerId(newId); trackEditorChange("layer", "rename", { oldId, newId }, lang); }}
                   onAddLayer={() => {
-                    const newId = `obj_${Date.now().toString(36)}`;
+                    const layers = scene.layers ?? [];
+                    const usedIds = new Set(layers.map((l) => String(l.id || "").trim()).filter(Boolean));
+                    let maxN = 0;
+                    for (const id of usedIds) {
+                      const hit = id.match(/^layer(\d+)$/i);
+                      if (!hit) continue;
+                      const n = Number.parseInt(hit[1], 10);
+                      if (Number.isFinite(n)) maxN = Math.max(maxN, n);
+                    }
+                    let seq = Math.max(1, maxN + 1);
+                    let newId = `layer${seq}`;
+                    while (usedIds.has(newId)) {
+                      seq += 1;
+                      newId = `layer${seq}`;
+                    }
                     const newLayer: import("./model").Layer = {
-                      id: newId, type: "object", shape: "rect",
+                      id: newId, type: "subject", shape: "rect",
                       look: "", shapeDesc: "", z: (scene.layers?.length ?? 0) + 1,
                       color: "#888888", opacity: 1,
-                      kf: [{ t: 0, x: 50, y: 50, w: 30, h: 30, rot: 0 }],
+                      kf: [
+                        { t: 0, x: 50, y: 50, w: 30, h: 30, rot: 0 }
+                      ],
                       notes: "", externalPrompt: "", referenceLinks: "",
                     };
                     updateScene({ ...scene, layers: [...(scene.layers ?? []), newLayer] });
@@ -4263,8 +4806,15 @@ export default function App() {
                     trackEditorChange("layer", "add", { id: newId }, lang);
                   }}
                   onDeleteLayer={(layerId: string) => {
-                    updateScene({ ...scene, layers: (scene.layers ?? []).filter(l => l.id !== layerId) });
-                    if (selectedLayerId === layerId) setSelectedLayerId(null);
+                    const layers = scene.layers ?? [];
+                    const idx = layers.findIndex((l) => l.id === layerId);
+                    if (idx < 0) return;
+                    const nextLayers = layers.filter((l) => l.id !== layerId);
+                    updateScene({ ...scene, layers: nextLayers });
+                    if (selectedLayerId === layerId) {
+                      const prev = nextLayers[Math.max(0, idx - 1)] ?? nextLayers[0] ?? null;
+                      setSelectedLayerId(prev?.id ?? null);
+                    }
                     trackEditorChange("layer", "delete", { id: layerId }, lang);
                   }}
                   editT={effectiveEditT}
@@ -4316,6 +4866,10 @@ export default function App() {
                         selectedLayerId={selectedLayerId}
                         onJumpToConflict={(layerId) => { if (layerId) setSelectedLayerId(layerId); }}
                         onFeedbackMessage={(msg) => feedbackBarRef.current?.pushMessage(msg)}
+                        defaultExportDirectoryHandle={lastExportDirHandle}
+                        onExportDirectorySelected={(dirHandle, dirLabel) => {
+                          rememberExportDirectory(dirLabel || String(dirHandle?.name || ""), dirHandle);
+                        }}
                       />
                     </div>
                   }

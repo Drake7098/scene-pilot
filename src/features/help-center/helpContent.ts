@@ -52,7 +52,7 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "左侧栏",
         titleEn: "Left panel",
-        textZh: "左侧第一栏是项目菜单（新建/打开/保存/导出），可折叠。折叠后点头像弹出用户菜单。第二栏是拍摄流程步骤导航（镜头→导演→场景→对象→灯光→风格→技术）和工具区。",
+        textZh: "左侧第一栏是项目菜单（新建/打开/保存/导出），可折叠。折叠后点头像弹出用户菜单。第二栏是拍摄流程步骤导航（镜头→导演→场景→对象→灯光→风格→提示词引擎）和工具区。",
         textEn: "The first left column is the project menu (new / open / save / export), collapsible. When collapsed, click the avatar to open the user menu. The second column has workflow step navigation and tools."
       },
       {

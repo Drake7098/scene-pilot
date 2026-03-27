@@ -32,6 +32,8 @@ const SIZE_MAX = 200;
 // ✅ 缩放范围
 const ZOOM_MIN = 0.4;
 const ZOOM_MAX = 2.5;
+const MOTION_EPS = 0.5;
+const FOCUS_OBJECT_EDITOR_EVENT = "spx:focus-object-editor";
 
 /** ✅ 仅用于渲染：只读不写，不会创建 keyframe */
 function getKFDisplay(layer: Layer, t: 0 | 1): LayerKF {
@@ -52,6 +54,25 @@ function getKFDisplay(layer: Layer, t: 0 | 1): LayerKF {
   );
 }
 
+function hasEffectiveMotionForLayer(layer: Layer | null | undefined): boolean {
+  if (!layer) return false;
+  const kf = Array.isArray(layer.kf) ? layer.kf : [];
+  const k0 = kf.find((k) => k.t === 0);
+  const k1 = kf.find((k) => k.t === 1);
+  if (!k0 || !k1) return false;
+  const dX = Math.abs((k1.x ?? 0) - (k0.x ?? 0));
+  const dY = Math.abs((k1.y ?? 0) - (k0.y ?? 0));
+  const dW = Math.abs((k1.w ?? 0) - (k0.w ?? 0));
+  const dH = Math.abs((k1.h ?? 0) - (k0.h ?? 0));
+  const dRot = Math.abs((k1.rot ?? 0) - (k0.rot ?? 0));
+  return dX >= MOTION_EPS || dY >= MOTION_EPS || dW >= MOTION_EPS || dH >= MOTION_EPS || dRot >= MOTION_EPS;
+}
+
+function emitFocusObjectEditor(layerId: string) {
+  if (!layerId) return;
+  window.dispatchEvent(new CustomEvent(FOCUS_OBJECT_EDITOR_EVENT, { detail: { layerId } }));
+}
+
 export function Stage({
   project = null,
   lang = "en",
@@ -60,7 +81,8 @@ export function Stage({
   onSelectLayer,
   onUpdateScene,
   editT,
-  className
+  className,
+  suppressObjectEditorFocus = false,
 }: {
   project?: Project | null;
   lang?: "zh" | "en";
@@ -70,6 +92,7 @@ export function Stage({
   onUpdateScene: (scene: Scene) => void;
   editT: 0 | 1;
   className?: string;
+  suppressObjectEditorFocus?: boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<DragMode>(null);
@@ -152,6 +175,7 @@ export function Stage({
 
     const k = ensureKF(l, t);
     Object.assign(k, patch);
+
     l.kf = l.kf.slice().sort((a, b) => a.t - b.t);
     onUpdateScene(next);
   }
@@ -159,6 +183,9 @@ export function Stage({
   function onPointerDownLayer(e: React.PointerEvent, layer: Layer) {
     e.stopPropagation();
     onSelectLayer(layer.id);
+    if (!suppressObjectEditorFocus) {
+      emitFocusObjectEditor(layer.id);
+    }
 
     const state = getStageObjectState(layer, scene, project);
     if (state.isLocked || state.isProtectedLayout) return;
@@ -186,6 +213,9 @@ export function Stage({
   function onPointerDownHandle(e: React.PointerEvent, layer: Layer, handle: Handle) {
     e.stopPropagation();
     onSelectLayer(layer.id);
+    if (!suppressObjectEditorFocus) {
+      emitFocusObjectEditor(layer.id);
+    }
 
     const state = getStageObjectState(layer, scene, project);
     if (state.isLocked || state.isProtectedLayout) return;
@@ -280,7 +310,7 @@ export function Stage({
     setDrag(null);
   }
 
-  // ✅ 轨迹线：只画“选中对象”且“确实存在 t=1 keyframe”的情况
+  // ✅ 轨迹线：只画“选中对象”且“存在有效 t0/t1 位移”的情况
   // ✅ 图片模式：不画轨迹（即使历史上有 t1，也只是“数据保留”）
   const sel = useMemo(
     () => (scene.layers ?? []).find((l) => l.id === selectedLayerId) ?? null,
@@ -292,6 +322,7 @@ export function Stage({
     const kf = Array.isArray(sel.kf) ? sel.kf : [];
     return kf.some((k) => k.t === 1);
   }, [sel]);
+  const hasEffectiveMotion = useMemo(() => hasEffectiveMotionForLayer(sel), [sel]);
 
   const selK0 = sel ? getKFDisplay(sel, 0) : null;
   const selK1 = sel ? getKFDisplay(sel, 1) : null;
@@ -365,7 +396,7 @@ export function Stage({
           {/* ✅ 中间画面框：0~100 是“图片/视频实际画面” */}
           <div style={styles.frame} />
 
-          {!isImageMode && sel && selK0 && selK1 && hasExplicitT1 && (
+          {!isImageMode && sel && selK0 && selK1 && hasExplicitT1 && hasEffectiveMotion && (
             <svg style={styles.pathSvg} viewBox="0 0 100 100" preserveAspectRatio="none">
               <defs>
                 <marker id="sp_arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">

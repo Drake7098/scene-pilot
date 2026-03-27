@@ -90,7 +90,7 @@ export function buildSceneFieldRules(
   const isSingle = shotPlan === "single";
   const isContinuous = shotPlan === "continuous";
 
-  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "layout_only";
+  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "full_workflow";
   const isLayoutLocked = applyMode === "layout_only";
 
   const notes = scene.notes ?? "";

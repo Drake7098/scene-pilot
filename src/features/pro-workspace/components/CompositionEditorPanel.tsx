@@ -30,6 +30,11 @@ function round1(v: number) {
   return Math.round(v * 10) / 10;
 }
 
+function format1(v: number | undefined, fallback: number): string {
+  const n = Number.isFinite(Number(v)) ? Number(v) : fallback;
+  return round1(n).toFixed(1);
+}
+
 export function CompositionEditorPanel({
   lang,
   scene,
@@ -122,36 +127,43 @@ export function CompositionEditorPanel({
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 132px))",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
           <EditorInput
-            label="X"
+            label={lang === "zh" ? "X 位置" : "X Position"}
             type="number"
-            value={String(kf.x ?? 50)}
+            value={format1(kf.x, 50)}
             onChange={(v) => updateKF({ x: Math.max(0, Math.min(100, toNum(v, 50))) })}
           />
           <EditorInput
-            label="Y"
+            label={lang === "zh" ? "Y 位置" : "Y Position"}
             type="number"
-            value={String(kf.y ?? 50)}
+            value={format1(kf.y, 50)}
             onChange={(v) => updateKF({ y: Math.max(0, Math.min(100, toNum(v, 50))) })}
           />
           <EditorInput
-            label={lang === "zh" ? "宽" : "W"}
+            label={lang === "zh" ? "宽度" : "Width"}
             type="number"
-            value={String(kf.w ?? 18)}
+            value={format1(kf.w, 18)}
             onChange={(v) => updateKF({ w: Math.max(2, Math.min(100, toNum(v, 18))) })}
           />
           <EditorInput
-            label={lang === "zh" ? "高" : "H"}
+            label={lang === "zh" ? "高度" : "Height"}
             type="number"
-            value={String(kf.h ?? 18)}
+            value={format1(kf.h, 18)}
             onChange={(v) => updateKF({ h: Math.max(2, Math.min(100, toNum(v, 18))) })}
           />
         </div>
         <EditorInput
           label={lang === "zh" ? "旋转 (°)" : "Rot (°)"}
           type="number"
-          value={String(kf.rot ?? 0)}
+          value={format1(kf.rot, 0)}
           onChange={(v) => updateKF({ rot: toNum(v, 0) })}
         />
       </EditorSection>

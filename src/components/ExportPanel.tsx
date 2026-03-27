@@ -41,6 +41,10 @@ type Props = {
   onExportModeChange?: (m: ExportMode) => void;
   /** Optional: called with a short message when an export/copy action succeeds (e.g. for FeedbackBar). */
   onFeedbackMessage?: (msg: string) => void;
+  /** Optional: last used export directory handle for picker default location. */
+  defaultExportDirectoryHandle?: any | null;
+  /** Optional: emits selected export directory for host persistence. */
+  onExportDirectorySelected?: (dirHandle: any, dirLabel: string) => void;
 };
 
 function clampInt(v: number, a: number, b: number) {
@@ -235,7 +239,9 @@ export function ExportPanel({
   onExportScopeChange,
   exportMode: controlledExportMode,
   onExportModeChange,
-  onFeedbackMessage
+  onFeedbackMessage,
+  defaultExportDirectoryHandle = null,
+  onExportDirectorySelected
 }: Props) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
@@ -854,7 +860,15 @@ export function ExportPanel({
     }
     try {
       const picker = (window as any).showDirectoryPicker;
-      const pickedDir = await picker({ mode: "readwrite" });
+      const pickedDir = await picker({
+        mode: "readwrite",
+        ...(defaultExportDirectoryHandle ? { startIn: defaultExportDirectoryHandle } : {})
+      });
+      try {
+        onExportDirectorySelected?.(pickedDir, String(pickedDir?.name || ""));
+      } catch {
+        // ignore callback errors
+      }
       const root = await pickedDir.getDirectoryHandle(flowBundle.rootDir, { create: true });
       for (const file of flowBundle.files) {
         await writeTextToDirectory(root, file.path, file.content);

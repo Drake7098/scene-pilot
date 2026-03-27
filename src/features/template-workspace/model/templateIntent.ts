@@ -178,6 +178,21 @@ export function getTemplatesForIntent(items: TemplateIndex[], intentId: Template
   return sortByIntentPriority(items.filter((item) => familyIds.has(item.familyId)));
 }
 
+export function findIntentByFamilyId(
+  familyId: string
+): { intentId: TemplateIntentId; subTaskId: string | null } | null {
+  const normalized = String(familyId || "").trim();
+  if (!normalized) return null;
+  for (const intent of TEMPLATE_INTENTS) {
+    for (const subTask of intent.subTasks) {
+      if (subTask.familyIds.includes(normalized)) {
+        return { intentId: intent.id, subTaskId: subTask.id };
+      }
+    }
+  }
+  return null;
+}
+
 export function pickDefaultTemplateForIntent(intentId: TemplateIntentId, items: TemplateIndex[]): string | null {
   return getTemplatesForIntent(items, intentId)[0]?.id ?? null;
 }

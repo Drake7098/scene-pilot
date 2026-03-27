@@ -37,7 +37,7 @@ export function SceneEditorPanel({ lang, scene, project, onUpdateScene }: Props)
   const mediaMode = resolveSceneConfig(scene).mediaMode;
   const shotPlan = (project?.project?.shotPlan ?? "single") as string;
   const isSingle = shotPlan === "single";
-  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "layout_only";
+  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "full_workflow";
   const layoutLocked = applyMode === "layout_only";
 
   const activeProFields = resolveActiveProFields(scene.notes ?? "");

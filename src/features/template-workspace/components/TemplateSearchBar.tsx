@@ -38,10 +38,11 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: 8,
-    padding: "6px 10px",
+    minHeight: TEMPLATE_WORKSPACE_UI.controlHeight.sm,
+    padding: "0 10px",
     background: colors.bg,
     border: `1px solid ${colors.border}`,
-    borderRadius: 8
+    borderRadius: TEMPLATE_WORKSPACE_UI.radius.sm
   },
   icon: { color: colors.textMuted, flexShrink: 0 },
   input: {
@@ -50,6 +51,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     outline: "none",
     color: colors.text,
-    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.body
+    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.body,
+    lineHeight: TEMPLATE_WORKSPACE_UI.lineHeight.normal
   }
 };

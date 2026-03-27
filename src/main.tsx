@@ -9,6 +9,7 @@ import ProductIntroPage from "./pages/ProductIntroPage";
 import UserManagementPage from "./pages/UserManagementPage";
 import AuthEntryPage from "./pages/AuthEntryPage";
 import SharePage from "./pages/SharePage";
+import TemplatePublicPage from "./pages/TemplatePublicPage";
 import { getCurrentUser } from "./services/authService";
 
 const pathnameRaw = typeof window !== "undefined" ? window.location.pathname : "/";
@@ -20,6 +21,7 @@ const isAuthEntryRoute = pathname === "/login" || pathname === "/signin" || path
 const isPricingRoute = pathname === "/pricing" || pathname === "/pricing-test";
 const isUserManagementRoute = pathname === "/account" || pathname === "/user-management";
 const isShareRoute = pathname === "/s";
+const isTemplatePublicRoute = /^\/template\/[^/]+$/i.test(pathname);
 const isTermsRoute = pathname === "/terms";
 const isPrivacyRoute = pathname === "/privacy";
 const isBillingTermsRoute = pathname === "/billing-terms" || pathname === "/billing";
@@ -84,6 +86,7 @@ function resolveRootComponent() {
   if (isPricingRoute) return <PricingPage />;
   if (isUserManagementRoute) return <UserManagementPage />;
   if (isShareRoute) return <SharePage />;
+  if (isTemplatePublicRoute) return <TemplatePublicPage />;
   if (isTermsRoute) return <LegalPolicyPage docId="terms" />;
   if (isPrivacyRoute) return <LegalPolicyPage docId="privacy" />;
   if (isBillingTermsRoute) return <LegalPolicyPage docId="billing" />;

@@ -15,8 +15,21 @@ import { PRO_TYPO } from "../../../uiTokens";
 import { formatPricingBucketForDisplay } from "../../../pricing";
 import type { TemplatePricingResult } from "../../../pricing/templatePricingTypes";
 import { TEMPLATE_WORKSPACE_UI } from "../constants/uiStyle";
+import { shareTemplateLink } from "../utils/templateShare";
 
 const colors = TEMPLATE_WORKSPACE_UI.colors;
+const NEW_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+
+function isTemplateNewFlag(template: TemplateIndex): boolean {
+  if (template.isNewTemplate === true) return true;
+  const until = Number(template.newUntil ?? 0);
+  if (Number.isFinite(until) && until > Date.now()) return true;
+  // Fallback for legacy data without newUntil: infer from id timestamp-ish suffix if present.
+  const tail = template.id.match(/(\d{10,13})$/)?.[1];
+  if (!tail) return false;
+  const ts = Number(tail.length === 10 ? `${tail}000` : tail);
+  return Number.isFinite(ts) && Date.now() - ts <= NEW_WINDOW_MS;
+}
 
 export function isUserPrivateTemplate(item: unknown): item is UserPrivateTemplate {
   return item != null && typeof item === "object" && "originType" in item && (item as UserPrivateTemplate).originType === "user_private";
@@ -75,6 +88,7 @@ export function TemplateCard({
   };
   const isPrivate = isUserPrivateTemplate(item);
   const name = isPrivate ? item.name : (lang === "zh" ? item.nameZh : item.nameEn);
+  const isNew = !isPrivate && isTemplateNewFlag(item as TemplateIndex);
 
   const priceLabel = (() => {
     if (isPrivate) return "";
@@ -104,10 +118,17 @@ export function TemplateCard({
   const fallbackDesc = isPrivate ? "" : (lang === "zh" ? (item.descriptionZh ?? item.descriptionEn) : item.descriptionEn);
 
   const isList = view === "list";
+  const canShare = !isPrivate;
   const actionLabel = (() => {
     if (showOwned || isFreeTemplate) return t("使用模板", "Use Template");
     return t("购买并使用", "Buy & Use");
   })();
+  const shareLabel = t("分享模板", "Share Template");
+  const onShareTemplate = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (isPrivate) return;
+    await shareTemplateLink(item as TemplateIndex, lang);
+  };
 
   return (
     <button
@@ -170,7 +191,10 @@ export function TemplateCard({
 
         {/* 名字行：左边名字，右边收藏 */}
         <div style={styles.cardHeader}>
-          <div style={styles.cardName}>{name}</div>
+          <div style={styles.cardNameRow}>
+            <div style={styles.cardName}>{name}</div>
+            {isNew ? <span style={styles.newBadge}>NEW</span> : null}
+          </div>
           {onToggleFavorite && !isPrivate && (
             <button
               type="button"
@@ -225,30 +249,58 @@ export function TemplateCard({
           )}
 
           {/* 使用按钮（非 clickToUse 模式才显示） */}
-          {!isList && onUse && !clickToUse && (
+          {!isList && !clickToUse ? (
+            <div style={styles.cardActionRow}>
+              {canShare ? (
+                <button
+                  type="button"
+                  style={styles.cardShareBtn}
+                  onClick={onShareTemplate}
+                  onMouseDown={preventMouseFocus}
+                  onMouseUp={blurButton}
+                >
+                  {shareLabel}
+                </button>
+              ) : null}
+              {onUse ? (
+                <button
+                  type="button"
+                  style={styles.cardUseBtn}
+                  onClick={(e) => { e.stopPropagation(); onUse(); }}
+                  onMouseDown={preventMouseFocus}
+                  onMouseUp={blurButton}
+                >
+                  {actionLabel}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </div>
+      {isList && onUse && !clickToUse ? (
+        <div style={styles.listActionWrap}>
+          <div style={styles.listActionRow}>
+            {canShare ? (
+              <button
+                type="button"
+                style={styles.listShareBtn}
+                onClick={onShareTemplate}
+                onMouseDown={preventMouseFocus}
+                onMouseUp={blurButton}
+              >
+                {t("分享", "Share")}
+              </button>
+            ) : null}
             <button
               type="button"
-              style={styles.cardUseBtn}
+              style={styles.listUseBtn}
               onClick={(e) => { e.stopPropagation(); onUse(); }}
               onMouseDown={preventMouseFocus}
               onMouseUp={blurButton}
             >
               {actionLabel}
             </button>
-          )}
-        </div>
-      </div>
-      {isList && onUse && !clickToUse ? (
-        <div style={styles.listActionWrap}>
-          <button
-            type="button"
-            style={styles.listUseBtn}
-            onClick={(e) => { e.stopPropagation(); onUse(); }}
-            onMouseDown={preventMouseFocus}
-            onMouseUp={blurButton}
-          >
-            {actionLabel}
-          </button>
+          </div>
         </div>
       ) : null}
     </button>
@@ -364,6 +416,27 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     minWidth: 0,
     lineHeight: 1.35,
+  },
+  cardNameRow: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    minWidth: 0,
+    flex: 1,
+  },
+  newBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 16,
+    padding: "0 6px",
+    borderRadius: 4,
+    background: "rgba(245,158,11,0.12)",
+    color: colors.accent,
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: "0.04em",
+    flexShrink: 0,
   },
   metaRow: {
     display: "flex",
@@ -500,11 +573,50 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     whiteSpace: "nowrap" as const,
   },
+  cardActionRow: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 6,
+  },
+  cardShareBtn: {
+    padding: "3px 8px",
+    background: colors.panelSoft,
+    border: `1px solid ${colors.border}`,
+    borderRadius: 6,
+    color: colors.textMuted,
+    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.label,
+    fontWeight: 600,
+    fontFamily: PRO_TYPO.fontFamily,
+    cursor: "pointer",
+    whiteSpace: "nowrap" as const,
+  },
   listActionWrap: {
-    width: 118,
-    minWidth: 118,
+    width: 176,
+    minWidth: 176,
     display: "flex",
     alignItems: "center",
+  },
+  listActionRow: {
+    width: "100%",
+    display: "grid",
+    gridTemplateColumns: "72px minmax(0,1fr)",
+    gap: 8,
+    alignItems: "center",
+  },
+  listShareBtn: {
+    width: "100%",
+    border: `1px solid ${colors.border}`,
+    background: colors.panelSoft,
+    color: colors.textMuted,
+    borderRadius: 7,
+    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.caption,
+    fontWeight: 600,
+    fontFamily: PRO_TYPO.fontFamily,
+    cursor: "pointer",
+    minHeight: 34,
+    padding: "0 8px",
+    whiteSpace: "nowrap" as const,
   },
   listUseBtn: {
     width: "100%",

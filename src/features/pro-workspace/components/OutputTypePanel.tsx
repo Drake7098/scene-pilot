@@ -23,7 +23,7 @@ export function OutputTypePanel({ lang, scene, project, onUpdateScene }: Props) 
   const config = resolveSceneConfig(scene);
   const mediaMode = config.mediaMode;
 
-  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "layout_only";
+  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "full_workflow";
   const layoutLocked = applyMode === "layout_only";
 
   function setMediaMode(v: "image" | "video") {
@@ -149,8 +149,8 @@ export function OutputTypePanel({ lang, scene, project, onUpdateScene }: Props) 
       {/* Contextual hint */}
       <div style={{ margin: "4px 16px 12px", padding: "8px 10px", borderRadius: 6, background: `${FIGMA_COLORS.bg}`, border: `1px solid ${FIGMA_COLORS.border}`, fontSize: 11, color: FIGMA_COLORS.textMuted }}>
         {mediaMode === "image"
-          ? tl(lang, "✦ 图片模式：镜头运动字段将被禁用，技术段输出静帧参数", "✦ Image mode: camera movement is disabled; the tech section outputs still-frame parameters")
-          : tl(lang, "✦ 视频模式：镜头运动字段完整开放，技术段输出动态参数", "✦ Video mode: all camera movement fields are active; the tech section outputs motion parameters")}
+          ? tl(lang, "✦ 图片模式：镜头运动字段将被禁用，提示词引擎段输出静帧参数", "✦ Image mode: camera movement is disabled; the Prompt Engine section outputs still-frame parameters")
+          : tl(lang, "✦ 视频模式：镜头运动字段完整开放，提示词引擎段输出动态参数", "✦ Video mode: all camera movement fields are active; the Prompt Engine section outputs motion parameters")}
       </div>
     </div>
   );

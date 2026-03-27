@@ -13,11 +13,11 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Video, Clapperboard, MonitorPlay, Aperture, Mountain,
-  Users, Sun, Palette, Settings2, LayoutGrid, Shield,
+  Users, Sun, Palette, LayoutGrid, Shield,
   FileText, Download, Globe, Layout,
   UserRound, CreditCard, Wallet, LogOut, Crown, KeyRound,
   FilePlus2, FolderOpen, Save, Copy, PencilLine,
-  ChevronLeft, ChevronRight, Layers, Camera,
+  ChevronLeft, ChevronRight, Layers,
 } from "lucide-react";
 import type { Lang } from "../../../i18n";
 import type { ProWorkspaceSection } from "../types";
@@ -294,7 +294,6 @@ export function WorkspaceLeftPanel({
     { id: "objects",     icon: Users,        zh: "对象",     en: "Objects" },
     { id: "lighting",    icon: Sun,          zh: "灯光",     en: "Lighting" },
     { id: "style",       icon: Palette,      zh: "风格",     en: "Style" },
-    { id: "tech",        icon: Settings2,    zh: "技术",     en: "Tech" },
   ];
 
   const TOOLS: Array<{ id: ProWorkspaceSection; icon: any; zh: string; en: string }> = [
@@ -536,15 +535,6 @@ export function WorkspaceLeftPanel({
                 onGlobalNavChange?.("workspace"); // 关闭模版库
               }} />
           ))}
-        </div>
-
-        <div style={{ borderTop: `1px solid ${BORDER}`, flexShrink: 0, padding: "4px 0" }}>
-          <GlobalNavItem
-            icon={Camera}
-            label={tl(lang, "历史", "History")}
-            isActive={activeGlobalNav === "history"}
-            onClick={() => onGlobalNavChange?.("history")}
-          />
         </div>
       </div>
     </div>

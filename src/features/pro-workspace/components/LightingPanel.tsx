@@ -41,7 +41,7 @@ function writeColorTemp(notes: string, v: string) {
 }
 
 export function LightingPanel({ lang, scene, project, onUpdateScene }: Props) {
-  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "layout_only";
+  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "full_workflow";
   const layoutLocked = applyMode === "layout_only";
 
   const timeOptions = [

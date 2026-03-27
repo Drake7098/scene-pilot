@@ -55,7 +55,7 @@ export function DirectorPanel({ lang, scene, project, onUpdateScene }: Props) {
   const packId = parseDirectorStylePackId(scene.notes ?? "");
   const currentPack = DIRECTOR_STYLE_PACKS.find((p) => p.id === packId) ?? null;
 
-  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "layout_only";
+  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "full_workflow";
   const layoutLocked = applyMode === "layout_only";
 
   const packOptions = [

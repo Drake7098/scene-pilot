@@ -8,15 +8,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { Lang } from "../../../i18n";
 import type { Project, Scene, Layer, LocalRefMeta, LocalRefType } from "../../../model";
-import { EditorSection, EditorInput, EditorSelect, EditorCheckbox } from "../../../components/ui";
-import { Users, Anchor, User, Shirt, Package, Zap, Activity, Info, Plus, Trash2 } from "lucide-react";
+import { EditorSection, EditorInput, EditorSelect } from "../../../components/ui";
+import { Users, Anchor, User, Shirt, Zap, Activity, Info, Plus, Trash2, Copy, ArrowUpDown } from "lucide-react";
 import { getLayerAnchorId, stageMarkAnchor } from "../../../features/stage-editor/actions/stageMarkAnchor";
-import { getStageObjectState, writeLayoutLocked } from "../../../features/stage-editor/guards/stageObjectState";
+import { getStageObjectState } from "../../../features/stage-editor/guards/stageObjectState";
 import { deleteRefBlob, getRefBlob, putRefBlob } from "../../../utils/localRefs";
 import { FIGMA_COLORS } from "../constants";
 import { editorTheme } from "../../../theme/editorTheme";
 
 const { typography, spacing, sizing, radius } = editorTheme;
+const FOCUS_OBJECT_EDITOR_EVENT = "spx:focus-object-editor";
 
 // ── Marker helpers (stored in layer.notes) ─────────────────────────────────
 function mkLayerMark(mark: string) {
@@ -42,6 +43,91 @@ const PROP_M     = mkLayerMark("prop:");
 const STATUS_M   = mkLayerMark("status:");
 const EMOTION_M  = mkLayerMark("emotion:");
 const DETAIL_M   = mkLayerMark("detail:");
+const IMPERFECTION_OBJECT_M = mkLayerMark("imperfection_object:");
+const ROLE_M = mkLayerMark("role:");
+
+type ImperfectionStrength = "light" | "medium" | "strong";
+
+const OBJECT_IMPERFECTION_PRESETS = [
+  {
+    id: "none",
+    labelZh: "无",
+    labelEn: "None",
+    phrases: [] as string[],
+  },
+  {
+    id: "portrait_realism",
+    labelZh: "自然人像轻缺陷",
+    labelEn: "Natural Portrait Imperfection",
+    phrases: [
+      "natural facial asymmetry",
+      "visible pores",
+      "uneven skin texture",
+      "faint under-eye darkness",
+      "not overly smooth"
+    ],
+  },
+  {
+    id: "skin_texture",
+    labelZh: "皮肤真实纹理",
+    labelEn: "Real Skin Texture",
+    phrases: [
+      "micro skin detail",
+      "tiny skin imperfections",
+      "slight roughness",
+      "uneven skin tone",
+      "not plastic skin"
+    ],
+  },
+  {
+    id: "fatigue_age",
+    labelZh: "轻疲态与年龄痕迹",
+    labelEn: "Mild Fatigue & Age Traces",
+    phrases: [
+      "fine lines",
+      "faint under-eye darkness",
+      "natural eye bags",
+      "natural expression lines",
+      "natural age traces"
+    ],
+  },
+  {
+    id: "object_usage",
+    labelZh: "物体使用痕迹",
+    labelEn: "Object Usage Marks",
+    phrases: [
+      "minor scratches",
+      "edge wear",
+      "surface inconsistency",
+      "imperfect finish",
+      "realistic usage marks"
+    ],
+  },
+] as const;
+
+function strengthOptions(lang: Lang) {
+  return [
+    { value: "light", label: tl(lang, "轻", "Light") },
+    { value: "medium", label: tl(lang, "中", "Medium") },
+    { value: "strong", label: tl(lang, "强", "Strong") },
+  ];
+}
+
+function parseImperfectionMeta(raw: string): { presetId: string; level: ImperfectionStrength } {
+  const text = (raw ?? "").trim();
+  const preset = text.match(/(?:^|;)\s*preset=([a-z0-9_]+)\s*(?:;|$)/i)?.[1] ?? "none";
+  const levelRaw = text.match(/(?:^|;)\s*level=(light|medium|strong)\s*(?:;|$)/i)?.[1] ?? "light";
+  const level: ImperfectionStrength = levelRaw === "medium" || levelRaw === "strong" ? levelRaw : "light";
+  return { presetId: preset, level };
+}
+
+function buildImperfectionMarkerValue(presetId: string, level: ImperfectionStrength): string {
+  const preset = OBJECT_IMPERFECTION_PRESETS.find((p) => p.id === presetId) ?? OBJECT_IMPERFECTION_PRESETS[0];
+  if (!preset.phrases.length) return "";
+  const count = level === "light" ? 3 : level === "medium" ? 4 : preset.phrases.length;
+  const selected = preset.phrases.slice(0, Math.max(1, count));
+  return [`preset=${preset.id}`, `level=${level}`, ...selected].join("; ");
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type Props = {
@@ -58,6 +144,45 @@ type Props = {
 };
 
 const tl = (lang: Lang, zh: string, en: string) => (lang === "zh" ? zh : en);
+
+type ObjectRole = "primary" | "secondary" | "support";
+
+function normalizeRole(raw: string): ObjectRole | null {
+  const v = String(raw || "").trim().toLowerCase();
+  if (v === "primary" || v === "secondary" || v === "support") return v;
+  return null;
+}
+
+function inferRoleFromType(typeRaw: string, fallback: ObjectRole): ObjectRole {
+  const t = String(typeRaw || "").trim().toLowerCase();
+  if (["product", "prop", "vehicle", "text"].includes(t)) return "support";
+  if (["character", "subject", "animal", "creature"].includes(t)) return fallback;
+  return fallback;
+}
+
+function roleLabel(role: ObjectRole, lang: Lang): string {
+  if (role === "primary") return tl(lang, "主体", "Primary");
+  if (role === "support") return tl(lang, "道具", "Support");
+  return tl(lang, "配角", "Secondary");
+}
+
+function nextLayerOrdinalId(layers: Layer[]): string {
+  const used = new Set(layers.map((l) => String(l.id || "").trim()).filter(Boolean));
+  let maxN = 0;
+  for (const id of used) {
+    const hit = id.match(/^layer(\d+)$/i);
+    if (!hit) continue;
+    const n = Number.parseInt(hit[1], 10);
+    if (Number.isFinite(n)) maxN = Math.max(maxN, n);
+  }
+  let seq = Math.max(1, maxN + 1);
+  let next = `layer${seq}`;
+  while (used.has(next)) {
+    seq += 1;
+    next = `layer${seq}`;
+  }
+  return next;
+}
 
 // ── Select option sets ─────────────────────────────────────────────────────
 const typeOptions = (lang: Lang) => [
@@ -147,6 +272,8 @@ export function ObjectEditorPanel({
   const [idDraft, setIdDraft] = useState("");
   const [localRefToast, setLocalRefToast] = useState("");
   const [localRefThumb, setLocalRefThumb] = useState("");
+  const [draggingLayerId, setDraggingLayerId] = useState<string | null>(null);
+  const objectEditorAnchorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => { setIdEditing(false); setIdDraft(selectedLayer?.id ?? ""); }, [selectedLayer?.id]);
   useEffect(() => {
@@ -154,8 +281,33 @@ export function ObjectEditorPanel({
     const t = window.setTimeout(() => setLocalRefToast(""), 3000);
     return () => window.clearTimeout(t);
   }, [localRefToast]);
+  useEffect(() => {
+    const onFocusObjectEditor = (event: Event) => {
+      const custom = event as CustomEvent<{ layerId?: string }>;
+      const layerId = String(custom.detail?.layerId || "").trim();
+      if (layerId && layers.some((layer) => layer.id === layerId) && selectedLayerId !== layerId) {
+        onSelectLayer(layerId);
+      }
+      objectEditorAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    window.addEventListener(FOCUS_OBJECT_EDITOR_EVENT, onFocusObjectEditor as EventListener);
+    return () => window.removeEventListener(FOCUS_OBJECT_EDITOR_EVENT, onFocusObjectEditor as EventListener);
+  }, [layers, selectedLayerId, onSelectLayer]);
 
   const localRefs = selectedLayer?.localRefs ?? [];
+  const selectedLayerIndex = selectedLayer ? layers.findIndex((l) => l.id === selectedLayer.id) : -1;
+  const selectedRoleFallback: ObjectRole = selectedLayerIndex <= 0 ? "primary" : "secondary";
+  const selectedRole = selectedLayer
+    ? (normalizeRole(ROLE_M.parse(selectedLayer.notes ?? "")) ?? inferRoleFromType(selectedLayer.type ?? "", selectedRoleFallback))
+    : "primary";
+  const roleOptions = [
+    { value: "primary", label: roleLabel("primary", lang) },
+    { value: "secondary", label: roleLabel("secondary", lang) },
+    { value: "support", label: roleLabel("support", lang) },
+  ];
+  const showStateGroup = selectedRole !== "primary";
+  const showActionGroup = selectedRole !== "support";
+  const objectImperfectionMeta = parseImperfectionMeta(IMPERFECTION_OBJECT_M.parse(selectedLayer?.notes ?? ""));
   const localRefId = localRefs[0]?.id;
   const thumbUrlRef = useRef<string>("");
   useEffect(() => {
@@ -185,6 +337,36 @@ export function ObjectEditorPanel({
     onUpdateScene({ ...scene, layers: newLayers });
     onRenameLayer(selectedLayer.id, nextId);
     setIdEditing(false);
+  }
+
+  function duplicateLayer(layerId: string) {
+    const source = layers.find((l) => l.id === layerId);
+    if (!source) return;
+    const cloned = JSON.parse(JSON.stringify(source)) as Layer;
+    const preferredId = `${source.id} copy`;
+    const usedIds = new Set(layers.map((l) => l.id));
+    let nextId = preferredId;
+    let copyIndex = 2;
+    while (usedIds.has(nextId)) {
+      nextId = `${preferredId} ${copyIndex}`;
+      copyIndex += 1;
+    }
+    cloned.id = nextId || nextLayerOrdinalId(layers);
+    cloned.z = Math.max(...layers.map((l) => Number(l.z) || 0), 0) + 1;
+    const nextLayers = [...layers, cloned];
+    onUpdateScene({ ...scene, layers: nextLayers });
+    onSelectLayer(cloned.id);
+  }
+
+  function reorderLayers(fromId: string, toId: string) {
+    if (!fromId || !toId || fromId === toId) return;
+    const from = layers.findIndex((l) => l.id === fromId);
+    const to = layers.findIndex((l) => l.id === toId);
+    if (from < 0 || to < 0) return;
+    const next = [...layers];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onUpdateScene({ ...scene, layers: next });
   }
 
   async function addLocalRefs(type: LocalRefType, files: FileList | null) {
@@ -221,6 +403,12 @@ export function ObjectEditorPanel({
     onUpdateLayer(selectedLayer.id, { notes: nextNotes });
   }
 
+  const objectComplexityHint = layers.length > 10
+    ? tl(lang, "对象较多，生成稳定性可能下降（建议拆分场景）", "Many objects may reduce generation stability (consider splitting scenes)")
+    : layers.length > 6
+      ? tl(lang, "对象较多，提示词复杂度升高", "Object count is high; prompt complexity is increasing")
+      : "";
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {/* Step header */}
@@ -234,44 +422,74 @@ export function ObjectEditorPanel({
       </div>
 
       {/* Object list header with add button */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 14px 4px" }}>
+      <div ref={objectEditorAnchorRef} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 14px 4px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: FIGMA_COLORS.textMuted, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
           <Users size={12} />
           {tl(lang, "对象列表", "Object List")}
         </div>
-        {onAddLayer && (
-          <button
-            type="button"
-            onClick={onAddLayer}
-            title={tl(lang, "新增对象", "Add object")}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div
+            title={tl(lang, "可拖拽排序（影响 prompt 顺序）", "Drag to sort (affects prompt order)")}
             style={{
               display: "flex", alignItems: "center", gap: 4,
-              padding: "4px 10px", borderRadius: 5,
-              border: `1px solid ${FIGMA_COLORS.accent}44`,
-              background: `${FIGMA_COLORS.accent}10`, color: FIGMA_COLORS.accent,
-              fontSize: 11, fontWeight: 600, cursor: "pointer",
+              padding: "4px 8px", borderRadius: 5,
+              border: `1px solid ${FIGMA_COLORS.border}`,
+              background: FIGMA_COLORS.bg, color: FIGMA_COLORS.textMuted,
+              fontSize: 11, fontWeight: 600,
             }}
           >
-            <Plus size={11} />
-            {tl(lang, "新增对象", "Add")}
-          </button>
-        )}
+            <ArrowUpDown size={11} />
+            {tl(lang, "对象排序", "Sort")}
+          </div>
+          {onAddLayer && (
+            <button
+              type="button"
+              onClick={onAddLayer}
+              title={tl(lang, "新增对象", "Add object")}
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                padding: "4px 10px", borderRadius: 5,
+                border: `1px solid ${FIGMA_COLORS.accent}44`,
+                background: `${FIGMA_COLORS.accent}10`, color: FIGMA_COLORS.accent,
+                fontSize: 11, fontWeight: 600, cursor: "pointer",
+              }}
+            >
+              <Plus size={11} />
+              {tl(lang, "新增对象", "Add")}
+            </button>
+          )}
+        </div>
       </div>
       <div style={{ padding: "4px 14px 10px" }}>
+        {objectComplexityHint ? (
+          <div style={{ fontSize: 11, color: FIGMA_COLORS.textMuted, marginBottom: 6 }}>
+            {objectComplexityHint}
+          </div>
+        ) : null}
         {layers.length === 0 ? (
           <div style={{ fontSize: 12, color: FIGMA_COLORS.textMuted, padding: "4px 0" }}>
             {tl(lang, "暂无对象，点右上角「新增」添加", "No objects yet — click Add above")}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {layers.map((layer) => {
+            {layers.map((layer, idx) => {
               const isSelected = layer.id === selectedLayerId;
               const state = getStageObjectState(layer, scene, project);
-              const hasAction = ACTION_M.parse(layer.notes ?? "") !== "";
+              const fallbackRole: ObjectRole = idx === 0 ? "primary" : "secondary";
+              const layerRole = normalizeRole(ROLE_M.parse(layer.notes ?? "")) ?? inferRoleFromType(layer.type ?? "", fallbackRole);
               return (
                 <div
                   key={layer.id}
-                  style={{ display: "flex", alignItems: "center", gap: 4 }}
+                  draggable
+                  onDragStart={() => setDraggingLayerId(layer.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (draggingLayerId) reorderLayers(draggingLayerId, layer.id);
+                    setDraggingLayerId(null);
+                  }}
+                  onDragEnd={() => setDraggingLayerId(null)}
+                  style={{ display: "flex", alignItems: "center", gap: 4, opacity: draggingLayerId === layer.id ? 0.6 : 1 }}
                 >
                 <button
                   type="button"
@@ -294,6 +512,9 @@ export function ObjectEditorPanel({
                   <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {layer.id}
                   </span>
+                  <span style={{ fontSize: 10, color: FIGMA_COLORS.textMuted, flexShrink: 0 }}>
+                    {roleLabel(layerRole, lang)}
+                  </span>
                   {layer.type && (
                     <span style={{ fontSize: 10, color: FIGMA_COLORS.textMuted, flexShrink: 0 }}>
                       {layer.type}
@@ -301,6 +522,30 @@ export function ObjectEditorPanel({
                   )}
                   {state.continuityId && <Anchor size={11} style={{ opacity: 0.6, flexShrink: 0 }} />}
                 </button>
+                {onDeleteLayer && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); duplicateLayer(layer.id); }}
+                    title={tl(lang, "复制对象", "Duplicate object")}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      width: 24, height: 24, borderRadius: 5, flexShrink: 0,
+                      border: "none", background: "transparent",
+                      color: FIGMA_COLORS.textMuted, cursor: "pointer",
+                      transition: "color 0.1s, background 0.1s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = FIGMA_COLORS.accent;
+                      e.currentTarget.style.background = `${FIGMA_COLORS.accent}1a`;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = FIGMA_COLORS.textMuted;
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <Copy size={12} />
+                  </button>
+                )}
                 {onDeleteLayer && (
                   <button
                     type="button"
@@ -335,8 +580,11 @@ export function ObjectEditorPanel({
       {/* Selected layer editor — grouped */}
       {selectedLayer && (
         <>
-          {/* ① 主体 */}
-          <EditorSection title={tl(lang, "① 主体", "① Subject")} icon={User} defaultOpen={true}>
+          <div style={{ padding: "0 14px 8px", fontSize: 12, color: FIGMA_COLORS.text }}>
+            {tl(lang, "当前对象", "Current Object")}：{selectedLayer.id}（{roleLabel(selectedRole, lang)}）
+          </div>
+
+          <EditorSection title={tl(lang, "基本信息", "Basic Info")} icon={User} defaultOpen={true}>
             {/* ID / rename */}
             <div style={{ marginBottom: 6 }}>
               <div style={{ fontSize: typography.labelSize, fontWeight: typography.labelWeight, color: FIGMA_COLORS.textMuted, marginBottom: spacing.labelToControl }}>
@@ -362,11 +610,20 @@ export function ObjectEditorPanel({
             </div>
 
             <EditorSelect
+              label={tl(lang, "对象角色", "Object Role")}
+              value={selectedRole}
+              onChange={(v) => updateLayerNotes(ROLE_M, v)}
+              options={roleOptions}
+            />
+            <EditorSelect
               label={tl(lang, "对象类型", "Object Type")}
               value={selectedLayer.type ?? ""}
               onChange={(v) => onUpdateLayer(selectedLayer.id, { type: v })}
               options={typeOptions(lang)}
             />
+          </EditorSection>
+
+          <EditorSection title={tl(lang, "外观", "Appearance")} icon={Shirt} defaultOpen={false}>
             <EditorInput
               label={tl(lang, "主体描述", "Subject Description")}
               value={selectedLayer.look ?? ""}
@@ -398,10 +655,6 @@ export function ObjectEditorPanel({
               </div>
               {localRefToast && <div style={{ marginTop: 3, fontSize: 10, color: FIGMA_COLORS.textMuted }}>{localRefToast}</div>}
             </div>
-          </EditorSection>
-
-          {/* ② 外观 & 服装 */}
-          <EditorSection title={tl(lang, "② 外观 & 服装", "② Appearance & Costume")} icon={Shirt} defaultOpen={false}>
             <EditorInput
               label={tl(lang, "形态描述", "Form / Shape")}
               value={selectedLayer.shapeDesc ?? ""}
@@ -420,10 +673,6 @@ export function ObjectEditorPanel({
               onChange={(v) => updateLayerNotes(ACCESSORY_M, v)}
               placeholder={tl(lang, "帽子、眼镜、首饰、包包等", "Hat, glasses, jewelry, bag, etc.")}
             />
-          </EditorSection>
-
-          {/* ③ 道具 */}
-          <EditorSection title={tl(lang, "③ 道具", "③ Props")} icon={Package} defaultOpen={false}>
             <EditorInput
               label={tl(lang, "持有道具", "Held Prop")}
               value={PROP_M.parse(selectedLayer.notes ?? "")}
@@ -438,50 +687,67 @@ export function ObjectEditorPanel({
             />
           </EditorSection>
 
-          {/* ④ 动作 */}
-          <EditorSection title={tl(lang, "④ 动作", "④ Action")} icon={Zap} defaultOpen={true}>
-            <EditorSelect
-              compact
-              label={tl(lang, "主要动作", "Primary Action")}
-              value={ACTION_M.parse(selectedLayer.notes ?? "")}
-              onChange={(v) => updateLayerNotes(ACTION_M, v)}
-              options={actionOptions(lang)}
-            />
-            <EditorSelect
-              compact
-              label={tl(lang, "姿态", "Pose")}
-              value={POSE_M.parse(selectedLayer.notes ?? "")}
-              onChange={(v) => updateLayerNotes(POSE_M, v)}
-              options={poseOptions(lang)}
-            />
-          </EditorSection>
+          {showStateGroup && (
+            <EditorSection title={tl(lang, "状态", "State")} icon={Activity} defaultOpen={false}>
+              <EditorSelect
+                compact
+                label={tl(lang, "面部表情", "Facial Expression")}
+                value={EXPR_M.parse(selectedLayer.notes ?? "")}
+                onChange={(v) => updateLayerNotes(EXPR_M, v)}
+                options={expressionOptions(lang)}
+              />
+              <EditorSelect
+                compact
+                label={tl(lang, "情绪内核", "Emotional State")}
+                value={EMOTION_M.parse(selectedLayer.notes ?? "")}
+                onChange={(v) => updateLayerNotes(EMOTION_M, v)}
+                options={emotionOptions(lang)}
+              />
+              <EditorInput
+                label={tl(lang, "状态备注", "Status Note")}
+                value={STATUS_M.parse(selectedLayer.notes ?? "")}
+                onChange={(v) => updateLayerNotes(STATUS_M, v)}
+                placeholder={tl(lang, "伤势、疲惫、特殊状态等", "Injuries, exhaustion, special conditions, etc.")}
+              />
+            </EditorSection>
+          )}
 
-          {/* ⑤ 状态 */}
-          <EditorSection title={tl(lang, "⑤ 状态", "⑤ State")} icon={Activity} defaultOpen={false}>
-            <EditorSelect
-              compact
-              label={tl(lang, "面部表情", "Facial Expression")}
-              value={EXPR_M.parse(selectedLayer.notes ?? "")}
-              onChange={(v) => updateLayerNotes(EXPR_M, v)}
-              options={expressionOptions(lang)}
-            />
-            <EditorSelect
-              compact
-              label={tl(lang, "情绪内核", "Emotional State")}
-              value={EMOTION_M.parse(selectedLayer.notes ?? "")}
-              onChange={(v) => updateLayerNotes(EMOTION_M, v)}
-              options={emotionOptions(lang)}
-            />
-            <EditorInput
-              label={tl(lang, "状态备注", "Status Note")}
-              value={STATUS_M.parse(selectedLayer.notes ?? "")}
-              onChange={(v) => updateLayerNotes(STATUS_M, v)}
-              placeholder={tl(lang, "伤势、疲惫、特殊状态等", "Injuries, exhaustion, special conditions, etc.")}
-            />
-          </EditorSection>
+          {showActionGroup && (
+            <EditorSection title={tl(lang, "动作", "Action")} icon={Zap} defaultOpen={true}>
+              <EditorSelect
+                compact
+                label={tl(lang, "主要动作", "Primary Action")}
+                value={ACTION_M.parse(selectedLayer.notes ?? "")}
+                onChange={(v) => updateLayerNotes(ACTION_M, v)}
+                options={actionOptions(lang)}
+              />
+              <EditorSelect
+                compact
+                label={tl(lang, "姿态", "Pose")}
+                value={POSE_M.parse(selectedLayer.notes ?? "")}
+                onChange={(v) => updateLayerNotes(POSE_M, v)}
+                options={poseOptions(lang)}
+              />
+            </EditorSection>
+          )}
 
-          {/* ⑥ 细节 */}
-          <EditorSection title={tl(lang, "⑥ 细节", "⑥ Detail")} icon={Info} defaultOpen={false}>
+          <EditorSection title={tl(lang, "细节和缺陷层", "Details & Imperfection")} icon={Info} defaultOpen={false}>
+            <EditorSelect
+              label={tl(lang, "缺陷层", "Imperfection Layer")}
+              value={objectImperfectionMeta.presetId}
+              onChange={(v) => updateLayerNotes(IMPERFECTION_OBJECT_M, buildImperfectionMarkerValue(v, objectImperfectionMeta.level))}
+              options={OBJECT_IMPERFECTION_PRESETS.map((p) => ({
+                value: p.id,
+                label: tl(lang, p.labelZh, p.labelEn)
+              }))}
+            />
+            <EditorSelect
+              compact
+              label={tl(lang, "缺陷强度", "Imperfection Strength")}
+              value={objectImperfectionMeta.level}
+              onChange={(v) => updateLayerNotes(IMPERFECTION_OBJECT_M, buildImperfectionMarkerValue(objectImperfectionMeta.presetId, v as ImperfectionStrength))}
+              options={strengthOptions(lang)}
+            />
             <EditorInput
               label={tl(lang, "细节补充", "Fine Detail")}
               value={DETAIL_M.parse(selectedLayer.notes ?? "")}
@@ -508,14 +774,6 @@ export function ObjectEditorPanel({
               value={selectedLayer.notes ?? ""}
               onChange={(v) => onUpdateLayer(selectedLayer.id, { notes: v })}
               placeholder={tl(lang, "仅供内部参考，不进提示词", "Internal note — not sent to prompt")}
-            />
-            <EditorCheckbox
-              label={tl(lang, "布局锁定", "Layout Locked")}
-              checked={objState?.isLocked ?? false}
-              onCheckedChange={(v) => {
-                const notes = writeLayoutLocked(selectedLayer.notes ?? "", v);
-                onUpdateLayer(selectedLayer.id, { notes });
-              }}
             />
             <EditorInput
               label={tl(lang, "连续性锚点 ID", "Continuity Anchor ID")}

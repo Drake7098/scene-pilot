@@ -44,7 +44,7 @@ export function PlatformAdaptPanel({
 }: Props) {
   const mediaMode = resolveSceneConfig(scene).mediaMode;
   const engineId = mediaMode === "image" ? "IM V5P" : "VI V5P";
-  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "layout_only";
+  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "full_workflow";
 
   const prompt = useMemo(() => {
     if (!project) return "";

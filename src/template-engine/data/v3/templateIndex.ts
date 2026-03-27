@@ -11,9 +11,187 @@
  */
 
 import type { TemplateIndex } from "../../types/templateIndex";
+import type { AIBatchGenerateProtocol, BackStructure, FrontCategory, QualityLevel } from "../../types/templatePayload";
 
 export function getV3TemplateIndex(): TemplateIndex[] {
-  return V3_TEMPLATES;
+  return decorateV3TemplateIndex(V3_TEMPLATES);
+}
+
+type RatioPolicy = {
+  minFreeRatio: number;
+  maxFreeRatio: number;
+};
+
+type RatioCheckResult = {
+  frontCategory: FrontCategory;
+  total: number;
+  free: number;
+  freeRatio: number;
+  passed: boolean;
+  expected: RatioPolicy;
+};
+
+const TEMPLATE_CATEGORY_RATIO_POLICY: Record<FrontCategory, RatioPolicy> = {
+  sell_product: { minFreeRatio: 0.2, maxFreeRatio: 0.3 },
+  people_portrait: { minFreeRatio: 0.2, maxFreeRatio: 0.3 },
+  cover_poster: { minFreeRatio: 0.2, maxFreeRatio: 0.3 },
+  video_talking_head: { minFreeRatio: 0.2, maxFreeRatio: 0.3 },
+  story_video: { minFreeRatio: 0.2, maxFreeRatio: 0.3 },
+  continuous_storyboard: { minFreeRatio: 0.2, maxFreeRatio: 0.3 },
+  dialogue_multishot: { minFreeRatio: 0.2, maxFreeRatio: 0.3 },
+  action_motion: { minFreeRatio: 0.2, maxFreeRatio: 0.3 },
+  chase_sequence: { minFreeRatio: 0.2, maxFreeRatio: 0.3 },
+  anime_stylized: { minFreeRatio: 0.2, maxFreeRatio: 0.3 },
+};
+
+const MASTER_TEMPLATE_IDS: Record<FrontCategory, string[]> = {
+  sell_product: ["v3_product_hero_01", "v3_product_lifestyle_01", "v3_luxury_01"],
+  people_portrait: ["v3_portrait_editorial_01", "v3_portrait_cinematic_01", "v3_portrait_fashion_01"],
+  cover_poster: ["v3_cover_cinematic_01", "v3_cover_minimal_01", "v3_cover_anime_01"],
+  video_talking_head: ["v3_talking_head_01", "v3_talking_head_dual_01"],
+  story_video: ["v3_story_conflict_01", "v3_story_transition_01", "v3_story_intro_01"],
+  continuous_storyboard: ["v3_storyboard_continuous_01", "v3_storyboard_dialogue_01", "v3_storyboard_chase_01"],
+  dialogue_multishot: ["v3_dialogue_multishot_01", "v3_dialogue_multishot_02"],
+  action_motion: ["v3_action_motion_01", "v3_action_motion_02"],
+  chase_sequence: ["v3_chase_sequence_01", "v3_chase_sequence_02"],
+  anime_stylized: ["v3_anime_stylized_01", "v3_anime_stylized_02"],
+};
+
+function inferFrontCategoryFromIndex(item: TemplateIndex): FrontCategory {
+  const id = item.id.toLowerCase();
+  const domain = String(item.domain || "").toLowerCase();
+  const family = String(item.familyId || "").toLowerCase();
+  if (id.includes("anime") || domain.includes("anime")) return "anime_stylized";
+  if (id.includes("talking_head")) return "video_talking_head";
+  if (id.includes("dialogue")) return "dialogue_multishot";
+  if (id.includes("chase")) return "chase_sequence";
+  if (id.includes("action")) return "action_motion";
+  if (id.includes("storyboard")) return "continuous_storyboard";
+  if (domain.includes("product")) return "sell_product";
+  if (domain.includes("portrait") || family.includes("portrait")) return "people_portrait";
+  if (domain.includes("poster") || family.includes("cover")) return "cover_poster";
+  return "story_video";
+}
+
+function inferBackStructure(item: TemplateIndex, frontCategory: FrontCategory): BackStructure {
+  if (frontCategory === "sell_product") return "product_focus";
+  if (frontCategory === "video_talking_head") return "talking_head";
+  if (frontCategory === "cover_poster") return "cover_poster";
+  if (frontCategory === "continuous_storyboard") return "continuous_story";
+  if (frontCategory === "dialogue_multishot") return "dialogue_multishot";
+  if (frontCategory === "action_motion") return "action_motion";
+  if (frontCategory === "chase_sequence") return "chase_sequence";
+  if (frontCategory === "anime_stylized") return "anime_stylized";
+  if (item.storyPlan === "continuous") return "continuous_story";
+  return "single_subject";
+}
+
+function scoreFromIndex(item: TemplateIndex, backStructure: BackStructure): number {
+  let score = 2;
+  if (item.mediaType === "video") score += 2;
+  if (item.storyPlan === "continuous") score += 2;
+  if (backStructure === "dialogue_multishot" || backStructure === "chase_sequence") score += 2;
+  if (item.featured) score += 1;
+  if (item.cost >= 3) score += 1;
+  return Math.max(0, Math.min(10, score));
+}
+
+function qualityLevelFromScore(score: number): QualityLevel {
+  if (score <= 3) return "free";
+  if (score <= 6) return "standard";
+  if (score <= 8) return "advanced";
+  return "premium";
+}
+
+function decorateV3TemplateIndex(list: TemplateIndex[]): TemplateIndex[] {
+  const masterSet = new Set<string>(Object.values(MASTER_TEMPLATE_IDS).flat());
+  const now = Date.now();
+  const newUntil = now + 14 * 24 * 60 * 60 * 1000;
+  return list.map((item) => {
+    const frontCategory = item.frontCategory ?? inferFrontCategoryFromIndex(item);
+    const backStructure = item.backStructure ?? inferBackStructure(item, frontCategory);
+    const score = Number.isFinite(item.score) ? Number(item.score) : scoreFromIndex(item, backStructure);
+    const qualityLevel = item.qualityLevel ?? qualityLevelFromScore(score);
+    const isMasterTemplate = item.isMasterTemplate === true || masterSet.has(item.id);
+    const masterTemplateId =
+      item.masterTemplateId
+      || (isMasterTemplate ? item.id : MASTER_TEMPLATE_IDS[frontCategory]?.[0] || item.id);
+    const isDerivedTemplate = item.isDerivedTemplate === true || (!isMasterTemplate && !!masterTemplateId);
+    return {
+      ...item,
+      frontCategory,
+      backStructure,
+      score,
+      qualityLevel,
+      isMasterTemplate,
+      masterTemplateId,
+      isDerivedTemplate,
+      isUserTemplate: item.isUserTemplate === true,
+      generationSource: item.generationSource ?? (isMasterTemplate ? "manual" : "derived_from_master"),
+      isNewTemplate: item.isNewTemplate ?? false,
+      newUntil: item.newUntil ?? (item.isNewTemplate ? newUntil : undefined),
+    };
+  });
+}
+
+export function getMasterTemplateIdsByCategory(frontCategory: FrontCategory): string[] {
+  return [...(MASTER_TEMPLATE_IDS[frontCategory] ?? [])];
+}
+
+export function validateTemplateFreeRatioByCategory(list = getV3TemplateIndex()): RatioCheckResult[] {
+  const grouped = new Map<FrontCategory, TemplateIndex[]>();
+  for (const item of list) {
+    const frontCategory = item.frontCategory ?? inferFrontCategoryFromIndex(item);
+    const arr = grouped.get(frontCategory) ?? [];
+    arr.push(item);
+    grouped.set(frontCategory, arr);
+  }
+  return (Object.keys(TEMPLATE_CATEGORY_RATIO_POLICY) as FrontCategory[]).map((frontCategory) => {
+    const rows = grouped.get(frontCategory) ?? [];
+    const total = rows.length;
+    const free = rows.filter((r) => r.isFree || r.cost <= 0).length;
+    const freeRatio = total > 0 ? free / total : 0;
+    const expected = TEMPLATE_CATEGORY_RATIO_POLICY[frontCategory];
+    const passed = total === 0 ? true : freeRatio >= expected.minFreeRatio && freeRatio <= expected.maxFreeRatio;
+    return { frontCategory, total, free, freeRatio, passed, expected };
+  });
+}
+
+export function generateDerivedTemplateIndexDrafts(protocol: AIBatchGenerateProtocol): TemplateIndex[] {
+  const base = getV3TemplateIndex();
+  const master = base.find((item) => item.id === protocol.masterTemplateId);
+  if (!master) return [];
+  const count = Math.max(1, Math.min(50, Number(protocol.count || 1)));
+  const out: TemplateIndex[] = [];
+  const freeRatio = Math.max(0, Math.min(1, Number(protocol.freeRatio ?? 0.25)));
+  const freeCount = Math.round(count * freeRatio);
+  for (let i = 1; i <= count; i += 1) {
+    const isFree = i <= freeCount;
+    const cost = isFree ? 0 : master.cost || 1;
+    const id = `${master.id}_derived_${String(i).padStart(2, "0")}`;
+    out.push({
+      ...master,
+      id,
+      variantId: `${master.variantId || "standard"}_d${String(i).padStart(2, "0")}`,
+      nameZh: `${master.nameZh}·派生${String(i).padStart(2, "0")}`,
+      nameEn: `${master.nameEn} Derived ${String(i).padStart(2, "0")}`,
+      frontCategory: protocol.frontCategory,
+      backStructure: protocol.backStructure,
+      mediaType: protocol.mediaType,
+      storyPlan: protocol.storyPlan,
+      ratio: protocol.ratio ?? master.ratio,
+      isFree,
+      cost,
+      isMasterTemplate: false,
+      isDerivedTemplate: true,
+      masterTemplateId: master.id,
+      generationSource: "ai_generated",
+      isNewTemplate: true,
+      newUntil: Date.now() + 14 * 24 * 60 * 60 * 1000,
+      tags: [...new Set([...(master.tags ?? []), "derived", "ai-generated", protocol.frontCategory, protocol.backStructure])]
+    });
+  }
+  return out;
 }
 
 const V3_TEMPLATES: TemplateIndex[] = [

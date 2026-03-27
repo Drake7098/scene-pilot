@@ -570,29 +570,6 @@ function enforceRouteContract(input: {
   }
 
   if (route === "quick_video" || route === "pro_video") {
-    const hasCamera = /(^Camera(?: Contract)?:|^镜头[:：])/im.test(working);
-    // Step2 新格式：motion section 或直接的运动叙事行都算有 motion
-    const hasMotion =
-      /(^Motion:|^T1 Frame Spec:|^动作[:：]|^Transition\s+\d+|^衔接\s+\d+)/im.test(working) ||
-      working.split("\n").some((l) => isMotionNarrativeLine(l.trim())) ||
-      /^所有主体保持静止|^All subjects static/im.test(working);
-
-    if (!hasCamera || !hasMotion) {
-      const inject = lang === "zh"
-        ? [
-            !hasCamera ? "镜头:\n- 明确景别、机位与运动方式。" : "",
-            !hasMotion ? "动作/衔接:\n- 明确主体动作、镜头切换或连续推进关系。" : ""
-          ].filter(Boolean).join("\n\n")
-        : [
-            !hasCamera ? "Camera:\n- Specify shot size, angle, and camera movement." : "",
-            !hasMotion ? "Motion/Transition:\n- Specify subject action and transition/continuity logic." : ""
-          ].filter(Boolean).join("\n\n");
-      if (inject) {
-        working = `${working.trim()}\n\n${inject}`.trim();
-        passes.push("video_contract_inject_camera_motion");
-      }
-    }
-
     const sections = parseSections(working);
     const joined = working;
     const hasIntentionalMove = /跟随|follow|心理逼近|push-?in|dolly/i.test(joined);

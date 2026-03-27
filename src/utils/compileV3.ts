@@ -133,7 +133,7 @@ function resolveWithPriority(
 }
 
 // ── Position: x/y/w → concise natural language ────────────────────────────
-function positionPhrase(x: number, y: number, w: number): string {
+function positionPhrase(x: number, y: number, w: number, lang: Lang): string {
   const h =
     x < 28 ? "far left" :
     x < 42 ? "left of center" :
@@ -149,6 +149,25 @@ function positionPhrase(x: number, y: number, w: number): string {
     w < 28 ? "occupying about a third of the frame" :
     w < 45 ? "prominently sized" :
     "filling most of the frame";
+  if (lang === "zh") {
+    const hZh =
+      h === "far left" ? "画面最左" :
+      h === "left of center" ? "偏左" :
+      h === "centered" ? "居中" :
+      h === "right of center" ? "偏右" :
+      "画面最右";
+    const vZh =
+      v === "upper" ? "上方" :
+      v === "mid" ? "中部" :
+      "下方";
+    const pZh =
+      prominence === "small in frame" ? "画面占比小" :
+      prominence === "occupying about a third of the frame" ? "约占画面三分之一" :
+      prominence === "prominently sized" ? "主体占比较突出" :
+      "占据画面大部分";
+    return `${hZh}，${vZh}，${pZh}`;
+  }
+
   return `${h}, ${v}-frame, ${prominence}`;
 }
 
@@ -166,6 +185,15 @@ const SHOT: Record<string, string> = {
   ECU:"extreme close-up shot", CU:"close-up shot", MCU:"medium close-up shot",
   MS:"medium shot", FS:"full shot", LS:"long shot", XLS:"extreme long shot",
 };
+const SHOT_ZH: Record<string, string> = {
+  ECU: "极近景",
+  CU: "近景",
+  MCU: "中近景",
+  MS: "中景",
+  FS: "全身景",
+  LS: "远景",
+  XLS: "大远景",
+};
 const ANGLE: Record<string, string> = {
   eye_level:"eye-level angle", low_angle:"low angle",
   high_angle:"high angle", dutch:"dutch angle", worm_eye:"extreme low angle / worm's eye view",
@@ -174,6 +202,18 @@ const ANGLE: Record<string, string> = {
   two_shot:"two-shot, cowboy framing",
   profile:"side-on profile angle, 90 degrees",
   three_quarter:"three-quarter angle",
+};
+const ANGLE_ZH: Record<string, string> = {
+  eye_level: "平视机位",
+  low_angle: "低机位仰拍",
+  high_angle: "高机位俯拍",
+  dutch: "荷兰式倾斜机位",
+  worm_eye: "虫眼极低机位",
+  bird_eye: "鸟瞰正俯视",
+  over_shoulder: "过肩机位",
+  two_shot: "双人同框机位",
+  profile: "侧面轮廓机位",
+  three_quarter: "四分之三机位",
 };
 const MOVEMENT: Record<string, string> = {
   static:"", slow_push:"slow dolly push forward", pull_back:"slow dolly pull back",
@@ -195,6 +235,34 @@ const MOVEMENT: Record<string, string> = {
   crane_down:"crane shot descending",
   jib_up:"jib arm rising shot",
 };
+const MOVEMENT_ZH: Record<string, string> = {
+  static: "",
+  slow_push: "缓慢推进",
+  pull_back: "缓慢拉远",
+  pan_left: "镜头左摇",
+  pan_right: "镜头右摇",
+  tilt_up: "镜头上仰",
+  tilt_down: "镜头下俯",
+  tracking: "跟拍镜头",
+  crane_up: "升降臂上升",
+  handheld: "手持机位，自然晃动",
+  steadicam: "斯坦尼康平稳移动",
+  orbit: "环绕主体运动",
+  zoom_in: "缓慢变焦推近",
+  zoom_out: "缓慢变焦拉远",
+  push_in: "轨道推进",
+  pull_out: "轨道拉远",
+  whip_pan: "甩镜，快速转向",
+  roll: "镜头旋转",
+  follow_focus: "跟焦追随",
+  dolly_zoom: "焦距推拉（希区柯克）",
+  arc: "弧线环绕镜头",
+  drone_rise: "无人机上升",
+  drone_descend: "无人机下降",
+  drone_orbit: "无人机环绕",
+  crane_down: "升降臂下降",
+  jib_up: "摇臂上扬",
+};
 const FOCAL: Record<string, string> = {
   "8mm":"8mm fisheye lens, extreme distortion",
   "14mm":"14mm ultra-wide lens", "18mm":"18mm wide-angle lens",
@@ -208,12 +276,27 @@ const FOCAL: Record<string, string> = {
   "tilt_shift":"tilt-shift lens, selective focus plane",
   "anamorphic":"anamorphic lens, widescreen format with oval bokeh",
 };
+const FOCAL_ZH: Record<string, string> = {
+  "24mm": "24mm 广角镜头",
+  "35mm": "35mm 镜头",
+  "50mm": "50mm 标准镜头",
+  "85mm": "85mm 人像定焦",
+  macro: "微距镜头，强调细节",
+  anamorphic: "变形宽银幕镜头，椭圆散景",
+};
 const DOF: Record<string, string> = {
   very_shallow:"extremely shallow depth of field, subject sharp, background dissolved into bokeh",
   shallow:"shallow depth of field, soft background blur",
   medium:"medium depth of field",
   deep:"deep depth of field, all elements sharp",
   full_focus:"pan focus, everything in sharp focus",
+};
+const DOF_ZH: Record<string, string> = {
+  very_shallow: "极浅景深，主体清晰、背景虚化",
+  shallow: "浅景深，背景柔和虚化",
+  medium: "中等景深",
+  deep: "深景深，画面整体清晰",
+  full_focus: "全焦清晰",
 };
 const RENDER: Record<string, string> = {
   commercial:      "luxury product advertisement, high-end commercial film, cinematic studio photography",
@@ -224,6 +307,14 @@ const RENDER: Record<string, string> = {
   documentary:     "documentary style, naturalistic photography",
   music_video:     "music video aesthetics, stylized visuals",
   vfx_heavy:       "VFX-heavy, cinematic visual effects",
+};
+const RENDER_ZH: Record<string, string> = {
+  commercial: "高端商业广告质感，电影级棚拍",
+  photorealistic: "照片级写实摄影",
+  cinematic_still: "电影感静帧摄影",
+  editorial: "杂志编辑风摄影",
+  filmic: "电影感影像风格",
+  documentary: "纪实风自然摄影",
 };
 const DIRECTOR: Record<string, string> = {
   kubrick:        "symmetrical wide-angle composition, cold detached atmosphere, clinical framing",
@@ -239,6 +330,14 @@ const DIRECTOR: Record<string, string> = {
   bong_joon_ho:   "spatial compositions revealing hierarchy, warm-cool color zoning, realism with absurdist edge",
   zhang_yimou:    "intensely saturated color blocks, red-gold palette dominance, grand ceremonial scale",
 };
+const DIRECTOR_ZH: Record<string, string> = {
+  kubrick: "对称构图、冷静疏离、精密画面控制",
+  wong_kar_wai: "暖霓虹色调、浅焦、悬停式情绪氛围",
+  nolan: "IMAX 体量感、冷调去饱和、史诗压迫感",
+  wes_anderson: "马卡龙色系、精确对称、平静戏谑感",
+  villeneuve: "极广景与环境压迫、稀疏克制",
+  fincher: "绿青色调、精确控光、冷峻秩序感",
+};
 const KEY_TIME: Record<string, string> = {
   dawn:"dawn light, first light of day", morning:"soft morning light",
   midday:"high-noon overhead sun, harsh direct light",
@@ -247,10 +346,22 @@ const KEY_TIME: Record<string, string> = {
   night:"night, controlled artificial lighting",
   studio:"studio lighting setup", overcast:"overcast diffused light, no hard shadows",
 };
+const KEY_TIME_ZH: Record<string, string> = {
+  golden_hour: "黄金时段暖色低角度光",
+  night: "夜景环境与人工控光",
+  overcast: "阴天漫射光，无硬阴影",
+  studio: "棚内控光布置",
+};
 const COLOR_TEMP: Record<string, string> = {
   "2700K":"2700K candlelight warm glow", "3200K":"3200K tungsten warm light",
   "4000K":"4000K warm white", "5600K":"5600K daylight balanced",
   "6500K":"6500K cool white", "8000K":"8000K overcast blue-hour sky",
+};
+const COLOR_TEMP_ZH: Record<string, string> = {
+  "3200K": "3200K 暖色钨丝光",
+  "5600K": "5600K 日光平衡",
+  "6500K": "6500K 冷白光",
+  "8000K": "8000K 冷蓝环境光",
 };
 const SPEC_LIGHT: Record<string, string> = {
   volumetric:          "volumetric light rays, atmospheric haze",
@@ -276,6 +387,15 @@ const SPEC_LIGHT: Record<string, string> = {
   bokeh_lights:        "out-of-focus background light orbs",
   laser:               "laser beams cutting through atmosphere",
 };
+const SPEC_LIGHT_ZH: Record<string, string> = {
+  volumetric: "体积光束与空气感",
+  lens_flare: "镜头眩光高光拉丝",
+  rim_light: "主体边缘轮廓光",
+  practicals: "画面内实景光源可见",
+  practical: "画面内实景光源可见",
+  neon: "霓虹色溢出光",
+  golden_hour: "黄金时段方向性暖光",
+};
 const BG: Record<string, string> = {
   studio_dark:    "dark studio background, deep gradient from charcoal to black",
   studio_white:   "clean white studio seamless backdrop",
@@ -288,11 +408,28 @@ const BG: Record<string, string> = {
   gradient_white: "soft white gradient background",
   abstract:       "abstract non-representational background",
 };
+const BG_ZH: Record<string, string> = {
+  studio_dark: "深色棚拍背景，炭黑到纯黑渐变",
+  studio_white: "纯白无缝棚拍背景",
+  outdoor_nature: "自然户外环境",
+  outdoor_urban: "城市街景环境",
+  indoor_luxury: "高端室内空间",
+  gradient_black: "近黑到纯黑渐变背景",
+  abstract: "抽象非具象背景",
+};
 const ENV_MOOD: Record<string, string> = {
   serene:"serene, peaceful", dramatic:"dramatic, high-contrast",
   mysterious:"mysterious, fog-laden", energetic:"energetic, vibrant",
   melancholic:"melancholic, quiet solitude", luxurious:"quiet opulence, premium atmosphere",
   raw:"raw, gritty, unfiltered",
+};
+const ENV_MOOD_ZH: Record<string, string> = {
+  serene: "宁静克制",
+  dramatic: "戏剧张力强",
+  mysterious: "神秘氛围",
+  energetic: "高能量感",
+  melancholic: "忧郁沉静",
+  luxurious: "低调奢华",
 };
 const NARRATIVE: Record<string, string> = {
   slow_burn:    "slow-burn pacing, extended holds",
@@ -304,6 +441,12 @@ const NARRATIVE: Record<string, string> = {
   breath:       "breathing rhythm, pauses and reactions prioritized",
   freeform:     "freeform, no dominant rhythm",
 };
+const NARRATIVE_ZH: Record<string, string> = {
+  slow_burn: "慢燃节奏，强调停顿与酝酿",
+  urgent: "紧迫节奏，强调推进",
+  meditative: "冥想式节奏，安静凝视",
+  epic_build: "史诗式递进，强度逐步拉升",
+};
 const TENSION: Record<string, string> = {
   none:"", low:"calm, composed", medium:"building tension",
   high:"high tension, confrontational charge", explosive:"explosive intensity",
@@ -313,6 +456,12 @@ const TENSION: Record<string, string> = {
   confrontational:"confrontational, face-off charge",
   unsettling:    "unsettling, suspenseful undertone",
   euphoric:      "euphoric, ecstatic energy",
+};
+const TENSION_ZH: Record<string, string> = {
+  none: "",
+  low: "氛围平稳克制",
+  medium: "张力逐步建立",
+  high: "高强度对抗张力",
 };
 const GRADE: Record<string, string> = {
   teal_orange:     "teal and orange grade, cinematic blockbuster look",
@@ -341,6 +490,16 @@ const GRADE: Record<string, string> = {
   fuji_velvia:     "Fuji Velvia emulation — vivid saturated color, high contrast",
   agfa_ultra:      "Agfa Ultra vintage emulation — faded warm tones",
 };
+const GRADE_ZH: Record<string, string> = {
+  teal_orange: "青橙对比调色，电影商业感",
+  warm_golden: "暖金调色，奢华琥珀质感",
+  cool_steel: "冷钢蓝调，低饱和",
+  bw: "黑白单色调",
+  natural: "",
+  noir: "黑色电影调，强阴影",
+  pastel: "柔和低饱和马卡龙色调",
+  vibrant: "高饱和鲜艳调色",
+};
 const FILM_LOOK: Record<string, string> = {
   film_grain:      "subtle film grain, 35mm texture",
   "16mm_grain":    "heavy 16mm film grain, raw texture",
@@ -357,6 +516,14 @@ const FILM_LOOK: Record<string, string> = {
   infrared:        "infrared photography feel, inverted foliage, ethereal look",
   drone_raw:       "drone RAW aerial footage look, high dynamic range",
 };
+const FILM_LOOK_ZH: Record<string, string> = {
+  film_grain: "轻微胶片颗粒质感",
+  halation: "高光晕影与发光扩散",
+  anamorphic_flare: "变形镜头横向眩光与椭圆散景",
+  anamorphic: "变形镜头质感与宽银幕气质",
+  bleach_bypass: "漂白旁路，高反差低饱和",
+  digital_clean: "",
+};
 const ACTION_MAP: Record<string, string> = {
   standing:"standing", sitting:"seated", walking:"walking forward",
   running:"running", jumping:"leaping", crouching:"crouched",
@@ -364,11 +531,25 @@ const ACTION_MAP: Record<string, string> = {
   reaching_sky:"arms stretched wide", fighting:"in combat stance",
   dancing:"mid-dance", looking:"gazing into the distance",
 };
+const ACTION_MAP_ZH: Record<string, string> = {
+  standing: "站立",
+  sitting: "坐姿",
+  walking: "向前行走",
+  running: "奔跑",
+  turning: "转身",
+  reaching: "伸手动作",
+};
 const POSE_MAP: Record<string, string> = {
   power_pose:"commanding power pose", relaxed:"relaxed natural stance",
   hero_entry:"protective stance", arms_raised:"arms spread wide",
   profile:"in profile", back_to_cam:"back to camera",
   confrontational:"confrontational stance", collapsed:"collapsed",
+};
+const POSE_MAP_ZH: Record<string, string> = {
+  power_pose: "强势姿态",
+  relaxed: "放松自然姿态",
+  profile: "侧身姿态",
+  back_to_cam: "背对镜头",
 };
 const EXPR_MAP: Record<string, string> = {
   neutral:"neutral expression", determined:"determined expression",
@@ -377,8 +558,126 @@ const EXPR_MAP: Record<string, string> = {
   vulnerable:"vulnerable expression", stoic:"stoic expression",
   surprised:"surprised expression",
 };
+const EXPR_MAP_ZH: Record<string, string> = {
+  neutral: "中性表情",
+  determined: "坚定表情",
+  joyful: "愉悦表情",
+  sad: "悲伤表情",
+  angry: "愤怒表情",
+  confident: "自信表情",
+};
 
-function qualitySuffix(renderStyle: string, mediaMode: "image" | "video"): string {
+function pickLabel(
+  key: string,
+  lang: Lang,
+  enMap: Record<string, string>,
+  zhMap: Record<string, string>
+): string {
+  if (lang === "zh") return zhMap[key] ?? enMap[key] ?? key;
+  return enMap[key] ?? key;
+}
+
+function localizeFreeText(value: string, lang: Lang): string {
+  if (lang !== "zh") return value;
+  let out = value ?? "";
+  const rules: Array<[RegExp, string]> = [
+    [/sharp product edges,\s*no shadows,\s*pure white surround/gi, "产品边缘清晰，无明显阴影，纯白包围背景"],
+    [/product,\s*centered,\s*sharp edges/gi, "产品主体，居中，边缘锐利"],
+    [/\bproduct\b/gi, "产品主体"],
+    [/\bcentered\b/gi, "居中"],
+    [/\bsharp edges?\b/gi, "边缘锐利"],
+    [/\bclean white seamless backdrop\b/gi, "纯白无缝背景"],
+    [/\bno shadows?\b/gi, "无明显阴影"],
+    [/\bpure white surround\b/gi, "纯白包围背景"],
+    [/\bhigh-end\b/gi, "高端"],
+    [/\bluxury\b/gi, "奢华"],
+    [/\bpremium\b/gi, "高级质感"],
+    [/\btexture\b/gi, "纹理细节"],
+    [/\bmacro\b/gi, "微距"],
+    [/\blighting\b/gi, "光线"],
+    [/\bstudio\b/gi, "棚拍"],
+  ];
+  for (const [pattern, next] of rules) {
+    out = out.replace(pattern, next);
+  }
+  return out;
+}
+
+function normalizeImperfectionTokens(raw: string): string[] {
+  const tokens = (raw ?? "")
+    .split(/[;\n]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((s) => !/^preset=/i.test(s) && !/^level=/i.test(s));
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const token of tokens) {
+    const key = token.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(token);
+  }
+  return out;
+}
+
+function localizeImperfectionToken(token: string, lang: Lang): string {
+  if (lang !== "zh") return token;
+  const map: Record<string, string> = {
+    "natural facial asymmetry": "自然面部不对称",
+    "visible pores": "可见毛孔",
+    "uneven skin texture": "不均匀皮肤纹理",
+    "faint under-eye darkness": "轻微眼下暗沉",
+    "not overly smooth": "不过度磨皮",
+    "micro skin detail": "皮肤微细节",
+    "tiny skin imperfections": "细小皮肤瑕疵",
+    "slight roughness": "轻微粗糙感",
+    "uneven skin tone": "肤色轻微不均",
+    "not plastic skin": "避免塑料皮肤感",
+    "fine lines": "细纹",
+    "natural eye bags": "自然眼袋",
+    "natural expression lines": "自然表情纹",
+    "natural age traces": "自然年龄痕迹",
+    "minor scratches": "轻微划痕",
+    "edge wear": "边缘磨损",
+    "surface inconsistency": "表面轻微不一致",
+    "imperfect finish": "不完美收边",
+    "realistic usage marks": "真实使用痕迹",
+    "subtle dust in air": "空气中轻微尘粒",
+    "light atmospheric particles": "轻微空气颗粒",
+    "slight haze": "轻薄雾感",
+    "uneven lighting falloff": "不均匀光衰减",
+    "imperfect light distribution": "不完美光照分布",
+    "natural shadow variation": "自然阴影变化",
+    "slight environmental messiness": "轻微环境杂乱感",
+    "small background imperfections": "背景轻微瑕疵",
+    "not overly clean": "不过度干净",
+    "surface wear": "表面磨损",
+    "texture inconsistency": "纹理不一致",
+    "natural material aging": "自然材质旧化",
+    "non-pristine surfaces": "非崭新表面状态"
+  };
+  const key = token.toLowerCase();
+  return map[key] ?? token;
+}
+
+function formatImperfection(raw: string, lang: Lang): string {
+  const tokens = normalizeImperfectionTokens(raw).map((t) => localizeImperfectionToken(t, lang));
+  return tokens.join(lang === "zh" ? "，" : ", ");
+}
+
+function qualitySuffix(renderStyle: string, mediaMode: "image" | "video", lang: Lang): string {
+  if (lang === "zh") {
+    if (renderStyle === "commercial")
+      return "照片级写实，专业商业影视质感，高动态范围，8K 超清细节";
+    if (renderStyle === "photorealistic" || renderStyle === "editorial")
+      return "照片级写实，专业摄影质感，高动态范围，8K 细节";
+    if (renderStyle === "documentary")
+      return "照片级写实，自然纪实摄影，高动态范围";
+    if (mediaMode === "video")
+      return "照片级写实，专业商业影视质感，高动态范围，8K 细节";
+    return "照片级写实，专业摄影质感，高动态范围，8K 细节";
+  }
+
   if (renderStyle === "commercial")
     return "photorealistic, professional commercial cinematography, high dynamic range, 8K ultra detail";
   if (renderStyle === "photorealistic" || renderStyle === "editorial")
@@ -391,12 +690,32 @@ function qualitySuffix(renderStyle: string, mediaMode: "image" | "video"): strin
 }
 
 // ── Video Motion Language Helpers ─────────────────────────────────────────
+const MOTION_EPS = 0.5;
+
+function getLayerKeyframes(layer: any) {
+  const kf0 = (layer?.kf ?? []).find((k: any) => k.t === 0) ?? { x: 50, y: 50, w: 30, h: 30, rot: 0 };
+  const kf1 = (layer?.kf ?? []).find((k: any) => k.t === 1) ?? null;
+  return { kf0, kf1 };
+}
+
+function hasEffectiveMotion(layer: any): boolean {
+  const { kf0, kf1 } = getLayerKeyframes(layer);
+  if (!kf1) return false;
+  const dx = Math.abs((kf1.x ?? 0) - (kf0.x ?? 0));
+  const dy = Math.abs((kf1.y ?? 0) - (kf0.y ?? 0));
+  const dw = Math.abs((kf1.w ?? 0) - (kf0.w ?? 0));
+  const dh = Math.abs((kf1.h ?? 0) - (kf0.h ?? 0));
+  const dRot = Math.abs((kf1.rot ?? 0) - (kf0.rot ?? 0));
+  return dx >= MOTION_EPS || dy >= MOTION_EPS || dw >= MOTION_EPS || dh >= MOTION_EPS || dRot >= MOTION_EPS;
+}
+
 /**
  * Describe video motion with director-style natural language (V3.3)
  * Focus on visual change and cinematic intent, not technical coordinates
  */
-function describeVideoMotion(layer: any, duration: number, isPrimary: boolean): string {
-  const kf0 = (layer.kf ?? []).find((k: any) => k.t === 0) ?? { x: 50, y: 50, w: 30 };
+function describeVideoMotion(layer: any, duration: number, isPrimary: boolean, lang: Lang): string {
+  if (!hasEffectiveMotion(layer)) return "";
+  const { kf0 } = getLayerKeyframes(layer);
   const kf1 = (layer.kf ?? []).find((k: any) => k.t === 1) ?? kf0;
   
   const dx = kf1.x - kf0.x;
@@ -412,30 +731,30 @@ function describeVideoMotion(layer: any, duration: number, isPrimary: boolean): 
   // Opening: establish starting state naturally
   if (isPrimary) {
     if (dw > 10) {
-      clauses.push("starting in a wider composition");
+      clauses.push(lang === "zh" ? "开场为更宽构图" : "starting in a wider composition");
     } else if (dw < -10) {
-      clauses.push("starting tight on the subject");
+      clauses.push(lang === "zh" ? "开场紧贴主体" : "starting tight on the subject");
     } else {
-      clauses.push("the subject holds centered in frame");
+      clauses.push(lang === "zh" ? "主体保持居中" : "the subject holds centered in frame");
     }
   }
   
   // Describe change as visual transformation, not coordinate shift
   if (dw > 8) {
-    clauses.push(`slowly pushing in over ${duration} seconds`);
-    clauses.push("drawing closer to the subject");
+    clauses.push(lang === "zh" ? `${duration} 秒内缓慢推进` : `slowly pushing in over ${duration} seconds`);
+    clauses.push(lang === "zh" ? "逐步靠近主体" : "drawing closer to the subject");
   } else if (dw < -8) {
-    clauses.push(`pulling back over ${duration} seconds`);
-    clauses.push("revealing more of the surroundings");
+    clauses.push(lang === "zh" ? `${duration} 秒内缓慢拉远` : `pulling back over ${duration} seconds`);
+    clauses.push(lang === "zh" ? "逐步揭示更多环境信息" : "revealing more of the surroundings");
   }
   
   // Position changes - describe as intentional camera movement
   if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
     const driftParts: string[] = [];
-    if (dx > 8) driftParts.push("drifting right");
-    if (dx < -8) driftParts.push("drifting left");
-    if (dy > 8) driftParts.push("tilting down");
-    if (dy < -8) driftParts.push("rising upward");
+    if (dx > 8) driftParts.push(lang === "zh" ? "向右平移" : "drifting right");
+    if (dx < -8) driftParts.push(lang === "zh" ? "向左平移" : "drifting left");
+    if (dy > 8) driftParts.push(lang === "zh" ? "镜头下移" : "tilting down");
+    if (dy < -8) driftParts.push(lang === "zh" ? "镜头上扬" : "rising upward");
     if (driftParts.length > 0) {
       clauses.push(driftParts.join(", "));
     }
@@ -443,34 +762,37 @@ function describeVideoMotion(layer: any, duration: number, isPrimary: boolean): 
   
   // Rotation - subtle mention
   if (Math.abs(dRot) > 15) {
-    clauses.push(`${dRot > 0 ? 'gentle clockwise rotation' : 'subtle counter-clockwise turn'}`);
+    clauses.push(
+      lang === "zh"
+        ? (dRot > 0 ? "轻微顺时针旋转" : "轻微逆时针旋转")
+        : `${dRot > 0 ? "gentle clockwise rotation" : "subtle counter-clockwise turn"}`
+    );
   }
   
   // Ending state - describe the final visual
   if (dw > 8) {
-    clauses.push("ending in an intimate close-up");
+    clauses.push(lang === "zh" ? "结尾落在亲密近景" : "ending in an intimate close-up");
   } else if (dw < -8) {
-    clauses.push("settling into a wider view");
+    clauses.push(lang === "zh" ? "结尾回到更宽画幅" : "settling into a wider view");
   }
   
   // Static case - describe as intentional stillness
   if (clauses.length <= 1 && isPrimary) {
-    return `the subject remains still, holding the moment for ${duration} seconds`;
+    return lang === "zh"
+      ? `主体基本静止，保持该状态约 ${duration} 秒`
+      : `the subject remains still, holding the moment for ${duration} seconds`;
   }
   
   return clauses.join(", ");
 }
 
 function describeMotionPath(layer: any, lang: Lang): string {
-  const kf0 = (layer.kf ?? []).find((k: any) => k.t === 0) ?? { x: 50, y: 50, w: 30 };
+  if (!hasEffectiveMotion(layer)) return "";
+  const { kf0 } = getLayerKeyframes(layer);
   const kf1 = (layer.kf ?? []).find((k: any) => k.t === 1) ?? kf0;
   
   const dx = Math.round(kf1.x * 10) / 10 - Math.round(kf0.x * 10) / 10;
   const dy = Math.round(kf1.y * 10) / 10 - Math.round(kf0.y * 10) / 10;
-  
-  if (Math.abs(dx) < 4 && Math.abs(dy) < 4) {
-    return lang === "zh" ? "基本保持静止" : "remains mostly static";
-  }
   
   const horizontal = Math.abs(dx) >= 4 ? (dx > 0 ? "right" : "left") : "";
   const vertical = Math.abs(dy) >= 4 ? (dy > 0 ? "down" : "up") : "";
@@ -496,7 +818,7 @@ function buildStructureGuide(scene: Scene, lang: Lang, mediaMode: "image" | "vid
   
   if (layers.length === 1) {
     const kf0 = (layers[0].kf ?? []).find((k: any) => k.t === 0) ?? { x: 50, y: 50, w: 30 };
-    const pos = positionPhrase(kf0.x, kf0.y, kf0.w);
+    const pos = positionPhrase(kf0.x, kf0.y, kf0.w, lang);
     lines.push(`Spatial: single subject ${pos}`);
   } else if (layers.length > 1) {
     const positions = layers.map((l: any, i: number) => {
@@ -509,10 +831,11 @@ function buildStructureGuide(scene: Scene, lang: Lang, mediaMode: "image" | "vid
   if (mediaMode === "video" && layers.length > 0) {
     const paths = layers
       .map((l: any, i: number) => {
+        if (!hasEffectiveMotion(l)) return "";
         const path = describeMotionPath(l, lang);
         return `${l.id || `obj${i+1}`}:${path}`;
       })
-      .filter((p: string) => !p.includes("static") && !p.includes("静止"));
+      .filter((p: string) => !!p && !p.endsWith(":"));
     if (paths.length > 0) {
       lines.push(`Motion: ${paths.join("; ")}`);
     }
@@ -557,50 +880,53 @@ function resolveAllFields(scene: Scene, notes: string, cam: any, lighting: any):
 }
 
 // ── Segment Builders ──────────────────────────────────────────────────────
-function buildStyleSegment(f: ResolvedFields): string | null {
+function buildStyleSegment(f: ResolvedFields, lang: Lang): string | null {
   const parts: string[] = [];
-  if (f.renderStyle.value) parts.push(RENDER[f.renderStyle.value] ?? f.renderStyle.value);
-  if (f.directorPack.value) parts.push(DIRECTOR[f.directorPack.value] ?? f.directorPack.value);
+  if (f.renderStyle.value) parts.push(pickLabel(f.renderStyle.value, lang, RENDER, RENDER_ZH));
+  if (f.directorPack.value) parts.push(pickLabel(f.directorPack.value, lang, DIRECTOR, DIRECTOR_ZH));
   return parts.filter(Boolean).join(", ") || null;
 }
 
-function buildCameraSegment(f: ResolvedFields): string | null {
+function buildCameraSegment(f: ResolvedFields, lang: Lang): string | null {
   const parts: string[] = [];
-  if (f.shotSize.value) parts.push(SHOT[f.shotSize.value] ?? f.shotSize.value);
-  if (f.focalLength.value) parts.push(FOCAL[f.focalLength.value] ?? f.focalLength.value);
-  if (f.camAngle.value && f.camAngle.value !== "eye_level") parts.push(ANGLE[f.camAngle.value] ?? f.camAngle.value);
-  if (f.dof.value) parts.push(DOF[f.dof.value] ?? f.dof.value);
+  if (f.shotSize.value) parts.push(pickLabel(f.shotSize.value, lang, SHOT, SHOT_ZH));
+  if (f.focalLength.value) parts.push(pickLabel(f.focalLength.value, lang, FOCAL, FOCAL_ZH));
+  if (f.camAngle.value && f.camAngle.value !== "eye_level") parts.push(pickLabel(f.camAngle.value, lang, ANGLE, ANGLE_ZH));
+  if (f.dof.value) parts.push(pickLabel(f.dof.value, lang, DOF, DOF_ZH));
   return parts.filter(Boolean).join(", ") || null;
 }
 
-function buildMotionSegment(f: ResolvedFields, validLayers: any[]): string | null {
-  const moveStr = MOVEMENT[f.camMove.value] ?? (f.camMove.value !== "static" ? f.camMove.value : "");
+function buildMotionSegment(f: ResolvedFields, validLayers: any[], lang: Lang): string | null {
+  const moveStr = pickLabel(f.camMove.value, lang, MOVEMENT, MOVEMENT_ZH);
   
   const parts: string[] = [];
   
   // Camera movement with duration - natural phrasing
   if (moveStr) {
-    parts.push(`${moveStr} over ${f.duration} seconds`);
+    parts.push(lang === "zh" ? `${moveStr}，时长约 ${f.duration} 秒` : `${moveStr} over ${f.duration} seconds`);
   } else {
-    parts.push(`over ${f.duration} seconds`);
+    parts.push(lang === "zh" ? `时长约 ${f.duration} 秒` : `over ${f.duration} seconds`);
   }
   
   // Subject motion - primary layer only in main prompt
   if (validLayers.length > 0) {
-    const primaryMotion = describeVideoMotion(validLayers[0], f.duration, true);
-    parts.push(primaryMotion);
+    const secondaryMentions: string[] = [];
+    if (hasEffectiveMotion(validLayers[0])) {
+      const primaryMotion = describeVideoMotion(validLayers[0], f.duration, true, lang);
+      if (primaryMotion) parts.push(primaryMotion);
+    }
     
     // Secondary layers - keep minimal, push detail to Structure_Guide
     for (let i = 1; i < validLayers.length; i++) {
       const layer = validLayers[i];
       const layerId = layer.id || `obj${i + 1}`;
       // Only add brief mention of secondary motion if there's actual movement
-      const kf0 = (layer.kf ?? []).find((k: any) => k.t === 0) ?? { x: 50, y: 50, w: 25 };
-      const kf1 = (layer.kf ?? []).find((k: any) => k.t === 1) ?? kf0;
-      const hasMotion = Math.abs(kf1.x - kf0.x) > 5 || Math.abs(kf1.y - kf0.y) > 5 || Math.abs(kf1.w - kf0.w) > 5;
-      if (hasMotion) {
-        parts[parts.length - 1] += `; ${layerId}: subtle movement`;
+      if (hasEffectiveMotion(layer)) {
+        secondaryMentions.push(lang === "zh" ? `${layerId}：轻微位移` : `${layerId}: subtle movement`);
       }
+    }
+    if (secondaryMentions.length > 0) {
+      parts.push(lang === "zh" ? `次对象运动：${secondaryMentions.join("；")}` : `secondary motion: ${secondaryMentions.join("; ")}`);
     }
   }
   
@@ -639,17 +965,21 @@ function extractLayerMarkers(notes: string): LayerMarkers {
   };
 }
 
-function buildSubjectSegments(validLayers: any[], seg: Array<string | null>, sceneNotes?: string): void {
+function buildSubjectSegments(validLayers: any[], seg: Array<string | null>, lang: Lang, sceneNotes?: string): void {
   // V3.2 Fallback: if no valid layers, try to extract subject info from scene notes directly
   if (validLayers.length === 0 && sceneNotes) {
-    const lookFromNotes = mark(sceneNotes, "look");
-    const detailFromNotes = mark(sceneNotes, "detail");
+    const lookFromNotes = localizeFreeText(mark(sceneNotes, "look"), lang);
+    const detailFromNotes = localizeFreeText(mark(sceneNotes, "detail"), lang);
+    const imperfectionFromNotes = formatImperfection(mark(sceneNotes, "imperfection_object"), lang);
     
     if (lookFromNotes) {
       seg[3] = lookFromNotes;
     }
     if (detailFromNotes) {
       seg[8] = detailFromNotes;
+    }
+    if (imperfectionFromNotes) {
+      seg[8] = seg[8] ? `${seg[8]}${lang === "zh" ? "，" : ", "}${imperfectionFromNotes}` : imperfectionFromNotes;
     }
     return;
   }
@@ -658,21 +988,21 @@ function buildSubjectSegments(validLayers: any[], seg: Array<string | null>, sce
   
   const firstLayer = validLayers[0];
   const kf0 = (firstLayer.kf ?? []).find((k: any) => k.t === 0) ?? { x: 50, y: 50, w: 30 };
-  const posPhrase = positionPhrase(kf0.x, kf0.y, kf0.w);
+  const posPhrase = positionPhrase(kf0.x, kf0.y, kf0.w, lang);
   
   const lm: LayerMarkers = {
-    look: firstLayer.look ?? "",
-    shapeDesc: firstLayer.shapeDesc ?? "",
-    ext: firstLayer.externalPrompt ?? "",
-    costume: mark(firstLayer.notes ?? "", "costume"),
-    accessory: mark(firstLayer.notes ?? "", "accessory"),
-    prop: mark(firstLayer.notes ?? "", "prop"),
+    look: localizeFreeText(firstLayer.look ?? "", lang),
+    shapeDesc: localizeFreeText(firstLayer.shapeDesc ?? "", lang),
+    ext: localizeFreeText(firstLayer.externalPrompt ?? "", lang),
+    costume: localizeFreeText(mark(firstLayer.notes ?? "", "costume"), lang),
+    accessory: localizeFreeText(mark(firstLayer.notes ?? "", "accessory"), lang),
+    prop: localizeFreeText(mark(firstLayer.notes ?? "", "prop"), lang),
     action: mark(firstLayer.notes ?? "", "action"),
     pose: mark(firstLayer.notes ?? "", "pose"),
     expression: mark(firstLayer.notes ?? "", "expression"),
-    emotion: mark(firstLayer.notes ?? "", "emotion"),
-    status: mark(firstLayer.notes ?? "", "status"),
-    detail: mark(firstLayer.notes ?? "", "detail"),
+    emotion: localizeFreeText(mark(firstLayer.notes ?? "", "emotion"), lang),
+    status: localizeFreeText(mark(firstLayer.notes ?? "", "status"), lang),
+    detail: localizeFreeText(mark(firstLayer.notes ?? "", "detail"), lang),
   };
   
   // V3.2: Build natural language subject description
@@ -681,7 +1011,7 @@ function buildSubjectSegments(validLayers: any[], seg: Array<string | null>, sce
   // 4 SUBJECT_BASE - main subject identity
   const baseParts = [lm.look, lm.shapeDesc, lm.ext].filter(Boolean);
   if (baseParts.length) {
-    seg[3] = `${baseParts.join(", ")}, ${posPhrase}`;
+    seg[3] = `${baseParts.join(", ")}${lang === "zh" ? "，" : ", "}${posPhrase}`;
   }
   
   // 5 SUBJECT_COSTUME - merge with base if simple
@@ -689,7 +1019,7 @@ function buildSubjectSegments(validLayers: any[], seg: Array<string | null>, sce
     // If costume is simple, prepend to base for natural flow
     const costumeSimple = lm.costume.length < 60;
     if (costumeSimple && seg[3]) {
-      seg[3] = `${seg[3]}, wearing ${lm.costume}`;
+      seg[3] = lang === "zh" ? `${seg[3]}，穿着${lm.costume}` : `${seg[3]}, wearing ${lm.costume}`;
     } else {
       seg[4] = lm.costume;
     }
@@ -700,8 +1030,8 @@ function buildSubjectSegments(validLayers: any[], seg: Array<string | null>, sce
   if (propParts.length) seg[5] = propParts.join(", ");
   
   // 7 SUBJECT_ACTION - combine action + pose naturally
-  const actionStr = lm.action ? (ACTION_MAP[lm.action] ?? lm.action) : "";
-  const poseStr = lm.pose ? (POSE_MAP[lm.pose] ?? lm.pose) : "";
+  const actionStr = lm.action ? pickLabel(lm.action, lang, ACTION_MAP, ACTION_MAP_ZH) : "";
+  const poseStr = lm.pose ? pickLabel(lm.pose, lang, POSE_MAP, POSE_MAP_ZH) : "";
   
   // V3.2: Merge action with pose for natural flow
   if (actionStr && poseStr) {
@@ -713,12 +1043,16 @@ function buildSubjectSegments(validLayers: any[], seg: Array<string | null>, sce
   }
   
   // 8 SUBJECT_STATE - expression and emotion
-  const exprStr = lm.expression ? (EXPR_MAP[lm.expression] ?? lm.expression) : "";
+  const exprStr = lm.expression ? pickLabel(lm.expression, lang, EXPR_MAP, EXPR_MAP_ZH) : "";
   const stateParts = [exprStr, lm.emotion, lm.status].filter(Boolean);
   if (stateParts.length) seg[7] = stateParts.join(", ");
   
   // 9 SUBJECT_DETAIL
   if (lm.detail) seg[8] = lm.detail;
+  const primaryImperfection = formatImperfection(mark(firstLayer.notes ?? "", "imperfection_object"), lang);
+  if (primaryImperfection) {
+    seg[8] = seg[8] ? `${seg[8]}${lang === "zh" ? "，" : ", "}${primaryImperfection}` : primaryImperfection;
+  }
   
   // V3.3: Multi-object handling with clearer hierarchy
   // Primary subject gets full description, secondary objects are concise context
@@ -728,12 +1062,13 @@ function buildSubjectSegments(validLayers: any[], seg: Array<string | null>, sce
     for (let i = 1; i < validLayers.length; i++) {
       const l = validLayers[i];
       const k0 = (l.kf ?? []).find((k: any) => k.t === 0) ?? { x: 50 + i * 20, y: 50, w: 20 };
-      const pos2 = positionPhrase(k0.x, k0.y, k0.w);
+      const pos2 = positionPhrase(k0.x, k0.y, k0.w, lang);
       
-      const look2 = l.look ?? "";
-      const ext2 = l.externalPrompt ?? "";
-      const costume2 = mark(l.notes ?? "", "costume");
-      const prop2 = mark(l.notes ?? "", "prop");
+      const look2 = localizeFreeText(l.look ?? "", lang);
+      const ext2 = localizeFreeText(l.externalPrompt ?? "", lang);
+      const costume2 = localizeFreeText(mark(l.notes ?? "", "costume"), lang);
+      const prop2 = localizeFreeText(mark(l.notes ?? "", "prop"), lang);
+      const imp2 = formatImperfection(mark(l.notes ?? "", "imperfection_object"), lang);
       
       // Build concise but natural secondary object phrase
       let objDesc = look2;
@@ -753,7 +1088,7 @@ function buildSubjectSegments(validLayers: any[], seg: Array<string | null>, sce
           (costumeLower.includes("dress") && lookLower.includes("dress")) ||
           (costumeLower.includes("suit") && lookLower.includes("suit"));
         if (!isRedundant) {
-          objDesc += `, dressed in ${costume2}`;
+          objDesc += lang === "zh" ? `，穿着${costume2}` : `, dressed in ${costume2}`;
         }
       }
       
@@ -761,80 +1096,83 @@ function buildSubjectSegments(validLayers: any[], seg: Array<string | null>, sce
       if (prop2) {
         objDesc += `, ${prop2}`;
       }
+      if (imp2) {
+        objDesc += lang === "zh" ? `，${imp2}` : `, ${imp2}`;
+      }
       
-      secondaryPhrases.push(`${objDesc} — ${pos2}`);
+      secondaryPhrases.push(lang === "zh" ? `${objDesc}——${pos2}` : `${objDesc} — ${pos2}`);
     }
     
     // Connect secondary objects with em-dash for cleaner visual separation
     if (secondaryPhrases.length > 0 && seg[3]) {
-      seg[3] = `${seg[3]} — ${secondaryPhrases.join("; ")}`;
+      seg[3] = lang === "zh" ? `${seg[3]}——${secondaryPhrases.join("；")}` : `${seg[3]} — ${secondaryPhrases.join("; ")}`;
     }
   }
 }
 
-function buildCompositionSegment(validLayers: any[], aspectRatio?: string): string | null {
+function buildCompositionSegment(validLayers: any[], aspectRatio?: string, lang: Lang = "en"): string | null {
   const parts: string[] = [];
   
   if (validLayers.length === 1) {
     const kf0 = ((validLayers[0] as any).kf ?? []).find((k: any) => k.t === 0) ?? { x: 50, y: 50, w: 30 };
     if (kf0.x >= 40 && kf0.x <= 60) {
-      parts.push("perfect centered composition, clean negative space");
+      parts.push(lang === "zh" ? "中心构图，留白干净" : "perfect centered composition, clean negative space");
     } else {
-      parts.push("off-center composition, clean negative space");
+      parts.push(lang === "zh" ? "偏轴构图，留白干净" : "off-center composition, clean negative space");
     }
   }
   
   if (aspectRatio && aspectRatio !== "16:9") {
-    parts.push(`${aspectRatio} aspect ratio`);
+    parts.push(lang === "zh" ? `${aspectRatio} 画幅比例` : `${aspectRatio} aspect ratio`);
   }
   
   return parts.join(", ") || null;
 }
 
-function buildLightingSegment(f: ResolvedFields): string | null {
+function buildLightingSegment(f: ResolvedFields, lang: Lang): string | null {
   const parts: string[] = [];
-  if (f.keyTimeFinal) parts.push(KEY_TIME[f.keyTimeFinal] ?? f.keyTimeFinal);
-  if (f.keyDir.value) parts.push(`${f.keyDir.value} key light`);
-  if (f.keyMood.value) parts.push(`${f.keyMood.value} mood`);
-  if (f.colorTemp.value) parts.push(COLOR_TEMP[f.colorTemp.value] ?? f.colorTemp.value);
-  if (f.specLightFinal) parts.push(SPEC_LIGHT[f.specLightFinal] ?? f.specLightFinal);
+  if (f.keyTimeFinal) parts.push(pickLabel(f.keyTimeFinal, lang, KEY_TIME, KEY_TIME_ZH));
+  if (f.keyDir.value) parts.push(lang === "zh" ? `${f.keyDir.value} 主光方向` : `${f.keyDir.value} key light`);
+  if (f.keyMood.value) parts.push(lang === "zh" ? `${f.keyMood.value} 光线情绪` : `${f.keyMood.value} mood`);
+  if (f.colorTemp.value) parts.push(pickLabel(f.colorTemp.value, lang, COLOR_TEMP, COLOR_TEMP_ZH));
+  if (f.specLightFinal) parts.push(pickLabel(f.specLightFinal, lang, SPEC_LIGHT, SPEC_LIGHT_ZH));
   return parts.filter(Boolean).join(", ") || null;
 }
 
-function buildEnvironmentSegment(f: ResolvedFields): string | null {
+function buildEnvironmentSegment(f: ResolvedFields, lang: Lang): string | null {
   if (f.bgPreset.value) {
-    return BG[f.bgPreset.value] ?? f.bgPreset.value;
+    return pickLabel(f.bgPreset.value, lang, BG, BG_ZH);
   }
   return null;
 }
 
-function buildMoodSegment(f: ResolvedFields): string | null {
+function buildMoodSegment(f: ResolvedFields, lang: Lang): string | null {
   const parts: string[] = [];
-  if (f.envMood.value) parts.push(ENV_MOOD[f.envMood.value] ?? f.envMood.value);
-  if (f.narrative.value) parts.push(NARRATIVE[f.narrative.value] ?? f.narrative.value);
+  if (f.envMood.value) parts.push(pickLabel(f.envMood.value, lang, ENV_MOOD, ENV_MOOD_ZH));
+  if (f.narrative.value) parts.push(pickLabel(f.narrative.value, lang, NARRATIVE, NARRATIVE_ZH));
   if (f.tension.value) {
-    const tensionStr = TENSION[f.tension.value] ?? "";
+    const tensionStr = pickLabel(f.tension.value, lang, TENSION, TENSION_ZH) ?? "";
     if (tensionStr) parts.push(tensionStr);
   }
   return parts.filter(Boolean).join(", ") || null;
 }
 
-function buildTechnicalSegment(f: ResolvedFields, mediaMode: "image" | "video"): string {
+function buildTechnicalSegment(f: ResolvedFields, mediaMode: "image" | "video", lang: Lang): string {
   const parts: string[] = [];
   
   if (f.colorGrade.value) {
-    const gradeStr = GRADE[f.colorGrade.value] ?? f.colorGrade.value;
+    const gradeStr = pickLabel(f.colorGrade.value, lang, GRADE, GRADE_ZH);
     if (gradeStr) parts.push(gradeStr);
   }
   
   if (f.filmLook.value) {
-    const lookStr = FILM_LOOK[f.filmLook.value] ?? f.filmLook.value;
+    const lookStr = pickLabel(f.filmLook.value, lang, FILM_LOOK, FILM_LOOK_ZH);
     if (lookStr) parts.push(lookStr);
   }
   
   if (f.postProcess.value) parts.push(f.postProcess.value);
   
-  parts.push(qualitySuffix(f.renderStyle.value, mediaMode));
+  parts.push(qualitySuffix(f.renderStyle.value, mediaMode, lang));
   
   return parts.filter(Boolean).join(", ");
 }
@@ -850,22 +1188,26 @@ export function compileV3(input: V3Input): string {
   const validLayers = layers.filter((l) => l && (l.look || l.externalPrompt || l.notes));
   
   const f = resolveAllFields(scene, n, cam, lighting);
+  const sceneImperfection = formatImperfection(mark(n, "imperfection_scene"), lang);
   
   const seg: Array<string | null> = new Array(14).fill(null);
   
-  seg[0] = buildStyleSegment(f);
-  seg[1] = buildCameraSegment(f);
+  seg[0] = buildStyleSegment(f, lang);
+  seg[1] = buildCameraSegment(f, lang);
   
   if (mediaMode === "video") {
-    seg[2] = buildMotionSegment(f, validLayers);
+    seg[2] = buildMotionSegment(f, validLayers, lang);
   }
   
-  buildSubjectSegments(validLayers, seg, n);
-  seg[9] = buildCompositionSegment(validLayers, aspectRatio);
-  seg[10] = buildLightingSegment(f);
-  seg[11] = buildEnvironmentSegment(f);
-  seg[12] = buildMoodSegment(f);
-  seg[13] = buildTechnicalSegment(f, mediaMode);
+  buildSubjectSegments(validLayers, seg, lang, n);
+  seg[9] = buildCompositionSegment(validLayers, aspectRatio, lang);
+  seg[10] = buildLightingSegment(f, lang);
+  seg[11] = buildEnvironmentSegment(f, lang);
+  seg[12] = buildMoodSegment(f, lang);
+  if (sceneImperfection) {
+    seg[12] = seg[12] ? `${seg[12]}${lang === "zh" ? "，" : ", "}${sceneImperfection}` : sceneImperfection;
+  }
+  seg[13] = buildTechnicalSegment(f, mediaMode, lang);
   
   const mainOutput = seg.filter(Boolean).join(",\n");
   

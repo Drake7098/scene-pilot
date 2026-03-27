@@ -161,7 +161,7 @@ export function TemplateWorkspaceHeader({
           height: 47px;
           width: 100%;
           padding: 0 14px;
-          border-radius: 4px;
+          border-radius: 6px;
           border: 1px solid ${colors.border};
           background: ${colors.panel};
           color: ${colors.text};
@@ -487,14 +487,14 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: 8,
-    borderRadius: 6,
+    borderRadius: TEMPLATE_WORKSPACE_UI.radius.sm,
     border: `1px solid ${colors.border}`,
     background: colors.bg,
     padding: "0 10px"
   },
   searchIcon: { color: colors.textMuted, flexShrink: 0 },
   searchInput: {
-    height: 34,
+    height: TEMPLATE_WORKSPACE_UI.controlHeight.sm,
     flex: 1,
     minWidth: 0,
     border: "none",
@@ -506,8 +506,8 @@ const styles: Record<string, React.CSSProperties> = {
   filters: { display: "flex", flexWrap: "wrap", gap: 8 },
   select: {
     minWidth: 108,
-    height: 34,
-    borderRadius: 6,
+    height: TEMPLATE_WORKSPACE_UI.controlHeight.sm,
+    borderRadius: TEMPLATE_WORKSPACE_UI.radius.sm,
     border: `1px solid ${colors.border}`,
     background: colors.bg,
     color: colors.textMuted,

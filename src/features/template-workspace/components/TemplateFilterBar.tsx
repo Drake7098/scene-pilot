@@ -73,12 +73,13 @@ export function TemplateFilterBar({ lang, filters, onChange }: Props) {
 const styles: Record<string, React.CSSProperties> = {
   wrap: { display: "flex", gap: 8 },
   select: {
-    padding: "6px 10px",
+    height: TEMPLATE_WORKSPACE_UI.controlHeight.sm,
+    padding: "0 10px",
     background: colors.bg,
     border: `1px solid ${colors.border}`,
-    borderRadius: 8,
+    borderRadius: TEMPLATE_WORKSPACE_UI.radius.sm,
     color: colors.text,
-    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.label,
+    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.body,
     cursor: "pointer"
   }
 };

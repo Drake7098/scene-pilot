@@ -16,8 +16,20 @@ import { useTemplatePricing } from "../hooks/useTemplatePricing";
 import { loadTemplatePayloadById } from "../../../template-engine/payload/templateLoader";
 import { getProFieldLabelsFromPayload } from "../../../utils/proFieldsResolver";
 import type { ProFieldLabel } from "../../../utils/proFieldsResolver";
+import { copyTemplateLink, shareTemplateLink } from "../utils/templateShare";
 
 const { colors } = editorTheme;
+const NEW_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+
+function isTemplateNewFlag(template: TemplateIndex): boolean {
+  if (template.isNewTemplate === true) return true;
+  const until = Number(template.newUntil ?? 0);
+  if (Number.isFinite(until) && until > Date.now()) return true;
+  const tail = template.id.match(/(\d{10,13})$/)?.[1];
+  if (!tail) return false;
+  const ts = Number(tail.length === 10 ? `${tail}000` : tail);
+  return Number.isFinite(ts) && Date.now() - ts <= NEW_WINDOW_MS;
+}
 
 type Props = {
   lang: Lang;
@@ -56,6 +68,7 @@ export function TemplateWorkspaceDetail({
     event.preventDefault();
   };
   const [proLabels, setProLabels] = React.useState<ProFieldLabel[]>([]);
+  const [shareHint, setShareHint] = React.useState("");
 
   React.useEffect(() => {
     if (!template || isUserPrivateTemplate(template)) {
@@ -139,6 +152,7 @@ export function TemplateWorkspaceDetail({
 
   const marketTemplate = template as TemplateIndex;
   const mediaLabel = marketTemplate.mediaType === "image" ? t("图片", "Image") : t("视频", "Video");
+  const isNew = isTemplateNewFlag(marketTemplate);
   const templateCost = (marketTemplate as TemplateIndex).cost ?? (pricing?.creditPrice ?? 0);
   const insufficient =
     !owned &&
@@ -146,11 +160,24 @@ export function TemplateWorkspaceDetail({
     templateCost > 0 &&
     userCredits < templateCost;
 
+  const onShareTemplate = async () => {
+    const mode = await shareTemplateLink(marketTemplate, lang);
+    if (mode === "shared") setShareHint(t("已打开系统分享", "System share opened"));
+    else if (mode === "copied") setShareHint(t("链接已复制", "Link copied"));
+    else setShareHint(t("分享失败，请重试", "Share failed, please retry"));
+  };
+
+  const onCopyLink = async () => {
+    const ok = await copyTemplateLink(marketTemplate);
+    setShareHint(ok ? t("链接已复制", "Link copied") : t("复制失败，请重试", "Copy failed, please retry"));
+  };
+
   return (
     <div className="pro-rail-scroll" style={styles.wrap}>
       <div style={styles.section}>
         <div style={styles.titleRow}>
           <h3 style={styles.title}>{name}</h3>
+          {isNew ? <span style={styles.newBadge}>NEW</span> : null}
           {onToggleFavorite ? (
             <button
               type="button"
@@ -205,9 +232,9 @@ export function TemplateWorkspaceDetail({
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
             {(marketTemplate.tags ?? []).slice(0, 6).map((tag: string) => (
               <span key={tag} style={{
-                fontSize: 10, padding: "2px 8px", borderRadius: 4,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                fontSize: 10, padding: "0", borderRadius: editorTheme.radius.input,
+                background: "transparent",
+                border: "none",
                 color: "#9ca3af",
               }}>{tag}</span>
             ))}
@@ -234,6 +261,15 @@ export function TemplateWorkspaceDetail({
               ? t("购买并使用", "Buy & Use")
               : t("使用模板", "Use Template")}
         </button>
+        <div style={styles.secondaryActions}>
+          <button type="button" style={styles.secondaryBtn} onClick={onShareTemplate} onMouseDown={preventMouseFocus} onMouseUp={blurButton}>
+            {t("分享模板", "Share Template")}
+          </button>
+          <button type="button" style={styles.secondaryBtn} onClick={onCopyLink} onMouseDown={preventMouseFocus} onMouseUp={blurButton}>
+            {t("复制链接", "Copy Link")}
+          </button>
+        </div>
+        {shareHint ? <div style={styles.shareHint}>{shareHint}</div> : null}
       </div>
 
       {capabilityTags.length > 0 ? (
@@ -322,11 +358,11 @@ const styles: Record<string, React.CSSProperties> = {
   metaChip: {
     display: "inline-flex",
     alignItems: "center",
-    minHeight: 24,
-    padding: "0 10px",
-    borderRadius: 999,
-    background: colors.bg,
-    border: `1px solid ${colors.border}`,
+    minHeight: 22,
+    padding: "0 8px",
+    borderRadius: editorTheme.radius.input,
+    background: "transparent",
+    border: "none",
     color: colors.textMuted,
     fontSize: PRO_TYPO["3xs"],
     fontWeight: PRO_TYPO.weightMedium,
@@ -345,7 +381,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     gap: 8,
     padding: "12px 14px",
-    borderRadius: 10,
+    borderRadius: editorTheme.radius.panel,
     background: colors.bg,
     border: `1px solid ${colors.border}`
   },
@@ -388,10 +424,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   proCard: {
     margin: "0 0 12px",
-    borderRadius: 10,
-    border: "1px solid rgba(245,158,11,0.35)",
-    background: "rgba(245,158,11,0.07)",
-    padding: "12px 14px"
+    borderRadius: editorTheme.radius.panel,
+    border: "none",
+    background: "transparent",
+    padding: "0"
   },
   proCardHeader: {
     display: "flex",
@@ -429,10 +465,10 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 11,
     fontWeight: 600,
     color: colors.accent,
-    background: "rgba(245,158,11,0.12)",
-    border: "1px solid rgba(245,158,11,0.2)",
-    borderRadius: 99,
-    padding: "2px 9px"
+    background: "transparent",
+    border: "none",
+    borderRadius: editorTheme.radius.input,
+    padding: "0"
   },
   tags: {
     display: "flex",
@@ -440,9 +476,10 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 4
   },
   tag: {
-    padding: "2px 8px",
-    background: colors.bg,
-    borderRadius: 6,
+    padding: "0",
+    background: "transparent",
+    borderRadius: editorTheme.radius.input,
+    border: "none",
     fontSize: PRO_TYPO["2xs"],
     fontWeight: PRO_TYPO.weightRegular,
     fontFamily: PRO_TYPO.fontFamily,
@@ -480,7 +517,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "0 14px",
     background: colors.accent,
     border: "none",
-    borderRadius: 7,
+    borderRadius: editorTheme.radius.input,
     color: colors.bg,
     fontSize: PRO_TYPO.xs,
     fontWeight: PRO_TYPO.weightMedium,
@@ -489,5 +526,44 @@ const styles: Record<string, React.CSSProperties> = {
     appearance: "none",
     outline: "none",
     WebkitTapHighlightColor: "transparent"
-  }
+  },
+  secondaryActions: {
+    display: "flex",
+    gap: 8,
+    marginTop: 8,
+  },
+  secondaryBtn: {
+    flex: 1,
+    minHeight: 32,
+    padding: "0 10px",
+    border: `1px solid ${colors.border}`,
+    borderRadius: editorTheme.radius.input,
+    background: colors.bg,
+    color: colors.text,
+    fontSize: PRO_TYPO["2xs"],
+    fontWeight: PRO_TYPO.weightMedium,
+    cursor: "pointer",
+    appearance: "none",
+    outline: "none",
+    WebkitTapHighlightColor: "transparent",
+  },
+  newBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 18,
+    padding: "0 7px",
+    borderRadius: 4,
+    background: "rgba(245,158,11,0.12)",
+    color: colors.accent,
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: "0.04em",
+    flexShrink: 0,
+  },
+  shareHint: {
+    marginTop: 6,
+    fontSize: PRO_TYPO["2xs"],
+    color: colors.accent,
+  },
 };

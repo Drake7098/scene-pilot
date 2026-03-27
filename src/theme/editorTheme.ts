@@ -33,10 +33,10 @@ export const editorSpacing = {
 } as const;
 
 export const editorRadius = {
-  input: 12,
-  panel: 14,
-  button: 12,
-  chip: 10,
+  input: 6,
+  panel: 10,
+  button: 6,
+  chip: 6,
 } as const;
 
 export const editorTypography = {
@@ -50,7 +50,7 @@ export const editorTypography = {
 } as const;
 
 export const editorSizing = {
-  controlHeight: 28,
+  controlHeight: 34,
   sectionHeaderHeight: 32,
   chevronSize: 14,
   selectArrowSize: 12,

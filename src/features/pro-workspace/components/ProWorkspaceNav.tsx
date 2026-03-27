@@ -8,7 +8,6 @@ import {
   Users,
   Sun,
   Palette,
-  Settings2,
   LayoutGrid,
   Shield,
   FileText,
@@ -43,7 +42,6 @@ const WORKFLOW_ITEMS: NavItem[] = [
   { id: "objects",     icon: Users,       labelZh: "对象",     labelEn: "Objects",     step: 6 },
   { id: "lighting",    icon: Sun,         labelZh: "灯光",     labelEn: "Lighting",    step: 7 },
   { id: "style",       icon: Palette,     labelZh: "风格",     labelEn: "Style",       step: 8 },
-  { id: "tech",        icon: Settings2,   labelZh: "技术",     labelEn: "Technical",   step: 9 },
 ];
 
 const TOOL_ITEMS: NavItem[] = [

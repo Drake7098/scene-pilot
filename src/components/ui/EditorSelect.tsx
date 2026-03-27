@@ -110,12 +110,23 @@ export function EditorSelect({
             cursor: disabled ? "not-allowed" : "pointer",
             opacity: disabled ? 0.6 : 1,
             outline: "none",
-            transition: `border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`,
+            transition: `border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}, box-shadow ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`,
           }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = colors.accent; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = colors.border; }}
-          onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.borderColor = colors.textMuted; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.border; }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = colors.accent;
+            e.currentTarget.style.boxShadow = `0 0 0 3px rgba(245,158,11,0.18)`;
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = colors.border;
+            e.currentTarget.style.boxShadow = "none";
+          }}
+          onMouseEnter={(e) => { if (!disabled && document.activeElement !== e.currentTarget) e.currentTarget.style.borderColor = colors.textMuted; }}
+          onMouseLeave={(e) => {
+            if (document.activeElement !== e.currentTarget) {
+              e.currentTarget.style.borderColor = colors.border;
+              e.currentTarget.style.boxShadow = "none";
+            }
+          }}
         >
           {placeholder != null && <option value="">{placeholder}</option>}
           {normalized.map((opt) => (

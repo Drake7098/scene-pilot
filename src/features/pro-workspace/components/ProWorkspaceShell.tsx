@@ -9,7 +9,7 @@
  * - Tab active 样式：bottom border amber
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import type { Lang } from "../../../i18n";
 import type { Project, Scene, Layer } from "../../../model";
 import type { PlatformPresetId } from "../../../config/platformPresets";
@@ -43,7 +43,7 @@ import { buildPromptForScene }      from "../../../utils/promptEngine";
 import { getPlatformPreset }        from "../../../config/platformPresets";
 
 import {
-  Sparkles, ChevronDown, Copy, Download, AlertCircle, Image as ImageIcon, Play, LayoutGrid,
+  Sparkles, Copy, Download, AlertCircle, Image as ImageIcon, Play, LayoutGrid,
 } from "lucide-react";
 
 // ── Design tokens — figma/app.tsx aligned ─────────────────────────────────
@@ -55,6 +55,7 @@ const TEXT   = "#e5e7eb";  // figma text
 const MUTED  = "#9ca3af";  // figma textMuted
 const RIGHT_W = 280;
 const BAR_H   = 52;
+const FOCUS_OBJECT_EDITOR_EVENT = "spx:focus-object-editor";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type Props = {
@@ -114,6 +115,7 @@ function RightPanelContent(props: Props & { section: ProWorkspaceSection }) {
   const {
     section, lang, project, scene,
     selectedLayerId, onSelectLayer, onUpdateScene, onRenameLayer,
+    onAddLayer, onDeleteLayer,
     editT, setEditT, platformId, onPlatformChange,
     exportMode, onExportModeChange, generationSource, onGenerationSourceChange,
     canUseByo, byoCredentials, comfyStatus, drawStatus, creditCost, userCredits,
@@ -134,7 +136,7 @@ function RightPanelContent(props: Props & { section: ProWorkspaceSection }) {
     case "output":       return <OutputTypePanel lang={lang} scene={scene} project={project} onUpdateScene={onUpdateScene} />;
     case "camera_lang":  return <CameraLangPanel lang={lang} scene={scene} project={project} onUpdateScene={onUpdateScene} />;
     case "scene_bg":     return <SceneBgPanel lang={lang} scene={scene} project={project} onUpdateScene={onUpdateScene} />;
-    case "objects":      return <ObjectEditorPanel lang={lang} scene={scene} project={project} selectedLayerId={selectedLayerId ?? null} onSelectLayer={onSelectLayer!} onUpdateScene={onUpdateScene} onUpdateLayer={updateLayer} onRenameLayer={onRenameLayer} />;
+    case "objects":      return <ObjectEditorPanel lang={lang} scene={scene} project={project} selectedLayerId={selectedLayerId ?? null} onSelectLayer={onSelectLayer!} onUpdateScene={onUpdateScene} onUpdateLayer={updateLayer} onRenameLayer={onRenameLayer} onAddLayer={onAddLayer} onDeleteLayer={onDeleteLayer} />;
     case "lighting":     return <LightingPanel lang={lang} scene={scene} project={project} onUpdateScene={onUpdateScene} />;
     case "style":        return <StylePanel lang={lang} scene={scene} project={project} onUpdateScene={onUpdateScene} />;
     case "tech":         return <TechPanel lang={lang} scene={scene} project={project} onUpdateScene={onUpdateScene} />;
@@ -153,7 +155,7 @@ export function ProWorkspaceShell(props: Props) {
     lang, project, scene,
     selectedLayerId, onSelectLayer, onUpdateScene,
     editT, setEditT, platformId,
-    onCopyPrompt, onGenerate, generateBusy = false,
+    onCopyPrompt, onExport, onGenerate, generateBusy = false,
     generationSource = "hosted",
     onGenerationSourceChange,
     byoCredentials = null,
@@ -168,7 +170,6 @@ export function ProWorkspaceShell(props: Props) {
   } = props;
 
   const [internalSection, setInternalSection] = useState<ProWorkspaceSection>("shot");
-  const [showGenMenu, setShowGenMenu] = useState(false);
   const section = externalSection ?? internalSection;
 
   const tl = (zh: string, en: string) => lang === "zh" ? zh : en;
@@ -184,6 +185,21 @@ export function ProWorkspaceShell(props: Props) {
       return r.finalCopyPrompt?.trim().length ?? 0;
     } catch { return 0; }
   }, [project, scene, lang, platformId]);
+
+  useEffect(() => {
+    const onFocusObjectEditor = (event: Event) => {
+      const custom = event as CustomEvent<{ layerId?: string }>;
+      const layerId = String(custom.detail?.layerId || "").trim();
+      if (!layerId) return;
+      if (section === "composition") return;
+      if (!scene.layers?.some((layer) => layer.id === layerId)) return;
+      onSelectLayer?.(layerId);
+      onSectionChange?.("objects");
+      if (!onSectionChange) setInternalSection("objects");
+    };
+    window.addEventListener(FOCUS_OBJECT_EDITOR_EVENT, onFocusObjectEditor as EventListener);
+    return () => window.removeEventListener(FOCUS_OBJECT_EDITOR_EVENT, onFocusObjectEditor as EventListener);
+  }, [section, scene.layers, onSelectLayer, onSectionChange]);
 
   return (
     <div style={{
@@ -307,6 +323,7 @@ export function ProWorkspaceShell(props: Props) {
                 onSelectLayer={(id) => { onSelectLayer?.(id); if (!id) setEditT(0); }}
                 onUpdateScene={onUpdateScene}
                 editT={editT}
+                suppressObjectEditorFocus={section === "composition"}
                 className="spx-pro-stage"
               />
             )}
@@ -358,107 +375,39 @@ export function ProWorkspaceShell(props: Props) {
             {tl("复制提示词", "Copy Prompt")}
           </button>
 
-          {/* ── Generate split button ──────────────────────────── */}
-          <div style={{ position: "relative", display: "flex", flexShrink: 0 }}>
-            <button
-              type="button"
-              disabled={generateBusy}
-              onClick={() => {
-                const hasByo = byoCredentials && (byoCredentials.fal?.enabled || byoCredentials.runway?.enabled);
-                const hasLocal = comfyStatus.state === "ready" || drawStatus.state === "ready";
-                if (!hasByo && !hasLocal) { onGenerate?.(); } else { setShowGenMenu(v => !v); }
-              }}
-              style={{
-                height: 34, padding: "0 14px", borderRadius: "4px 0 0 4px",
-                border: "none", borderRight: "1px solid rgba(0,0,0,0.2)",
-                background: generateBusy ? "#8a6000" : ACCENT,
-                color: "#111", fontSize: 12, fontWeight: 700,
-                cursor: generateBusy ? "wait" : "pointer",
-                display: "flex", alignItems: "center", gap: 6,
-                opacity: generateBusy ? 0.75 : 1, transition: "background 0.15s",
-              }}
-              onMouseEnter={(e) => { if (!generateBusy) e.currentTarget.style.background = "#d97706"; }}
-              onMouseLeave={(e) => { if (!generateBusy) e.currentTarget.style.background = generateBusy ? "#8a6000" : ACCENT; }}
-            >
-              <Sparkles size={13} />
-              {generateBusy ? tl("生成中…", "Generating…") : tl("生成", "Generate")}
+          {onExport ? (
+            <button type="button" onClick={onExport} style={ghostBtnStyle}>
+              <Download size={12} />
+              {tl("导出项目包", "Export Package")}
             </button>
-            {(() => {
-              const hasByo = byoCredentials && (byoCredentials.fal?.enabled || byoCredentials.runway?.enabled);
-              const hasLocal = comfyStatus.state === "ready" || drawStatus.state === "ready";
-              if (!hasByo && !hasLocal) return null;
-              return (
-                <button type="button" disabled={generateBusy} onClick={() => setShowGenMenu(v => !v)}
-                  style={{
-                    height: 34, width: 28, borderRadius: "0 4px 4px 0", border: "none",
-                    background: generateBusy ? "#8a6000" : ACCENT, color: "#111",
-                    cursor: generateBusy ? "not-allowed" : "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                  <ChevronDown size={12} style={{ transform: showGenMenu ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
-                </button>
-              );
-            })()}
-            {showGenMenu && (() => {
-              const hasByo = Boolean(byoCredentials && (byoCredentials.fal?.enabled || byoCredentials.runway?.enabled));
-              const hasComfy = comfyStatus.state === "ready";
-              const hasDraw = drawStatus.state === "ready" && mediaMode === "image";
-              const credLow = userCredits < creditCost;
-              const byoName = byoCredentials?.defaultProvider === "runway" ? "Runway" : "fal";
-              type Opt = { id: string; icon: string; label: string; sub: string; action: () => void };
-              const opts: Opt[] = [
-                { id: "hosted", icon: "☁", label: tl("平台生成","Platform"),
-                  sub: credLow ? tl(`积分不足 (${userCredits})`,`Low credits (${userCredits})`) : `${creditCost} Credits`,
-                  action: () => { onGenerationSourceChange?.("hosted"); onGenerate?.(); setShowGenMenu(false); } },
-              ];
-              if (hasByo) opts.push({ id: "byo", icon: "⚡", label: tl("我的 API","My API"), sub: byoName,
-                action: () => { onGenerationSourceChange?.("byo"); onGenerate?.(); setShowGenMenu(false); } });
-              if (hasComfy) opts.push({ id: "local_comfy", icon: "💻", label: "ComfyUI", sub: tl("本地 · 免费","Local · Free"),
-                action: () => { onGenerationSourceChange?.("local_comfy" as any); onGenerate?.(); setShowGenMenu(false); } });
-              if (hasDraw) opts.push({ id: "local_draw", icon: "💻", label: "Draw Things", sub: tl("本地 · 免费","Local · Free"),
-                action: () => { onGenerationSourceChange?.("local_draw" as any); onGenerate?.(); setShowGenMenu(false); } });
-              return (
-                <>
-                  <div style={{ position: "fixed", inset: 0, zIndex: 99 }} onClick={() => setShowGenMenu(false)} />
-                  <div style={{
-                    position: "absolute", bottom: "calc(100% + 8px)", right: 0, zIndex: 100,
-                    minWidth: 220, background: PANEL, border: `1px solid ${BORDER}`,
-                    borderRadius: 4, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
-                  }}>
-                    <div style={{ padding: "8px 14px 6px", fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
-                      {tl("选择生成方式","Choose generation source")}
-                    </div>
-                    {opts.map(opt => {
-                      const isActive = generationSource === opt.id;
-                      const isLow = opt.id === "hosted" && credLow;
-                      return (
-                        <button key={opt.id} type="button" onClick={opt.action} style={{
-                          width: "100%", textAlign: "left" as const, display: "flex", alignItems: "center", gap: 10,
-                          padding: "10px 14px", border: "none",
-                          background: isActive ? `${ACCENT}15` : "transparent", color: isActive ? ACCENT : TEXT,
-                          cursor: "pointer",
-                        }}
-                          onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-                          onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
-                        >
-                          <span style={{ fontSize: 16, width: 20, textAlign: "center" as const }}>{opt.icon}</span>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 12, fontWeight: isActive ? 700 : 500 }}>{opt.label}</div>
-                            <div style={{ fontSize: 10, color: isLow ? "#f87171" : MUTED, marginTop: 1 }}>{opt.sub}</div>
-                          </div>
-                          {isActive && <span style={{ fontSize: 10, color: ACCENT }}>✓</span>}
-                        </button>
-                      );
-                    })}
-                    <div style={{ height: 1, background: BORDER, margin: "4px 0" }} />
-                    <div style={{ padding: "6px 14px 10px", fontSize: 10, color: MUTED, lineHeight: 1.5 }}>
-                      {tl("在账户设置中配置 API 和本地连接","Configure APIs in Account settings")}
-                    </div>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
+          ) : null}
+
+          <button
+            type="button"
+            disabled={generateBusy}
+            onClick={() => onGenerate?.()}
+            style={{
+              height: 34,
+              padding: "0 14px",
+              borderRadius: 4,
+              border: "none",
+              background: generateBusy ? "#8a6000" : ACCENT,
+              color: "#111",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: generateBusy ? "wait" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              opacity: generateBusy ? 0.75 : 1,
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => { if (!generateBusy) e.currentTarget.style.background = "#d97706"; }}
+            onMouseLeave={(e) => { if (!generateBusy) e.currentTarget.style.background = generateBusy ? "#8a6000" : ACCENT; }}
+          >
+            <Sparkles size={13} />
+            {generateBusy ? tl("生成中…", "Generating…") : tl("生成", "Generate")}
+          </button>
         </div>
       </div>
 
