@@ -10,9 +10,7 @@ import {
   Palette,
   LayoutGrid,
   Shield,
-  FileText,
   Download,
-  Globe,
 } from "lucide-react";
 import type { Lang } from "../../../i18n";
 import type { ProWorkspaceSection } from "../types";
@@ -47,9 +45,7 @@ const WORKFLOW_ITEMS: NavItem[] = [
 const TOOL_ITEMS: NavItem[] = [
   { id: "composition",    icon: LayoutGrid, labelZh: "构图",     labelEn: "Composition",    dividerBefore: true },
   { id: "constraints",    icon: Shield,     labelZh: "约束",     labelEn: "Constraints" },
-  { id: "prompt_preview", icon: FileText,   labelZh: "提示词",   labelEn: "Prompt" },
-  { id: "export",         icon: Download,   labelZh: "输出",     labelEn: "Export" },
-  { id: "platform",       icon: Globe,      labelZh: "平台",     labelEn: "Platform" },
+  { id: "generate_settings", icon: Download, labelZh: "生成设置", labelEn: "Generate Settings" },
 ];
 
 export function ProWorkspaceNav({ lang, section, onSectionChange }: Props) {

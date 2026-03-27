@@ -29,8 +29,7 @@ import { TechPanel }                from "./TechPanel";
 import { CompositionEditorPanel }   from "./CompositionEditorPanel";
 import { ConstraintInspectorPanel } from "./ConstraintInspectorPanel";
 import { PromptPreviewPanel }       from "./PromptPreviewPanel";
-import { ExportControlPanel }       from "./ExportControlPanel";
-import { PlatformAdaptPanel }       from "./PlatformAdaptPanel";
+import { ExportControlPanel, type GenerateSettings } from "./ExportControlPanel";
 
 import { Stage }                    from "../../../components/Stage";
 import { resolveSceneConfig }       from "../../../model";
@@ -89,6 +88,7 @@ type Props = {
   drawStatus?: LocalProviderStatus;
   creditCost?: number;
   userCredits?: number;
+  onGenerateSettingsChange?: (settings: GenerateSettings) => void;
   section?: ProWorkspaceSection;
   onSectionChange?: (s: ProWorkspaceSection) => void;
   assetList?: Array<{
@@ -119,7 +119,7 @@ function RightPanelContent(props: Props & { section: ProWorkspaceSection }) {
     editT, setEditT, platformId, onPlatformChange,
     exportMode, onExportModeChange, generationSource, onGenerationSourceChange,
     canUseByo, byoCredentials, comfyStatus, drawStatus, creditCost, userCredits,
-    onCopyPrompt, onExport, onGenerate, generateBusy, onJumpToConflict,
+    onGenerateSettingsChange, onCopyPrompt, onExport, onGenerate, generateBusy, onJumpToConflict,
   } = props;
 
   const updateLayer = (layerId: string, patch: Partial<Layer>) => {
@@ -142,9 +142,31 @@ function RightPanelContent(props: Props & { section: ProWorkspaceSection }) {
     case "tech":         return <TechPanel lang={lang} scene={scene} project={project} onUpdateScene={onUpdateScene} />;
     case "composition":  return <CompositionEditorPanel lang={lang} scene={scene} project={project} selectedLayerId={selectedLayerId ?? null} onSelectLayer={onSelectLayer!} onUpdateScene={onUpdateScene} onUpdateLayer={updateLayer} editT={editT} setEditT={setEditT} />;
     case "constraints":  return <ConstraintInspectorPanel lang={lang} scene={scene} project={project} selectedLayerId={selectedLayerId ?? null} onJumpToConflict={onJumpToConflict} />;
-    case "prompt_preview": return <PromptPreviewPanel lang={lang} project={project} scene={scene} platformId={platformId} onCopyPrompt={onCopyPrompt} />;
-    case "platform":     return <PlatformAdaptPanel lang={lang} project={project} scene={scene} platformId={platformId as PlatformPresetId} exportMode={exportMode ?? "prompt_only"} generationSource={(generationSource ?? "hosted") as any} />;
-    case "export":       return <ExportControlPanel lang={lang} project={project} scene={scene} platformId={platformId as PlatformPresetId} onPlatformChange={onPlatformChange ?? (() => {})} exportMode={exportMode ?? "prompt_only"} onExportModeChange={onExportModeChange ?? (() => {})} generationSource={(generationSource ?? "hosted") as any} onGenerationSourceChange={onGenerationSourceChange ?? (() => {})} canUseByo={canUseByo ?? false} byoCredentials={byoCredentials} comfyStatus={comfyStatus} drawStatus={drawStatus} creditCost={creditCost} userCredits={userCredits} onCopy={onCopyPrompt ?? (() => {})} onExport={onExport ?? (() => {})} onGenerate={onGenerate ?? (() => {})} generateBusy={generateBusy ?? false} />;
+    case "prompt_preview":
+      return <PromptPreviewPanel lang={lang} project={project} scene={scene} platformId={platformId} onCopyPrompt={onCopyPrompt} />;
+    case "platform":
+    case "export":
+    case "generate_settings":
+      return (
+        <ExportControlPanel
+          lang={lang}
+          project={project}
+          scene={scene}
+          platformId={platformId as PlatformPresetId}
+          onPlatformChange={onPlatformChange ?? (() => {})}
+          exportMode={exportMode ?? "prompt_only"}
+          onExportModeChange={onExportModeChange ?? (() => {})}
+          generationSource={(generationSource ?? "hosted") as any}
+          onGenerationSourceChange={onGenerationSourceChange ?? (() => {})}
+          canUseByo={canUseByo ?? false}
+          byoCredentials={byoCredentials}
+          comfyStatus={comfyStatus}
+          drawStatus={drawStatus}
+          creditCost={creditCost}
+          userCredits={userCredits}
+          onGenerateSettingsChange={onGenerateSettingsChange}
+        />
+      );
     default: return null;
   }
 }
@@ -163,6 +185,7 @@ export function ProWorkspaceShell(props: Props) {
     drawStatus  = { provider: "drawthings" as const, state: "idle" as const },
     creditCost = 3,
     userCredits = 0,
+    onGenerateSettingsChange,
     section: externalSection, onSectionChange,
     currentAsset, assetList = [], activeAssetId,
     onSetActiveAsset, onDownloadAsset, onDeleteAsset, onRegenerateAsset,
@@ -170,7 +193,28 @@ export function ProWorkspaceShell(props: Props) {
   } = props;
 
   const [internalSection, setInternalSection] = useState<ProWorkspaceSection>("shot");
+  const [queueStatusText, setQueueStatusText] = useState("");
+  const [generateSettings, setGenerateSettings] = useState<GenerateSettings>({
+    executionMode: generationSource === "hosted" ? "hosted" : generationSource === "local_comfy" ? "comfyui" : generationSource === "local_draw" ? "drawthings" : "api",
+    engine: "fal",
+    exportProfile: "universal",
+    quality: "standard",
+    count: 1,
+    resultMode: "new",
+    referenceMode: "auto",
+    creditsRequired: creditCost,
+    canGenerate: generationSource === "hosted" ? userCredits >= creditCost : false,
+    generateLabel: generationSource === "hosted"
+      ? (lang === "zh" ? "生成（3 Credits）" : "Generate (3 Credits)")
+      : (lang === "zh" ? "使用 Fal 生成" : "Generate with Fal"),
+    statusHint: generationSource === "hosted"
+      ? (userCredits >= creditCost
+        ? (lang === "zh" ? "可以生成" : "Ready")
+        : (lang === "zh" ? "余额不足，请充值" : "Insufficient balance, please top up"))
+      : (lang === "zh" ? "未配置 API 或本地连接" : "API or local connection is missing"),
+  });
   const section = externalSection ?? internalSection;
+  const normalizedSection: ProWorkspaceSection = section === "export" || section === "platform" ? "generate_settings" : section;
 
   const tl = (zh: string, en: string) => lang === "zh" ? zh : en;
 
@@ -191,7 +235,7 @@ export function ProWorkspaceShell(props: Props) {
       const custom = event as CustomEvent<{ layerId?: string }>;
       const layerId = String(custom.detail?.layerId || "").trim();
       if (!layerId) return;
-      if (section === "composition") return;
+      if (normalizedSection === "composition") return;
       if (!scene.layers?.some((layer) => layer.id === layerId)) return;
       onSelectLayer?.(layerId);
       onSectionChange?.("objects");
@@ -199,7 +243,37 @@ export function ProWorkspaceShell(props: Props) {
     };
     window.addEventListener(FOCUS_OBJECT_EDITOR_EVENT, onFocusObjectEditor as EventListener);
     return () => window.removeEventListener(FOCUS_OBJECT_EDITOR_EVENT, onFocusObjectEditor as EventListener);
-  }, [section, scene.layers, onSelectLayer, onSectionChange]);
+  }, [normalizedSection, scene.layers, onSelectLayer, onSectionChange]);
+
+  useEffect(() => {
+    const onQueueStatus = (event: Event) => {
+      const custom = event as CustomEvent<{ phase?: string; queuePosition?: number; queuedAhead?: number }>;
+      const phase = String(custom.detail?.phase || "").toLowerCase();
+      const ahead = Number(custom.detail?.queuedAhead ?? -1);
+      if (phase === "queued") {
+        const line = ahead >= 0
+          ? tl(`排队中（前方 ${ahead} 人）`, `Queued (${ahead} ahead)`)
+          : tl("排队中", "Queued");
+        setQueueStatusText(line);
+        return;
+      }
+      if (phase === "running") {
+        setQueueStatusText(tl("生成中", "Running"));
+        return;
+      }
+      if (phase === "done") {
+        setQueueStatusText(tl("已完成", "Done"));
+        window.setTimeout(() => setQueueStatusText(""), 2000);
+        return;
+      }
+      if (phase === "failed") {
+        setQueueStatusText(tl("生成失败", "Failed"));
+        return;
+      }
+    };
+    window.addEventListener("spx:gen-queue-status", onQueueStatus as EventListener);
+    return () => window.removeEventListener("spx:gen-queue-status", onQueueStatus as EventListener);
+  }, [lang]);
 
   return (
     <div style={{
@@ -323,7 +397,7 @@ export function ProWorkspaceShell(props: Props) {
                 onSelectLayer={(id) => { onSelectLayer?.(id); if (!id) setEditT(0); }}
                 onUpdateScene={onUpdateScene}
                 editT={editT}
-                suppressObjectEditorFocus={section === "composition"}
+                suppressObjectEditorFocus={normalizedSection === "composition"}
                 className="spx-pro-stage"
               />
             )}
@@ -382,32 +456,37 @@ export function ProWorkspaceShell(props: Props) {
             </button>
           ) : null}
 
-          <button
-            type="button"
-            disabled={generateBusy}
-            onClick={() => onGenerate?.()}
-            style={{
-              height: 34,
-              padding: "0 14px",
-              borderRadius: 4,
-              border: "none",
-              background: generateBusy ? "#8a6000" : ACCENT,
-              color: "#111",
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: generateBusy ? "wait" : "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              opacity: generateBusy ? 0.75 : 1,
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={(e) => { if (!generateBusy) e.currentTarget.style.background = "#d97706"; }}
-            onMouseLeave={(e) => { if (!generateBusy) e.currentTarget.style.background = generateBusy ? "#8a6000" : ACCENT; }}
-          >
-            <Sparkles size={13} />
-            {generateBusy ? tl("生成中…", "Generating…") : tl("生成", "Generate")}
-          </button>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+            <button
+              type="button"
+              disabled={generateBusy || !generateSettings.canGenerate}
+              onClick={() => onGenerate?.()}
+              style={{
+                height: 34,
+                padding: "0 14px",
+                borderRadius: 4,
+                border: "none",
+                background: generateBusy || !generateSettings.canGenerate ? "#8a6000" : ACCENT,
+                color: "#111",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: generateBusy || !generateSettings.canGenerate ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                opacity: generateBusy || !generateSettings.canGenerate ? 0.75 : 1,
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!generateBusy && generateSettings.canGenerate) e.currentTarget.style.background = "#d97706"; }}
+              onMouseLeave={(e) => { if (!generateBusy && generateSettings.canGenerate) e.currentTarget.style.background = ACCENT; }}
+            >
+              <Sparkles size={13} />
+              {generateBusy ? tl("生成中…", "Generating…") : generateSettings.generateLabel}
+            </button>
+            {queueStatusText ? (
+              <div style={{ fontSize: 11, color: MUTED }}>{queueStatusText}</div>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -436,7 +515,14 @@ export function ProWorkspaceShell(props: Props) {
           flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden",
           scrollbarWidth: "thin", scrollbarColor: `${BORDER} transparent`,
         }}>
-          <RightPanelContent {...props} section={section} />
+          <RightPanelContent
+            {...props}
+            section={normalizedSection}
+            onGenerateSettingsChange={(settings) => {
+              setGenerateSettings(settings);
+              onGenerateSettingsChange?.(settings);
+            }}
+          />
         </div>
       </div>
 
@@ -549,7 +635,7 @@ function StatusChip({ children, accent, danger }: { children: React.ReactNode; a
 const ghostBtnStyle: React.CSSProperties = {
   height: 34, padding: "0 12px", borderRadius: 4,
   border: `1px solid ${BORDER}`, background: "transparent",
-  color: MUTED, fontSize: 11, cursor: "pointer",
+  color: TEXT, fontSize: 11, cursor: "pointer",
   display: "flex", alignItems: "center", gap: 5,
   whiteSpace: "nowrap", flexShrink: 0,
   transition: "background 0.12s, color 0.12s, border-color 0.12s",

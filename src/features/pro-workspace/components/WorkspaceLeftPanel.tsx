@@ -300,7 +300,7 @@ export function WorkspaceLeftPanel({
     { id: "composition",    icon: LayoutGrid, zh: "构图",   en: "Compose" },
     { id: "constraints",    icon: Shield,     zh: "约束",   en: "Constrain" },
     { id: "prompt_preview", icon: FileText,   zh: "提示词", en: "Prompt" },
-    { id: "export",         icon: Download,   zh: "输出",   en: "Export" },
+    { id: "export",         icon: Download,   zh: "生成设置", en: "Generate Settings" },
   ];
 
   return (

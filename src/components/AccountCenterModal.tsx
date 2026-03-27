@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle, CheckCircle2, CreditCard, Crown, KeyRound, Cpu, LogOut, Sparkles, UserRound, Wallet, X } from "lucide-react";
-import { ApiProviderPanel } from "./generation/ApiProviderPanel";
-import type { AccountCenterSection, ApiCredentialState, ApiProviderId, ApiProviderMode, ProviderConnectionStatus, UserState } from "../types/account";
+import { CreditCard, Crown, KeyRound, UserRound, Wallet, X } from "lucide-react";
+import type { AccountCenterSection, ApiCredentialState, UserState } from "../types/account";
 import { getProAccessState } from "../utils/entitlement";
 import type { CreditLedgerEntry, CreditPackConfig, ProPlanConfig, SubscriptionState } from "../types/billing";
 import type { Lang } from "../i18n";
@@ -106,7 +105,6 @@ export function AccountCenterModal(props: Props) {
     onOpenCustomerPortal,
     onSaveApiCredentials
   } = props;
-  const [apiDraft, setApiDraft] = useState<ApiCredentialState>(() => normalizeApiCredentialsForForm(apiCredentials));
   const [activeLegalDoc, setActiveLegalDoc] = useState<LegalDocId | null>(null);
   const [consentShake, setConsentShake] = useState(false);
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
@@ -128,16 +126,18 @@ export function AccountCenterModal(props: Props) {
   }`;
 
   useEffect(() => {
-    setApiDraft(normalizeApiCredentialsForForm(apiCredentials));
-  }, [apiCredentials, open, section]);
+    if (!creditPacks.length) return;
+    const maxPack = [...creditPacks].sort((a, b) => b.credits - a.credits)[0];
+    if (!selectedPackId) setSelectedPackId(maxPack?.id ?? null);
+  }, [creditPacks, selectedPackId]);
 
   const title = useMemo(() => {
     if (!user) return t(lang, "注册 / 登录", "Sign Up / Sign In");
-    if (section === "credits") return t(lang, "点数与充值", "Credits");
+    if (section === "credits") return t(lang, "Credits", "Credits");
     if (section === "pro") return "Pro";
-    if (section === "api") return t(lang, "API 接入", "API Access");
+    if (section === "api") return t(lang, "API Keys", "API Keys");
     if (section === "local") return t(lang, "本地连接", "Local Connection");
-    return t(lang, "我的账户", "My Account");
+    return t(lang, "Account", "Account");
   }, [lang, section, user]);
   const authConsentLine1 = t(
     lang,
@@ -191,16 +191,16 @@ export function AccountCenterModal(props: Props) {
         {user ? (
           <div style={styles.tabs}>
             <button type="button" style={{ ...styles.tab, ...(section === "overview" ? styles.tabOn : null) }} onClick={() => onSectionChange("overview")}>
-              <UserRound size={14} />{t(lang, "账户", "Account")}
+              <UserRound size={14} />{t(lang, "Account", "Account")}
             </button>
             <button type="button" style={{ ...styles.tab, ...(section === "credits" ? styles.tabOn : null) }} onClick={() => onSectionChange("credits")}>
-              <Wallet size={14} />{t(lang, "点数", "Credits")}
+              <Wallet size={14} />{t(lang, "Credits", "Credits")}
             </button>
             <button type="button" style={{ ...styles.tab, ...(section === "pro" ? styles.tabOn : null) }} onClick={() => onSectionChange("pro")}>
               <Crown size={14} />Pro
             </button>
             <button type="button" style={{ ...styles.tab, ...(section === "api" ? styles.tabOn : null) }} onClick={() => onSectionChange("api")}>
-              <KeyRound size={14} />{t(lang, "API 接入", "API")}
+              <KeyRound size={14} />{t(lang, "API Keys", "API Keys")}
             </button>
 
           </div>
@@ -386,96 +386,22 @@ export function AccountCenterModal(props: Props) {
           <div style={styles.panelStack}>
             {section === "overview" ? (
               <div style={styles.panel}>
-                {/* User info card */}
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 14,
-                  padding: "16px", borderRadius: 6,
-                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                  marginBottom: 16,
-                }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
-                    background: "#f59e0b22", border: "2px solid #f59e0b44",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <UserRound size={20} style={{ color: "#f59e0b" }} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#e5e7eb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {user.email}
+                <div style={{ display: "grid", gap: 0, borderTop: "1px solid #3a3f46", borderBottom: "1px solid #3a3f46" }}>
+                  {[
+                    [t(lang, "username", "username"), user.displayName || user.email.split("@")[0]],
+                    [t(lang, "email", "email"), user.email],
+                    [t(lang, "plan", "plan"), hasProAccess ? "Pro" : "Free"],
+                    [t(lang, "credits", "credits"), String(creditsBalance)],
+                  ].map(([k, v], idx) => (
+                    <div key={String(k)} style={{ display: "grid", gridTemplateColumns: "120px 1fr", padding: "10px 0", borderBottom: idx === 3 ? "none" : "1px solid #3a3f46" }}>
+                      <div style={{ fontSize: 12, color: "#9ca3af" }}>{k}</div>
+                      <div style={{ fontSize: 12, color: "#e5e7eb", textAlign: "right" }}>{v}</div>
                     </div>
-                    <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3, display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{
-                        padding: "1px 7px", borderRadius: 4, fontSize: 10, fontWeight: 700,
-                        background: hasProAccess ? "rgba(245,158,11,0.15)" : "rgba(156,163,175,0.15)",
-                        color: hasProAccess ? "#f59e0b" : "#9ca3af",
-                        border: `1px solid ${hasProAccess ? "rgba(245,158,11,0.3)" : "rgba(156,163,175,0.3)"}`,
-                      }}>
-                        {hasProAccess ? "PRO" : "FREE"}
-                      </span>
-                      <span>{creditsBalance} {t(lang, "积分", "credits")}</span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-
-                {/* Quick actions */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <button type="button" onClick={() => onSectionChange("credits")} style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "11px 14px", borderRadius: 4, cursor: "pointer",
-                    border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "#e5e7eb",
-                    fontSize: 13, textAlign: "left" as const,
-                  }}>
-                    <CreditCard size={15} style={{ color: "#9ca3af", flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 500 }}>{t(lang, "充值积分", "Buy Credits")}</div>
-                      <div style={{ fontSize: 11, color: "#6b7280" }}>{t(lang, "当前余额", "Balance")}: {creditsBalance}</div>
-                    </div>
-                    <span style={{ color: "#6b7280", fontSize: 16 }}>›</span>
-                  </button>
-
-                  {!hasProAccess && (
-                    <button type="button" onClick={() => onSectionChange("pro")} style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "11px 14px", borderRadius: 4, cursor: "pointer",
-                      border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.06)", color: "#e5e7eb",
-                      fontSize: 13, textAlign: "left" as const,
-                    }}>
-                      <Crown size={15} style={{ color: "#f59e0b", flexShrink: 0 }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 500, color: "#f59e0b" }}>{t(lang, "升级 Pro", "Upgrade to Pro")}</div>
-                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{t(lang, "解锁 API 接入、本地生成", "Unlock API access & local generation")}</div>
-                      </div>
-                      <span style={{ color: "#f59e0b", fontSize: 16 }}>›</span>
-                    </button>
-                  )}
-
-                  {subscription?.status === "active" && (
-                    <button type="button" onClick={onOpenCustomerPortal} disabled={!billingEnabled || billingBusy} style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "11px 14px", borderRadius: 4, cursor: "pointer",
-                      border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "#e5e7eb",
-                      fontSize: 13, textAlign: "left" as const,
-                    }}>
-                      <CreditCard size={15} style={{ color: "#9ca3af", flexShrink: 0 }} />
-                      <span>{t(lang, "管理订阅", "Manage Subscription")}</span>
-                    </button>
-                  )}
-                </div>
-
-                {billingNotice && (
-                  <div style={{ fontSize: 11, color: "#6b7280", marginTop: 12, lineHeight: 1.5 }}>{billingNotice}</div>
-                )}
-
-                <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                  <button type="button" onClick={onLogout} style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "8px 12px", borderRadius: 6, cursor: "pointer",
-                    border: "none", background: "transparent", color: "#f87171",
-                    fontSize: 12,
-                  }}>
-                    <LogOut size={13} />
-                    {t(lang, "退出登录", "Log Out")}
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+                  <button type="button" style={styles.primaryBtn} onClick={onUpgradePro}>
+                    <Crown size={14} />{t(lang, "Upgrade to Pro", "Upgrade to Pro")}
                   </button>
                 </div>
               </div>
@@ -483,258 +409,130 @@ export function AccountCenterModal(props: Props) {
 
             {section === "credits" ? (
               <div style={styles.panel}>
-                {/* Current balance */}
-                <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 16px", borderRadius: 6,
-                  background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)",
-                  marginBottom: 16,
-                }}>
-                  <div>
-                    <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 3 }}>{t(lang, "当前积分", "Current Balance")}</div>
-                    <div style={{ fontSize: 26, fontWeight: 700, color: "#f59e0b" }}>{creditsBalance.toLocaleString()}</div>
-                  </div>
-                  <div style={{ fontSize: 11, color: "#6b7280", textAlign: "right", lineHeight: 1.6 }}>
-                    <div>{t(lang, "图片生成 3 积分", "Image gen 3 credits")}</div>
-                    <div>{t(lang, "视频生成 5 积分", "Video gen 5 credits")}</div>
-                    <div>{t(lang, "提示词导出免费", "Prompt export free")}</div>
-                  </div>
+                <div style={{ marginBottom: 12, fontSize: 12, color: "#9ca3af" }}>{t(lang, "Credits Balance", "Credits Balance")}</div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: "#e5e7eb", marginBottom: 16 }}>{creditsBalance.toLocaleString()}</div>
+                <div style={{ borderTop: "1px solid #3a3f46", borderBottom: "1px solid #3a3f46" }}>
+                  {[
+                    { id: "pack_3", credits: 150, usdPrice: 3 },
+                    { id: "pack_8", credits: 420, usdPrice: 8 },
+                    { id: "pack_15", credits: 800, usdPrice: 15 },
+                  ].map((pack, idx) => (
+                    <label key={pack.id} style={{ display: "grid", gridTemplateColumns: "22px 1fr auto", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: idx === 2 ? "none" : "1px solid #3a3f46", cursor: "pointer" }}>
+                      <input
+                        type="radio"
+                        name="credit_pack"
+                        checked={selectedPackId === pack.id}
+                        onChange={() => setSelectedPackId(pack.id)}
+                        style={{ accentColor: "#f59e0b" }}
+                      />
+                      <span style={{ fontSize: 12, color: "#e5e7eb" }}>{pack.credits}</span>
+                      <span style={{ fontSize: 12, color: "#e5e7eb" }}>${pack.usdPrice}</span>
+                    </label>
+                  ))}
                 </div>
-
-                {/* Credit packs */}
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#e5e7eb", marginBottom: 10 }}>
-                  {t(lang, "购买积分", "Buy Credits")}
-                </div>
-                <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-                  {creditPacks.map((pack) => {
-                    const perCredit = (pack.usdPrice / pack.credits * 100).toFixed(1);
-                    const isBest = pack.id === "pack_15";
-                    return (
-                      <button
-                        key={pack.id}
-                        type="button"
-                        onClick={() => setSelectedPackId(pack.id === selectedPackId ? null : pack.id)}
-                        disabled={!billingEnabled || billingBusy || !billingLegalAccepted}
-                        data-testid={`account-credit-pack-${pack.id}`}
-                        style={{
-                          flex: 1, padding: "14px 10px", borderRadius: 6, cursor: "pointer",
-                          border: selectedPackId === pack.id ? "2px solid #f59e0b" : isBest ? "1px solid rgba(245,158,11,0.3)" : "1px solid #3a3f46",
-                          background: selectedPackId === pack.id ? "rgba(245,158,11,0.1)" : isBest ? "rgba(245,158,11,0.03)" : "#24262b",
-                          color: "#e5e7eb", textAlign: "center", position: "relative",
-                          transition: "border-color 0.1s",
-                          opacity: (!billingEnabled || billingBusy) ? 0.5 : 1,
-                        }}
-                      >
-                        {isBest && (
-                          <div style={{
-                            position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)",
-                            background: "#f59e0b", color: "#111", fontSize: 9, fontWeight: 700,
-                            padding: "2px 8px", borderRadius: 6,
-                          }}>{t(lang, "最划算", "Best Value")}</div>
-                        )}
-                        <div style={{ fontSize: 20, fontWeight: 700, color: "#f59e0b", marginBottom: 2 }}>
-                          {pack.credits}
-                        </div>
-                        <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>
-                          {t(lang, "积分", "credits")}
-                        </div>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: "#e5e7eb" }}>
-                          ${pack.usdPrice}
-                        </div>
-                        <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
-                          ≈ ¢{perCredit} / credit
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Confirm button */}
-                {selectedPackId && (
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
                   <button
                     type="button"
-                    disabled={!billingEnabled || billingBusy}
-                    onClick={() => {
-                      if (!billingLegalAccepted) {
-                        setConsentShake(true);
-                        setTimeout(() => setConsentShake(false), 700);
-                        consentRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                        return;
-                      }
-                      onPurchasePack(selectedPackId);
-                    }}
-                    style={{
-                      width: "100%", padding: "11px 0", borderRadius: 4,
-                      border: "none",
-                      background: billingLegalAccepted ? "#f59e0b" : "#3a3f46",
-                      color: billingLegalAccepted ? "#111" : "#9ca3af",
-                      fontSize: 13, fontWeight: 700,
-                      cursor: (!billingEnabled || billingBusy) ? "not-allowed" : "pointer",
-                      marginBottom: 8,
-                    }}
+                    style={styles.primaryBtn}
+                    disabled={!billingEnabled || billingBusy || !selectedPackId}
+                    onClick={() => selectedPackId && onPurchasePack(selectedPackId)}
                   >
-                    {billingBusy ? t(lang, "处理中…", "Processing…") : (() => {
-                      const p = creditPacks.find(pk => pk.id === selectedPackId);
-                      return p ? t(lang, `购买 ${p.credits} 积分 — $${p.usdPrice}`, `Buy ${p.credits} credits — $${p.usdPrice}`) : t(lang, "确认购买", "Confirm");
-                    })()}
+                    <CreditCard size={14} />
+                    {t(lang, "Buy Credits", "Buy Credits")}
                   </button>
-                )}
-
-                {/* Legal consent — compact */}
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 12 }}>
-                  <input
-                    type="checkbox"
-                    checked={billingLegalAccepted}
-                    onChange={(e) => onBillingLegalAcceptedChange(e.target.checked)}
-                    style={{ marginTop: 2, accentColor: "#f59e0b", flexShrink: 0 }}
-                    data-testid="account-billing-legal-consent"
-                  />
-                  <span style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
-                    {t(lang, "我已阅读并同意", "I agree to the")}{" "}
-                    <button type="button" style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline" }}
-                      onClick={() => setActiveLegalDoc("billing")}>{t(lang, "付款条款", "Billing Terms")}</button>
-                    {" "}{t(lang, "和", "and")}{" "}
-                    <button type="button" style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline" }}
-                      onClick={() => setActiveLegalDoc("refund")}>{t(lang, "退款政策", "Refund Policy")}</button>
-                  </span>
                 </div>
-
-                {/* Recent ledger — collapsed */}
-                {ledger.length > 0 && (
-                  <details style={{ cursor: "pointer" }}>
-                    <summary style={{ fontSize: 11, color: "#6b7280", userSelect: "none", listStyle: "none", display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
-                      <span style={{ fontSize: 10 }}>▸</span>
-                      {t(lang, "最近流水", "Recent transactions")}
-                    </summary>
-                    <div style={styles.ledgerList}>
-                      {ledger.slice(0, 6).map((item) => (
-                        <div key={item.id} style={styles.ledgerRow}>
-                          <span>{ledgerLabel(lang, item.kind)}</span>
-                          <span style={{ color: item.credits > 0 ? "#22c55e" : "#f87171" }}>
-                            {item.credits > 0 ? `+${item.credits}` : item.credits}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
               </div>
             ) : null}
 
             {section === "pro" ? (
               <div style={styles.panel}>
-                {user.tier === "pro" ? (
-                  /* Already Pro */
-                  <div>
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "14px 16px", borderRadius: 6,
-                      background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)",
-                      marginBottom: 16,
-                    }}>
-                      <Crown size={22} style={{ color: "#f59e0b", flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#f59e0b" }}>{t(lang, "Pro 已激活", "Pro Active")}</div>
-                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
-                          {t(lang, `每月 ${proPlan?.monthlyCredits ?? 700} 积分 · API 接入 · 本地连接`, `${proPlan?.monthlyCredits ?? 700} credits/mo · API access · Local`)}
-                        </div>
-                      </div>
+                <div style={{ borderTop: "1px solid #3a3f46", borderBottom: "1px solid #3a3f46" }}>
+                  {[
+                    t(lang, "使用 API", "Use API"),
+                    t(lang, "本地生成", "Local Generation"),
+                    t(lang, "模板", "Templates"),
+                  ].map((item, idx) => (
+                    <div key={item} style={{ padding: "10px 0", borderBottom: idx === 2 ? "none" : "1px solid #3a3f46", fontSize: 12, color: "#e5e7eb" }}>
+                      {item}
                     </div>
-                    {subscription?.status === "active" && (
-                      <button type="button" style={styles.secondaryBtn} onClick={onOpenCustomerPortal}
-                        disabled={!billingEnabled || billingBusy}>
-                        {t(lang, "管理订阅", "Manage Subscription")}
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  /* Upgrade to Pro */
-                  <div>
-                    {/* Hero card */}
-                    <div style={{
-                      padding: "16px 0", marginBottom: 16,
-                      borderBottom: "1px solid rgba(255,255,255,0.08)",
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                        <Crown size={20} style={{ color: "#f59e0b" }} />
-                        <div style={{ fontSize: 18, fontWeight: 700, color: "#f59e0b" }}>Pro</div>
-                        <div style={{ fontSize: 14, color: "#e5e7eb", fontWeight: 400 }}>
-                          ${proPlan?.monthlyUsdPrice ?? 12}{t(lang, " / 月", "/mo")}
-                        </div>
-                      </div>
-                      {/* Benefits list */}
-                      {[
-                        [t(lang, "每月积分补充", "Monthly credit refill"), t(lang, "每月随套餐配额", "Included with plan")],
-                        [t(lang, "接入自己的 API Key", "Bring your own API key"), t(lang, "fal / Runway — 不消耗积分", "fal / Runway — no credits used")],
-                        [t(lang, "本地生成", "Local generation"), t(lang, "ComfyUI / Draw Things 接入", "ComfyUI / Draw Things")],
-                        [t(lang, "专业模版全解锁", "All pro templates"), t(lang, "商业大片级别模版", "Commercial-grade templates")],
-                      ].map(([title, sub], i) => (
-                        <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8 }}>
-                          <span style={{ color: "#f59e0b", fontSize: 14, marginTop: 1 }}>✓</span>
-                          <div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: "#e5e7eb" }}>{title}</div>
-                            <div style={{ fontSize: 11, color: "#9ca3af" }}>{sub}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Legal consent */}
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 14 }}>
-                      <input type="checkbox" checked={billingLegalAccepted}
-                        onChange={(e) => onBillingLegalAcceptedChange(e.target.checked)}
-                        style={{ marginTop: 2, accentColor: "#f59e0b", flexShrink: 0 }}
-                        data-testid="account-pro-legal-consent"
-                      />
-                      <span style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
-                        {t(lang, "我已阅读并同意", "I agree to the")}{" "}
-                        <button type="button" style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline" }}
-                          onClick={() => setActiveLegalDoc("billing")}>{t(lang, "付款条款", "Billing Terms")}</button>
-                        {" "}{t(lang, "和", "and")}{" "}
-                        <button type="button" style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline" }}
-                          onClick={() => setActiveLegalDoc("refund")}>{t(lang, "退款政策", "Refund Policy")}</button>
-                      </span>
-                    </div>
-
-                    <button type="button" style={{
-                        ...styles.primaryBtn,
-                        background: billingLegalAccepted ? "#f59e0b" : "#3a3f46",
-                        color: billingLegalAccepted ? "#111" : "#9ca3af",
-                        cursor: (!billingEnabled || billingBusy || !proPlan || !billingLegalAccepted) ? "not-allowed" : "pointer",
-                      }} onClick={() => {
-                        if (!billingLegalAccepted) {
-                          setConsentShake(true);
-                          setTimeout(() => setConsentShake(false), 700);
-                          return;
-                        }
-                        onUpgradePro();
-                      }}
-                      disabled={!billingEnabled || billingBusy || !proPlan}
-                      data-testid="account-pro-upgrade">
-                      <Crown size={14} />{t(lang, "开通 Pro", "Start Pro")} — ${proPlan?.monthlyUsdPrice ?? 12}{t(lang, "/月", "/mo")}
-                    </button>
-                    {!billingLegalAccepted && (
-                      <div style={{ fontSize: 11, color: "#f87171", marginTop: 6 }}>
-                        {t(lang, "请先勾选同意服务条款", "Please agree to the terms first")}
-                      </div>
-                    )}
-                  </div>
-                )}
+                  ))}
+                </div>
+                <div style={{ marginTop: 12, fontSize: 12, color: "#9ca3af" }}>{t(lang, "每月赠送 280 credits", "Includes 280 credits per month")}</div>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+                  <button type="button" style={styles.primaryBtn} onClick={onUpgradePro}>
+                    <Crown size={14} />{t(lang, "Upgrade", "Upgrade")}
+                  </button>
+                </div>
               </div>
             ) : null}
 
             {section === "api" ? (
               <div style={styles.panel}>
-                <ApiProviderPanel
-                  lang={lang}
-                  apiCredentials={apiCredentials}
-                  onSave={onSaveApiCredentials}
-                  hasProAccess={hasProAccess}
-                  onUpgradePro={onUpgradePro}
-                  comfyStatus={localComfyStatus ?? { provider: "comfyui", state: "idle" }}
-                  drawStatus={localDrawStatus ?? { provider: "drawthings", state: "idle" }}
-                  onRefreshLocal={onRefreshLocalProviders ?? (() => Promise.resolve())}
-                />
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 700 }}>{t(lang, "云端 API", "Cloud API")}</div>
+                  {[
+                    { id: "fal", label: "Fal", status: apiCredentials?.fal?.enabled ? "connected" : hasProAccess ? "disconnected" : "pro_required" },
+                    { id: "runway", label: "Runway", status: apiCredentials?.runway?.enabled ? "connected" : hasProAccess ? "disconnected" : "pro_required" },
+                    { id: "custom", label: "Custom API", status: hasProAccess ? "disconnected" : "pro_required" },
+                  ].map((row) => {
+                    const statusColor = row.status === "connected" ? "#22c55e" : row.status === "pro_required" ? "#9ca3af" : "#ef4444";
+                    const statusLabel = row.status === "connected" ? t(lang, "已连接", "Connected") : row.status === "pro_required" ? t(lang, "Pro 限定", "Pro Required") : t(lang, "未连接", "Disconnected");
+                    return (
+                      <div key={row.id} style={{ display: "grid", gridTemplateColumns: "1fr 100px 110px", alignItems: "center", gap: 10, padding: "10px 0", borderTop: "1px solid #3a3f46" }}>
+                        <div style={{ fontSize: 12, color: "#e5e7eb" }}>{row.label}</div>
+                        <div style={{ fontSize: 11, color: statusColor }}>{statusLabel}</div>
+                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                          <button
+                            type="button"
+                            style={{ ...styles.secondaryBtn, minWidth: 96, justifyContent: "center" }}
+                            onClick={() => {
+                              if (!hasProAccess) {
+                                onUpgradePro();
+                                return;
+                              }
+                              if (row.id === "fal") onSaveApiCredentials({ ...normalizeApiCredentialsForForm(apiCredentials), defaultProvider: "fal", fal: { ...normalizeApiCredentialsForForm(apiCredentials).fal, enabled: true } });
+                              if (row.id === "runway") onSaveApiCredentials({ ...normalizeApiCredentialsForForm(apiCredentials), defaultProvider: "runway", runway: { ...normalizeApiCredentialsForForm(apiCredentials).runway, enabled: true } });
+                            }}
+                          >
+                            {hasProAccess ? t(lang, "配置", "Configure") : t(lang, "升级 Pro", "Upgrade Pro")}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 700, marginTop: 10 }}>{t(lang, "本地连接", "Local")}</div>
+                  {[
+                    { id: "comfyui", label: "ComfyUI", state: (localComfyStatus?.state ?? "idle") as string },
+                    { id: "drawthings", label: "Draw Things", state: (localDrawStatus?.state ?? "idle") as string },
+                  ].map((row) => {
+                    const connected = row.state === "ready";
+                    const error = row.state === "error";
+                    const statusColor = connected ? "#22c55e" : error ? "#ef4444" : "#9ca3af";
+                    const statusLabel = connected ? t(lang, "已连接", "Connected") : error ? t(lang, "配置错误", "Error") : t(lang, "未连接", "Disconnected");
+                    return (
+                      <div key={row.id} style={{ display: "grid", gridTemplateColumns: "1fr 100px 110px", alignItems: "center", gap: 10, padding: "10px 0", borderTop: "1px solid #3a3f46" }}>
+                        <div style={{ fontSize: 12, color: "#e5e7eb" }}>{row.label}</div>
+                        <div style={{ fontSize: 11, color: statusColor }}>{statusLabel}</div>
+                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                          <button
+                            type="button"
+                            style={{ ...styles.secondaryBtn, minWidth: 96, justifyContent: "center" }}
+                            onClick={() => {
+                              if (!hasProAccess) {
+                                onUpgradePro();
+                                return;
+                              }
+                              void onRefreshLocalProviders?.();
+                            }}
+                          >
+                            {hasProAccess ? t(lang, "刷新", "Refresh") : t(lang, "升级 Pro", "Upgrade Pro")}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             ) : null}
 
@@ -820,172 +618,6 @@ function normalizeApiCredentialsForForm(input: ApiCredentialState | null): ApiCr
     fal: { ...base.fal, apiKey: "" },
     runway: { ...base.runway, apiKey: "" }
   };
-}
-
-function updateProviderDraft(
-  draft: ApiCredentialState,
-  providerId: ApiProviderId,
-  patch: Partial<ApiCredentialState[ApiProviderId]>
-): ApiCredentialState {
-  return {
-    ...draft,
-    [providerId]: {
-      ...draft[providerId],
-      ...patch
-    }
-  };
-}
-
-function providerModeLabel(lang: Lang, mode: ApiProviderMode) {
-  return mode === "platform" ? t(lang, "平台模式", "Platform mode") : t(lang, "我的 API", "My API");
-}
-
-function providerStatusLabel(lang: Lang, status: ProviderConnectionStatus | null | undefined): string {
-  if (!status) return "";
-  const map: Record<ProviderConnectionStatus, string> = {
-    connected: lang === "zh" ? "已连接" : "Connected",
-    invalid_key: lang === "zh" ? "Key 无效" : "Invalid key",
-    quota_issue: lang === "zh" ? "配额问题" : "Quota issue",
-    model_access_issue: lang === "zh" ? "模型权限问题" : "Model access issue",
-    network_error: lang === "zh" ? "网络错误" : "Network error"
-  };
-  return map[status];
-}
-
-function renderProviderCard(input: {
-  lang: Lang;
-  providerId: ApiProviderId;
-  title: string;
-  subtitle: string;
-  docsMeta: string;
-  draft: ApiCredentialState;
-  setDraft: React.Dispatch<React.SetStateAction<ApiCredentialState>>;
-  savedCredentials: ApiCredentialState | null;
-}) {
-  const { lang, providerId, title, subtitle, docsMeta, draft, setDraft, savedCredentials } = input;
-  const provider = draft[providerId];
-  const saved = savedCredentials?.[providerId];
-  const savedHasKey = Boolean(saved?.apiKey?.trim());
-  const status = saved?.status ?? provider.status;
-  const lastCheckedAt = saved?.lastCheckedAt ?? provider.lastCheckedAt;
-  const isError = status && status !== "connected";
-
-  return (
-    <article style={styles.providerCard} data-testid={`account-api-provider-${providerId}`}>
-      <div style={styles.providerHead}>
-        <div>
-          <div style={styles.providerTitleRow}>
-            <div style={styles.packTitle}>{title}</div>
-            {draft.defaultProvider === providerId ? (
-              <span style={styles.defaultBadge}><CheckCircle2 size={12} />{t(lang, "默认", "Default")}</span>
-            ) : null}
-            {status === "connected" ? (
-              <span style={styles.connectedBadge}><CheckCircle2 size={12} />{providerStatusLabel(lang, status)}</span>
-            ) : isError ? (
-              <span style={styles.errorBadge}><AlertCircle size={12} />{providerStatusLabel(lang, status)}</span>
-            ) : null}
-          </div>
-          <div style={styles.apiMeta}>{subtitle}</div>
-          <div style={styles.providerMeta}>{docsMeta}</div>
-          {lastCheckedAt && status ? (
-            <div style={styles.lastChecked}>
-              {t(lang, "检查于", "Checked")} {new Date(lastCheckedAt).toLocaleString(lang === "zh" ? "zh-CN" : "en-US", { dateStyle: "short", timeStyle: "short" })}
-            </div>
-          ) : null}
-        </div>
-        <label style={styles.checkboxRow}>
-          <input
-            type="checkbox"
-            checked={provider.enabled}
-            onChange={(e) => setDraft((current) => updateProviderDraft(current, providerId, { enabled: e.target.checked }))}
-            data-testid={`account-api-provider-enabled-${providerId}`}
-          />
-          <span>{t(lang, "启用", "Enabled")}</span>
-        </label>
-      </div>
-
-      {isError && provider.mode === "personal" ? (
-        <div style={styles.errorActions}>
-          <span style={styles.errorDetail}>{t(lang, "请检查 key 或重试", "Check key or try again")}</span>
-          <span style={styles.errorHint}>{t(lang, "保存后将重新检查连接", "Connection is rechecked on save.")}</span>
-        </div>
-      ) : null}
-
-      <div style={styles.modeRow}>
-        {(["platform", "personal"] as ApiProviderMode[]).map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            style={{ ...styles.modeBtn, ...(provider.mode === mode ? styles.modeBtnOn : null) }}
-            onClick={() => setDraft((current) => updateProviderDraft(current, providerId, { mode }))}
-            data-testid={`account-api-provider-mode-${providerId}-${mode}`}
-          >
-            {providerModeLabel(lang, mode)}
-          </button>
-        ))}
-      </div>
-
-      <div style={styles.apiFieldGrid}>
-        <label style={styles.fieldStack}>
-          <span style={styles.fieldLabel}>API Base</span>
-          <input
-            value={provider.baseUrl}
-            onChange={(e) => setDraft((current) => updateProviderDraft(current, providerId, { baseUrl: e.target.value }))}
-            placeholder={providerId === "fal" ? "https://queue.fal.run" : "https://api.dev.runwayml.com"}
-            style={styles.input}
-            data-testid={`account-api-provider-base-${providerId}`}
-          />
-        </label>
-        <label style={styles.fieldStack}>
-          <span style={styles.fieldLabel}>{t(lang, "默认模型", "Preferred model")}</span>
-          <input
-            value={provider.preferredModel}
-            onChange={(e) => setDraft((current) => updateProviderDraft(current, providerId, { preferredModel: e.target.value }))}
-            placeholder={providerId === "fal" ? "fal-ai/flux/dev" : "gen4_turbo"}
-            style={styles.input}
-            data-testid={`account-api-provider-model-${providerId}`}
-          />
-        </label>
-      </div>
-
-      {provider.mode === "personal" ? (
-        <label style={styles.fieldStack}>
-          <span style={styles.fieldLabel}>API Key</span>
-          <input
-            type="password"
-            autoComplete="off"
-            value={provider.apiKey}
-            onChange={(e) => setDraft((current) => updateProviderDraft(current, providerId, { apiKey: e.target.value }))}
-            placeholder={savedHasKey ? "••••••••••••" : (providerId === "fal" ? "Key ..." : "Bearer token")}
-            style={styles.input}
-            data-testid={`account-api-provider-key-${providerId}`}
-          />
-          {savedHasKey && !provider.apiKey ? (
-            <span style={styles.fieldHint}>{t(lang, "留空则保留当前 key", "Leave blank to keep current key")}</span>
-          ) : null}
-        </label>
-      ) : (
-        <div style={styles.apiHint} data-testid={`account-api-provider-platform-${providerId}`}>
-          {t(
-            lang,
-            "平台模式使用 ScenePilot Credits 和服务端代理，无需填写 key。",
-            "Platform mode uses ScenePilot Credits and server-side proxy; no key needed."
-          )}
-        </div>
-      )}
-    </article>
-  );
-}
-
-function ledgerLabel(lang: Lang, kind: CreditLedgerEntry["kind"]) {
-  const map: Record<CreditLedgerEntry["kind"], string> = {
-    purchase: t(lang, "充值", "Purchase"),
-    grant: t(lang, "赠送", "Grant"),
-    reserve: t(lang, "预扣", "Reserve"),
-    finalize: t(lang, "确认扣除", "Finalize"),
-    rollback: t(lang, "回滚", "Rollback")
-  };
-  return map[kind];
 }
 
 const styles: Record<string, React.CSSProperties> = {

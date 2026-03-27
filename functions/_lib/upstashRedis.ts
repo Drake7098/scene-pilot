@@ -39,6 +39,10 @@ export function createUpstashClient(env: any) {
   }
 
   return {
+    async raw<T = any>(command: string, ...args: (string | number)[]): Promise<T> {
+      return request<T>(command, ...args);
+    },
+
     async get(key: string): Promise<string | null> {
       try {
         const result = await request("GET", key);
@@ -90,6 +94,63 @@ export function createUpstashClient(env: any) {
         return false;
       }
     },
+
+    async lpush(key: string, ...values: string[]): Promise<number> {
+      if (!values.length) return 0;
+      try {
+        const result = await request<number>("LPUSH", key, ...values);
+        return Number(result || 0);
+      } catch {
+        return 0;
+      }
+    },
+
+    async rpop(key: string): Promise<string | null> {
+      try {
+        const result = await request<string | null>("RPOP", key);
+        return result ?? null;
+      } catch {
+        return null;
+      }
+    },
+
+    async llen(key: string): Promise<number> {
+      try {
+        const result = await request<number>("LLEN", key);
+        return Number(result || 0);
+      } catch {
+        return 0;
+      }
+    },
+
+    async lpos(key: string, value: string): Promise<number | null> {
+      try {
+        const result = await request<number | null>("LPOS", key, value);
+        if (result === null || result === undefined) return null;
+        const n = Number(result);
+        return Number.isFinite(n) ? n : null;
+      } catch {
+        return null;
+      }
+    },
+
+    async incr(key: string): Promise<number> {
+      try {
+        const result = await request<number>("INCR", key);
+        return Number(result || 0);
+      } catch {
+        return 0;
+      }
+    },
+
+    async decr(key: string): Promise<number> {
+      try {
+        const result = await request<number>("DECR", key);
+        return Number(result || 0);
+      } catch {
+        return 0;
+      }
+    }
   };
 }
 

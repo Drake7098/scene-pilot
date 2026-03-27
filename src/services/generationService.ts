@@ -9,6 +9,7 @@
  */
 
 import type { ApiCredentialState } from "../types/account";
+import { getApiAuthHeaders, getCurrentUser } from "./authService";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ export type GenerationInput = {
   durationSeconds?: number;  // video only
   negativePrompt?: string;
   qualityTier?: "standard" | "hd" | "video" | "video_hq";
+  creditsCost?: number;
 };
 
 export type GenerationResult = {
@@ -30,6 +32,27 @@ export type GenerationResult = {
   provider: string;         // "fal" | "runway" | "comfyui" | "drawthings"
   model?: string;
   durationSeconds?: number;
+};
+
+type QueueSubmitResponse = {
+  ok: boolean;
+  taskId?: string;
+  status?: string;
+  queuePosition?: number;
+  queuedAhead?: number;
+  error?: string;
+  need?: number;
+  have?: number;
+};
+
+type QueueStatusResponse = {
+  ok: boolean;
+  status?: "queued" | "running" | "done" | "failed" | string;
+  queuePosition?: number;
+  queuedAhead?: number;
+  output?: unknown;
+  raw?: unknown;
+  error?: string;
 };
 
 export type HostedGenerationConfig = {
@@ -246,19 +269,75 @@ async function runwayGenerate(
  * Platform-hosted generation (uses your fal/runway keys from env)
  */
 export async function generateHosted(input: GenerationInput): Promise<GenerationResult> {
-  const cfg = getHostedConfig();
-  if (input.mediaMode === "image") {
-    if (!cfg.falApiKey) throw new Error("hosted_fal_not_configured");
-    return runFalImage(cfg.falApiKey, input, cfg.defaultImageModel);
+  const user = await getCurrentUser();
+  if (!user?.id) throw new Error("missing_user_id");
+
+  const provider: "fal" | "runway" = input.mediaMode === "video" ? "runway" : "fal";
+  const submitBody = {
+    userId: user.id,
+    provider,
+    mode: "platform",
+    prompt: input.prompt,
+    mediaType: input.mediaMode,
+    ratio: resolutionToRatio(input.resolution),
+    duration: input.durationSeconds,
+    creditsCost: input.creditsCost
+  };
+
+  const authHeaders = await getApiAuthHeaders(user.id);
+  const submitRes = await fetch("/api/generation/submit", {
+    method: "POST",
+    headers: { "content-type": "application/json", ...authHeaders },
+    body: JSON.stringify(submitBody)
+  });
+  const submitJson = await safeJson(submitRes) as QueueSubmitResponse | null;
+  if (!submitRes.ok || !submitJson?.ok || !submitJson.taskId) {
+    const err = submitJson?.error || `submit_${submitRes.status}`;
+    throw new Error(err);
   }
-  // video: prefer runway if configured, fallback to fal
-  if (cfg.runwayApiKey) {
-    return runwayGenerate(cfg.runwayApiKey, input, cfg.defaultVideoModel);
+
+  notifyQueueStatus({
+    phase: submitJson.status || "queued",
+    queuePosition: submitJson.queuePosition,
+    queuedAhead: submitJson.queuedAhead
+  });
+
+  const maxWait = 300_000;
+  const started = Date.now();
+  while (Date.now() - started < maxWait) {
+    // Nudge worker tick on each poll. Unauthorized is ignored.
+    fetch("/api/generation/worker", { method: "POST" }).catch(() => undefined);
+    await new Promise((resolve) => setTimeout(resolve, 2200));
+    const statusRes = await fetch("/api/generation/status", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...authHeaders },
+      body: JSON.stringify({
+        userId: user.id,
+        provider,
+        mode: "platform",
+        mediaType: input.mediaMode,
+        taskId: submitJson.taskId
+      })
+    });
+    const statusJson = await safeJson(statusRes) as QueueStatusResponse | null;
+    if (!statusJson) continue;
+
+    notifyQueueStatus({
+      phase: statusJson.status || "queued",
+      queuePosition: statusJson.queuePosition,
+      queuedAhead: statusJson.queuedAhead
+    });
+
+    if (statusJson.status === "failed") {
+      throw new Error(statusJson.error || "generation_failed");
+    }
+    if (statusJson.status === "done") {
+      const resolved = parseQueuedOutput(input.mediaMode, statusJson.output);
+      notifyQueueStatus({ phase: "done" });
+      return resolved;
+    }
   }
-  if (cfg.falApiKey) {
-    return runFalVideo(cfg.falApiKey, input);
-  }
-  throw new Error("hosted_not_configured");
+  throw new Error("generation_queue_timeout");
 }
 
 /**
@@ -335,6 +414,74 @@ function resolutionToRatio(r: string): string {
 
 function randomSeed(): number {
   return Math.floor(Math.random() * 2_147_483_647);
+}
+
+async function safeJson(res: Response) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+function toStringSafe(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function extractImageUrl(output: any): string {
+  return (
+    toStringSafe(output?.images?.[0]?.url) ||
+    toStringSafe(output?.image?.url) ||
+    toStringSafe(output?.output?.images?.[0]?.url) ||
+    toStringSafe(output?.output?.image?.url) ||
+    toStringSafe(output?.raw?.images?.[0]?.url) ||
+    toStringSafe(output?.raw?.image?.url)
+  );
+}
+
+function extractVideoUrl(output: any): string {
+  return (
+    toStringSafe(output?.video?.url) ||
+    toStringSafe(output?.videos?.[0]?.url) ||
+    toStringSafe(output?.output?.[0]) ||
+    toStringSafe(output?.output?.video?.url) ||
+    toStringSafe(output?.output?.videos?.[0]?.url) ||
+    toStringSafe(output?.raw?.video?.url) ||
+    toStringSafe(output?.raw?.videos?.[0]?.url)
+  );
+}
+
+function parseQueuedOutput(
+  mediaMode: "image" | "video",
+  output: unknown
+): GenerationResult {
+  if (mediaMode === "image") {
+    const url = extractImageUrl(output);
+    if (!url) throw new Error("generation_missing_image_url");
+    return {
+      kind: "image",
+      url,
+      ownedUrls: [],
+      provider: "hosted-queue"
+    };
+  }
+  const url = extractVideoUrl(output);
+  if (!url) throw new Error("generation_missing_video_url");
+  return {
+    kind: "video",
+    url,
+    ownedUrls: [],
+    provider: "hosted-queue"
+  };
+}
+
+function notifyQueueStatus(payload: {
+  phase: string;
+  queuePosition?: number;
+  queuedAhead?: number;
+}) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("spx:gen-queue-status", { detail: payload }));
 }
 
 const DEFAULT_NEGATIVE =
