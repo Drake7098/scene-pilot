@@ -49,8 +49,10 @@ const LOCAL_ITEMS: IntegrationItem[] = [
 ];
 
 const CUSTOM_ITEMS: IntegrationItem[] = [
-  { id: "custom_api", label: "Custom API", tagsZh: ["自定义"], tagsEn: ["Custom"], kind: "cloud", availability: "coming_soon" },
+  { id: "custom_api", label: "Custom API", tagsZh: ["自定义"], tagsEn: ["Custom"], kind: "cloud" },
 ];
+
+const EXECUTABLE_CLOUD_PROVIDERS: CloudApiProviderId[] = ["fal", "runway", "replicate", "stability", "custom_api"];
 
 type Props = {
   open: boolean;
@@ -156,6 +158,7 @@ export function AccountCenterModal(props: Props) {
   const [connectionDraftValue, setConnectionDraftValue] = useState("");
   const [connectionDraftBaseUrl, setConnectionDraftBaseUrl] = useState("");
   const [connectionTestedOk, setConnectionTestedOk] = useState(false);
+  const [connectionTesting, setConnectionTesting] = useState(false);
   const [connectionHint, setConnectionHint] = useState("");
   const [lastConnectedLabel, setLastConnectedLabel] = useState("");
   const [integrationRiskChecks, setIntegrationRiskChecks] = useState<[boolean, boolean, boolean]>([false, false, false]);
@@ -254,6 +257,7 @@ export function AccountCenterModal(props: Props) {
     }
     setEditingProviderId(item.id);
     setConnectionTestedOk(false);
+    setConnectionTesting(false);
     setConnectionHint("");
     setLastConnectedLabel("");
     if (item.kind === "local") {
@@ -271,12 +275,15 @@ export function AccountCenterModal(props: Props) {
 
   async function handleTestConnection() {
     if (!editingItem) return;
+    if (connectionTesting) return;
     const primaryValue = connectionDraftValue.trim();
     const baseUrlValue = connectionDraftBaseUrl.trim();
+    setConnectionTesting(true);
     if (editingItem.kind === "local") {
       if (!primaryValue) {
         setConnectionTestedOk(false);
         setConnectionHint(t(lang, "请输入本地地址", "Enter the local URL"));
+        setConnectionTesting(false);
         return;
       }
       const nextCfg = { ...localConfig };
@@ -292,26 +299,48 @@ export function AccountCenterModal(props: Props) {
         setConnectionTestedOk(false);
         setConnectionHint(t(lang, "当前未检测到服务，请检查地址与本地服务状态", "Service was not detected. Check the URL and local runtime."));
       }
+      setConnectionTesting(false);
       return;
     }
     const currentConfig = normalizeApiCredentials(apiCredentials)[editingItem.id];
     if (!primaryValue && currentConfig.enabled) {
       setConnectionTestedOk(true);
       setConnectionHint(t(lang, "保留现有 Key，可直接保存", "Keeping the current key. You can save now."));
+      setConnectionTesting(false);
       return;
     }
     if (!primaryValue) {
       setConnectionTestedOk(false);
       setConnectionHint(t(lang, "请输入 API Key", "Enter an API key"));
+      setConnectionTesting(false);
       return;
     }
     if (editingItem.id === "custom_api" && !baseUrlValue) {
       setConnectionTestedOk(false);
       setConnectionHint(t(lang, "Custom API 还需要 Base URL", "Custom API also needs a base URL"));
+      setConnectionTesting(false);
       return;
     }
-    setConnectionTestedOk(true);
-    setConnectionHint(t(lang, "已通过本地校验，可保存。实际可用性仍取决于第三方平台。", "Local validation passed. Actual availability still depends on the third-party platform."));
+    try {
+      if (editingItem.id === "fal") {
+        await testFalConnection(baseUrlValue || currentConfig.baseUrl || "https://queue.fal.run", primaryValue);
+      } else if (editingItem.id === "runway") {
+        await testRunwayConnection(baseUrlValue || currentConfig.baseUrl || "https://api.dev.runwayml.com", primaryValue);
+      } else if (editingItem.id === "replicate") {
+        await testReplicateConnection(baseUrlValue || currentConfig.baseUrl || "https://api.replicate.com", primaryValue);
+      } else if (editingItem.id === "stability") {
+        await testStabilityConnection(baseUrlValue || currentConfig.baseUrl || "https://api.stability.ai", primaryValue);
+      } else if (editingItem.id === "custom_api") {
+        await testCustomApiConnection(baseUrlValue, primaryValue);
+      }
+      setConnectionTestedOk(true);
+      setConnectionHint(t(lang, "测试成功，可保存。", "Connection test passed. You can save now."));
+    } catch (error) {
+      setConnectionTestedOk(false);
+      setConnectionHint(formatConnectionTestError(error, lang));
+    } finally {
+      setConnectionTesting(false);
+    }
   }
 
   function handleSaveConnection() {
@@ -341,8 +370,12 @@ export function AccountCenterModal(props: Props) {
     }
     const next = normalizeApiCredentials(apiCredentials);
     const current = next[editingItem.id];
+    const nextDefaultProvider = EXECUTABLE_CLOUD_PROVIDERS.includes(editingItem.id as CloudApiProviderId)
+      ? editingItem.id as CloudApiProviderId
+      : next.defaultProvider;
     onSaveApiCredentials({
       ...next,
+      defaultProvider: nextDefaultProvider,
       [editingItem.id]: {
         ...current,
         enabled: true,
@@ -374,12 +407,19 @@ export function AccountCenterModal(props: Props) {
       return;
     }
     const next = normalizeApiCredentials(apiCredentials);
+    const executableFallback = EXECUTABLE_CLOUD_PROVIDERS.find((provider) => {
+      if (provider === item.id) return false;
+      const current = next[provider];
+      return Boolean(current?.enabled && current.apiKey.trim());
+    }) ?? "fal";
     onSaveApiCredentials({
       ...next,
+      defaultProvider: next.defaultProvider === item.id ? executableFallback : next.defaultProvider,
       [item.id]: {
         ...next[item.id],
         enabled: false,
         apiKey: "",
+        baseUrl: item.id === "custom_api" ? "" : next[item.id].baseUrl,
         status: null,
       },
     });
@@ -951,7 +991,7 @@ export function AccountCenterModal(props: Props) {
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
                 <button type="button" style={styles.secondaryBtn} onClick={handleTestConnection}>
-                  {t(lang, "测试连接", "Test Connection")}
+                  {connectionTesting ? t(lang, "测试中…", "Testing…") : t(lang, "测试连接", "Test Connection")}
                 </button>
                 <button type="button" style={styles.primaryBtn} onClick={handleSaveConnection}>
                   {t(lang, "保存", "Save")}
@@ -1005,6 +1045,123 @@ function maskSecret(secret: string): string {
   if (!secret || secret.length === 0) return "";
   if (secret.length <= 8) return "••••••••";
   return `${secret.slice(0, 4)}••••••••${secret.slice(-4)}`;
+}
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+async function assertAuthProbe(res: Response) {
+  if (res.status === 401 || res.status === 403) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `auth_rejected:${res.status}`);
+  }
+  if (res.status >= 500) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `provider_error:${res.status}`);
+  }
+}
+
+async function testFalConnection(baseUrl: string, apiKey: string) {
+  const res = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/fal-ai/flux/dev`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Key ${apiKey}`,
+    },
+    body: JSON.stringify({ input: {} }),
+  });
+  await assertAuthProbe(res);
+}
+
+async function testRunwayConnection(baseUrl: string, apiKey: string) {
+  const res = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/v1/image_to_video`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "X-Runway-Version": "2024-11-06",
+    },
+    body: JSON.stringify({}),
+  });
+  await assertAuthProbe(res);
+}
+
+async function testReplicateConnection(baseUrl: string, apiKey: string) {
+  const res = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/v1/models/black-forest-labs/flux-1.1-pro/predictions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Token ${apiKey}`,
+      "Prefer": "wait=1",
+    },
+    body: JSON.stringify({}),
+  });
+  await assertAuthProbe(res);
+}
+
+async function testStabilityConnection(baseUrl: string, apiKey: string) {
+  const res = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/v1/generation/stable-image-ultra/text-to-image`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "Accept": "application/json",
+    },
+    body: JSON.stringify({}),
+  });
+  await assertAuthProbe(res);
+}
+
+async function testCustomApiConnection(baseUrl: string, apiKey: string) {
+  const endpoint = baseUrl.replace(/\/$/, "");
+  const res = await fetchWithTimeout(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "X-ScenePilotix-Provider": "custom_api",
+    },
+    body: JSON.stringify({
+      prompt: "Connection test",
+      mediaMode: "image",
+      resolution: "1024x1024",
+      negativePrompt: "",
+      seed: 1,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `custom_api_request_failed:${res.status}`);
+  }
+  const data = await res.json().catch(() => null) as { kind?: string; url?: string } | null;
+  if (!data?.kind || !data?.url) throw new Error("custom_api_invalid_response");
+}
+
+function formatConnectionTestError(error: unknown, lang: Lang) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes("AbortError")) {
+    return t(lang, "测试超时，请稍后重试或检查网络。", "The test timed out. Try again or check the network.");
+  }
+  if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
+    return t(lang, "请求未到达第三方服务，可能是 CORS、网络或地区限制。", "The request did not reach the provider. This may be caused by CORS, network, or regional restrictions.");
+  }
+  if (message.includes("auth_rejected") || message.includes("Unauthorized") || message.includes("forbidden") || message.includes("invalid api key")) {
+    return t(lang, "API Key 被第三方拒绝，请检查 key、权限或账户状态。", "The provider rejected this API key. Check the key, permissions, or account status.");
+  }
+  if (message.includes("custom_api_invalid_response")) {
+    return t(lang, "Custom API 已返回响应，但结构不符合当前协议。", "Custom API responded, but the payload does not match the current contract.");
+  }
+  if (message.includes("custom_api_request_failed")) {
+    return t(lang, "Custom API 请求失败，请检查 Base URL、鉴权或服务状态。", "Custom API request failed. Check the base URL, auth, or service status.");
+  }
+  return t(lang, "测试失败。可能是第三方限制、接口策略变化或当前 key 无权限。", "Connection test failed. The provider may be blocking the request, the API policy may have changed, or the key may not have permission.");
 }
 
 /** Normalize for storage/display; keeps full structure. */

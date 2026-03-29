@@ -33,6 +33,7 @@ type SupabaseUser = {
 const SUPABASE_SESSION_KEY = "sp_supabase_session_v1";
 const SUPABASE_PKCE_VERIFIER_KEY = "sp_supabase_pkce_verifier_v1";
 const SUPABASE_OAUTH_ERROR_KEY = "sp_supabase_oauth_error_v1";
+const SUPABASE_OAUTH_DEBUG_KEY = "sp_supabase_oauth_debug_v1";
 
 function getSupabaseConfig(): SupabaseConfig | null {
   const url = String(import.meta.env.VITE_SUPABASE_URL || "").trim().replace(/\/+$/, "");
@@ -48,6 +49,12 @@ function requireSupabaseConfig() {
 }
 
 function getAppBaseUrl() {
+  if (typeof window !== "undefined") {
+    const host = String(window.location.hostname || "").trim().toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1") {
+      return window.location.origin.replace(/\/+$/, "");
+    }
+  }
   const configured = String(import.meta.env.VITE_APP_BASE_URL || "").trim().replace(/\/+$/, "");
   if (configured) return configured;
   if (typeof window !== "undefined") return window.location.origin.replace(/\/+$/, "");
@@ -174,6 +181,19 @@ function writeOAuthError(errorCode: string) {
   }
 }
 
+function writeOAuthDebug(debugInfo: string) {
+  if (typeof window === "undefined") return;
+  try {
+    if (debugInfo) {
+      window.sessionStorage.setItem(SUPABASE_OAUTH_DEBUG_KEY, debugInfo);
+      return;
+    }
+    window.sessionStorage.removeItem(SUPABASE_OAUTH_DEBUG_KEY);
+  } catch {
+    // ignore storage failures
+  }
+}
+
 function stripOAuthParams(url: URL) {
   const keys = [
     "auth_provider",
@@ -210,8 +230,14 @@ function captureSupabaseSessionFromUrlSync() {
   const oauthError = normalizeErrorCode(
     searchParams.get("error") || searchParams.get("error_code") || ""
   );
+  const oauthErrorDescription = String(searchParams.get("error_description") || "").trim();
   if (oauthError) {
     writeOAuthError(oauthError);
+    writeOAuthDebug(
+      oauthErrorDescription
+        ? `oauth_error=${oauthError}; description=${oauthErrorDescription}`
+        : `oauth_error=${oauthError}`
+    );
     stripOAuthParams(url);
     url.hash = "";
     window.history.replaceState({}, "", url.toString());
@@ -237,6 +263,7 @@ function captureSupabaseSessionFromUrlSync() {
   writeSupabaseSession(session);
   writePkceVerifier("");
   writeOAuthError("");
+  writeOAuthDebug("");
 
   stripOAuthParams(url);
   url.hash = "";
@@ -308,6 +335,7 @@ async function exchangeAuthCodeIfPresent() {
   stripOAuthParams(url);
   if (!verifier) {
     writeOAuthError("google_pkce_verifier_missing");
+    writeOAuthDebug("google_callback_missing_pkce_verifier");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
     redirectToAuthEntryIfNeeded();
     return;
@@ -329,6 +357,7 @@ async function exchangeAuthCodeIfPresent() {
   if (!exchanged.ok || !exchanged.data?.access_token) {
     writePkceVerifier("");
     writeOAuthError(exchanged.errorCode || "google_oauth_exchange_failed");
+    writeOAuthDebug(`google_oauth_exchange_failed; code=${exchanged.errorCode || "unknown"}; path=${url.pathname}`);
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
     redirectToAuthEntryIfNeeded();
     return;
@@ -345,6 +374,7 @@ async function exchangeAuthCodeIfPresent() {
   writeSupabaseSession(session);
   writePkceVerifier("");
   writeOAuthError("");
+  writeOAuthDebug("");
   window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
@@ -474,7 +504,8 @@ export async function signInWithGoogle(): Promise<{ session: UserSession; user: 
   const { verifier, challenge } = await createPkcePair();
   writePkceVerifier(verifier);
   const appBaseUrl = getAppBaseUrl();
-  const redirectTo = `${appBaseUrl || window.location.origin.replace(/\/+$/, "")}/app?auth_provider=google`;
+  const redirectTo = `${appBaseUrl || window.location.origin.replace(/\/+$/, "")}/app`;
+  writeOAuthDebug(`google_oauth_start; redirect_to=${redirectTo}`);
   const authUrl = `${cfg.url}/auth/v1/authorize?provider=google&flow_type=pkce&code_challenge_method=s256&code_challenge=${encodeURIComponent(challenge)}&redirect_to=${encodeURIComponent(redirectTo)}`;
   window.location.assign(authUrl);
   throw new Error("auth_redirect_started");
@@ -486,6 +517,17 @@ export function consumeOAuthErrorCode(): string {
     const code = String(window.sessionStorage.getItem(SUPABASE_OAUTH_ERROR_KEY) || "");
     if (code) window.sessionStorage.removeItem(SUPABASE_OAUTH_ERROR_KEY);
     return code;
+  } catch {
+    return "";
+  }
+}
+
+export function consumeOAuthDebugInfo(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const info = String(window.sessionStorage.getItem(SUPABASE_OAUTH_DEBUG_KEY) || "");
+    if (info) window.sessionStorage.removeItem(SUPABASE_OAUTH_DEBUG_KEY);
+    return info;
   } catch {
     return "";
   }

@@ -36,7 +36,16 @@ function canBypassAppAuthGate() {
   if (typeof window === "undefined") return false;
   const url = new URL(window.location.href);
   const signin = String(url.searchParams.get("signin") || "").trim().toLowerCase();
-  return ["1", "true", "yes"].includes(signin);
+  const hash = url.hash.startsWith("#") ? url.hash.slice(1) : "";
+  const hashParams = new URLSearchParams(hash);
+  const isOAuthCallback =
+    String(url.searchParams.get("auth_provider") || "").trim().toLowerCase() === "google"
+    || Boolean(url.searchParams.get("code"))
+    || Boolean(url.searchParams.get("error"))
+    || Boolean(url.searchParams.get("error_code"))
+    || Boolean(hashParams.get("access_token"))
+    || Boolean(hashParams.get("refresh_token"));
+  return ["1", "true", "yes"].includes(signin) || isOAuthCallback;
 }
 
 function appAuthRedirectUrl() {

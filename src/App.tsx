@@ -62,6 +62,7 @@ import { CreditCard, Crown, Cpu, KeyRound, LogOut, UserRound, Wallet } from "luc
 import type { AccountCenterSection, ApiCredentialState, UserState } from "./types/account";
 import type { CreditLedgerEntry, CreditPackConfig, ProPlanConfig, SubscriptionState } from "./types/billing";
 import {
+  consumeOAuthDebugInfo,
   consumeOAuthErrorCode,
   getCurrentUser,
   isGoogleSignInEnabled,
@@ -1479,14 +1480,26 @@ export default function App() {
     return kind === "image" ? `Image ${index}` : `Video ${index}`;
   }
 
-  function resolveByoProviderForMedia(nextMediaMode: "image" | "video"): "fal" | "runway" | null {
+  function resolveByoProviderForMedia(nextMediaMode: "image" | "video"): "fal" | "runway" | "replicate" | "stability" | "custom_api" | null {
     const creds = accountApiCredentials;
     if (!creds) return null;
-    const ordered = nextMediaMode === "video"
-      ? ["runway", "fal"] as const
-      : ["fal", "runway"] as const;
-    const preferred = creds.defaultProvider === "runway" || creds.defaultProvider === "fal"
-      ? creds.defaultProvider
+    const defaultProvider = creds.defaultProvider;
+    if (nextMediaMode === "video") {
+      const ordered = ["runway", "fal", "custom_api"] as const;
+      const preferred = ordered.includes(defaultProvider as typeof ordered[number])
+        ? defaultProvider as typeof ordered[number]
+        : ordered[0];
+      const candidates = [preferred, ...ordered.filter((item) => item !== preferred)];
+      for (const provider of candidates) {
+        const config = creds[provider];
+        if (config?.enabled && config.mode === "personal" && config.apiKey.trim()) return provider;
+      }
+      return null;
+    }
+
+    const ordered = ["fal", "replicate", "stability", "custom_api", "runway"] as const;
+    const preferred = ordered.includes(defaultProvider as typeof ordered[number])
+      ? defaultProvider as typeof ordered[number]
       : ordered[0];
     const candidates = [preferred, ...ordered.filter((item) => item !== preferred)];
     for (const provider of candidates) {
@@ -1501,6 +1514,7 @@ export default function App() {
       const provider = resolveByoProviderForMedia(nextMediaMode);
       if (provider === "runway") return "runway";
       if (provider === "fal") return "fal";
+      return "universal";
     }
     if (source === "local_comfy" || source === "local_draw") {
       return savePlatformId;
@@ -1626,6 +1640,7 @@ export default function App() {
     const resolution = aspectRatioToResolution(scene?.aspectRatio, mediaMode);
     const seed = 101 + currentSceneAssets.length;
     const startMs = Date.now();
+    let actualProvider: SavePlatformId = strategyPlatformId;
 
     setProGenerateBusy(true);
     setProAssetMenuId(null);
@@ -1645,8 +1660,11 @@ export default function App() {
 
       if (normalizedSource === "api") {
         if (!accountApiCredentials) throw new Error("byo_api_key_missing");
-        const result = await generateByo(genInput, accountApiCredentials);
+        const byoProvider = resolveByoProviderForMedia(mediaMode);
+        if (!byoProvider) throw new Error("byo_api_key_missing");
+        const result = await generateByo(genInput, accountApiCredentials, byoProvider);
         genResult = { kind: result.kind, url: result.url, posterUrl: result.posterUrl, ownedUrls: result.ownedUrls };
+        actualProvider = byoProvider === "fal" || byoProvider === "runway" ? byoProvider : "universal";
       } else if (normalizedSource === "local_comfy") {
         if (mediaMode === "video") {
           const anchor = await buildSceneAnchorImage(prompt, resolution, seed);
@@ -1704,7 +1722,7 @@ export default function App() {
           title: proAssetLabel("image", imageCount),
           prompt,
           source: normalizedSource,
-          strategyPlatformId,
+          strategyPlatformId: actualProvider,
           imageUrl: genResult.url,
           ownedUrls: genResult.ownedUrls,
           createdAt: new Date().toISOString()
@@ -1718,7 +1736,7 @@ export default function App() {
           title: proAssetLabel("video", videoCount),
           prompt,
           source: normalizedSource,
-          strategyPlatformId,
+          strategyPlatformId: actualProvider,
           videoUrl: genResult.url,
           posterUrl: genResult.posterUrl,
           ownedUrls: genResult.ownedUrls,
@@ -1730,7 +1748,7 @@ export default function App() {
       trackProjectFlow("pro_generate", {
         generation_mode: normalizedSource,
         generation_profile: currentGenProfile,
-        provider: strategyPlatformId,
+        provider: actualProvider,
         credits_charged: 0,
         success: true,
         latency_ms: latencyMs,
@@ -1738,7 +1756,14 @@ export default function App() {
 
       setProGenerateHint(
         normalizedSource === "api"
-          ? (lang === "zh" ? "已用我的 API 生成结果" : "Generated with your API")
+          ? (() => {
+            const providerLabel = resolveByoProviderForMedia(mediaMode);
+            if (providerLabel === "replicate") return lang === "zh" ? "已用 Replicate 生成结果" : "Generated with Replicate";
+            if (providerLabel === "stability") return lang === "zh" ? "已用 Stability 生成结果" : "Generated with Stability";
+            if (providerLabel === "custom_api") return lang === "zh" ? "已用 Custom API 生成结果" : "Generated with Custom API";
+            if (providerLabel === "runway") return lang === "zh" ? "已用 Runway 生成结果" : "Generated with Runway";
+            return lang === "zh" ? "已用 Fal 生成结果" : "Generated with Fal";
+          })()
           : normalizedSource === "local_comfy"
             ? (lang === "zh" ? "已用 ComfyUI 生成结果" : "Generated with ComfyUI")
             : (lang === "zh" ? "已用 Draw Things 生成结果" : "Generated with Draw Things")
@@ -1748,7 +1773,7 @@ export default function App() {
       trackProjectFlow("pro_generate", {
         generation_mode: normalizedSource,
         generation_profile: currentGenProfile,
-        provider: strategyPlatformId,
+        provider: actualProvider,
         credits_charged: 0,
         success: false,
         latency_ms: latencyMs,
@@ -2264,6 +2289,7 @@ export default function App() {
         locale: lang
       });
       setAccountCenterSection("overview");
+      setAccountCenterOpen(false);
     } catch (error) {
       setAuthHint(authErrorText(error));
     } finally {
@@ -2298,6 +2324,7 @@ export default function App() {
         locale: lang
       });
       setAccountCenterSection("overview");
+      setAccountCenterOpen(false);
     } catch (error) {
       setAuthHint(authErrorText(error));
     } finally {
@@ -2332,6 +2359,7 @@ export default function App() {
         locale: lang
       });
       setAccountCenterSection("overview");
+      setAccountCenterOpen(false);
     } catch (error) {
       setAuthHint(authErrorText(error));
     } finally {
@@ -2507,8 +2535,11 @@ export default function App() {
 
   useEffect(() => {
     const code = consumeOAuthErrorCode();
-    if (!code) return;
-    setAuthHint(authErrorText(code));
+    const debugInfo = consumeOAuthDebugInfo();
+    if (!code && !debugInfo) return;
+    const baseHint = code ? authErrorText(code) : "";
+    const nextHint = [baseHint, debugInfo].filter(Boolean).join(baseHint && debugInfo ? "\n" : "");
+    setAuthHint(nextHint || authErrorText(code || "google_oauth_exchange_failed"));
     setAccountCenterSection("auth");
     setAccountCenterOpen(true);
   }, [lang]);

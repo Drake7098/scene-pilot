@@ -257,6 +257,7 @@ Last updated: 2026-03-20
 - 引擎锁 hash 变化（`docs/engine-library-lock.json` 变更）
 
 ## Recent Decisions
+- 2026-03-29：已同步更新 `docs/engine-library-lock.json`，当前 prompt engine lock hash 为 `3d2c403cd6c9b122c57cb5830b7e78631e20e1f761c806f57c04c5de9169b842`；后续涉及 `prompt.ts / promptEngine.ts / promptPipeline.ts` 等引擎文件改动时，必须再次执行 `npm run engine:lock:update`。
 - 2026-03-20：模板页顶部交互改为同层四入口：`全部模板 / 我的模板 / 日常任务 / 更多任务`。`日常任务` 与 `更多任务` 位于 `我的模板` 同层；大按钮过滤按字面意图作用于整库（不再默认落子任务）。市场页恢复“左侧模板卡 + 右侧详情轨”布局，并保持左侧栏之外全宽占用。
 - 2026-03-20：模板页头部已取消 chooser 状态机，`market` 视图始终展示 6 个任务入口；`pro_workflows` 采用两层结构：第一排 5 个专业方向，第二排当前方向的 family 级筛选。`my_templates` 视图不再渲染右侧详情轨，模板列表恢复全宽。
 - 2026-03-20：模板详情面板已保留为辅助决策区，但信息结构改为“状态 -> 套用结果 -> 可改字段 -> 相关模板”，不再重复堆叠权限/复用说明。
