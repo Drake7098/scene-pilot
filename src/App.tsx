@@ -871,21 +871,23 @@ export default function App() {
   /** Export actions stay in ExportPanel pipeline; copy prompt is independent. */
   function handleCopyPrompt() {
     void (async () => {
+      const pushCopyFeedback = (message: string) => {
+        feedbackBarRef.current?.pushMessage(message);
+        setResultToast(message);
+      };
       if (!accountUser) {
-        feedbackBarRef.current?.pushMessage(
-          lang === "zh" ? "请先登录后再复制提示词" : "Sign in first to copy prompts"
-        );
+        pushCopyFeedback(lang === "zh" ? "请先登录后再复制提示词" : "Sign in first to copy prompts");
         openAccountCenter("auth");
         trackExportFlow("copy_prompt", { result: "auth_required" }, lang);
         return;
       }
-      const text = promptForMiniPreview.trim();
+      const text = (promptForMiniPreview || buildScenePromptText(scene, savePlatformId) || "").trim();
       if (!text) {
-        feedbackBarRef.current?.pushMessage(lang === "zh" ? "暂无可复制提示词" : "No prompt to copy");
+        pushCopyFeedback(lang === "zh" ? "暂无可复制提示词" : "No prompt to copy");
         return;
       }
       const ok = await copyToClipboard(text);
-      feedbackBarRef.current?.pushMessage(
+      pushCopyFeedback(
         ok ? (lang === "zh" ? "已复制当前提示词" : "Current prompt copied")
           : (lang === "zh" ? "复制失败，请重试" : "Copy failed, please retry")
       );
@@ -4866,6 +4868,11 @@ export default function App() {
       )}
 
       {libraryHint ? <div style={styles.libraryFloatHint}>{libraryHint}</div> : null}
+      {resultToast ? (
+        <div style={styles.resultToast}>
+          {resultToast === "已复制当前提示词" ? "已复制到粘贴板" : resultToast}
+        </div>
+      ) : null}
 
       {
         <div style={{ ...styles.main, ...(useDesktopFixedLayout ? styles.mainDesktop : {}) }}>
