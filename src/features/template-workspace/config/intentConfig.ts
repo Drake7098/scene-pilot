@@ -1,10 +1,10 @@
-import { Film, Layers, LayoutTemplate, ShoppingBag, UserRound, Video, type LucideIcon } from "lucide-react";
+import { Film, Layers, Layout, ShoppingBag, UserRound, Video, type LucideIcon } from "lucide-react";
 import type { TemplateIntentId, TemplateIntentMeta } from "../model/templateIntent";
 
 export const INTENT_ICONS: Record<TemplateIntentId, LucideIcon> = {
   sell_product: ShoppingBag,
   people_portrait: UserRound,
-  cover_poster: LayoutTemplate,
+  cover_poster: Layout,
   talking_video: Video,
   story_video: Film,
   pro_workflows: Layers

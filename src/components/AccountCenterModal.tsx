@@ -1107,7 +1107,7 @@ async function testReplicateConnection(baseUrl: string, apiKey: string) {
 }
 
 async function testStabilityConnection(baseUrl: string, apiKey: string) {
-  const res = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/v1/generation/stable-image-ultra/text-to-image`, {
+  const res = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/v2beta/stable-image/generate/ultra`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -1213,7 +1213,7 @@ function normalizeApiCredentials(input: ApiCredentialState | null): ApiCredentia
       mode: "personal",
       apiKey: "",
       baseUrl: "https://api.stability.ai",
-      preferredModel: "stable-image-ultra",
+      preferredModel: "stable-image-ultra-v2beta",
       updatedAt: null
     },
     fal_control: {
