@@ -245,12 +245,17 @@ export function Stage({
     const rect = getRect();
     if (!rect) return;
 
+    // Drag should follow the current edit target, not a stale T1 captured
+    // before the parent had a chance to reset selection back to T0.
+    const activeDragT: 0 | 1 =
+      !isImageMode && selectedLayerId === drag.layerId && editT === 1 ? 1 : 0;
+
     // ✅ 重要：拖拽位移要除以 zoom，不然缩放后手感会飘
     const dx = ((e.clientX - drag.startX) / rect.width) * 100 * (1 / zoom);
     const dy = ((e.clientY - drag.startY) / rect.height) * 100 * (1 / zoom);
 
     if (drag.kind === "move") {
-      updateLayerKF(drag.layerId, drag.t, {
+      updateLayerKF(drag.layerId, activeDragT, {
         x: clamp(drag.k0.x + dx, WORLD_MIN, WORLD_MAX),
         y: clamp(drag.k0.y + dy, WORLD_MIN, WORLD_MAX)
       });
@@ -303,7 +308,7 @@ export function Stage({
       ny = clamp(ny, WORLD_MIN, WORLD_MAX);
     }
 
-    updateLayerKF(drag.layerId, drag.t, { x: nx, y: ny, w: nw, h: nh });
+    updateLayerKF(drag.layerId, activeDragT, { x: nx, y: ny, w: nw, h: nh });
   }
 
   function endDrag() {

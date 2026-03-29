@@ -2546,6 +2546,18 @@ export default function App() {
     setAccountCenterOpen(true);
   }, [lang]);
 
+  useEffect(() => {
+    if (!accountUser || !accountCenterOpen) return;
+    if (accountCenterSection !== "auth") return;
+    setAuthHint("");
+    setAuthPassword("");
+    setAuthCode("");
+    setLastSentCode("");
+    setAuthStep("email");
+    setAccountCenterSection("overview");
+    setAccountCenterOpen(false);
+  }, [accountUser, accountCenterOpen, accountCenterSection]);
+
   // Handle /signin -> /app?signin=1&redirect=... bootstrap in-app.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -2587,6 +2599,11 @@ export default function App() {
   useEffect(() => {
     saveLastTemplateIntent(templateWorkspaceState.selectedIntentId);
   }, [templateWorkspaceState.selectedIntentId]);
+
+  useEffect(() => {
+    if (proWorkspaceSection !== "composition") return;
+    if (editT !== 0) setEditT(0);
+  }, [proWorkspaceSection]);
 
   // ✅ 新用户 onboarding：登录后首次进入自动弹出创建向导
   useEffect(() => {
@@ -4934,7 +4951,10 @@ export default function App() {
                   scene={scene}
                   sceneIdx={sceneIdx}
                   selectedLayerId={selectedLayerId}
-                  onSelectLayer={(id) => { setSelectedLayerId(id); setEditT(0); }}
+                  onSelectLayer={(id) => {
+                    setSelectedLayerId(id);
+                    if (id !== selectedLayerId) setEditT(0);
+                  }}
                   onUpdateScene={(s) => { updateScene(s); trackEditorChange("scene", "update", { idx: sceneIdx }, lang); }}
                   onRenameLayer={(oldId, newId) => { if (selectedLayerId === oldId) setSelectedLayerId(newId); trackEditorChange("layer", "rename", { oldId, newId }, lang); }}
                   onAddLayer={() => {
