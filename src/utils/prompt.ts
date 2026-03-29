@@ -1153,6 +1153,19 @@ export function compileCanonicalPromptV3(project: Project, lang: Lang): string {
 }
 
 export function generatePrompts(project: Project, lang: Lang, profile: PromptProfile = "universal"): string {
-  void profile;
+  if (profile === "openai") {
+    const scenes = project?.scenes ?? [];
+    if (!scenes.length) return lang === "zh" ? "（无分镜）" : "(no scenes)";
+    return scenes
+      .map((scene, index) => {
+        const mode = parseMedia(scene);
+        const layerBlocks = (scene.layers ?? [])
+          .map((layer) => formatLayerLine(lang, layer, mode))
+          .filter(Boolean)
+          .join("\n\n");
+        return [formatScenePrompt(project, lang, scene, index), layerBlocks].filter(Boolean).join("\n\n");
+      })
+      .join("\n\n---\n\n");
+  }
   return compileCanonicalPromptV3(project, lang);
 }
