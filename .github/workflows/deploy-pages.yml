@@ -6,6 +6,10 @@ on:
       - main
       - develop
 
+concurrency:
+  group: deploy-pages-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -27,19 +31,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
+      - name: Build develop bundle
+        if: github.ref == 'refs/heads/develop'
+        run: npm run build -- --outDir dist-test
+
+      - name: Build main bundle
+        if: github.ref == 'refs/heads/main'
+        run: npm run build -- --outDir dist-prod
 
       - name: Deploy develop → scenepilotix
         if: github.ref == 'refs/heads/develop'
-        run: npx -y wrangler pages deploy dist --project-name=scenepilotix
+        run: npx -y wrangler pages deploy dist-test --project-name=scenepilotix
         env:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
 
       - name: Deploy main → scenepilotix1-prod
         if: github.ref == 'refs/heads/main'
-        run: npx -y wrangler pages deploy dist --project-name=scenepilotix1-prod
+        run: npx -y wrangler pages deploy dist-prod --project-name=scenepilotix1-prod
         env:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}

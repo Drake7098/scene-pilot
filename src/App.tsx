@@ -2207,7 +2207,9 @@ export default function App() {
       return lang === "zh" ? "Google 登录未配置完成。" : "Google sign-in is not configured.";
     }
     if (code.includes("google_pkce_verifier_missing")) {
-      return lang === "zh" ? "Google 登录会话已失效，请重试。" : "Google sign-in session expired. Please retry.";
+      return lang === "zh"
+        ? "Google 登录会话已失效，请在同一标签页重试，避免中途切换标签或窗口。"
+        : "Google sign-in session expired. Retry in the same tab and avoid switching windows.";
     }
     if (code.includes("google_oauth_exchange_failed")) {
       return lang === "zh" ? "Google 登录回调失败，请重试。" : "Google callback exchange failed. Please retry.";
@@ -2536,7 +2538,7 @@ export default function App() {
   useEffect(() => {
     const code = consumeOAuthErrorCode();
     const debugInfo = consumeOAuthDebugInfo();
-    if (!code && !debugInfo) return;
+    if (!code) return;
     const baseHint = code ? authErrorText(code) : "";
     const nextHint = [baseHint, debugInfo].filter(Boolean).join(baseHint && debugInfo ? "\n" : "");
     setAuthHint(nextHint || authErrorText(code || "google_oauth_exchange_failed"));

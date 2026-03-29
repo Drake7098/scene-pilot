@@ -32,8 +32,15 @@ type SupabaseUser = {
 
 const SUPABASE_SESSION_KEY = "sp_supabase_session_v1";
 const SUPABASE_PKCE_VERIFIER_KEY = "sp_supabase_pkce_verifier_v1";
+const SUPABASE_PKCE_VERIFIER_FALLBACK_KEY = "sp_supabase_pkce_verifier_fallback_v1";
 const SUPABASE_OAUTH_ERROR_KEY = "sp_supabase_oauth_error_v1";
 const SUPABASE_OAUTH_DEBUG_KEY = "sp_supabase_oauth_debug_v1";
+const PKCE_VERIFIER_MAX_AGE_MS = 20 * 60 * 1000;
+
+type PkceVerifierFallbackState = {
+  verifier: string;
+  createdAt: number;
+};
 
 function getSupabaseConfig(): SupabaseConfig | null {
   const url = String(import.meta.env.VITE_SUPABASE_URL || "").trim().replace(/\/+$/, "");
@@ -151,9 +158,17 @@ function writePkceVerifier(verifier: string) {
   try {
     if (verifier) {
       window.sessionStorage.setItem(SUPABASE_PKCE_VERIFIER_KEY, verifier);
+      window.localStorage.setItem(
+        SUPABASE_PKCE_VERIFIER_FALLBACK_KEY,
+        JSON.stringify({
+          verifier,
+          createdAt: Date.now()
+        } satisfies PkceVerifierFallbackState)
+      );
       return;
     }
     window.sessionStorage.removeItem(SUPABASE_PKCE_VERIFIER_KEY);
+    window.localStorage.removeItem(SUPABASE_PKCE_VERIFIER_FALLBACK_KEY);
   } catch {
     // ignore storage failures
   }
@@ -162,7 +177,24 @@ function writePkceVerifier(verifier: string) {
 function readPkceVerifier() {
   if (typeof window === "undefined") return "";
   try {
-    return String(window.sessionStorage.getItem(SUPABASE_PKCE_VERIFIER_KEY) || "");
+    const fromSession = String(window.sessionStorage.getItem(SUPABASE_PKCE_VERIFIER_KEY) || "");
+    if (fromSession) return fromSession;
+  } catch {
+    // ignore
+  }
+  try {
+    const raw = String(window.localStorage.getItem(SUPABASE_PKCE_VERIFIER_FALLBACK_KEY) || "");
+    if (!raw) return "";
+    const parsed = JSON.parse(raw) as PkceVerifierFallbackState;
+    if (!parsed?.verifier || !Number.isFinite(parsed.createdAt)) {
+      window.localStorage.removeItem(SUPABASE_PKCE_VERIFIER_FALLBACK_KEY);
+      return "";
+    }
+    if (Date.now() - parsed.createdAt > PKCE_VERIFIER_MAX_AGE_MS) {
+      window.localStorage.removeItem(SUPABASE_PKCE_VERIFIER_FALLBACK_KEY);
+      return "";
+    }
+    return String(parsed.verifier);
   } catch {
     return "";
   }
