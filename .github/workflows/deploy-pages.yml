@@ -34,10 +34,22 @@ jobs:
       - name: Build develop bundle
         if: github.ref == 'refs/heads/develop'
         run: npm run build -- --outDir dist-test
+        env:
+          VITE_SUPABASE_URL: https://sampclwsqputkeswqbbu.supabase.co
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_APP_BASE_URL: https://scenepilotix.pages.dev
+          VITE_BILLING_ENABLED: 0
+          VITE_AUTH_MOCK_FALLBACK: 0
 
       - name: Build main bundle
         if: github.ref == 'refs/heads/main'
         run: npm run build -- --outDir dist-prod
+        env:
+          VITE_SUPABASE_URL: https://sampclwsqputkeswqbbu.supabase.co
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_APP_BASE_URL: https://www.scenepilotix.com
+          VITE_BILLING_ENABLED: 0
+          VITE_AUTH_MOCK_FALLBACK: 0
 
       - name: Deploy develop → scenepilotix
         if: github.ref == 'refs/heads/develop'
