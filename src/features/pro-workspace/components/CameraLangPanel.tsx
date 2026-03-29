@@ -48,7 +48,7 @@ function writeDof(notes: string, v: string) {
 }
 
 export function CameraLangPanel({ lang, scene, project, onUpdateScene }: Props) {
-  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "layout_only";
+  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "full_workflow";
   const layoutLocked = applyMode === "layout_only";
 
   const currentId = parseCameraLanguageId(scene.notes ?? "");

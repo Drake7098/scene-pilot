@@ -41,7 +41,7 @@ export function ConstraintInspectorPanel({
   const conflicts = detectSceneConflicts(scene, lang);
   const layers = scene.layers ?? [];
   const mediaMode = resolveSceneConfig(scene).mediaMode;
-  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "layout_only";
+  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "full_workflow";
   const layoutLocked = applyMode === "layout_only";
 
   const objectStates = layers.map((l) => ({

@@ -176,7 +176,7 @@ function buildWorkflowPromptSegments(
     editorial:       en ? "editorial photography, magazine look"                   : "杂志编辑摄影感",
     concept_art:     en ? "concept art, detailed illustration"                     : "概念艺术风格",
     illustration:    en ? "digital illustration style"                             : "插画风格",
-    anime:           en ? "anime style, 2D animation"                              : "动漫风格",
+    anime:           en ? "anime style, 2D animation"                              : "动画风格",
     "3d_render":     en ? "3D render, CGI"                                        : "三维渲染",
     filmic:          en ? "filmic look, cinematic quality"                         : "电影质感",
     documentary:     en ? "documentary style, naturalistic"                        : "纪录片风格",
@@ -1137,143 +1137,22 @@ function platformGuide(profile: PromptProfile, lang: Lang): string {
  * ✅ generatePrompts(project, lang)
  * - Media mode is per-scene (scene.notes marker).
  */
-export function generatePrompts(project: Project, lang: Lang, profile: PromptProfile = "universal"): string {
+export function compileCanonicalPromptV3(project: Project, lang: Lang): string {
   const scenes = project?.scenes ?? [];
-  const shotPlan = getShotPlan(project);
-
-  if (!scenes.length) {
-    return lang === "zh" ? "（无分镜）" : "(no scenes)";
-  }
-
-  const out: string[] = [];
-  const anyVideo = scenes.some((s) => parseMedia(s) === "video");
-  const hasV3 = scenes.some((s) => String(parseCompiler(s)) === "v3");
-  const hasV2 = scenes.some((s) => String(parseCompiler(s)) === "v2");
-
-  // ── V3 route — short-circuit, bypasses all legacy pipeline ──────────
-  if (hasV3) {
-    const v3Parts: string[] = [];
-    scenes.forEach((s) => {
-      if (String(parseCompiler(s)) === "v3") {
-        const v3result = compileV3({
-          scene: s,
-          lang,
-          mediaMode: parseMedia(s),
-          aspectRatio: s.aspectRatio,
-        });
-        v3Parts.push(v3result);
-      } else {
-        // fallback for mixed scenes
-        v3Parts.push(formatScenePrompt(project, lang, s, 0));
-      }
-    });
-    return v3Parts.filter(Boolean).join("\n\n---\n\n");
-  }
-
-  if (lang === "zh") {
-    const lines = [
-    ];
-    const p = platformGuide(profile, lang);
-    if (p) lines.push(p);
-    if (lines.filter(Boolean).length) out.push(lines.join("\n"));
-  } else {
-    const lines = [
-    ];
-    const p = platformGuide(profile, lang);
-    if (p) lines.push(p);
-    if (lines.filter(Boolean).length) out.push(lines.join("\n"));
-  }
-
-  if (hasV2) {
-    scenes.forEach((s, idx) => {
-      const described = formatScenePrompt(project, lang, s, idx);
-      if (String(parseCompiler(s)) === "v2") {
-        const tier = parseSceneTier(s);
-        const v2Mode = parseV2Mode(s);
-        const compiled = compileScenePromptV2(s, lang, tier, v2Mode, s.aspectRatio);
-        out.push([described, optimizeV2ScenePrompt(compiled, s, lang, tier, v2Mode)].join("\n\n"));
-      } else {
-        out.push(described);
-      }
-    });
-    return proPromptQualityGate(
-      finalizeByPlatform(
-        optimizeFinalPrompt(out.join("\n\n---\n\n")),
-        profile, lang, anyVideo ? "video" : "image"
-      )
-    );
-  }
-
-  if (shotPlan === "continuous" && scenes.length > 1) {
-    const totalSec = scenes.reduce((sum, s) => sum + Math.max(1, Math.round(Number(s.duration_s) || 0)), 0);
-    if (lang === "zh") {
-      out.push(
-        [
-          `连续镜头模式（总时长约 ${totalSec} 秒）：第一视角，单镜头连续运动，无跳切。`,
-          "强制约束：no text / no subtitles / no overlays / do not show numbers。",
-          "保持对象身份连续、数量稳定；避免突然位移、瞬移、硬切。",
-          "连续轨迹要求：明确从当前空间进入、穿过门或走廊、再自然进入下一空间；动作衔接以对象路径连续为准。"
-        ].join("\n")
-      );
-    } else {
-      out.push(
-        [
-          `Continuous mode (~${totalSec}s): first-person perspective, single long take, seamless motion, no cuts.`,
-          "Hard constraints: no text / no subtitles / no overlays / do not show numbers.",
-          "Keep identity and object count consistent; avoid sudden jumps/teleports/hard cuts.",
-          "Continuity rule: make the subject path explicit from current space, through door/corridor, and naturally into the next space."
-        ].join("\n")
-      );
-    }
-
-    scenes.forEach((s, i) => {
-      out.push(formatScenePrompt(project, lang, s, i));
-
-      if (i < scenes.length - 1) {
-        out.push(buildContinuousBridge(lang, s, scenes[i + 1], i));
-      }
-    });
-
-    const prompt = out.join("\n\n---\n\n");
-    return proPromptQualityGate(
-      finalizeByPlatform(optimizeFinalPrompt(prompt), profile, lang, "video")
-    );
-  }
-
-  if ((shotPlan === "multicam" || shotPlan === "edit") && scenes.length > 1) {
-    if (shotPlan === "multicam") {
-      out.push(
-        lang === "zh"
-          ? "同场景多机位：保持同一地点/光线/对象位置连续，仅切换机位与视角。"
-          : "Multi-cam: keep same location/lighting/object placement continuity; only change camera angle."
-      );
-    } else {
-      out.push(
-        lang === "zh"
-          ? "标准剪辑：允许镜头跳切、时间跳跃、地点变化，但每个分镜内部需稳定执行。"
-          : "Standard edit: cut/time jump/location switch allowed, while each shot remains internally consistent."
-      );
-    }
-    scenes.forEach((s, i) => {
-      out.push(formatScenePrompt(project, lang, s, i));
-      if (i < scenes.length - 1) {
-        const strategy = resolveSceneStrategy(s, lang, parseMedia(s));
-        const t = (s as any).transitionType ?? strategy.defaults.transitionType ?? (shotPlan === "multicam" ? "reverse_angle" : "cut");
-        out.push(transitionLineByType(lang, i, i + 1, t));
-      }
-    });
-    const prompt = out.join("\n\n---\n\n");
-    return proPromptQualityGate(
-      finalizeByPlatform(optimizeFinalPrompt(prompt), profile, lang, anyVideo ? "video" : "image")
-    );
-  }
-
-  scenes.forEach((s, i) => {
-    out.push(formatScenePrompt(project, lang, s, i));
-  });
-
-  const prompt = out.join("\n\n---\n\n");
-  return proPromptQualityGate(
-    finalizeByPlatform(optimizeFinalPrompt(prompt), profile, lang, anyVideo ? "video" : "image")
+  if (!scenes.length) return lang === "zh" ? "（无分镜）" : "(no scenes)";
+  const compiled = scenes.map((scene) =>
+    compileV3({
+      scene,
+      lang,
+      mediaMode: parseMedia(scene),
+      aspectRatio: scene.aspectRatio,
+      platform: "generic",
+    }).trim()
   );
+  return compiled.filter(Boolean).join("\n\n---\n\n");
+}
+
+export function generatePrompts(project: Project, lang: Lang, profile: PromptProfile = "universal"): string {
+  void profile;
+  return compileCanonicalPromptV3(project, lang);
 }

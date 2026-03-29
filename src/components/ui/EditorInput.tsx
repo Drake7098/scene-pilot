@@ -42,14 +42,20 @@ export function EditorInput({
 
   const handleFocus = useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
-      wrapperRef.current?.style && (wrapperRef.current.style.borderColor = colors.accent);
+      if (wrapperRef.current?.style) {
+        wrapperRef.current.style.borderColor = colors.accent;
+        wrapperRef.current.style.boxShadow = "none";
+      }
       onFocus?.(e);
     },
     [onFocus]
   );
   const handleBlur = useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
-      wrapperRef.current?.style && (wrapperRef.current.style.borderColor = colors.border);
+      if (wrapperRef.current?.style) {
+        wrapperRef.current.style.borderColor = colors.border;
+        wrapperRef.current.style.boxShadow = "none";
+      }
       onBlur?.(e);
     },
     [onBlur]
@@ -92,10 +98,15 @@ export function EditorInput({
           borderRadius: radius.input,
           paddingLeft: spacing.inputPaddingX,
           paddingRight: spacing.inputPaddingX,
-          transition: `border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`,
+          transition: `border-color ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}, box-shadow ${editorTheme.transition.duration}ms ${editorTheme.transition.easing}`,
         }}
-        onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.borderColor = colors.textMuted; }}
-        onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.border; }}
+        onMouseEnter={(e) => { if (!disabled && document.activeElement !== e.currentTarget.querySelector("input")) e.currentTarget.style.borderColor = colors.textMuted; }}
+        onMouseLeave={(e) => {
+          if (document.activeElement !== e.currentTarget.querySelector("input")) {
+            e.currentTarget.style.borderColor = colors.border;
+            e.currentTarget.style.boxShadow = "none";
+          }
+        }}
       >
         <input
           type={type}
@@ -115,6 +126,7 @@ export function EditorInput({
             fontSize: typography.bodySize,
             fontWeight: typography.bodyWeight,
             color: colors.text,
+            lineHeight: 1.4,
           }}
         />
         {suffix != null && suffix !== "" && (

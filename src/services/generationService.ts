@@ -9,6 +9,7 @@
  */
 
 import type { ApiCredentialState } from "../types/account";
+import { getApiAuthHeaders, getCurrentUser } from "./authService";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ export type GenerationInput = {
   durationSeconds?: number;  // video only
   negativePrompt?: string;
   qualityTier?: "standard" | "hd" | "video" | "video_hq";
+  creditsCost?: number;
 };
 
 export type GenerationResult = {
@@ -30,6 +32,29 @@ export type GenerationResult = {
   provider: string;         // "fal" | "runway" | "comfyui" | "drawthings"
   model?: string;
   durationSeconds?: number;
+};
+
+type SupportedByoProvider = "fal" | "runway" | "replicate" | "stability" | "custom_api";
+
+type QueueSubmitResponse = {
+  ok: boolean;
+  taskId?: string;
+  status?: string;
+  queuePosition?: number;
+  queuedAhead?: number;
+  error?: string;
+  need?: number;
+  have?: number;
+};
+
+type QueueStatusResponse = {
+  ok: boolean;
+  status?: "queued" | "running" | "done" | "failed" | string;
+  queuePosition?: number;
+  queuedAhead?: number;
+  output?: unknown;
+  raw?: unknown;
+  error?: string;
 };
 
 export type HostedGenerationConfig = {
@@ -65,6 +90,14 @@ type FalImageResult = {
 type FalVideoResult = {
   video?: { url: string };
   videos?: Array<{ url: string }>;
+};
+
+type ReplicatePrediction = {
+  id?: string;
+  status?: string;
+  output?: unknown;
+  error?: string | null;
+  urls?: { get?: string };
 };
 
 async function falGenerate<T>(
@@ -240,25 +273,250 @@ async function runwayGenerate(
   throw new Error("Runway generation timed out");
 }
 
+async function replicateGenerate(
+  apiKey: string,
+  input: GenerationInput,
+  model: string,
+  baseUrl = "https://api.replicate.com"
+): Promise<GenerationResult> {
+  if (input.mediaMode !== "image") throw new Error("replicate_image_only");
+  const normalizedBase = baseUrl.replace(/\/+$/, "");
+  const modelPath = model.replace(/^https?:\/\/[^/]+\//i, "").replace(/^\/+/, "");
+  const modelParts = modelPath.split(":");
+  const modelRef = modelParts[0] ?? "";
+  const modelVersion = modelParts[1] ?? "";
+  const pathParts = modelRef.split("/").filter(Boolean);
+  if (pathParts.length < 2) throw new Error("replicate_model_invalid");
+  const [owner, name] = pathParts;
+  const endpoint = `${normalizedBase}/v1/models/${owner}/${name}/predictions`;
+  const submitRes = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "Prefer": "wait=20"
+    },
+    body: JSON.stringify({
+      ...(modelVersion ? { version: modelVersion } : {}),
+      input: {
+        prompt: input.prompt,
+        ...(input.negativePrompt ? { negative_prompt: input.negativePrompt } : {}),
+        ...(input.seed != null ? { seed: input.seed } : {}),
+        ...(input.resolution ? { aspect_ratio: resolutionToAspectRatio(input.resolution) } : {}),
+        ...(input.qualityTier === "hd" ? { output_quality: 100 } : {})
+      }
+    })
+  });
+  const submitJson = await safeJson(submitRes) as ReplicatePrediction | null;
+  if (!submitRes.ok || !submitJson) {
+    const text = submitJson?.error || (await submitRes.text().catch(() => submitRes.statusText));
+    throw new Error(`Replicate submit failed (${submitRes.status}): ${text}`);
+  }
+  if (isReplicateTerminalSuccess(submitJson.status) && submitJson.output) {
+    const url = extractReplicateOutputUrl(submitJson.output);
+    if (!url) throw new Error("replicate_missing_output_url");
+    return {
+      kind: "image",
+      url,
+      ownedUrls: [],
+      provider: "replicate",
+      model
+    };
+  }
+
+  const pollUrl = submitJson.urls?.get || (submitJson.id ? `${normalizedBase}/v1/predictions/${submitJson.id}` : "");
+  if (!pollUrl) throw new Error("replicate_missing_prediction_url");
+  const started = Date.now();
+  const maxWait = 180_000;
+  while (Date.now() - started < maxWait) {
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    const pollRes = await fetch(pollUrl, {
+      headers: { "Authorization": `Bearer ${apiKey}` }
+    });
+    const pollJson = await safeJson(pollRes) as ReplicatePrediction | null;
+    if (!pollRes.ok || !pollJson) continue;
+    if (isReplicateTerminalFailure(pollJson.status)) {
+      throw new Error(`Replicate generation failed: ${pollJson.error || pollJson.status || "unknown"}`);
+    }
+    if (isReplicateTerminalSuccess(pollJson.status) && pollJson.output) {
+      const url = extractReplicateOutputUrl(pollJson.output);
+      if (!url) throw new Error("replicate_missing_output_url");
+      return {
+        kind: "image",
+        url,
+        ownedUrls: [],
+        provider: "replicate",
+        model
+      };
+    }
+  }
+  throw new Error("Replicate generation timed out");
+}
+
+async function stabilityGenerate(
+  apiKey: string,
+  input: GenerationInput,
+  model: string,
+  baseUrl = "https://api.stability.ai"
+): Promise<GenerationResult> {
+  if (input.mediaMode !== "image") throw new Error("stability_image_only");
+  const [width, height] = parseResolution(input.resolution);
+  const normalizedBase = baseUrl.replace(/\/+$/, "");
+  const response = await fetch(`${normalizedBase}/v1/generation/${model}/text-to-image`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify({
+      width,
+      height,
+      steps: input.qualityTier === "hd" ? 40 : 30,
+      cfg_scale: 7,
+      samples: 1,
+      seed: input.seed ?? 0,
+      text_prompts: [
+        { text: input.prompt, weight: 1 },
+        ...(input.negativePrompt ? [{ text: input.negativePrompt, weight: -1 }] : [])
+      ]
+    })
+  });
+  const data = await safeJson(response) as { artifacts?: Array<{ base64?: string; finishReason?: string }> ; message?: string; name?: string } | null;
+  if (!response.ok || !data) {
+    const text = data?.message || data?.name || (await response.text().catch(() => response.statusText));
+    throw new Error(`Stability submit failed (${response.status}): ${text}`);
+  }
+  const artifact = data.artifacts?.find((item) => item.finishReason !== "CONTENT_FILTERED" && item.base64);
+  if (!artifact?.base64) throw new Error("stability_missing_image_data");
+  const objectUrl = base64ImageToObjectUrl(artifact.base64);
+  return {
+    kind: "image",
+    url: objectUrl,
+    ownedUrls: [objectUrl],
+    provider: "stability",
+    model
+  };
+}
+
+async function customApiGenerate(
+  apiKey: string,
+  input: GenerationInput,
+  model: string,
+  baseUrl?: string
+): Promise<GenerationResult> {
+  const endpoint = (baseUrl || "").trim().replace(/\/+$/, "");
+  if (!endpoint) throw new Error("custom_api_base_url_missing");
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "X-ScenePilotix-Provider": "custom_api"
+    },
+    body: JSON.stringify({
+      prompt: input.prompt,
+      mediaMode: input.mediaMode,
+      resolution: input.resolution,
+      negativePrompt: input.negativePrompt || "",
+      seed: input.seed ?? null,
+      durationSeconds: input.durationSeconds ?? null,
+      model: model || ""
+    })
+  });
+  const data = await safeJson(response) as { kind?: "image" | "video"; url?: string; posterUrl?: string; error?: string; message?: string } | null;
+  if (!response.ok || !data) {
+    const text = data?.error || data?.message || (await response.text().catch(() => response.statusText));
+    throw new Error(`custom_api_request_failed: ${text}`);
+  }
+  if (!data.url || !data.kind) throw new Error("custom_api_invalid_response");
+  if (data.kind !== input.mediaMode) throw new Error("custom_api_invalid_response");
+  return {
+    kind: data.kind,
+    url: data.url,
+    posterUrl: data.posterUrl,
+    ownedUrls: [],
+    provider: "custom_api",
+    model: model || undefined,
+    durationSeconds: input.durationSeconds
+  };
+}
+
 // ── Main exported entry points ─────────────────────────────────────────────
 
 /**
  * Platform-hosted generation (uses your fal/runway keys from env)
  */
 export async function generateHosted(input: GenerationInput): Promise<GenerationResult> {
-  const cfg = getHostedConfig();
-  if (input.mediaMode === "image") {
-    if (!cfg.falApiKey) throw new Error("hosted_fal_not_configured");
-    return runFalImage(cfg.falApiKey, input, cfg.defaultImageModel);
+  const user = await getCurrentUser();
+  if (!user?.id) throw new Error("missing_user_id");
+
+  const provider: "fal" | "runway" = input.mediaMode === "video" ? "runway" : "fal";
+  const submitBody = {
+    userId: user.id,
+    provider,
+    mode: "platform",
+    prompt: input.prompt,
+    mediaType: input.mediaMode,
+    ratio: resolutionToRatio(input.resolution),
+    duration: input.durationSeconds,
+    creditsCost: input.creditsCost
+  };
+
+  const authHeaders = await getApiAuthHeaders(user.id);
+  const submitRes = await fetch("/api/generation/submit", {
+    method: "POST",
+    headers: { "content-type": "application/json", ...authHeaders },
+    body: JSON.stringify(submitBody)
+  });
+  const submitJson = await safeJson(submitRes) as QueueSubmitResponse | null;
+  if (!submitRes.ok || !submitJson?.ok || !submitJson.taskId) {
+    const err = submitJson?.error || `submit_${submitRes.status}`;
+    throw new Error(err);
   }
-  // video: prefer runway if configured, fallback to fal
-  if (cfg.runwayApiKey) {
-    return runwayGenerate(cfg.runwayApiKey, input, cfg.defaultVideoModel);
+
+  notifyQueueStatus({
+    phase: submitJson.status || "queued",
+    queuePosition: submitJson.queuePosition,
+    queuedAhead: submitJson.queuedAhead
+  });
+
+  const maxWait = 300_000;
+  const started = Date.now();
+  while (Date.now() - started < maxWait) {
+    // Nudge worker tick on each poll. Unauthorized is ignored.
+    fetch("/api/generation/worker", { method: "POST" }).catch(() => undefined);
+    await new Promise((resolve) => setTimeout(resolve, 2200));
+    const statusRes = await fetch("/api/generation/status", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...authHeaders },
+      body: JSON.stringify({
+        userId: user.id,
+        provider,
+        mode: "platform",
+        mediaType: input.mediaMode,
+        taskId: submitJson.taskId
+      })
+    });
+    const statusJson = await safeJson(statusRes) as QueueStatusResponse | null;
+    if (!statusJson) continue;
+
+    notifyQueueStatus({
+      phase: statusJson.status || "queued",
+      queuePosition: statusJson.queuePosition,
+      queuedAhead: statusJson.queuedAhead
+    });
+
+    if (statusJson.status === "failed") {
+      throw new Error(statusJson.error || "generation_failed");
+    }
+    if (statusJson.status === "done") {
+      const resolved = parseQueuedOutput(input.mediaMode, statusJson.output);
+      notifyQueueStatus({ phase: "done" });
+      return resolved;
+    }
   }
-  if (cfg.falApiKey) {
-    return runFalVideo(cfg.falApiKey, input);
-  }
-  throw new Error("hosted_not_configured");
+  throw new Error("generation_queue_timeout");
 }
 
 /**
@@ -266,9 +524,10 @@ export async function generateHosted(input: GenerationInput): Promise<Generation
  */
 export async function generateByo(
   input: GenerationInput,
-  credentials: ApiCredentialState
+  credentials: ApiCredentialState,
+  providerOverride?: SupportedByoProvider
 ): Promise<GenerationResult> {
-  const provider = credentials.defaultProvider;
+  const provider = (providerOverride ?? credentials.defaultProvider) as SupportedByoProvider;
   const config = credentials[provider];
   if (!config?.enabled) throw new Error("byo_provider_not_enabled");
   const apiKey = config.mode === "personal" ? config.apiKey?.trim() : "";
@@ -293,6 +552,18 @@ export async function generateByo(
       throw new Error("runway_image_not_supported");
     }
     return runwayGenerate(apiKey, input, config.preferredModel || "gen3a_turbo", baseUrl);
+  }
+
+  if (provider === "replicate") {
+    return replicateGenerate(apiKey, input, config.preferredModel || "black-forest-labs/flux-1.1-pro", baseUrl);
+  }
+
+  if (provider === "stability") {
+    return stabilityGenerate(apiKey, input, config.preferredModel || "stable-diffusion-xl-1024-v1-0", baseUrl);
+  }
+
+  if (provider === "custom_api") {
+    return customApiGenerate(apiKey, input, config.preferredModel || "", baseUrl);
   }
 
   throw new Error(`byo_unknown_provider_${provider}`);
@@ -333,8 +604,130 @@ function resolutionToRatio(r: string): string {
   return "1024:1024";
 }
 
+function resolutionToAspectRatio(r: string): string {
+  const [w, h] = parseResolution(r);
+  const gcd = greatestCommonDivisor(w, h);
+  return `${Math.max(1, Math.round(w / gcd))}:${Math.max(1, Math.round(h / gcd))}`;
+}
+
 function randomSeed(): number {
   return Math.floor(Math.random() * 2_147_483_647);
+}
+
+function greatestCommonDivisor(a: number, b: number): number {
+  let x = Math.abs(a);
+  let y = Math.abs(b);
+  while (y) {
+    const t = y;
+    y = x % y;
+    x = t;
+  }
+  return x || 1;
+}
+
+async function safeJson(res: Response) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+function toStringSafe(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function extractImageUrl(output: any): string {
+  return (
+    toStringSafe(output?.images?.[0]?.url) ||
+    toStringSafe(output?.image?.url) ||
+    toStringSafe(output?.output?.images?.[0]?.url) ||
+    toStringSafe(output?.output?.image?.url) ||
+    toStringSafe(output?.raw?.images?.[0]?.url) ||
+    toStringSafe(output?.raw?.image?.url)
+  );
+}
+
+function extractVideoUrl(output: any): string {
+  return (
+    toStringSafe(output?.video?.url) ||
+    toStringSafe(output?.videos?.[0]?.url) ||
+    toStringSafe(output?.output?.[0]) ||
+    toStringSafe(output?.output?.video?.url) ||
+    toStringSafe(output?.output?.videos?.[0]?.url) ||
+    toStringSafe(output?.raw?.video?.url) ||
+    toStringSafe(output?.raw?.videos?.[0]?.url)
+  );
+}
+
+function extractReplicateOutputUrl(output: unknown): string {
+  if (typeof output === "string") return output;
+  if (Array.isArray(output)) {
+    for (const item of output) {
+      const nested = extractReplicateOutputUrl(item);
+      if (nested) return nested;
+    }
+    return "";
+  }
+  if (output && typeof output === "object") {
+    const obj = output as Record<string, unknown>;
+    return (
+      toStringSafe(obj.url) ||
+      toStringSafe(obj.image) ||
+      toStringSafe(obj.output) ||
+      extractReplicateOutputUrl(obj[0 as unknown as keyof typeof obj])
+    );
+  }
+  return "";
+}
+
+function isReplicateTerminalSuccess(status: string | undefined): boolean {
+  return status === "succeeded" || status === "successful";
+}
+
+function isReplicateTerminalFailure(status: string | undefined): boolean {
+  return status === "failed" || status === "canceled" || status === "cancelled";
+}
+
+function base64ImageToObjectUrl(base64: string): string {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  const blob = new Blob([bytes], { type: "image/png" });
+  return URL.createObjectURL(blob);
+}
+
+function parseQueuedOutput(
+  mediaMode: "image" | "video",
+  output: unknown
+): GenerationResult {
+  if (mediaMode === "image") {
+    const url = extractImageUrl(output);
+    if (!url) throw new Error("generation_missing_image_url");
+    return {
+      kind: "image",
+      url,
+      ownedUrls: [],
+      provider: "hosted-queue"
+    };
+  }
+  const url = extractVideoUrl(output);
+  if (!url) throw new Error("generation_missing_video_url");
+  return {
+    kind: "video",
+    url,
+    ownedUrls: [],
+    provider: "hosted-queue"
+  };
+}
+
+function notifyQueueStatus(payload: {
+  phase: string;
+  queuePosition?: number;
+  queuedAhead?: number;
+}) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("spx:gen-queue-status", { detail: payload }));
 }
 
 const DEFAULT_NEGATIVE =
@@ -357,6 +750,18 @@ export function generationErrorMessage(error: unknown, lang: "zh" | "en"): strin
   }
   if (msg.includes("runway_image_not_supported")) {
     return zh ? "Runway 不支持图片生成，请同时配置 fal" : "Runway doesn't support image generation — also configure fal";
+  }
+  if (msg.includes("replicate_image_only")) {
+    return zh ? "Replicate 当前仅支持图片生成" : "Replicate currently supports image generation only";
+  }
+  if (msg.includes("stability_image_only")) {
+    return zh ? "Stability 当前仅支持图片生成" : "Stability currently supports image generation only";
+  }
+  if (msg.includes("custom_api_invalid_response")) {
+    return zh ? "Custom API 返回格式无效，请检查响应结构" : "Custom API returned an invalid response format";
+  }
+  if (msg.includes("custom_api_request_failed")) {
+    return zh ? "Custom API 请求失败，请检查地址、鉴权和服务状态" : "Custom API request failed — check the URL, auth, and service status";
   }
   if (msg.includes("insufficient_credits") || msg.includes("not enough credits")) {
     return zh ? "积分不足，请充值后重试" : "Not enough credits — please top up";

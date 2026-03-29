@@ -1,312 +1,103 @@
-/**
- * ExportControlPanel — Step 10 · 输出
- *
- * 职责（精简版）：
- *   1. 目标平台  — 12个平台分4组的下拉，提示词适配目标
- *   2. 生成方式  — 平台Credits / 我的API / 本地，取代旧 EngineSelectSection
- *   3. 导出模式  — 仅提示词 / 完整项目包
- *   4. 提示词预览 — 只读，当前平台编译结果
- *
- * 已删除的重复项：
- *   ✗ ExportGenerateSection  — 生成按钮底部工具栏已有
- *   ✗ ExportCopySection      — 复制提示词底部工具栏已有
- *   ✗ ExportActionSection    — 导出/复制底部工具栏已有
- *   ✗ ExportOverviewSection  — 纯只读摘要，信息密度低，去掉
- */
-
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { Lang } from "../../../i18n";
 import type { Project, Scene } from "../../../model";
 import type { PlatformPresetId } from "../../../config/platformPresets";
-import { PLATFORM_PRESETS, getPlatformPreset } from "../../../config/platformPresets";
 import { resolveSceneConfig } from "../../../model";
 import { buildPromptForScene } from "../../../utils/promptEngine";
 import { FIGMA_COLORS } from "../constants";
-import { Cloud, Zap, Cpu, ChevronDown, Check } from "lucide-react";
 import type { ApiCredentialState } from "../../../types/account";
 import type { LocalProviderStatus } from "../../../utils/localGeneration";
 
 export type ExportMode = "prompt_only" | "package";
-export type GenerationSource = "hosted" | "byo" | "local_comfy" | "local_draw";
+export type GenerationSource = "api" | "local_comfy" | "local_draw";
+
+export type GenerateSettings = {
+  executionMode: "copy" | "package" | "api" | "comfyui" | "drawthings";
+  exportProfile: "universal" | "reference" | "text_only" | "video_first" | "image_first";
+  count: number;
+  resultMode: "new" | "overwrite";
+  referenceMode?: "auto" | "prefer" | "ignore";
+  canGenerate: boolean;
+  generateLabel: string;
+  statusHint: string;
+};
+
+type ExecutionMode = GenerateSettings["executionMode"];
+type ExportProfile = GenerateSettings["exportProfile"];
+type ResultMode = GenerateSettings["resultMode"];
+type ReferenceMode = NonNullable<GenerateSettings["referenceMode"]>;
 
 const C = FIGMA_COLORS;
-const tl = (lang: Lang, zh: string, en: string) => lang === "zh" ? zh : en;
+const tl = (lang: Lang, zh: string, en: string) => (lang === "zh" ? zh : en);
 
-// ── Platform groups ────────────────────────────────────────────────────────
-
-const PLATFORM_GROUPS: Array<{
-  labelZh: string; labelEn: string; ids: PlatformPresetId[];
-}> = [
-  { labelZh: "通用",           labelEn: "General",       ids: ["universal"] },
-  { labelZh: "图像生成",       labelEn: "Image Gen",     ids: ["fal", "midjourney", "krea"] },
-  { labelZh: "视频生成（国际）", labelEn: "Video · Global", ids: ["runway", "pika", "luma"] },
-  { labelZh: "视频生成（国内）", labelEn: "Video · China",  ids: ["jimeng", "keling", "vidu", "hailuo", "wanx"] },
-];
-
-// ── Platform selector (grouped dropdown) ──────────────────────────────────
-
-function PlatformSelector({ lang, value, onChange }: {
-  lang: Lang; value: PlatformPresetId; onChange: (id: PlatformPresetId) => void;
-}) {
-  const current = getPlatformPreset(value);
-  const [open, setOpen] = useState(false);
-
+function sectionTitle(text: string) {
   return (
-    <div style={{ position: "relative" }}>
-      {/* Trigger */}
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
+    <div
+      style={{
+        fontSize: 10,
+        fontWeight: 700,
+        color: C.textMuted,
+        textTransform: "uppercase",
+        letterSpacing: "0.06em",
+        marginBottom: 8,
+      }}
+    >
+      {text}
+    </div>
+  );
+}
+
+function divider() {
+  return <div style={{ height: 1, background: C.border, margin: "0 -14px" }} />;
+}
+
+function optionRow(params: {
+  selected: boolean;
+  disabled?: boolean;
+  title: string;
+  desc: string;
+  onClick: () => void;
+}) {
+  const { selected, disabled, title, desc, onClick } = params;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: "100%",
+        textAlign: "left",
+        borderRadius: 8,
+        border: `1px solid ${selected ? C.accent : C.border}`,
+        background: selected ? `${C.accent}14` : C.panel,
+        color: selected ? C.accent : C.text,
+        padding: "9px 10px",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.55 : 1,
+        display: "flex",
+        gap: 8,
+        alignItems: "flex-start",
+      }}
+    >
+      <span
+        aria-hidden
         style={{
-          width: "100%", display: "flex", alignItems: "center",
-          justifyContent: "space-between", gap: 8,
-          padding: "8px 10px", borderRadius: 6,
-          border: `1px solid ${open ? C.accent : C.border}`,
-          background: C.bg, color: C.text,
-          fontSize: 12, fontWeight: 500, cursor: "pointer",
-          transition: "border-color 0.1s",
+          marginTop: 1,
+          width: 12,
+          height: 12,
+          borderRadius: "50%",
+          border: `1px solid ${selected ? C.accent : C.textMuted}`,
+          background: selected ? C.accent : "transparent",
+          flexShrink: 0,
         }}
-      >
-        <span>{lang === "zh" ? current.labelZh : current.labelEn}</span>
-        <ChevronDown size={13} style={{
-          color: C.textMuted,
-          transform: open ? "rotate(180deg)" : "none",
-          transition: "transform 0.15s",
-        }} />
-      </button>
-
-      {/* Dropdown */}
-      {open && (
-        <>
-          {/* Backdrop */}
-          <div
-            style={{ position: "fixed", inset: 0, zIndex: 49 }}
-            onClick={() => setOpen(false)}
-          />
-          <div style={{
-            position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-            zIndex: 50, background: C.panel,
-            border: `1px solid ${C.border}`, borderRadius: 8,
-            overflow: "hidden",
-            maxHeight: 340, overflowY: "auto",
-          }}>
-            {PLATFORM_GROUPS.map((group, gi) => {
-              const presets = group.ids
-                .map(id => PLATFORM_PRESETS.find(p => p.id === id))
-                .filter(Boolean) as typeof PLATFORM_PRESETS;
-              if (!presets.length) return null;
-              return (
-                <div key={group.labelEn}>
-                  {/* Group header */}
-                  <div style={{
-                    padding: "6px 10px 3px",
-                    fontSize: 10, fontWeight: 700, color: C.textMuted,
-                    textTransform: "uppercase", letterSpacing: "0.06em",
-                    borderTop: gi > 0 ? `1px solid ${C.border}` : "none",
-                  }}>
-                    {lang === "zh" ? group.labelZh : group.labelEn}
-                  </div>
-                  {/* Platform items */}
-                  {presets.map(p => (
-                    <button
-                      key={p.id} type="button"
-                      onClick={() => { onChange(p.id); setOpen(false); }}
-                      style={{
-                        width: "100%", textAlign: "left",
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                        padding: "8px 10px",
-                        background: p.id === value ? `${C.accent}12` : "transparent",
-                        color: p.id === value ? C.accent : C.text,
-                        fontSize: 12, cursor: "pointer", border: "none",
-                        transition: "background 0.1s",
-                      }}
-                      onMouseEnter={e => {
-                        if (p.id !== value)
-                          (e.currentTarget as HTMLButtonElement).style.background = C.hover;
-                      }}
-                      onMouseLeave={e => {
-                        if (p.id !== value)
-                          (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                      }}
-                    >
-                      <span style={{ fontWeight: p.id === value ? 600 : 400 }}>
-                        {lang === "zh" ? p.labelZh : p.labelEn}
-                      </span>
-                      <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        {!p.nativeStrategy && (
-                          <span style={{ fontSize: 9, color: C.textMuted }}>
-                            {tl(lang, "适配", "adapted")}
-                          </span>
-                        )}
-                        {p.id === value && <Check size={12} style={{ color: C.accent }} />}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
+      />
+      <span style={{ display: "grid", gap: 2, minWidth: 0 }}>
+        <span style={{ fontSize: 12, fontWeight: selected ? 700 : 600, color: selected ? C.accent : C.text }}>{title}</span>
+        <span style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.35 }}>{desc}</span>
+      </span>
+    </button>
   );
 }
-
-// ── Generation source selector ─────────────────────────────────────────────
-
-function GenSourceSelector({ lang, source, onChange, canUseByo, byoCredentials,
-  comfyReady, drawReady, mediaMode, creditCost, userCredits }: {
-  lang: Lang;
-  source: GenerationSource;
-  onChange: (s: GenerationSource) => void;
-  canUseByo: boolean;
-  byoCredentials: ApiCredentialState | null;
-  comfyReady: boolean;
-  drawReady: boolean;
-  mediaMode: "image" | "video";
-  creditCost: number;
-  userCredits: number;
-}) {
-  const byoAvail = canUseByo && byoCredentials != null &&
-    (byoCredentials.fal?.enabled || byoCredentials.runway?.enabled);
-  const credLow = userCredits < creditCost;
-
-  type Opt = { id: GenerationSource; icon: React.ReactNode; label: string; sub: string; };
-  const opts: Opt[] = [
-    {
-      id: "hosted",
-      icon: <Cloud size={12} />,
-      label: tl(lang, "平台生成", "Platform"),
-      sub: credLow
-        ? tl(lang, `积分不足 (${userCredits})`, `Low credits (${userCredits})`)
-        : `${creditCost} Credits`,
-    },
-  ];
-
-  if (byoAvail) {
-    const name = byoCredentials!.defaultProvider === "runway" ? "Runway" : "fal";
-    opts.push({
-      id: "byo",
-      icon: <Zap size={12} />,
-      label: tl(lang, "我的 API", "My API"),
-      sub: name,
-    });
-  }
-
-  if (comfyReady) {
-    opts.push({
-      id: "local_comfy",
-      icon: <Cpu size={12} />,
-      label: tl(lang, "本地 ComfyUI", "ComfyUI"),
-      sub: tl(lang, "免费", "Free"),
-    });
-  }
-
-  if (drawReady && mediaMode === "image") {
-    opts.push({
-      id: "local_draw",
-      icon: <Cpu size={12} />,
-      label: tl(lang, "Draw Things", "Draw Things"),
-      sub: tl(lang, "免费", "Free"),
-    });
-  }
-
-  // Only one option — show plain text, no button group
-  if (opts.length === 1) {
-    return (
-      <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "6px 0", fontSize: 12,
-      }}>
-        <span style={{ color: C.textMuted }}>{tl(lang, "平台 Credits", "Platform Credits")}</span>
-        <span style={{ color: credLow ? "#f87171" : C.text }}>
-          {creditCost} Credits
-          {credLow ? ` · ${tl(lang, "不足", "low")}` : ""}
-        </span>
-      </div>
-    );
-  }
-
-  const validIds = opts.map(o => o.id);
-  const active = validIds.includes(source) ? source : "hosted";
-
-  return (
-    <div style={{ display: "flex", gap: 4 }}>
-      {opts.map(opt => {
-        const isActive = active === opt.id;
-        const isLow = isActive && opt.id === "hosted" && credLow;
-        return (
-          <button
-            key={opt.id} type="button"
-            onClick={() => onChange(opt.id)}
-            style={{
-              flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-              padding: "8px 6px", borderRadius: 6,
-              border: `1px solid ${isActive ? C.accent : C.border}`,
-              background: isActive ? `${C.accent}10` : "transparent",
-              color: isActive ? C.accent : C.textMuted,
-              cursor: "pointer", transition: "all 0.1s",
-            }}
-          >
-            <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: isActive ? 600 : 400 }}>
-              {opt.icon}{opt.label}
-            </span>
-            <span style={{ fontSize: 9, opacity: 0.75, color: isLow ? "#f87171" : "inherit" }}>
-              {opt.sub}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Export mode selector ───────────────────────────────────────────────────
-
-function ExportModeSelector({ lang, value, onChange }: {
-  lang: Lang; value: ExportMode; onChange: (v: ExportMode) => void;
-}) {
-  return (
-    <div style={{ display: "flex", gap: 6 }}>
-      {(["prompt_only", "package"] as ExportMode[]).map(mode => (
-        <button
-          key={mode} type="button" onClick={() => onChange(mode)}
-          style={{
-            flex: 1, padding: "7px 8px", borderRadius: 6,
-            border: `1px solid ${value === mode ? C.accent : C.border}`,
-            background: value === mode ? `${C.accent}10` : "transparent",
-            color: value === mode ? C.accent : C.textMuted,
-            fontSize: 11, fontWeight: value === mode ? 600 : 400,
-            cursor: "pointer", transition: "all 0.1s",
-          }}
-        >
-          {mode === "prompt_only"
-            ? tl(lang, "仅提示词", "Prompt only")
-            : tl(lang, "完整项目包", "Package")}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ── Section label ──────────────────────────────────────────────────────────
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      fontSize: 10, fontWeight: 700, color: FIGMA_COLORS.textMuted,
-      textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8,
-    }}>
-      {children}
-    </div>
-  );
-}
-
-function Divider() {
-  return <div style={{ height: 1, background: FIGMA_COLORS.border, margin: "0 -14px" }} />;
-}
-
-// ── Main ───────────────────────────────────────────────────────────────────
 
 type Props = {
   lang: Lang;
@@ -322,134 +113,249 @@ type Props = {
   byoCredentials?: ApiCredentialState | null;
   comfyStatus?: LocalProviderStatus;
   drawStatus?: LocalProviderStatus;
-  creditCost?: number;
-  userCredits?: number;
-  // Legacy props — kept for backward compat, not rendered here
   onCopy?: () => void;
   onExport?: () => void;
   onGenerate?: () => void;
   generateBusy?: boolean;
+  onGenerateSettingsChange?: (settings: GenerateSettings) => void;
 };
 
 export function ExportControlPanel({
-  lang, project, scene,
-  platformId, onPlatformChange,
-  exportMode, onExportModeChange,
-  generationSource, onGenerationSourceChange,
+  lang,
+  project,
+  scene,
+  platformId: _platformId,
+  onPlatformChange,
+  exportMode,
+  onExportModeChange,
+  generationSource,
+  onGenerationSourceChange,
   canUseByo,
   byoCredentials = null,
-  comfyStatus  = { provider: "comfyui",    state: "idle" },
-  drawStatus   = { provider: "drawthings", state: "idle" },
-  creditCost   = 3,
-  userCredits  = 0,
+  comfyStatus = { provider: "comfyui", state: "idle" },
+  drawStatus = { provider: "drawthings", state: "idle" },
+  onCopy,
+  onExport,
+  onGenerate,
+  generateBusy = false,
+  onGenerateSettingsChange,
 }: Props) {
-  const mediaMode = resolveSceneConfig(scene).mediaMode;
-  const comfyReady = comfyStatus.state === "ready";
-  const drawReady  = drawStatus.state  === "ready";
-  const preset = getPlatformPreset(platformId);
+  void _platformId;
+  void exportMode;
+  void onExportModeChange;
+  void onCopy;
+  void onExport;
+  void onGenerate;
+  void generateBusy;
 
-  const prompt = useMemo(() => {
+  const mediaMode = resolveSceneConfig(scene).mediaMode;
+  const falConnected = Boolean(canUseByo && byoCredentials?.fal?.enabled && byoCredentials?.fal?.apiKey?.trim());
+  const comfyReady = comfyStatus.state === "ready";
+  const drawReady = drawStatus.state === "ready";
+
+  const [executionMode, setExecutionMode] = useState<ExecutionMode>(() => {
+    if (generationSource === "local_comfy") return "comfyui";
+    if (generationSource === "local_draw") return "drawthings";
+    return "api";
+  });
+  const [exportProfile, setExportProfile] = useState<ExportProfile>("universal");
+  const [count, setCount] = useState(1);
+  const [resultMode, setResultMode] = useState<ResultMode>("new");
+  const [referenceMode, setReferenceMode] = useState<ReferenceMode>("auto");
+
+  useEffect(() => {
+    if (executionMode === "api") onGenerationSourceChange("api");
+    if (executionMode === "comfyui") onGenerationSourceChange("local_comfy");
+    if (executionMode === "drawthings") onGenerationSourceChange("local_draw");
+  }, [executionMode, onGenerationSourceChange]);
+
+  function mapExportProfileToPlatform(id: ExportProfile): PlatformPresetId {
+    if (id === "reference") return "keling";
+    if (id === "video_first") return "runway";
+    if (id === "image_first") return "fal";
+    return "universal";
+  }
+
+  useEffect(() => {
+    onPlatformChange(mapExportProfileToPlatform(exportProfile));
+  }, [exportProfile, onPlatformChange]);
+
+  const previewPrompt = useMemo(() => {
     if (!project) return "";
     try {
-      const result = buildPromptForScene({
-        project, scene, lang, platformId,
-        profile: preset?.baseProfile, workspace: "pro",
-      });
-      return result.finalCopyPrompt?.trim() ?? "";
-    } catch { return ""; }
-  }, [project, scene, lang, platformId, preset?.baseProfile]);
+      return (
+        buildPromptForScene({
+          project,
+          scene,
+          lang,
+          platformId: mapExportProfileToPlatform(exportProfile),
+          profile: undefined,
+          workspace: "pro",
+        }).finalCopyPrompt?.trim() ?? ""
+      );
+    } catch {
+      return "";
+    }
+  }, [project, scene, lang, exportProfile]);
+
+  const settings = useMemo<GenerateSettings>(() => {
+    if (executionMode === "api") {
+      const canGenerate = canUseByo && falConnected;
+      return {
+        executionMode,
+        exportProfile,
+        count,
+        resultMode,
+        referenceMode,
+        canGenerate,
+        generateLabel: tl(lang, "使用我的 API 执行", "Run with My API"),
+        statusHint: canGenerate
+          ? tl(lang, "已连接 Fal", "Fal is connected")
+          : canUseByo
+            ? tl(lang, "请先在账户中心连接 API", "Connect your API first in Account")
+            : tl(lang, "此功能需要 Pro", "This feature requires Pro"),
+      };
+    }
+
+    if (executionMode === "comfyui") {
+      const canGenerate = canUseByo && comfyReady;
+      return {
+        executionMode,
+        exportProfile,
+        count,
+        resultMode,
+        referenceMode,
+        canGenerate,
+        generateLabel: tl(lang, "使用 ComfyUI 执行", "Run with ComfyUI"),
+        statusHint: canGenerate
+          ? tl(lang, "本地 ComfyUI 已就绪", "Local ComfyUI is ready")
+          : canUseByo
+            ? tl(lang, "请先在账户中心连接 ComfyUI", "Connect ComfyUI first in Account")
+            : tl(lang, "此功能需要 Pro", "This feature requires Pro"),
+      };
+    }
+
+    const canGenerate = canUseByo && drawReady && mediaMode === "image";
+    return {
+      executionMode,
+      exportProfile,
+      count,
+      resultMode,
+      referenceMode,
+      canGenerate,
+      generateLabel: tl(lang, "使用 Draw Things 执行", "Run with Draw Things"),
+      statusHint: mediaMode !== "image"
+        ? tl(lang, "Draw Things 当前仅支持图片", "Draw Things currently supports image only")
+        : canGenerate
+          ? tl(lang, "本地 Draw Things 已就绪", "Local Draw Things is ready")
+          : canUseByo
+            ? tl(lang, "请先在账户中心连接 Draw Things", "Connect Draw Things first in Account")
+            : tl(lang, "此功能需要 Pro", "This feature requires Pro"),
+    };
+  }, [executionMode, exportProfile, count, resultMode, referenceMode, falConnected, comfyReady, drawReady, mediaMode, lang, canUseByo]);
+
+  useEffect(() => {
+    onGenerateSettingsChange?.(settings);
+  }, [settings, onGenerateSettingsChange]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-
-      {/* Step header */}
       <div style={{ padding: "12px 14px 10px" }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: C.accent, marginBottom: 3 }}>
-          {tl(lang, "步骤 10 · 输出", "Step 10 · Output")}
-        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.accent, marginBottom: 3 }}>{tl(lang, "自有API生成", "BYO API Generate")}</div>
         <div style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.5 }}>
-          {tl(lang, "选择目标平台、生成方式，点底部「生成」执行", "Set target platform and generation source, then tap Generate below")}
+          {tl(
+            lang,
+            "这里只管理 Pro 用户的 API 与本地生成方式。",
+            "This panel only manages Pro API and local generation."
+          )}
         </div>
       </div>
 
-      <Divider />
+      {divider()}
 
-      {/* ── 1. Target platform ───────────────────────────── */}
+      <div style={{ padding: "12px 14px 14px", display: "grid", gap: 8 }}>
+        {sectionTitle(tl(lang, "生成方式", "Generation Mode"))}
+        {optionRow({ selected: executionMode === "api", title: tl(lang, "我的 API · Pro", "My API · Pro"), desc: tl(lang, "使用你自己的 API 执行", "Run with your own API"), onClick: () => setExecutionMode("api") })}
+        {optionRow({ selected: executionMode === "comfyui", title: "ComfyUI · Pro", desc: tl(lang, "连接本地 ComfyUI 执行", "Run through local ComfyUI"), onClick: () => setExecutionMode("comfyui") })}
+        {optionRow({ selected: executionMode === "drawthings", title: "Draw Things · Pro", desc: tl(lang, "连接本地 Draw Things 执行", "Run through local Draw Things"), onClick: () => setExecutionMode("drawthings") })}
+      </div>
+
+      {divider()}
+
       <div style={{ padding: "12px 14px 14px" }}>
-        <SectionLabel>{tl(lang, "目标平台", "Target Platform")}</SectionLabel>
-        <PlatformSelector lang={lang} value={platformId} onChange={onPlatformChange} />
-        {!preset.nativeStrategy && (
-          <div style={{ marginTop: 6, fontSize: 10, color: C.textMuted, lineHeight: 1.4 }}>
-            {tl(lang,
-              `适配自通用格式 → ${preset.labelZh}`,
-              `Adapted from universal → ${preset.labelEn}`
-            )}
+        {sectionTitle(tl(lang, "当前生成摘要", "Generation Summary"))}
+        <div style={{ display: "grid", gridTemplateColumns: "94px 1fr", rowGap: 6, columnGap: 8, fontSize: 11 }}>
+          <div style={{ color: C.textMuted }}>{tl(lang, "生成方式", "Mode")}</div>
+          <div style={{ color: C.text }}>
+            {executionMode === "api"
+              ? tl(lang, "我的 API", "My API")
+              : executionMode === "comfyui"
+                ? "ComfyUI"
+                : "Draw Things"}
           </div>
-        )}
-      </div>
-
-      <Divider />
-
-      {/* ── 2. Generation source ─────────────────────────── */}
-      <div style={{ padding: "12px 14px 14px" }}>
-        <SectionLabel>{tl(lang, "生成方式", "Generation")}</SectionLabel>
-        <GenSourceSelector
-          lang={lang} source={generationSource} onChange={onGenerationSourceChange}
-          canUseByo={canUseByo} byoCredentials={byoCredentials}
-          comfyReady={comfyReady} drawReady={drawReady}
-          mediaMode={mediaMode} creditCost={creditCost} userCredits={userCredits}
-        />
-        {/* Hint per source */}
-        {generationSource === "byo" && (
-          <div style={{ marginTop: 6, fontSize: 10, color: C.textMuted }}>
-            {tl(lang, "使用你自己的 API Key，不消耗 Credits", "Uses your API key — no credits deducted")}
+          <div style={{ color: C.textMuted }}>{tl(lang, "连接状态", "Connection")}</div>
+          <div style={{ color: C.text }}>
+            {executionMode === "api"
+              ? (falConnected ? tl(lang, "已连接", "Connected") : tl(lang, "未连接", "Not connected"))
+              : executionMode === "comfyui"
+                ? (comfyReady ? tl(lang, "已连接", "Connected") : tl(lang, "未连接", "Not connected"))
+                : executionMode === "drawthings"
+                  ? (drawReady ? tl(lang, "已连接", "Connected") : tl(lang, "未连接", "Not connected"))
+                  : "-"}
           </div>
-        )}
-        {(generationSource === "local_comfy" || generationSource === "local_draw") && (
-          <div style={{ marginTop: 6, fontSize: 10, color: C.textMuted }}>
-            {tl(lang, "本地运行，完全免费", "Runs locally — completely free")}
-          </div>
-        )}
-      </div>
-
-      <Divider />
-
-      {/* ── 3. Export mode ───────────────────────────────── */}
-      <div style={{ padding: "12px 14px 14px" }}>
-        <SectionLabel>{tl(lang, "导出内容", "Export Mode")}</SectionLabel>
-        <ExportModeSelector lang={lang} value={exportMode} onChange={onExportModeChange} />
-        <div style={{ marginTop: 6, fontSize: 10, color: C.textMuted }}>
-          {exportMode === "prompt_only"
-            ? tl(lang, "导出提示词 .txt 文件", "Exports prompt as .txt file")
-            : tl(lang, "导出提示词 + 参考图 + 项目 .json", "Exports prompt + refs + project .json")}
+          <div style={{ color: C.textMuted }}>{tl(lang, "参考图", "Reference")}</div>
+          <div style={{ color: C.text }}>{referenceMode === "prefer" ? tl(lang, "优先参考图", "Prefer reference") : referenceMode === "ignore" ? tl(lang, "忽略参考图", "Ignore reference") : tl(lang, "自动", "Auto")}</div>
         </div>
       </div>
 
-      <Divider />
+      {divider()}
 
-      {/* ── 4. Prompt preview ────────────────────────────── */}
-      {prompt ? (
-        <div style={{ padding: "12px 14px" }}>
-          <SectionLabel>{tl(lang, "提示词预览", "Prompt Preview")}</SectionLabel>
-          <div style={{
-            fontSize: 10, color: C.textMuted, lineHeight: 1.6,
-            maxHeight: 110, overflowY: "auto",
-            padding: "8px 10px",
-            background: C.bg, border: `1px solid ${C.border}`,
-            borderRadius: 5, fontFamily: "monospace",
-            scrollbarWidth: "thin", scrollbarColor: `${C.border} transparent`,
-          }}>
-            {prompt}
+      <details style={{ padding: "12px 14px 14px" }}>
+        <summary style={{ cursor: "pointer", fontSize: 11, fontWeight: 600, color: C.text }}>
+          {tl(lang, "生成选项", "Generation Options")}
+        </summary>
+        <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+          <div style={{ fontSize: 11, color: C.textMuted }}>{tl(lang, "生成数量", "Count")}</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {(mediaMode === "image" ? [1, 2, 4] : [1, 2]).map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setCount(n)}
+                style={{
+                  flex: 1,
+                  height: 30,
+                  borderRadius: 6,
+                  border: `1px solid ${count === n ? C.accent : C.border}`,
+                  background: count === n ? `${C.accent}14` : C.panel,
+                  color: count === n ? C.accent : C.text,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  opacity: 1,
+                }}
+              >
+                {n}
+              </button>
+            ))}
           </div>
-        </div>
-      ) : (
-        <div style={{ padding: "12px 14px" }}>
-          <div style={{ fontSize: 11, color: C.textMuted, fontStyle: "italic" }}>
-            {tl(lang, "填写场景内容后提示词将在此预览", "Fill in scene details to preview the prompt")}
-          </div>
-        </div>
-      )}
 
+          <div style={{ fontSize: 11, color: C.textMuted }}>{tl(lang, "结果方式", "Result Mode")}</div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {optionRow({ selected: resultMode === "new", title: tl(lang, "新建结果版本", "New result version"), desc: tl(lang, "保留当前结果", "Keep current results"), onClick: () => setResultMode("new") })}
+            {optionRow({ selected: resultMode === "overwrite", title: tl(lang, "覆盖当前结果", "Overwrite current"), desc: tl(lang, "替换当前结果", "Replace current result"), onClick: () => setResultMode("overwrite") })}
+          </div>
+
+          <div style={{ fontSize: 11, color: C.textMuted }}>{tl(lang, "参考图处理", "Reference Mode")}</div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {optionRow({ selected: referenceMode === "auto", title: tl(lang, "自动", "Auto"), desc: tl(lang, "自动匹配平台能力", "Auto by platform capability"), onClick: () => setReferenceMode("auto") })}
+            {optionRow({ selected: referenceMode === "prefer", title: tl(lang, "优先参考图", "Prefer reference"), desc: tl(lang, "尽量保持参考一致", "Prioritize reference consistency"), onClick: () => setReferenceMode("prefer") })}
+            {optionRow({ selected: referenceMode === "ignore", title: tl(lang, "忽略参考图", "Ignore reference"), desc: tl(lang, "仅按文本生成", "Generate from text only"), onClick: () => setReferenceMode("ignore") })}
+          </div>
+
+          {!settings.canGenerate && <div style={{ fontSize: 11, color: "#f87171" }}>{settings.statusHint}</div>}
+        </div>
+      </details>
     </div>
   );
 }

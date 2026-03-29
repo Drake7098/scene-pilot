@@ -6,7 +6,7 @@ import { StandalonePageChrome } from "../components/StandalonePageChrome";
 import type { UserSession, UserState } from "../types/account";
 import type { ApiCredentialState } from "../types/account";
 import type { CreditLedgerEntry, SubscriptionState, WalletState } from "../types/billing";
-import { HOSTED_ACTIONS, PRICING_FINAL_CREDIT_PACKS, getBillingSnapshot, launchCheckout, openCustomerPortal, PRO_PLAN } from "../services/billingService";
+import { PRICING_FINAL_CREDIT_PACKS, getBillingSnapshot, launchCheckout, openCustomerPortal, PRO_PLAN } from "../services/billingService";
 import { getCreditLedger, getWalletState } from "../services/creditService";
 import { getCurrentSession, getCurrentUser, logout } from "../services/authService";
 import { recordLegalConsent } from "../services/legalConsentService";
@@ -135,7 +135,6 @@ export default function UserManagementPage() {
     () => PRICING_FINAL_CREDIT_PACKS.filter((item) => item.enabled),
     []
   );
-  const creditCosts = useMemo(() => HOSTED_ACTIONS.filter((item) => item.enabled), []);
   const billingRuntimeEnabled = BILLING_ENABLED && !BILLING_LIVE_BLOCKED;
   const proActive = user?.tier === "pro";
   const authProviderText = session?.provider
@@ -405,14 +404,19 @@ export default function UserManagementPage() {
               <article style={card} data-testid="user-management-usage">
                 <div style={cardTitle}>{t(lang, "用量与规则", "Usage & Rules")}</div>
                 <div style={usageList}>
-                  {creditCosts.map((item) => (
-                    <div key={item.id} style={usageRow}>
-                      <span>{`${item.mediaType} · ${item.qualityTier}`}</span>
-                      <strong>{`${item.creditsCost} credits`}</strong>
+                  {[
+                    [t(lang, "高级模版", "Advanced templates"), t(lang, "按模版显示", "Shown per template")],
+                    [t(lang, "工作流附加能力", "Workflow add-ons"), t(lang, "按功能显示", "Shown per feature")],
+                    [t(lang, "未来站内能力", "Future in-product features"), t(lang, "按功能显示", "Shown per feature")],
+                    [t(lang, "第三方 API / 本地生成", "Third-party API / local generation"), t(lang, "不由平台计费", "Not billed by the platform")],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} style={usageRow}>
+                      <span>{label}</span>
+                      <strong>{value}</strong>
                     </div>
                   ))}
                 </div>
-                <div style={mutedText}>{t(lang, "提示词导出免费；点数用于生成与付费模板。", "Prompt export is free; credits for generation and paid templates.")}</div>
+                <div style={mutedText}>{t(lang, "提示词导出免费；点数用于模板、高级功能和未来站内能力，不用于第三方 API 或本地生成费用。", "Prompt export is free; credits support templates, advanced features, and future in-product capabilities, not third-party API or local generation costs.")}</div>
               </article>
             </section>
 

@@ -1,6 +1,5 @@
 import type { Scene } from "../model";
 import type { SceneTemplate } from "../model/template";
-import { builtinTemplates } from "../data/builtinTemplates";
 
 const STORAGE_KEY = "scenepilot_user_templates_v1";
 
@@ -48,18 +47,13 @@ function regenerateSceneIds(scene: Scene, sceneIdExists: (id: string) => boolean
   };
 }
 
-/** @deprecated 主流程已用 template-engine index。仅历史兼容。 */
-export function listBuiltinTemplates(): SceneTemplate[] {
-  return [...builtinTemplates];
-}
-
 export function listUserTemplates(): SceneTemplate[] {
   return loadUserTemplates();
 }
 
 /** @deprecated 主流程已用 template-engine index。仅历史兼容。 */
 export function getAllTemplates(): SceneTemplate[] {
-  return [...builtinTemplates, ...loadUserTemplates()];
+  return [...loadUserTemplates()];
 }
 
 export function saveUserTemplate(template: SceneTemplate): void {

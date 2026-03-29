@@ -8,12 +8,9 @@ import {
   Users,
   Sun,
   Palette,
-  Settings2,
   LayoutGrid,
   Shield,
-  FileText,
   Download,
-  Globe,
 } from "lucide-react";
 import type { Lang } from "../../../i18n";
 import type { ProWorkspaceSection } from "../types";
@@ -43,15 +40,12 @@ const WORKFLOW_ITEMS: NavItem[] = [
   { id: "objects",     icon: Users,       labelZh: "对象",     labelEn: "Objects",     step: 6 },
   { id: "lighting",    icon: Sun,         labelZh: "灯光",     labelEn: "Lighting",    step: 7 },
   { id: "style",       icon: Palette,     labelZh: "风格",     labelEn: "Style",       step: 8 },
-  { id: "tech",        icon: Settings2,   labelZh: "技术",     labelEn: "Technical",   step: 9 },
 ];
 
 const TOOL_ITEMS: NavItem[] = [
   { id: "composition",    icon: LayoutGrid, labelZh: "构图",     labelEn: "Composition",    dividerBefore: true },
   { id: "constraints",    icon: Shield,     labelZh: "约束",     labelEn: "Constraints" },
-  { id: "prompt_preview", icon: FileText,   labelZh: "提示词",   labelEn: "Prompt" },
-  { id: "export",         icon: Download,   labelZh: "输出",     labelEn: "Export" },
-  { id: "platform",       icon: Globe,      labelZh: "平台",     labelEn: "Platform" },
+  { id: "generate_settings", icon: Download, labelZh: "自有API生成", labelEn: "BYO API Generate" },
 ];
 
 export function ProWorkspaceNav({ lang, section, onSectionChange }: Props) {

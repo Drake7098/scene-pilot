@@ -1,18 +1,58 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle, CheckCircle2, CreditCard, Crown, KeyRound, Cpu, LogOut, Sparkles, UserRound, Wallet, X } from "lucide-react";
-import { ApiProviderPanel } from "./generation/ApiProviderPanel";
-import type { AccountCenterSection, ApiCredentialState, ApiProviderId, ApiProviderMode, ProviderConnectionStatus, UserState } from "../types/account";
+import { CreditCard, Crown, KeyRound, UserRound, Wallet, X } from "lucide-react";
+import type { AccountCenterSection, ApiCredentialState, ApiProviderId, CloudApiProviderId, UserState } from "../types/account";
 import { getProAccessState } from "../utils/entitlement";
 import type { CreditLedgerEntry, CreditPackConfig, ProPlanConfig, SubscriptionState } from "../types/billing";
 import type { Lang } from "../i18n";
 import { LEGAL_DOCS, legalText, type LegalDocId } from "../content/legal";
 import { PUBLIC_CONTACT_CHANNELS, SYSTEM_NOTIFICATION_MAILBOX } from "../config/contactChannels";
+import { loadLocalProviderConfig, saveLocalProviderConfig } from "../utils/localProviderConfig";
+import { acknowledgePolicy, hasPolicyAck, logPolicyAction } from "../services/policyAckService";
 
 
 function t(lang: Lang, zh: string, en: string) {
   return lang === "zh" ? zh : en;
 }
+
+type IntegrationStatus = "connected" | "disconnected" | "pro_required";
+type IntegrationItem = {
+  id: ApiProviderId;
+  label: string;
+  tagsZh: string[];
+  tagsEn: string[];
+  kind: "cloud" | "local";
+  availability?: "active" | "coming_soon";
+};
+
+const CAPABILITY_EXPLAINERS = [
+  { id: "general", titleZh: "通用生成", titleEn: "General Generation", descZh: "一套 API 覆盖大量模型", descEn: "One API covers many models" },
+  { id: "video", titleZh: "视频生成", titleEn: "Video Generation", descZh: "文生视频 / 图生视频", descEn: "Text-to-video and image-to-video" },
+  { id: "image", titleZh: "图像生成", titleEn: "Image Generation", descZh: "高质量图片生成", descEn: "High-quality image generation" },
+  { id: "control", titleZh: "控制类", titleEn: "Control", descZh: "参考图 / 控制图 / 一致性", descEn: "Reference, control, and consistency" },
+  { id: "local", titleZh: "本地", titleEn: "Local", descZh: "本机执行，高自由度", descEn: "Run locally with high flexibility" },
+  { id: "custom", titleZh: "自定义", titleEn: "Custom", descZh: "私有或第三方网关", descEn: "Private or third-party gateways" },
+] as const;
+
+const CLOUD_ITEMS: IntegrationItem[] = [
+  { id: "fal", label: "Fal", tagsZh: ["通用", "图像", "控制"], tagsEn: ["General", "Image", "Control"], kind: "cloud" },
+  { id: "replicate", label: "Replicate", tagsZh: ["通用", "图像", "控制"], tagsEn: ["General", "Image", "Control"], kind: "cloud" },
+  { id: "runway", label: "Runway", tagsZh: ["视频"], tagsEn: ["Video"], kind: "cloud" },
+  { id: "stability", label: "Stability", tagsZh: ["图像"], tagsEn: ["Image"], kind: "cloud" },
+  { id: "luma", label: "Luma", tagsZh: ["视频"], tagsEn: ["Video"], kind: "cloud", availability: "coming_soon" },
+  { id: "pika", label: "Pika", tagsZh: ["视频"], tagsEn: ["Video"], kind: "cloud", availability: "coming_soon" },
+];
+
+const LOCAL_ITEMS: IntegrationItem[] = [
+  { id: "comfyui", label: "ComfyUI", tagsZh: ["本地", "控制"], tagsEn: ["Local", "Control"], kind: "local" },
+  { id: "drawthings", label: "Draw Things", tagsZh: ["本地"], tagsEn: ["Local"], kind: "local" },
+];
+
+const CUSTOM_ITEMS: IntegrationItem[] = [
+  { id: "custom_api", label: "Custom API", tagsZh: ["自定义"], tagsEn: ["Custom"], kind: "cloud" },
+];
+
+const EXECUTABLE_CLOUD_PROVIDERS: CloudApiProviderId[] = ["fal", "runway", "replicate", "stability", "custom_api"];
 
 type Props = {
   open: boolean;
@@ -58,6 +98,8 @@ type Props = {
   onUpgradePro: () => void;
   onOpenCustomerPortal: () => void;
   onSaveApiCredentials: (next: ApiCredentialState) => void;
+  onGoGenerateSettings?: () => void;
+  onGoTemplateStart?: () => void;
 };
 
 export function AccountCenterModal(props: Props) {
@@ -104,12 +146,22 @@ export function AccountCenterModal(props: Props) {
     onPurchasePack,
     onUpgradePro,
     onOpenCustomerPortal,
-    onSaveApiCredentials
+    onSaveApiCredentials,
+    onGoGenerateSettings,
+    onGoTemplateStart
   } = props;
-  const [apiDraft, setApiDraft] = useState<ApiCredentialState>(() => normalizeApiCredentialsForForm(apiCredentials));
   const [activeLegalDoc, setActiveLegalDoc] = useState<LegalDocId | null>(null);
   const [consentShake, setConsentShake] = useState(false);
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
+  const [connectionModalOpen, setConnectionModalOpen] = useState(false);
+  const [editingProviderId, setEditingProviderId] = useState<ApiProviderId | null>(null);
+  const [connectionDraftValue, setConnectionDraftValue] = useState("");
+  const [connectionDraftBaseUrl, setConnectionDraftBaseUrl] = useState("");
+  const [connectionTestedOk, setConnectionTestedOk] = useState(false);
+  const [connectionTesting, setConnectionTesting] = useState(false);
+  const [connectionHint, setConnectionHint] = useState("");
+  const [lastConnectedLabel, setLastConnectedLabel] = useState("");
+  const [integrationRiskChecks, setIntegrationRiskChecks] = useState<[boolean, boolean, boolean]>([false, false, false]);
   const consentRef = useRef<HTMLDivElement | null>(null);
 
   function shakeConsent() {
@@ -128,16 +180,17 @@ export function AccountCenterModal(props: Props) {
   }`;
 
   useEffect(() => {
-    setApiDraft(normalizeApiCredentialsForForm(apiCredentials));
-  }, [apiCredentials, open, section]);
+    if (!creditPacks.length) return;
+    const maxPack = [...creditPacks].sort((a, b) => b.credits - a.credits)[0];
+    if (!selectedPackId) setSelectedPackId(maxPack?.id ?? null);
+  }, [creditPacks, selectedPackId]);
 
   const title = useMemo(() => {
     if (!user) return t(lang, "注册 / 登录", "Sign Up / Sign In");
-    if (section === "credits") return t(lang, "点数与充值", "Credits");
+    if (section === "credits") return t(lang, "Credits", "Credits");
     if (section === "pro") return "Pro";
-    if (section === "api") return t(lang, "API 接入", "API Access");
-    if (section === "local") return t(lang, "本地连接", "Local Connection");
-    return t(lang, "我的账户", "My Account");
+    if (section === "api" || section === "local") return t(lang, "API Keys", "API Keys");
+    return t(lang, "Account", "Account");
   }, [lang, section, user]);
   const authConsentLine1 = t(
     lang,
@@ -161,6 +214,216 @@ export function AccountCenterModal(props: Props) {
   );
   const legalDoc = activeLegalDoc ? LEGAL_DOCS[activeLegalDoc] : null;
   const hasProAccess = getProAccessState(user).hasPro;
+  const localConfig = useMemo(() => loadLocalProviderConfig(), [connectionModalOpen]);
+  const allIntegrationItems = useMemo(() => [...CLOUD_ITEMS, ...LOCAL_ITEMS, ...CUSTOM_ITEMS], []);
+  const editingItem = editingProviderId ? allIntegrationItems.find((item) => item.id === editingProviderId) ?? null : null;
+  const integrationPolicyAccepted = editingItem
+    ? hasPolicyAck(user?.id ?? null, editingItem.kind === "local" ? "local_workflow" : "byo_api")
+    : false;
+
+  function cloudStatus(id: CloudApiProviderId): IntegrationStatus {
+    if (!hasProAccess) return "pro_required";
+    return apiCredentials?.[id]?.enabled ? "connected" : "disconnected";
+  }
+
+  function localStatus(id: "comfyui" | "drawthings"): IntegrationStatus {
+    if (!hasProAccess) return "pro_required";
+    if (id === "comfyui") return localComfyStatus?.state === "ready" ? "connected" : "disconnected";
+    return localDrawStatus?.state === "ready" ? "connected" : "disconnected";
+  }
+
+  function cloudStatusLabel(id: CloudApiProviderId) {
+    if (!hasProAccess) return { code: "pro_required", label: t(lang, "Pro 限定", "Pro Required"), color: "#9ca3af" };
+    const current = apiCredentials?.[id];
+    if (current?.status && current.status !== "connected") {
+      return { code: "error", label: t(lang, "错误", "Error"), color: "#ef4444" };
+    }
+    if (current?.enabled) return { code: "connected", label: t(lang, "已连接", "Connected"), color: "#22c55e" };
+    return { code: "disconnected", label: t(lang, "未连接", "Disconnected"), color: "#9ca3af" };
+  }
+
+  function localStatusLabel(id: "comfyui" | "drawthings") {
+    if (!hasProAccess) return { code: "pro_required", label: t(lang, "Pro 限定", "Pro Required"), color: "#9ca3af" };
+    const state = id === "comfyui" ? localComfyStatus?.state : localDrawStatus?.state;
+    if (state === "error") return { code: "error", label: t(lang, "错误", "Error"), color: "#ef4444" };
+    if (state === "ready") return { code: "connected", label: t(lang, "已连接", "Connected"), color: "#22c55e" };
+    return { code: "disconnected", label: t(lang, "未连接", "Disconnected"), color: "#9ca3af" };
+  }
+
+  function openConnectionModal(item: IntegrationItem) {
+    if (!hasProAccess) {
+      onUpgradePro();
+      return;
+    }
+    setEditingProviderId(item.id);
+    setConnectionTestedOk(false);
+    setConnectionTesting(false);
+    setConnectionHint("");
+    setLastConnectedLabel("");
+    if (item.kind === "local") {
+      setConnectionDraftValue(item.id === "comfyui" ? localConfig.comfyUrl : localConfig.drawUrl);
+      setConnectionDraftBaseUrl("");
+    } else {
+      const current = normalizeApiCredentials(apiCredentials)[item.id];
+      setConnectionDraftValue("");
+      setConnectionDraftBaseUrl(current.baseUrl || "");
+    }
+    const acknowledged = hasPolicyAck(user?.id ?? null, item.kind === "local" ? "local_workflow" : "byo_api");
+    setIntegrationRiskChecks(acknowledged ? [true, true, true] : [false, false, false]);
+    setConnectionModalOpen(true);
+  }
+
+  async function handleTestConnection() {
+    if (!editingItem) return;
+    if (connectionTesting) return;
+    const primaryValue = connectionDraftValue.trim();
+    const baseUrlValue = connectionDraftBaseUrl.trim();
+    setConnectionTesting(true);
+    if (editingItem.kind === "local") {
+      if (!primaryValue) {
+        setConnectionTestedOk(false);
+        setConnectionHint(t(lang, "请输入本地地址", "Enter the local URL"));
+        setConnectionTesting(false);
+        return;
+      }
+      const nextCfg = { ...localConfig };
+      if (editingItem.id === "comfyui") nextCfg.comfyUrl = primaryValue;
+      if (editingItem.id === "drawthings") nextCfg.drawUrl = primaryValue;
+      saveLocalProviderConfig(nextCfg);
+      await onRefreshLocalProviders?.();
+      const connected = editingItem.id === "comfyui" ? localComfyStatus?.state === "ready" : localDrawStatus?.state === "ready";
+      if (connected) {
+        setConnectionTestedOk(true);
+        setConnectionHint(t(lang, "测试成功，可保存", "Connection looks good. You can save now."));
+      } else {
+        setConnectionTestedOk(false);
+        setConnectionHint(t(lang, "当前未检测到服务，请检查地址与本地服务状态", "Service was not detected. Check the URL and local runtime."));
+      }
+      setConnectionTesting(false);
+      return;
+    }
+    const currentConfig = normalizeApiCredentials(apiCredentials)[editingItem.id];
+    if (!primaryValue && currentConfig.enabled) {
+      setConnectionTestedOk(true);
+      setConnectionHint(t(lang, "保留现有 Key，可直接保存", "Keeping the current key. You can save now."));
+      setConnectionTesting(false);
+      return;
+    }
+    if (!primaryValue) {
+      setConnectionTestedOk(false);
+      setConnectionHint(t(lang, "请输入 API Key", "Enter an API key"));
+      setConnectionTesting(false);
+      return;
+    }
+    if (editingItem.id === "custom_api" && !baseUrlValue) {
+      setConnectionTestedOk(false);
+      setConnectionHint(t(lang, "Custom API 还需要 Base URL", "Custom API also needs a base URL"));
+      setConnectionTesting(false);
+      return;
+    }
+    try {
+      if (editingItem.id === "fal") {
+        await testFalConnection(baseUrlValue || currentConfig.baseUrl || "https://queue.fal.run", primaryValue);
+      } else if (editingItem.id === "runway") {
+        await testRunwayConnection(baseUrlValue || currentConfig.baseUrl || "https://api.dev.runwayml.com", primaryValue);
+      } else if (editingItem.id === "replicate") {
+        await testReplicateConnection(baseUrlValue || currentConfig.baseUrl || "https://api.replicate.com", primaryValue);
+      } else if (editingItem.id === "stability") {
+        await testStabilityConnection(baseUrlValue || currentConfig.baseUrl || "https://api.stability.ai", primaryValue);
+      } else if (editingItem.id === "custom_api") {
+        await testCustomApiConnection(baseUrlValue, primaryValue);
+      }
+      setConnectionTestedOk(true);
+      setConnectionHint(t(lang, "测试成功，可保存。", "Connection test passed. You can save now."));
+    } catch (error) {
+      setConnectionTestedOk(false);
+      setConnectionHint(formatConnectionTestError(error, lang));
+    } finally {
+      setConnectionTesting(false);
+    }
+  }
+
+  function handleSaveConnection() {
+    if (!editingItem) return;
+    if (!connectionTestedOk) {
+      setConnectionHint(t(lang, "请先测试连接", "Test the connection first"));
+      return;
+    }
+    if (!integrationPolicyAccepted && integrationRiskChecks.some((item) => !item)) {
+      setConnectionHint(t(lang, "请先确认接入风险提示。", "Please confirm the integration disclosures first."));
+      return;
+    }
+    if (editingItem.kind === "local") {
+      const nextCfg = { ...localConfig };
+      const value = connectionDraftValue.trim();
+      if (editingItem.id === "comfyui") nextCfg.comfyUrl = value;
+      if (editingItem.id === "drawthings") nextCfg.drawUrl = value;
+      saveLocalProviderConfig(nextCfg);
+      void onRefreshLocalProviders?.();
+      if (!integrationPolicyAccepted) {
+        acknowledgePolicy(user?.id ?? null, "local_workflow");
+        logPolicyAction(user?.id ?? null, "enable_local_workflow", "local_workflow");
+      }
+      setLastConnectedLabel(editingItem.label);
+      setConnectionModalOpen(false);
+      return;
+    }
+    const next = normalizeApiCredentials(apiCredentials);
+    const current = next[editingItem.id];
+    const nextDefaultProvider = EXECUTABLE_CLOUD_PROVIDERS.includes(editingItem.id as CloudApiProviderId)
+      ? editingItem.id as CloudApiProviderId
+      : next.defaultProvider;
+    onSaveApiCredentials({
+      ...next,
+      defaultProvider: nextDefaultProvider,
+      [editingItem.id]: {
+        ...current,
+        enabled: true,
+        mode: "personal",
+        apiKey: connectionDraftValue.trim() || current.apiKey,
+        baseUrl: connectionDraftBaseUrl.trim() || current.baseUrl,
+        status: "connected",
+      },
+    });
+    if (!integrationPolicyAccepted) {
+      acknowledgePolicy(user?.id ?? null, "byo_api");
+      logPolicyAction(user?.id ?? null, "save_api_key", "byo_api");
+    }
+    setLastConnectedLabel(editingItem.label);
+    setConnectionModalOpen(false);
+  }
+
+  function handleDeleteConnection(item: IntegrationItem) {
+    if (!hasProAccess) {
+      onUpgradePro();
+      return;
+    }
+    if (item.kind === "local") {
+      const nextCfg = { ...localConfig };
+      if (item.id === "comfyui") nextCfg.comfyUrl = "";
+      if (item.id === "drawthings") nextCfg.drawUrl = "";
+      saveLocalProviderConfig(nextCfg);
+      void onRefreshLocalProviders?.();
+      return;
+    }
+    const next = normalizeApiCredentials(apiCredentials);
+    const executableFallback = EXECUTABLE_CLOUD_PROVIDERS.find((provider) => {
+      if (provider === item.id) return false;
+      const current = next[provider];
+      return Boolean(current?.enabled && current.apiKey.trim());
+    }) ?? "fal";
+    onSaveApiCredentials({
+      ...next,
+      defaultProvider: next.defaultProvider === item.id ? executableFallback : next.defaultProvider,
+      [item.id]: {
+        ...next[item.id],
+        enabled: false,
+        apiKey: "",
+        baseUrl: item.id === "custom_api" ? "" : next[item.id].baseUrl,
+        status: null,
+      },
+    });
+  }
 
   if (!open) return null;
 
@@ -191,16 +454,16 @@ export function AccountCenterModal(props: Props) {
         {user ? (
           <div style={styles.tabs}>
             <button type="button" style={{ ...styles.tab, ...(section === "overview" ? styles.tabOn : null) }} onClick={() => onSectionChange("overview")}>
-              <UserRound size={14} />{t(lang, "账户", "Account")}
+              <UserRound size={14} />{t(lang, "Account", "Account")}
             </button>
             <button type="button" style={{ ...styles.tab, ...(section === "credits" ? styles.tabOn : null) }} onClick={() => onSectionChange("credits")}>
-              <Wallet size={14} />{t(lang, "点数", "Credits")}
+              <Wallet size={14} />{t(lang, "Credits", "Credits")}
             </button>
             <button type="button" style={{ ...styles.tab, ...(section === "pro" ? styles.tabOn : null) }} onClick={() => onSectionChange("pro")}>
               <Crown size={14} />Pro
             </button>
             <button type="button" style={{ ...styles.tab, ...(section === "api" ? styles.tabOn : null) }} onClick={() => onSectionChange("api")}>
-              <KeyRound size={14} />{t(lang, "API 接入", "API")}
+              <KeyRound size={14} />{t(lang, "API Keys", "API Keys")}
             </button>
 
           </div>
@@ -226,7 +489,7 @@ export function AccountCenterModal(props: Props) {
             {/* ── 服务不可用提示 ── */}
             {!googleSignInEnabled ? (
               <div style={styles.authEnvHint} data-testid="account-auth-env-hint">
-                {lang === "zh" ? "登录失败，请重试。" : "Login failed. Please try again."}
+                {lang === "zh" ? "Google 登录未配置。" : "Google sign-in is not configured."}
               </div>
             ) : null}
 
@@ -386,96 +649,27 @@ export function AccountCenterModal(props: Props) {
           <div style={styles.panelStack}>
             {section === "overview" ? (
               <div style={styles.panel}>
-                {/* User info card */}
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 14,
-                  padding: "16px", borderRadius: 6,
-                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                  marginBottom: 16,
-                }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
-                    background: "#f59e0b22", border: "2px solid #f59e0b44",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <UserRound size={20} style={{ color: "#f59e0b" }} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#e5e7eb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {user.email}
+                <div style={styles.sectionHeading}>{t(lang, "账户状态", "Account Status")}</div>
+                <div style={styles.sectionDesc}>{t(lang, "查看当前账户、登录方式和方案。", "Review your account, sign-in method, and plan.")}</div>
+                <div style={{ display: "grid", gap: 0, borderTop: "1px solid #3a3f46", borderBottom: "1px solid #3a3f46" }}>
+                  {[
+                    [t(lang, "用户名", "Username"), user.displayName || user.email.split("@")[0]],
+                    [t(lang, "邮箱", "Email"), user.email],
+                    [t(lang, "当前方案", "Current Plan"), hasProAccess ? "Pro" : "Free"],
+                    [t(lang, "登录方式", "Sign-in"), t(lang, "账户登录", "Account sign-in")],
+                  ].map(([k, v], idx) => (
+                    <div key={String(k)} style={{ display: "grid", gridTemplateColumns: "160px 1fr", padding: "12px 0", borderBottom: idx === 3 ? "none" : "1px solid #3a3f46" }}>
+                      <div style={{ fontSize: 13, color: "#9ca3af" }}>{k}</div>
+                      <div style={{ fontSize: 14, color: "#e5e7eb", textAlign: "right", fontWeight: 600 }}>{v}</div>
                     </div>
-                    <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3, display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{
-                        padding: "1px 7px", borderRadius: 4, fontSize: 10, fontWeight: 700,
-                        background: hasProAccess ? "rgba(245,158,11,0.15)" : "rgba(156,163,175,0.15)",
-                        color: hasProAccess ? "#f59e0b" : "#9ca3af",
-                        border: `1px solid ${hasProAccess ? "rgba(245,158,11,0.3)" : "rgba(156,163,175,0.3)"}`,
-                      }}>
-                        {hasProAccess ? "PRO" : "FREE"}
-                      </span>
-                      <span>{creditsBalance} {t(lang, "积分", "credits")}</span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-
-                {/* Quick actions */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <button type="button" onClick={() => onSectionChange("credits")} style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "11px 14px", borderRadius: 4, cursor: "pointer",
-                    border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "#e5e7eb",
-                    fontSize: 13, textAlign: "left" as const,
-                  }}>
-                    <CreditCard size={15} style={{ color: "#9ca3af", flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 500 }}>{t(lang, "充值积分", "Buy Credits")}</div>
-                      <div style={{ fontSize: 11, color: "#6b7280" }}>{t(lang, "当前余额", "Balance")}: {creditsBalance}</div>
-                    </div>
-                    <span style={{ color: "#6b7280", fontSize: 16 }}>›</span>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, gap: 8 }}>
+                  <button type="button" style={styles.secondaryBtn} onClick={onOpenCustomerPortal}>
+                    <CreditCard size={14} />{t(lang, "管理账单", "Manage Billing")}
                   </button>
-
-                  {!hasProAccess && (
-                    <button type="button" onClick={() => onSectionChange("pro")} style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "11px 14px", borderRadius: 4, cursor: "pointer",
-                      border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.06)", color: "#e5e7eb",
-                      fontSize: 13, textAlign: "left" as const,
-                    }}>
-                      <Crown size={15} style={{ color: "#f59e0b", flexShrink: 0 }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 500, color: "#f59e0b" }}>{t(lang, "升级 Pro", "Upgrade to Pro")}</div>
-                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{t(lang, "解锁 API 接入、本地生成", "Unlock API access & local generation")}</div>
-                      </div>
-                      <span style={{ color: "#f59e0b", fontSize: 16 }}>›</span>
-                    </button>
-                  )}
-
-                  {subscription?.status === "active" && (
-                    <button type="button" onClick={onOpenCustomerPortal} disabled={!billingEnabled || billingBusy} style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "11px 14px", borderRadius: 4, cursor: "pointer",
-                      border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "#e5e7eb",
-                      fontSize: 13, textAlign: "left" as const,
-                    }}>
-                      <CreditCard size={15} style={{ color: "#9ca3af", flexShrink: 0 }} />
-                      <span>{t(lang, "管理订阅", "Manage Subscription")}</span>
-                    </button>
-                  )}
-                </div>
-
-                {billingNotice && (
-                  <div style={{ fontSize: 11, color: "#6b7280", marginTop: 12, lineHeight: 1.5 }}>{billingNotice}</div>
-                )}
-
-                <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                  <button type="button" onClick={onLogout} style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "8px 12px", borderRadius: 6, cursor: "pointer",
-                    border: "none", background: "transparent", color: "#f87171",
-                    fontSize: 12,
-                  }}>
-                    <LogOut size={13} />
-                    {t(lang, "退出登录", "Log Out")}
+                  <button type="button" style={styles.primaryBtn} onClick={onUpgradePro}>
+                    <Crown size={14} />{t(lang, "Upgrade to Pro", "Upgrade to Pro")}
                   </button>
                 </div>
               </div>
@@ -483,262 +677,327 @@ export function AccountCenterModal(props: Props) {
 
             {section === "credits" ? (
               <div style={styles.panel}>
-                {/* Current balance */}
-                <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 16px", borderRadius: 6,
-                  background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)",
-                  marginBottom: 16,
-                }}>
-                  <div>
-                    <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 3 }}>{t(lang, "当前积分", "Current Balance")}</div>
-                    <div style={{ fontSize: 26, fontWeight: 700, color: "#f59e0b" }}>{creditsBalance.toLocaleString()}</div>
-                  </div>
-                  <div style={{ fontSize: 11, color: "#6b7280", textAlign: "right", lineHeight: 1.6 }}>
-                    <div>{t(lang, "图片生成 3 积分", "Image gen 3 credits")}</div>
-                    <div>{t(lang, "视频生成 5 积分", "Video gen 5 credits")}</div>
-                    <div>{t(lang, "提示词导出免费", "Prompt export free")}</div>
-                  </div>
+                <div style={styles.sectionHeading}>{t(lang, "Credits 余额", "Credits Balance")}</div>
+                <div style={styles.sectionDesc}>
+                  {t(lang, "Credits 用于模板、高级功能和未来站内能力；这里不再承接官方生成。", "Credits stay available for templates, advanced features, and future in-product capabilities. They no longer represent hosted generation.")}
                 </div>
-
-                {/* Credit packs */}
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#e5e7eb", marginBottom: 10 }}>
-                  {t(lang, "购买积分", "Buy Credits")}
+                <div style={{ marginBottom: 10, fontSize: 13, color: "#9ca3af" }}>{t(lang, "Credits Balance", "Credits Balance")}</div>
+                <div style={{ fontSize: 34, fontWeight: 760, color: "#e5e7eb", marginBottom: 16, lineHeight: 1 }}>{creditsBalance.toLocaleString()}</div>
+                <div style={{ borderTop: "1px solid #3a3f46", borderBottom: "1px solid #3a3f46" }}>
+                  {[
+                    { id: "pack_3", credits: 150, usdPrice: 3 },
+                    { id: "pack_8", credits: 420, usdPrice: 8 },
+                    { id: "pack_15", credits: 800, usdPrice: 15 },
+                  ].map((pack, idx) => (
+                    <label key={pack.id} style={{ display: "grid", gridTemplateColumns: "22px 1fr auto", alignItems: "center", gap: 10, padding: "12px 0", borderBottom: idx === 2 ? "none" : "1px solid #3a3f46", cursor: "pointer" }}>
+                      <input
+                        type="radio"
+                        name="credit_pack"
+                        checked={selectedPackId === pack.id}
+                        onChange={() => setSelectedPackId(pack.id)}
+                        style={{ accentColor: "#f59e0b" }}
+                      />
+                      <span style={{ fontSize: 14, color: "#e5e7eb" }}>{pack.credits} Credits</span>
+                      <span style={{ fontSize: 14, color: "#e5e7eb", fontWeight: 700 }}>${pack.usdPrice}</span>
+                    </label>
+                  ))}
                 </div>
-                <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-                  {creditPacks.map((pack) => {
-                    const perCredit = (pack.usdPrice / pack.credits * 100).toFixed(1);
-                    const isBest = pack.id === "pack_15";
-                    return (
-                      <button
-                        key={pack.id}
-                        type="button"
-                        onClick={() => setSelectedPackId(pack.id === selectedPackId ? null : pack.id)}
-                        disabled={!billingEnabled || billingBusy || !billingLegalAccepted}
-                        data-testid={`account-credit-pack-${pack.id}`}
-                        style={{
-                          flex: 1, padding: "14px 10px", borderRadius: 6, cursor: "pointer",
-                          border: selectedPackId === pack.id ? "2px solid #f59e0b" : isBest ? "1px solid rgba(245,158,11,0.3)" : "1px solid #3a3f46",
-                          background: selectedPackId === pack.id ? "rgba(245,158,11,0.1)" : isBest ? "rgba(245,158,11,0.03)" : "#24262b",
-                          color: "#e5e7eb", textAlign: "center", position: "relative",
-                          transition: "border-color 0.1s",
-                          opacity: (!billingEnabled || billingBusy) ? 0.5 : 1,
-                        }}
-                      >
-                        {isBest && (
-                          <div style={{
-                            position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)",
-                            background: "#f59e0b", color: "#111", fontSize: 9, fontWeight: 700,
-                            padding: "2px 8px", borderRadius: 6,
-                          }}>{t(lang, "最划算", "Best Value")}</div>
-                        )}
-                        <div style={{ fontSize: 20, fontWeight: 700, color: "#f59e0b", marginBottom: 2 }}>
-                          {pack.credits}
-                        </div>
-                        <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>
-                          {t(lang, "积分", "credits")}
-                        </div>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: "#e5e7eb" }}>
-                          ${pack.usdPrice}
-                        </div>
-                        <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
-                          ≈ ¢{perCredit} / credit
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Confirm button */}
-                {selectedPackId && (
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
                   <button
                     type="button"
-                    disabled={!billingEnabled || billingBusy}
-                    onClick={() => {
-                      if (!billingLegalAccepted) {
-                        setConsentShake(true);
-                        setTimeout(() => setConsentShake(false), 700);
-                        consentRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                        return;
-                      }
-                      onPurchasePack(selectedPackId);
-                    }}
-                    style={{
-                      width: "100%", padding: "11px 0", borderRadius: 4,
-                      border: "none",
-                      background: billingLegalAccepted ? "#f59e0b" : "#3a3f46",
-                      color: billingLegalAccepted ? "#111" : "#9ca3af",
-                      fontSize: 13, fontWeight: 700,
-                      cursor: (!billingEnabled || billingBusy) ? "not-allowed" : "pointer",
-                      marginBottom: 8,
-                    }}
+                    style={styles.primaryBtn}
+                    disabled={!billingEnabled || billingBusy || !selectedPackId}
+                    onClick={() => selectedPackId && onPurchasePack(selectedPackId)}
                   >
-                    {billingBusy ? t(lang, "处理中…", "Processing…") : (() => {
-                      const p = creditPacks.find(pk => pk.id === selectedPackId);
-                      return p ? t(lang, `购买 ${p.credits} 积分 — $${p.usdPrice}`, `Buy ${p.credits} credits — $${p.usdPrice}`) : t(lang, "确认购买", "Confirm");
-                    })()}
+                    <CreditCard size={14} />
+                    {t(lang, "Buy Credits", "Buy Credits")}
                   </button>
-                )}
-
-                {/* Legal consent — compact */}
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 12 }}>
-                  <input
-                    type="checkbox"
-                    checked={billingLegalAccepted}
-                    onChange={(e) => onBillingLegalAcceptedChange(e.target.checked)}
-                    style={{ marginTop: 2, accentColor: "#f59e0b", flexShrink: 0 }}
-                    data-testid="account-billing-legal-consent"
-                  />
-                  <span style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
-                    {t(lang, "我已阅读并同意", "I agree to the")}{" "}
-                    <button type="button" style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline" }}
-                      onClick={() => setActiveLegalDoc("billing")}>{t(lang, "付款条款", "Billing Terms")}</button>
-                    {" "}{t(lang, "和", "and")}{" "}
-                    <button type="button" style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline" }}
-                      onClick={() => setActiveLegalDoc("refund")}>{t(lang, "退款政策", "Refund Policy")}</button>
-                  </span>
                 </div>
-
-                {/* Recent ledger — collapsed */}
-                {ledger.length > 0 && (
-                  <details style={{ cursor: "pointer" }}>
-                    <summary style={{ fontSize: 11, color: "#6b7280", userSelect: "none", listStyle: "none", display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
-                      <span style={{ fontSize: 10 }}>▸</span>
-                      {t(lang, "最近流水", "Recent transactions")}
-                    </summary>
-                    <div style={styles.ledgerList}>
-                      {ledger.slice(0, 6).map((item) => (
-                        <div key={item.id} style={styles.ledgerRow}>
-                          <span>{ledgerLabel(lang, item.kind)}</span>
-                          <span style={{ color: item.credits > 0 ? "#22c55e" : "#f87171" }}>
-                            {item.credits > 0 ? `+${item.credits}` : item.credits}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
               </div>
             ) : null}
 
             {section === "pro" ? (
               <div style={styles.panel}>
-                {user.tier === "pro" ? (
-                  /* Already Pro */
-                  <div>
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "14px 16px", borderRadius: 6,
-                      background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)",
-                      marginBottom: 16,
-                    }}>
-                      <Crown size={22} style={{ color: "#f59e0b", flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#f59e0b" }}>{t(lang, "Pro 已激活", "Pro Active")}</div>
-                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
-                          {t(lang, `每月 ${proPlan?.monthlyCredits ?? 700} 积分 · API 接入 · 本地连接`, `${proPlan?.monthlyCredits ?? 700} credits/mo · API access · Local`)}
-                        </div>
-                      </div>
+                <div style={styles.sectionHeading}>Pro Plan</div>
+                <div style={styles.sectionDesc}>
+                  {t(lang, "Pro 面向高频创作和专业交付，重点解锁 API、本地执行和更完整模板能力。", "Pro is built for professional workflows with API access, local execution, and richer templates.")}
+                </div>
+                <div style={{ borderTop: "1px solid #3a3f46", borderBottom: "1px solid #3a3f46" }}>
+                  {[
+                    t(lang, "使用自己的 API", "Use your own API"),
+                    t(lang, "本地生成（ComfyUI / Draw Things）", "Local generation (ComfyUI / Draw Things)"),
+                    t(lang, "高级模板", "Advanced templates"),
+                    t(lang, "更完整的创作能力", "Full creation workflow"),
+                  ].map((item, idx) => (
+                    <div key={item} style={{ padding: "12px 0", borderBottom: idx === 3 ? "none" : "1px solid #3a3f46", fontSize: 14, color: "#e5e7eb" }}>
+                      {`✔ ${item}`}
                     </div>
-                    {subscription?.status === "active" && (
-                      <button type="button" style={styles.secondaryBtn} onClick={onOpenCustomerPortal}
-                        disabled={!billingEnabled || billingBusy}>
-                        {t(lang, "管理订阅", "Manage Subscription")}
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  /* Upgrade to Pro */
-                  <div>
-                    {/* Hero card */}
-                    <div style={{
-                      padding: "16px 0", marginBottom: 16,
-                      borderBottom: "1px solid rgba(255,255,255,0.08)",
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                        <Crown size={20} style={{ color: "#f59e0b" }} />
-                        <div style={{ fontSize: 18, fontWeight: 700, color: "#f59e0b" }}>Pro</div>
-                        <div style={{ fontSize: 14, color: "#e5e7eb", fontWeight: 400 }}>
-                          ${proPlan?.monthlyUsdPrice ?? 12}{t(lang, " / 月", "/mo")}
-                        </div>
-                      </div>
-                      {/* Benefits list */}
-                      {[
-                        [t(lang, "每月积分补充", "Monthly credit refill"), t(lang, "每月随套餐配额", "Included with plan")],
-                        [t(lang, "接入自己的 API Key", "Bring your own API key"), t(lang, "fal / Runway — 不消耗积分", "fal / Runway — no credits used")],
-                        [t(lang, "本地生成", "Local generation"), t(lang, "ComfyUI / Draw Things 接入", "ComfyUI / Draw Things")],
-                        [t(lang, "专业模版全解锁", "All pro templates"), t(lang, "商业大片级别模版", "Commercial-grade templates")],
-                      ].map(([title, sub], i) => (
-                        <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8 }}>
-                          <span style={{ color: "#f59e0b", fontSize: 14, marginTop: 1 }}>✓</span>
-                          <div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: "#e5e7eb" }}>{title}</div>
-                            <div style={{ fontSize: 11, color: "#9ca3af" }}>{sub}</div>
-                          </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: 12, fontSize: 13, color: "#9ca3af" }}>{t(lang, "每月赠送 280 Credits", "Includes 280 Credits monthly")}</div>
+                <div style={{ marginTop: 4, fontSize: 22, fontWeight: 700, color: "#e5e7eb" }}>$12 / {t(lang, "月", "month")}</div>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+                  <button type="button" style={styles.primaryBtn} onClick={onUpgradePro}>
+                    <Crown size={14} />{t(lang, "升级到 Pro", "Upgrade to Pro")}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {section === "api" || section === "local" ? (
+              <div style={styles.panel}>
+                <div style={styles.sectionHeading}>{t(lang, "接入管理", "Integration Management")}</div>
+                <div style={styles.sectionDesc}>
+                  {t(lang, "按能力管理 API 与本地引擎连接。所有接入能力都属于 Pro；工作台只会暴露已真正接通的执行项。", "Manage APIs and local engines by capability. All integrations are Pro features, and the workspace only exposes execution paths that are actually wired up.")}
+                </div>
+                <div style={styles.apiPageStack}>
+                  <div style={styles.apiSectionBlock}>
+                    <div style={styles.integrationGroupTitle}>{t(lang, "能力说明", "Capability Guide")}</div>
+                    <div style={styles.capabilityGrid}>
+                      {CAPABILITY_EXPLAINERS.map((item, idx) => (
+                        <div key={item.id} style={{ ...styles.capabilityItem, ...(idx > 1 ? styles.capabilityItemCollapsed : null) }}>
+                          <div style={styles.capabilityTitle}>{lang === "zh" ? item.titleZh : item.titleEn}</div>
+                          <div style={styles.capabilityDesc}>{lang === "zh" ? item.descZh : item.descEn}</div>
                         </div>
                       ))}
                     </div>
-
-                    {/* Legal consent */}
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 14 }}>
-                      <input type="checkbox" checked={billingLegalAccepted}
-                        onChange={(e) => onBillingLegalAcceptedChange(e.target.checked)}
-                        style={{ marginTop: 2, accentColor: "#f59e0b", flexShrink: 0 }}
-                        data-testid="account-pro-legal-consent"
-                      />
-                      <span style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
-                        {t(lang, "我已阅读并同意", "I agree to the")}{" "}
-                        <button type="button" style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline" }}
-                          onClick={() => setActiveLegalDoc("billing")}>{t(lang, "付款条款", "Billing Terms")}</button>
-                        {" "}{t(lang, "和", "and")}{" "}
-                        <button type="button" style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline" }}
-                          onClick={() => setActiveLegalDoc("refund")}>{t(lang, "退款政策", "Refund Policy")}</button>
-                      </span>
-                    </div>
-
-                    <button type="button" style={{
-                        ...styles.primaryBtn,
-                        background: billingLegalAccepted ? "#f59e0b" : "#3a3f46",
-                        color: billingLegalAccepted ? "#111" : "#9ca3af",
-                        cursor: (!billingEnabled || billingBusy || !proPlan || !billingLegalAccepted) ? "not-allowed" : "pointer",
-                      }} onClick={() => {
-                        if (!billingLegalAccepted) {
-                          setConsentShake(true);
-                          setTimeout(() => setConsentShake(false), 700);
-                          return;
-                        }
-                        onUpgradePro();
-                      }}
-                      disabled={!billingEnabled || billingBusy || !proPlan}
-                      data-testid="account-pro-upgrade">
-                      <Crown size={14} />{t(lang, "开通 Pro", "Start Pro")} — ${proPlan?.monthlyUsdPrice ?? 12}{t(lang, "/月", "/mo")}
-                    </button>
-                    {!billingLegalAccepted && (
-                      <div style={{ fontSize: 11, color: "#f87171", marginTop: 6 }}>
-                        {t(lang, "请先勾选同意服务条款", "Please agree to the terms first")}
-                      </div>
-                    )}
                   </div>
-                )}
+
+                  <div style={styles.apiSectionBlock}>
+                    <div style={styles.integrationGroupTitle}>Cloud API</div>
+                    <div style={styles.integrationList}>
+                      {CLOUD_ITEMS.map((item, idx) => {
+                        const status = cloudStatusLabel(item.id as CloudApiProviderId);
+                        const hasConnection = status.code === "connected";
+                        const isComingSoon = item.availability === "coming_soon";
+                        return (
+                          <div key={item.id} style={{ ...styles.providerRow, ...(idx === CLOUD_ITEMS.length - 1 ? styles.providerRowLast : null) }}>
+                            <div style={styles.providerInfo}>
+                              <div style={styles.providerNameRow}>
+                                <span style={styles.providerName}>{item.label}</span>
+                                {isComingSoon ? <span style={styles.comingSoonTag}>{t(lang, "即将支持", "Coming soon")}</span> : null}
+                              </div>
+                              <div style={styles.providerTagRow}>
+                                {(lang === "zh" ? item.tagsZh : item.tagsEn).map((tag) => (
+                                  <span key={tag} style={styles.providerTag}>{tag}</span>
+                                ))}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 12, color: status.color, fontWeight: 600 }}>{status.label}</div>
+                            <div style={styles.providerActions}>
+                              <button type="button" style={{ ...styles.secondaryBtn, minWidth: 82, justifyContent: "center" }} onClick={() => openConnectionModal(item)}>
+                                {!hasProAccess ? t(lang, "升级 Pro", "Upgrade Pro") : hasConnection ? t(lang, "编辑", "Edit") : t(lang, "连接", "Connect")}
+                              </button>
+                              {hasProAccess && hasConnection ? (
+                                <button type="button" style={{ ...styles.secondaryBtn, minWidth: 82, justifyContent: "center" }} onClick={() => handleDeleteConnection(item)}>
+                                  {t(lang, "删除", "Delete")}
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={styles.apiSectionBlock}>
+                    <div style={styles.integrationGroupTitle}>Local</div>
+                    <div style={styles.integrationList}>
+                      {LOCAL_ITEMS.map((item, idx) => {
+                        const status = localStatusLabel(item.id as "comfyui" | "drawthings");
+                        const hasConnection = status.code === "connected";
+                        return (
+                          <div key={item.id} style={{ ...styles.providerRow, ...(idx === LOCAL_ITEMS.length - 1 ? styles.providerRowLast : null) }}>
+                            <div style={styles.providerInfo}>
+                              <div style={styles.providerName}>{item.label}</div>
+                              <div style={styles.providerTagRow}>
+                                {(lang === "zh" ? item.tagsZh : item.tagsEn).map((tag) => (
+                                  <span key={tag} style={styles.providerTag}>{tag}</span>
+                                ))}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 12, color: status.color, fontWeight: 600 }}>{status.label}</div>
+                            <div style={styles.providerActions}>
+                              <button type="button" style={{ ...styles.secondaryBtn, minWidth: 82, justifyContent: "center" }} onClick={() => openConnectionModal(item)}>
+                                {!hasProAccess ? t(lang, "升级 Pro", "Upgrade Pro") : hasConnection ? t(lang, "编辑", "Edit") : t(lang, "连接", "Connect")}
+                              </button>
+                              {hasProAccess && hasConnection ? (
+                                <button type="button" style={{ ...styles.secondaryBtn, minWidth: 82, justifyContent: "center" }} onClick={() => handleDeleteConnection(item)}>
+                                  {t(lang, "删除", "Delete")}
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={styles.apiSectionBlock}>
+                    <div style={styles.integrationGroupTitle}>Custom API</div>
+                    <div style={styles.integrationList}>
+                      {CUSTOM_ITEMS.map((item) => {
+                        const status = cloudStatusLabel(item.id as CloudApiProviderId);
+                        const hasConnection = status.code === "connected";
+                        const isComingSoon = item.availability === "coming_soon";
+                        return (
+                          <div key={item.id} style={{ ...styles.providerRow, ...styles.providerRowLast }}>
+                            <div style={styles.providerInfo}>
+                              <div style={styles.providerNameRow}>
+                                <span style={styles.providerName}>{item.label}</span>
+                                {isComingSoon ? <span style={styles.comingSoonTag}>{t(lang, "即将支持", "Coming soon")}</span> : null}
+                              </div>
+                              <div style={styles.providerTagRow}>
+                                {(lang === "zh" ? item.tagsZh : item.tagsEn).map((tag) => (
+                                  <span key={tag} style={styles.providerTag}>{tag}</span>
+                                ))}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 12, color: status.color, fontWeight: 600 }}>{status.label}</div>
+                            <div style={styles.providerActions}>
+                              <button type="button" style={{ ...styles.secondaryBtn, minWidth: 82, justifyContent: "center" }} onClick={() => openConnectionModal(item)}>
+                                {!hasProAccess ? t(lang, "升级 Pro", "Upgrade Pro") : hasConnection ? t(lang, "编辑", "Edit") : t(lang, "连接", "Connect")}
+                              </button>
+                              {hasProAccess && hasConnection ? (
+                                <button type="button" style={{ ...styles.secondaryBtn, minWidth: 82, justifyContent: "center" }} onClick={() => handleDeleteConnection(item)}>
+                                  {t(lang, "删除", "Delete")}
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {lastConnectedLabel ? (
+                    <div style={styles.connectionSuccessBanner}>
+                      <div style={{ display: "grid", gap: 4 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "#e5e7eb" }}>
+                          {t(lang, `${lastConnectedLabel} 已连接`, `${lastConnectedLabel} connected`)}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#9ca3af" }}>
+                          {t(lang, "下一步可以去自有API生成面板选择方式，或回到模板开始创作。", "Next, go to the BYO API generate panel or jump back to templates to start creating.")}
+                        </div>
+                      </div>
+                      <div style={styles.providerActions}>
+                        <button type="button" style={styles.secondaryBtn} onClick={() => onGoGenerateSettings?.()}>
+                          {t(lang, "去自有API生成", "Go to BYO API Generate")}
+                        </button>
+                        <button type="button" style={styles.primaryBtn} onClick={() => onGoTemplateStart?.()}>
+                          {t(lang, "去模板开始创作", "Go to Templates")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ) : null}
 
-            {section === "api" ? (
-              <div style={styles.panel}>
-                <ApiProviderPanel
-                  lang={lang}
-                  apiCredentials={apiCredentials}
-                  onSave={onSaveApiCredentials}
-                  hasProAccess={hasProAccess}
-                  onUpgradePro={onUpgradePro}
-                  comfyStatus={localComfyStatus ?? { provider: "comfyui", state: "idle" }}
-                  drawStatus={localDrawStatus ?? { provider: "drawthings", state: "idle" }}
-                  onRefreshLocal={onRefreshLocalProviders ?? (() => Promise.resolve())}
-                />
+
+          </div>
+        ) : null}
+
+        {connectionModalOpen && editingItem ? (
+          <div style={styles.legalModalMask} onMouseDown={() => setConnectionModalOpen(false)} role="presentation">
+            <div
+              style={styles.connectionModal}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <div style={styles.legalModalHead}>
+                <div>
+                  <div style={styles.eyebrow}>{t(lang, "接入配置", "Integration Setup")}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "#e5e7eb" }}>{editingItem.label}</div>
+                </div>
+                <button type="button" style={styles.iconBtn} onClick={() => setConnectionModalOpen(false)}>
+                  <X size={16} />
+                </button>
               </div>
-            ) : null}
-
-
+              <div style={styles.sectionDesc}>
+                {editingItem.kind === "local"
+                  ? t(lang, "输入本地服务地址，测试连接后保存。", "Enter the local service URL, test it, then save.")
+                  : t(lang, "输入 API Key，测试连接后保存。密钥不会以明文展示。", "Enter the API key, test it, then save. Keys are not displayed in plain text.")}
+              </div>
+              <div style={{ display: "grid", gap: 12 }}>
+                <label style={styles.integrationField}>
+                  <span style={styles.integrationFieldLabel}>
+                    {editingItem.kind === "local" ? "URL" : "API Key"}
+                  </span>
+                  <input
+                    value={connectionDraftValue}
+                    onChange={(e) => {
+                      setConnectionDraftValue(e.target.value);
+                      setConnectionTestedOk(false);
+                    }}
+                    placeholder={editingItem.kind === "local" ? "http://127.0.0.1:8188" : "sk-..."}
+                    type={editingItem.kind === "local" ? "url" : "password"}
+                    style={styles.integrationInput}
+                  />
+                </label>
+                {editingItem.id === "custom_api" ? (
+                  <label style={styles.integrationField}>
+                    <span style={styles.integrationFieldLabel}>Base URL</span>
+                    <input
+                      value={connectionDraftBaseUrl}
+                      onChange={(e) => {
+                        setConnectionDraftBaseUrl(e.target.value);
+                        setConnectionTestedOk(false);
+                      }}
+                      placeholder="https://api.example.com"
+                      style={styles.integrationInput}
+                    />
+                  </label>
+                ) : null}
+                {connectionHint ? (
+                  <div style={{ fontSize: 12, color: connectionTestedOk ? "#22c55e" : "#f59e0b" }}>{connectionHint}</div>
+                ) : null}
+                {!integrationPolicyAccepted ? (
+                  <div style={styles.integrationRiskCard}>
+                    {(editingItem.kind === "local"
+                      ? [
+                          t(lang, "本地环境安全与网络暴露风险由我承担", "I am responsible for local security and exposed-network risk"),
+                          t(lang, "节点、插件、模型、脚本来源合法性由我承担", "I am responsible for the legality of nodes, plugins, models, and scripts"),
+                          t(lang, "平台不保证本地兼容性和生成结果", "The platform does not guarantee local compatibility or output results")
+                        ]
+                      : [
+                          t(lang, "我有权合法使用该 API Key", "I am authorized to use this API key"),
+                          t(lang, "第三方费用、税费、账单、封号和争议由我承担", "Third-party fees, taxes, billing, suspension, and disputes are my responsibility"),
+                          t(lang, "我将遵守相关第三方服务条款与政策", "I will comply with the applicable third-party terms and policies")
+                        ]).map((label, idx) => (
+                      <label key={label} style={styles.integrationRiskRow}>
+                        <input
+                          type="checkbox"
+                          checked={integrationRiskChecks[idx]}
+                          onChange={(e) => {
+                            const next = [...integrationRiskChecks] as [boolean, boolean, boolean];
+                            next[idx] = e.target.checked;
+                            setIntegrationRiskChecks(next);
+                            if (e.target.checked) setConnectionHint("");
+                          }}
+                        />
+                        <span>{label}</span>
+                      </label>
+                    ))}
+                    <div style={styles.integrationRiskLinks}>
+                      <a href="/integrations-terms" style={styles.integrationRiskLink}>{t(lang, "接入条款", "Integration Terms")}</a>
+                      <a href="/acceptable-use" style={styles.integrationRiskLink}>{t(lang, "使用政策", "Acceptable Use")}</a>
+                      <a href="/privacy" style={styles.integrationRiskLink}>{t(lang, "隐私说明", "Privacy")}</a>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button type="button" style={styles.secondaryBtn} onClick={handleTestConnection}>
+                  {connectionTesting ? t(lang, "测试中…", "Testing…") : t(lang, "测试连接", "Test Connection")}
+                </button>
+                <button type="button" style={styles.primaryBtn} onClick={handleSaveConnection}>
+                  {t(lang, "保存", "Save")}
+                </button>
+              </div>
+            </div>
           </div>
         ) : null}
         {legalDoc ? (
@@ -788,24 +1047,213 @@ function maskSecret(secret: string): string {
   return `${secret.slice(0, 4)}••••••••${secret.slice(-4)}`;
 }
 
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+async function assertAuthProbe(res: Response) {
+  if (res.status === 401 || res.status === 403) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `auth_rejected:${res.status}`);
+  }
+  if (res.status >= 500) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `provider_error:${res.status}`);
+  }
+}
+
+async function testFalConnection(baseUrl: string, apiKey: string) {
+  const res = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/fal-ai/flux/dev`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Key ${apiKey}`,
+    },
+    body: JSON.stringify({ input: {} }),
+  });
+  await assertAuthProbe(res);
+}
+
+async function testRunwayConnection(baseUrl: string, apiKey: string) {
+  const res = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/v1/image_to_video`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "X-Runway-Version": "2024-11-06",
+    },
+    body: JSON.stringify({}),
+  });
+  await assertAuthProbe(res);
+}
+
+async function testReplicateConnection(baseUrl: string, apiKey: string) {
+  const res = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/v1/models/black-forest-labs/flux-1.1-pro/predictions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Token ${apiKey}`,
+      "Prefer": "wait=1",
+    },
+    body: JSON.stringify({}),
+  });
+  await assertAuthProbe(res);
+}
+
+async function testStabilityConnection(baseUrl: string, apiKey: string) {
+  const res = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/v1/generation/stable-image-ultra/text-to-image`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "Accept": "application/json",
+    },
+    body: JSON.stringify({}),
+  });
+  await assertAuthProbe(res);
+}
+
+async function testCustomApiConnection(baseUrl: string, apiKey: string) {
+  const endpoint = baseUrl.replace(/\/$/, "");
+  const res = await fetchWithTimeout(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "X-ScenePilotix-Provider": "custom_api",
+    },
+    body: JSON.stringify({
+      prompt: "Connection test",
+      mediaMode: "image",
+      resolution: "1024x1024",
+      negativePrompt: "",
+      seed: 1,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `custom_api_request_failed:${res.status}`);
+  }
+  const data = await res.json().catch(() => null) as { kind?: string; url?: string } | null;
+  if (!data?.kind || !data?.url) throw new Error("custom_api_invalid_response");
+}
+
+function formatConnectionTestError(error: unknown, lang: Lang) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes("AbortError")) {
+    return t(lang, "测试超时，请稍后重试或检查网络。", "The test timed out. Try again or check the network.");
+  }
+  if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
+    return t(lang, "请求未到达第三方服务，可能是 CORS、网络或地区限制。", "The request did not reach the provider. This may be caused by CORS, network, or regional restrictions.");
+  }
+  if (message.includes("auth_rejected") || message.includes("Unauthorized") || message.includes("forbidden") || message.includes("invalid api key")) {
+    return t(lang, "API Key 被第三方拒绝，请检查 key、权限或账户状态。", "The provider rejected this API key. Check the key, permissions, or account status.");
+  }
+  if (message.includes("custom_api_invalid_response")) {
+    return t(lang, "Custom API 已返回响应，但结构不符合当前协议。", "Custom API responded, but the payload does not match the current contract.");
+  }
+  if (message.includes("custom_api_request_failed")) {
+    return t(lang, "Custom API 请求失败，请检查 Base URL、鉴权或服务状态。", "Custom API request failed. Check the base URL, auth, or service status.");
+  }
+  return t(lang, "测试失败。可能是第三方限制、接口策略变化或当前 key 无权限。", "Connection test failed. The provider may be blocking the request, the API policy may have changed, or the key may not have permission.");
+}
+
 /** Normalize for storage/display; keeps full structure. */
 function normalizeApiCredentials(input: ApiCredentialState | null): ApiCredentialState {
   return input ?? {
     defaultProvider: "fal",
     fal: {
-      enabled: true,
-      mode: "platform",
+      enabled: false,
+      mode: "personal",
       apiKey: "",
       baseUrl: "https://queue.fal.run",
       preferredModel: "fal-ai/flux/dev",
       updatedAt: null
     },
+    replicate: {
+      enabled: false,
+      mode: "personal",
+      apiKey: "",
+      baseUrl: "https://api.replicate.com",
+      preferredModel: "black-forest-labs/flux-1.1-pro",
+      updatedAt: null
+    },
     runway: {
       enabled: false,
-      mode: "platform",
+      mode: "personal",
       apiKey: "",
       baseUrl: "https://api.dev.runwayml.com",
       preferredModel: "gen4_turbo",
+      updatedAt: null
+    },
+    pika: {
+      enabled: false,
+      mode: "personal",
+      apiKey: "",
+      baseUrl: "https://api.pika.art",
+      preferredModel: "pika-2.2",
+      updatedAt: null
+    },
+    luma: {
+      enabled: false,
+      mode: "personal",
+      apiKey: "",
+      baseUrl: "https://api.lumalabs.ai",
+      preferredModel: "ray-2",
+      updatedAt: null
+    },
+    stability: {
+      enabled: false,
+      mode: "personal",
+      apiKey: "",
+      baseUrl: "https://api.stability.ai",
+      preferredModel: "stable-image-ultra",
+      updatedAt: null
+    },
+    fal_control: {
+      enabled: false,
+      mode: "personal",
+      apiKey: "",
+      baseUrl: "https://queue.fal.run",
+      preferredModel: "fal-ai/flux-controlnet",
+      updatedAt: null
+    },
+    replicate_control: {
+      enabled: false,
+      mode: "personal",
+      apiKey: "",
+      baseUrl: "https://api.replicate.com",
+      preferredModel: "black-forest-labs/flux-depth-pro",
+      updatedAt: null
+    },
+    comfyui: {
+      enabled: false,
+      mode: "personal",
+      apiKey: "",
+      baseUrl: "http://127.0.0.1:8188",
+      preferredModel: "wan2.2",
+      updatedAt: null
+    },
+    drawthings: {
+      enabled: false,
+      mode: "personal",
+      apiKey: "",
+      baseUrl: "http://127.0.0.1:7888",
+      preferredModel: "drawthings-local",
+      updatedAt: null
+    },
+    custom_api: {
+      enabled: false,
+      mode: "personal",
+      apiKey: "",
+      baseUrl: "",
+      preferredModel: "",
       updatedAt: null
     },
     updatedAt: null
@@ -818,174 +1266,17 @@ function normalizeApiCredentialsForForm(input: ApiCredentialState | null): ApiCr
   return {
     ...base,
     fal: { ...base.fal, apiKey: "" },
-    runway: { ...base.runway, apiKey: "" }
+    replicate: { ...base.replicate, apiKey: "" },
+    runway: { ...base.runway, apiKey: "" },
+    pika: { ...base.pika, apiKey: "" },
+    luma: { ...base.luma, apiKey: "" },
+    stability: { ...base.stability, apiKey: "" },
+    fal_control: { ...base.fal_control, apiKey: "" },
+    replicate_control: { ...base.replicate_control, apiKey: "" },
+    comfyui: { ...base.comfyui, apiKey: "" },
+    drawthings: { ...base.drawthings, apiKey: "" },
+    custom_api: { ...base.custom_api, apiKey: "" }
   };
-}
-
-function updateProviderDraft(
-  draft: ApiCredentialState,
-  providerId: ApiProviderId,
-  patch: Partial<ApiCredentialState[ApiProviderId]>
-): ApiCredentialState {
-  return {
-    ...draft,
-    [providerId]: {
-      ...draft[providerId],
-      ...patch
-    }
-  };
-}
-
-function providerModeLabel(lang: Lang, mode: ApiProviderMode) {
-  return mode === "platform" ? t(lang, "平台模式", "Platform mode") : t(lang, "我的 API", "My API");
-}
-
-function providerStatusLabel(lang: Lang, status: ProviderConnectionStatus | null | undefined): string {
-  if (!status) return "";
-  const map: Record<ProviderConnectionStatus, string> = {
-    connected: lang === "zh" ? "已连接" : "Connected",
-    invalid_key: lang === "zh" ? "Key 无效" : "Invalid key",
-    quota_issue: lang === "zh" ? "配额问题" : "Quota issue",
-    model_access_issue: lang === "zh" ? "模型权限问题" : "Model access issue",
-    network_error: lang === "zh" ? "网络错误" : "Network error"
-  };
-  return map[status];
-}
-
-function renderProviderCard(input: {
-  lang: Lang;
-  providerId: ApiProviderId;
-  title: string;
-  subtitle: string;
-  docsMeta: string;
-  draft: ApiCredentialState;
-  setDraft: React.Dispatch<React.SetStateAction<ApiCredentialState>>;
-  savedCredentials: ApiCredentialState | null;
-}) {
-  const { lang, providerId, title, subtitle, docsMeta, draft, setDraft, savedCredentials } = input;
-  const provider = draft[providerId];
-  const saved = savedCredentials?.[providerId];
-  const savedHasKey = Boolean(saved?.apiKey?.trim());
-  const status = saved?.status ?? provider.status;
-  const lastCheckedAt = saved?.lastCheckedAt ?? provider.lastCheckedAt;
-  const isError = status && status !== "connected";
-
-  return (
-    <article style={styles.providerCard} data-testid={`account-api-provider-${providerId}`}>
-      <div style={styles.providerHead}>
-        <div>
-          <div style={styles.providerTitleRow}>
-            <div style={styles.packTitle}>{title}</div>
-            {draft.defaultProvider === providerId ? (
-              <span style={styles.defaultBadge}><CheckCircle2 size={12} />{t(lang, "默认", "Default")}</span>
-            ) : null}
-            {status === "connected" ? (
-              <span style={styles.connectedBadge}><CheckCircle2 size={12} />{providerStatusLabel(lang, status)}</span>
-            ) : isError ? (
-              <span style={styles.errorBadge}><AlertCircle size={12} />{providerStatusLabel(lang, status)}</span>
-            ) : null}
-          </div>
-          <div style={styles.apiMeta}>{subtitle}</div>
-          <div style={styles.providerMeta}>{docsMeta}</div>
-          {lastCheckedAt && status ? (
-            <div style={styles.lastChecked}>
-              {t(lang, "检查于", "Checked")} {new Date(lastCheckedAt).toLocaleString(lang === "zh" ? "zh-CN" : "en-US", { dateStyle: "short", timeStyle: "short" })}
-            </div>
-          ) : null}
-        </div>
-        <label style={styles.checkboxRow}>
-          <input
-            type="checkbox"
-            checked={provider.enabled}
-            onChange={(e) => setDraft((current) => updateProviderDraft(current, providerId, { enabled: e.target.checked }))}
-            data-testid={`account-api-provider-enabled-${providerId}`}
-          />
-          <span>{t(lang, "启用", "Enabled")}</span>
-        </label>
-      </div>
-
-      {isError && provider.mode === "personal" ? (
-        <div style={styles.errorActions}>
-          <span style={styles.errorDetail}>{t(lang, "请检查 key 或重试", "Check key or try again")}</span>
-          <span style={styles.errorHint}>{t(lang, "保存后将重新检查连接", "Connection is rechecked on save.")}</span>
-        </div>
-      ) : null}
-
-      <div style={styles.modeRow}>
-        {(["platform", "personal"] as ApiProviderMode[]).map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            style={{ ...styles.modeBtn, ...(provider.mode === mode ? styles.modeBtnOn : null) }}
-            onClick={() => setDraft((current) => updateProviderDraft(current, providerId, { mode }))}
-            data-testid={`account-api-provider-mode-${providerId}-${mode}`}
-          >
-            {providerModeLabel(lang, mode)}
-          </button>
-        ))}
-      </div>
-
-      <div style={styles.apiFieldGrid}>
-        <label style={styles.fieldStack}>
-          <span style={styles.fieldLabel}>API Base</span>
-          <input
-            value={provider.baseUrl}
-            onChange={(e) => setDraft((current) => updateProviderDraft(current, providerId, { baseUrl: e.target.value }))}
-            placeholder={providerId === "fal" ? "https://queue.fal.run" : "https://api.dev.runwayml.com"}
-            style={styles.input}
-            data-testid={`account-api-provider-base-${providerId}`}
-          />
-        </label>
-        <label style={styles.fieldStack}>
-          <span style={styles.fieldLabel}>{t(lang, "默认模型", "Preferred model")}</span>
-          <input
-            value={provider.preferredModel}
-            onChange={(e) => setDraft((current) => updateProviderDraft(current, providerId, { preferredModel: e.target.value }))}
-            placeholder={providerId === "fal" ? "fal-ai/flux/dev" : "gen4_turbo"}
-            style={styles.input}
-            data-testid={`account-api-provider-model-${providerId}`}
-          />
-        </label>
-      </div>
-
-      {provider.mode === "personal" ? (
-        <label style={styles.fieldStack}>
-          <span style={styles.fieldLabel}>API Key</span>
-          <input
-            type="password"
-            autoComplete="off"
-            value={provider.apiKey}
-            onChange={(e) => setDraft((current) => updateProviderDraft(current, providerId, { apiKey: e.target.value }))}
-            placeholder={savedHasKey ? "••••••••••••" : (providerId === "fal" ? "Key ..." : "Bearer token")}
-            style={styles.input}
-            data-testid={`account-api-provider-key-${providerId}`}
-          />
-          {savedHasKey && !provider.apiKey ? (
-            <span style={styles.fieldHint}>{t(lang, "留空则保留当前 key", "Leave blank to keep current key")}</span>
-          ) : null}
-        </label>
-      ) : (
-        <div style={styles.apiHint} data-testid={`account-api-provider-platform-${providerId}`}>
-          {t(
-            lang,
-            "平台模式使用 ScenePilot Credits 和服务端代理，无需填写 key。",
-            "Platform mode uses ScenePilot Credits and server-side proxy; no key needed."
-          )}
-        </div>
-      )}
-    </article>
-  );
-}
-
-function ledgerLabel(lang: Lang, kind: CreditLedgerEntry["kind"]) {
-  const map: Record<CreditLedgerEntry["kind"], string> = {
-    purchase: t(lang, "充值", "Purchase"),
-    grant: t(lang, "赠送", "Grant"),
-    reserve: t(lang, "预扣", "Reserve"),
-    finalize: t(lang, "确认扣除", "Finalize"),
-    rollback: t(lang, "回滚", "Rollback")
-  };
-  return map[kind];
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -1005,7 +1296,7 @@ const styles: Record<string, React.CSSProperties> = {
     overflowY: "auto",
     borderRadius: 6,
     border: "1px solid rgba(255,255,255,0.08)",
-    background: "#16181d",
+    background: "#1f2125",
     boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
     padding: 20,
     color: "#f7f7fb"
@@ -1039,7 +1330,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 4
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 700,
     letterSpacing: "-0.01em"
   },
@@ -1079,7 +1370,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: 7,
     cursor: "pointer",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 500,
     transition: "color 120ms, border-color 120ms",
   },
@@ -1092,6 +1383,14 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 14
   },
+  apiPageStack: {
+    display: "grid",
+    gap: 16
+  },
+  apiSectionBlock: {
+    display: "grid",
+    gap: 8
+  },
   panel: {
     borderRadius: 0,
     border: "none",
@@ -1099,6 +1398,164 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "4px 0",
     display: "grid",
     gap: 12
+  },
+  sectionHeading: {
+    fontSize: 17,
+    fontWeight: 700,
+    color: "#e5e7eb"
+  },
+  sectionDesc: {
+    fontSize: 13,
+    lineHeight: 1.5,
+    color: "#9ca3af"
+  },
+  integrationGroupTitle: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: "#9ca3af",
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
+    marginBottom: 8
+  },
+  capabilityGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 10
+  },
+  capabilityItem: {
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 8,
+    padding: "10px 12px",
+    background: "rgba(255,255,255,0.02)",
+    display: "grid",
+    gap: 4
+  },
+  capabilityItemCollapsed: {
+    opacity: 0.82
+  },
+  capabilityTitle: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#e5e7eb"
+  },
+  capabilityDesc: {
+    fontSize: 12,
+    color: "#9ca3af",
+    lineHeight: 1.4
+  },
+  integrationList: {
+    borderTop: "1px solid #3a3f46",
+    borderBottom: "1px solid #3a3f46"
+  },
+  providerRow: {
+    display: "grid",
+    gridTemplateColumns: "1fr 120px 200px",
+    alignItems: "center",
+    gap: 10,
+    padding: "14px 0",
+    borderBottom: "1px solid #3a3f46"
+  },
+  providerRowLast: {
+    borderBottom: "none"
+  },
+  providerInfo: {
+    display: "grid",
+    gap: 6
+  },
+  providerNameRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap"
+  },
+  providerName: {
+    fontSize: 14,
+    color: "#e5e7eb",
+    fontWeight: 700
+  },
+  providerTagRow: {
+    display: "flex",
+    gap: 6,
+    flexWrap: "wrap"
+  },
+  providerTag: {
+    fontSize: 11,
+    lineHeight: 1,
+    color: "#9ca3af",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 999,
+    padding: "4px 8px",
+    background: "rgba(255,255,255,0.02)"
+  },
+  providerActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 8,
+    flexWrap: "wrap"
+  },
+  comingSoonTag: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: "#f59e0b",
+    border: "1px solid rgba(245,158,11,0.35)",
+    borderRadius: 999,
+    padding: "3px 7px",
+    background: "rgba(245,158,11,0.08)"
+  },
+  connectionSuccessBanner: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: "14px 16px",
+    borderRadius: 10,
+    border: "1px solid rgba(34,197,94,0.28)",
+    background: "rgba(34,197,94,0.08)"
+  },
+  integrationField: {
+    display: "grid",
+    gap: 6
+  },
+  integrationFieldLabel: {
+    fontSize: 12,
+    color: "#9ca3af",
+    fontWeight: 600
+  },
+  integrationInput: {
+    height: 40,
+    borderRadius: 6,
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "#24262b",
+    color: "#e5e7eb",
+    padding: "0 12px",
+    fontSize: 14,
+    outline: "none"
+  },
+  integrationRiskCard: {
+    display: "grid",
+    gap: 8,
+    padding: "10px 12px",
+    borderRadius: 8,
+    border: "1px solid rgba(245,158,11,0.18)",
+    background: "rgba(245,158,11,0.06)"
+  },
+  integrationRiskRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 8,
+    fontSize: 12,
+    color: "#e5e7eb",
+    lineHeight: 1.5
+  },
+  integrationRiskLinks: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap"
+  },
+  integrationRiskLink: {
+    fontSize: 12,
+    color: "#f59e0b",
+    textDecoration: "underline"
   },
   authPanel: {
     borderRadius: 20,
@@ -1549,20 +2006,21 @@ const styles: Record<string, React.CSSProperties> = {
   },
   primaryBtn: {
     height: 40,
-    borderRadius: 999,
+    borderRadius: 8,
     border: "1px solid rgba(255,255,255,0.08)",
-    background: "#f7f7fb",
-    color: "#090b10",
+    background: "#f59e0b",
+    color: "#1a1000",
     padding: "0 16px",
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
     cursor: "pointer",
-    fontWeight: 650
+    fontWeight: 700,
+    fontSize: 14
   },
   secondaryBtn: {
     height: 40,
-    borderRadius: 999,
+    borderRadius: 8,
     border: "1px solid rgba(255,255,255,0.08)",
     background: "rgba(255,255,255,0.05)",
     color: "#f7f7fb",
@@ -1572,6 +2030,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8,
     cursor: "pointer",
     fontWeight: 600,
+    fontSize: 13,
     textDecoration: "none"
   },
   ghostBtn: {
@@ -1693,6 +2152,16 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 28px 80px rgba(0,0,0,0.42)",
     display: "grid",
     gridTemplateRows: "auto auto minmax(0,1fr)"
+  },
+  connectionModal: {
+    width: "min(520px, calc(100vw - 32px))",
+    borderRadius: 18,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "linear-gradient(180deg, rgba(11,13,18,0.98), rgba(8,10,16,0.97))",
+    boxShadow: "0 28px 80px rgba(0,0,0,0.42)",
+    display: "grid",
+    gap: 16,
+    padding: 18,
   },
   legalModalHead: {
     display: "flex",

@@ -7,6 +7,8 @@ import React from "react";
 import type { Lang } from "../../../i18n";
 import type { Project } from "../../../model";
 import { PRO_TYPO } from "../../../uiTokens";
+import { getTemplateIndexById } from "../../../template-engine";
+import { getTemplateDisplayCategory, getTemplateDisplayCategoryLabel } from "../model/templateCategory";
 
 type Props = {
   lang: Lang;
@@ -35,6 +37,10 @@ export function CurrentTemplateContext({
 
   const title = lang === "zh" ? current.titleZh : current.titleEn;
   const familyName = lang === "zh" ? current.familyNameZh : current.familyNameEn;
+  const sourceTemplate = getTemplateIndexById(current.templateId);
+  const categoryLabel = sourceTemplate
+    ? getTemplateDisplayCategoryLabel(getTemplateDisplayCategory(sourceTemplate), lang)
+    : getTemplateDisplayCategoryLabel(current.category, lang);
 
   return (
     <div style={styles.wrap}>
@@ -47,8 +53,8 @@ export function CurrentTemplateContext({
           </div>
         ) : null}
         <div style={styles.tags}>
-          {current.category ? (
-            <span style={styles.tag}>{current.category}</span>
+          {categoryLabel ? (
+            <span style={styles.tag}>{categoryLabel}</span>
           ) : null}
           {current.domain ? (
             <span style={styles.tag}>{current.domain}</span>

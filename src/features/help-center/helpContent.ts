@@ -27,14 +27,14 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "核心定位",
         titleEn: "What it does",
-        textZh: "场景领航（ScenePilotix）是专业的 AI 拍摄结构工具。通过填写镜头、对象、布光等结构化参数，自动生成可直接用于 fal / Runway 等平台的高质量提示词。相比从零手写提示词，结构化填写效率更高、结果更稳定。",
-        textEn: "ScenePilotix is a structured AI filmmaking tool. Fill in shot, object, and lighting parameters to generate high-quality prompts ready for fal / Runway and other platforms. More efficient and consistent than writing prompts from scratch."
+        textZh: "场景领航（ScenePilotix）是结构化创作工作台。你先确定任务和模板，再填写镜头、对象、布光、风格等结构信息，最后复制提示词、导出项目包，或用自己的 API / 本地引擎继续执行。",
+        textEn: "ScenePilotix is a structured creation workspace. Start from a task and template, fill in camera, object, lighting, and style structure, then copy the prompt, export a project package, or continue with your own API or local engine."
       },
       {
         titleZh: "基本流程",
         titleEn: "Basic flow",
-        textZh: "1) 选择模版 — 从模版库选一个符合场景的模版，带入专业结构\n2) 编辑内容 — 在拍摄流程各步骤里填写你的具体对象、环境、风格\n3) 生成或复制 — 直接平台生成，或复制提示词到外部工具使用",
-        textEn: "1) Pick a template — choose one from the library that fits your scene\n2) Edit content — fill in your specific objects, environment, and style in each workflow step\n3) Generate or copy — generate directly on platform, or copy prompt for external tools"
+        textZh: "1) 选择任务和模板\n2) 在拍摄流程里补充你的主体、环境、镜头和风格\n3) 复制提示词或导出项目包\n4) Pro 用户可在最后一步使用自己的 API 或本地引擎执行",
+        textEn: "1) Choose a task and template\n2) Fill in subject, environment, camera, and style in the workflow\n3) Copy the prompt or export a project package\n4) Pro users can execute in the final step with their own API or local engine"
       },
       {
         titleZh: "和普通提示词工具的区别",
@@ -52,13 +52,13 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "左侧栏",
         titleEn: "Left panel",
-        textZh: "左侧第一栏是项目菜单（新建/打开/保存/导出），可折叠。折叠后点头像弹出用户菜单。第二栏是拍摄流程步骤导航（镜头→导演→场景→对象→灯光→风格→技术）和工具区。",
+        textZh: "左侧第一栏是项目菜单（新建/打开/保存/导出），可折叠。折叠后点头像弹出用户菜单。第二栏是拍摄流程步骤导航（镜头→导演→场景→对象→灯光→风格→提示词引擎）和工具区。",
         textEn: "The first left column is the project menu (new / open / save / export), collapsible. When collapsed, click the avatar to open the user menu. The second column has workflow step navigation and tools."
       },
       {
         titleZh: "画布区域",
         titleEn: "Canvas area",
-        textZh: "画布显示当前场景的对象布局。对象可以在画布上拖拽调整位置和大小，也可以在右侧属性面板里精确填写。底部工具栏显示媒体类型、字符数，以及复制提示词和生成按钮。",
+        textZh: "画布显示当前场景的对象布局。对象可以在画布上拖拽调整位置和大小，也可以在右侧属性面板里精确填写。底部区域主要负责复制提示词、导出项目包，以及 Pro 的自有 API / 本地生成动作。",
         textEn: "The canvas shows the current scene's object layout. Objects can be dragged to adjust position and size, or set precisely in the right properties panel. The bottom bar shows media type, character count, and buttons to copy prompts or generate."
       },
       {
@@ -77,8 +77,8 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "模版是什么",
         titleEn: "What templates are",
-        textZh: "模版是专业拍摄结构的预设。选一个模版，镜头、布光、风格、对象骨架会自动带入，省去从零搭结构的时间。模版分日常任务（卖货/人物/海报/口播/剧情）和专业任务（连续分镜/多镜对话/动作/动漫等）两大类。",
-        textEn: "Templates are professional shooting structure presets. Pick one and camera, lighting, style, and object skeleton are filled in automatically. Templates are split into Daily tasks (product / portrait / poster / presenter / drama) and Pro tasks (continuity / dialogue / action / anime, etc.)."
+        textZh: "模版是专业拍摄结构的预设。选一个模版，镜头、布光、风格、对象骨架会自动带入，省去从零搭结构的时间。模版分日常任务（商品展示 / 人物形象 / 封面视觉 / 口播视频 / 剧情片段）和专业创作（广告镜头 / 影视镜头 / 动画镜头 / 游戏视觉 / 风格实验）两大类。",
+        textEn: "Templates are professional shooting structure presets. Pick one and camera, lighting, style, and object skeleton are filled in automatically. Templates are split into Daily tasks (product showcase / character portraits / cover visuals / talking videos / story snippets) and Pro creation (ad shots / film shots / animation shots / game visuals / style experiments)."
       },
       {
         titleZh: "免费和付费模版",
@@ -89,8 +89,8 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "如何选模版",
         titleEn: "How to choose",
-        textZh: "根据你的最终用途选：要拍产品图 → 「卖货出图」；要拍人像写真 → 「人物出图」；要做剧情短视频 → 「剧情短视频」；要做品牌广告 → 专业任务里的「连续分镜」。搜索栏支持按名称、风格、描述搜索。",
-        textEn: "Choose by your end goal: product images → Sell Products; portrait → Portrait; drama short video → Drama; brand ad → Pro tasks / Continuity. The search bar supports name, style, and description search."
+        textZh: "根据你的最终用途选：要拍产品图 → 「商品展示」；要拍人像写真 → 「人物形象」；要做剧情向短片 → 「剧情片段」；要做品牌广告或商业叙事 → 专业创作里的对应分类。搜索栏支持按名称、风格、描述搜索。",
+        textEn: "Choose by your end goal: product images → Product Showcase; portraits → Character Portraits; story-led short videos → Story Snippets; brand ads or commercial narratives → the matching Pro creation category. The search bar supports name, style, and description search."
       }
     ]
   },
@@ -106,10 +106,10 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
         textEn: "Pro templates (3 credits) are top-tier structures for commercial production: luxury watch ads, perfume campaigns, car night posters, IMAX epic narratives, neon emotional films, fashion brand shorts, 30-second commercials. They fill 14+ object fields with precise camera and lighting — 10x more efficient than writing from scratch."
       },
       {
-        titleZh: "专业任务分类",
+        titleZh: "专业创作分类",
         titleEn: "Pro task categories",
-        textZh: "连续分镜：多镜头叙事，保持角色/场景连续性。多镜对话：两人或多人对话场景调度。动作连续：追逐、动作、运动高光等快节奏场景。追逐调度：悬疑、惊悚、紧张张力场景。动漫风格：动漫电影感、竖版短剧等特殊风格。",
-        textEn: "Continuity: multi-shot narrative with character/scene consistency. Dialogue: two or more person conversation shot choreography. Action: chase, action, sports highlight fast-paced scenes. Suspense: thriller, mystery, tension-building scenes. Anime: cinematic anime, vertical short drama styles."
+        textZh: "广告镜头：商业叙事、品牌片和宣传片的镜头组织。影视镜头：人物关系、走位交流和叙事切换。动画镜头：动画、赛博朋克与强演出感画面。游戏视觉：动作、对抗和高速节奏场景。风格实验：悬疑、压迫和风格化镜头尝试。",
+        textEn: "Ad Shots: brand films, promos, and commercial narrative coverage. Film Shots: relationships, blocking, and narrative cut grammar. Animation Shots: animation, cyberpunk, and performance-driven visuals. Game Visuals: action, confrontation, and fast visual rhythm. Style Experiments: suspense, pressure, and style-forward cinematic trials."
       }
     ]
   },
@@ -121,20 +121,20 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "积分用在哪里",
         titleEn: "What credits are used for",
-        textZh: "积分用于两个地方：1) 使用付费模版（2-3积分/次）；2) 平台生成图片/视频（3积分/次）。提示词复制和导出永远免费，不消耗积分。",
-        textEn: "Credits are used for two things: 1) using paid templates (2–3 credits each); 2) platform generation of images/video (3 credits each). Prompt copying and export are always free."
+        textZh: "积分不再用于官方托管生成。当前积分主要用于平台内模板、高级功能和后续平台能力。复制提示词、导出项目包、以及使用你自己的 API / 本地引擎，不通过 ScenePilot 积分结算。",
+        textEn: "Credits are no longer used for hosted generation. They are now mainly for in-product templates, advanced features, and future platform capabilities. Copying prompts, exporting packages, and using your own API or local engine do not bill through ScenePilot credits."
       },
       {
         titleZh: "积分包",
         titleEn: "Credit packs",
-        textZh: "150积分 $3 — 约50次图片生成\n420积分 $8 — 约140次图片生成（最划算）\n800积分 $15 — 约266次图片生成\n积分不过期，购买后永久有效。Pro 会员每月额外获赠积分。",
-        textEn: "150 credits $3 — about 50 image generations\n420 credits $8 — about 140 image generations (best value)\n800 credits $15 — about 266 image generations\nCredits never expire. Pro members receive bonus credits monthly."
+        textZh: "当前积分包：150 / $3，420 / $8，800 / $15。积分不过期，购买后保留在账户内。Pro 会员每月额外赠送 280 Credits。",
+        textEn: "Current credit packs: 150 / $3, 420 / $8, 800 / $15. Credits do not expire and stay in your account after purchase. Pro members receive 280 bonus credits every month."
       },
       {
         titleZh: "用自己的 API Key",
         titleEn: "Use your own API key",
-        textZh: "Pro 用户可在「账户 → API 接入」配置 fal 或 Runway 的 Key。使用自己的 Key 生成不消耗 ScenePilot 积分，只消耗你在 fal/Runway 账户里的余额。适合高频生成的用户。",
-        textEn: "Pro users can configure fal or Runway keys in Account → API Access. Generating with your own key doesn't consume ScenePilot credits — only your fal/Runway balance. Good for high-volume users."
+        textZh: "Pro 用户可在「账户中心 → API Keys」接入自己的云端 API。相关费用、配额、封号和政策变化由第三方平台决定，不由 ScenePilot 积分承担。",
+        textEn: "Pro users can connect their own cloud APIs in Account Center → API Keys. Costs, quotas, suspensions, and policy changes are determined by the third-party provider, not by ScenePilot credits."
       }
     ]
   },
@@ -146,20 +146,20 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "生成计费",
         titleEn: "Generation billing",
-        textZh: "平台生成（使用 ScenePilot Credits）：图片 3积分/次，视频 5积分/次。使用自己的 API Key（Pro功能）：不消耗 ScenePilot 积分，消耗 fal/Runway 账户余额。本地生成（ComfyUI/Draw Things，Pro功能）：完全免费，不消耗任何积分。",
-        textEn: "Platform generation (ScenePilot Credits): image 3 credits, video 5 credits. Own API key (Pro): no ScenePilot credits, uses your fal/Runway balance. Local generation (ComfyUI/Draw Things, Pro): completely free."
+        textZh: "ScenePilot 不再提供官方托管生成，因此也没有“平台生成扣积分”的计费方式。你在工作台里主要有三种出口：复制提示词、导出项目包、或由 Pro 用户使用自己的 API / 本地引擎执行。",
+        textEn: "ScenePilot no longer provides hosted generation, so there is no platform-generation credit billing. In the workspace you mainly have three exits: copy the prompt, export a project package, or, for Pro users, execute with your own API or local engine."
       },
       {
         titleZh: "模版计费",
         titleEn: "Template billing",
-        textZh: "免费模版：0积分。标准模版：2积分。商业顶级模版：3积分。同一项目里，同一模版只扣一次费用；重新打开或再次编辑不再扣费。",
-        textEn: "Free templates: 0 credits. Standard templates: 2 credits. Commercial top-tier: 3 credits. In the same project, the same template is charged only once — reopening or re-editing doesn't charge again."
+        textZh: "模板相关消耗以当前模板定价和账户页说明为准。重点是：模板和平台执行是两条不同链路，不要把模板消耗和第三方 API 费用混在一起理解。",
+        textEn: "Template-related consumption follows the current template pricing and account-page rules. The key point: template consumption and execution on third-party APIs are two different paths and should not be treated as the same cost."
       },
       {
         titleZh: "Pro 订阅",
         titleEn: "Pro subscription",
-        textZh: "Pro 月订阅包含：每月赠送积分 + API接入权限 + 本地生成权限 + 全部专业模版解锁。在「账户中心 → Pro」里升级或管理订阅。",
-        textEn: "Pro monthly subscription includes: monthly bonus credits + API access + local generation + all pro templates unlocked. Upgrade or manage in Account → Pro."
+        textZh: "Pro 月订阅主要解锁：自己的 API、ComfyUI / Draw Things 本地执行、更完整的创作能力，以及高级模板。在「账户中心 → Pro」里升级或管理订阅。",
+        textEn: "Pro mainly unlocks: your own APIs, local execution with ComfyUI / Draw Things, more complete creative control, and advanced templates. Upgrade or manage in Account Center → Pro."
       }
     ]
   },
@@ -171,14 +171,14 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "生成方式",
         titleEn: "Generation methods",
-        textZh: "点击「生成」按钮时，如果有多种生成方式可选，按钮会变成分体式 [生成 | ▼]，点 ▼ 选择：\n☁ 平台生成：使用 ScenePilot 积分，最简单，无需配置\n⚡ 我的 API：使用你自己的 fal/Runway Key，不消耗积分\n💻 本地：使用本机的 ComfyUI 或 Draw Things，完全免费",
-        textEn: "When you click Generate, if multiple methods are available the button becomes [Generate | ▼]. Click ▼ to choose:\n☁ Platform: uses ScenePilot credits, simplest, no setup\n⚡ My API: uses your own fal/Runway key, no credits consumed\n💻 Local: uses your local ComfyUI or Draw Things, completely free"
+        textZh: "当前工作台的生成方式分三类：\n1) 复制提示词：免费主路径\n2) 导出项目包：适合交付、备份和外部继续创作\n3) 自有 API / 本地生成：仅 Pro 可用，用你自己的连接执行",
+        textEn: "Current generation modes in the workspace are:\n1) Copy Prompt: the free default path\n2) Export Project Package: for handoff, backup, and continuing outside\n3) BYO API / Local Generation: Pro-only, executed through your own connections"
       },
       {
         titleZh: "复制提示词",
         titleEn: "Copy prompt",
-        textZh: "点「复制提示词」可以把当前生成的提示词复制到剪贴板，然后粘贴到任意 AI 平台手动生成。提示词不含任何系统标记，干净可用。复制功能需要登录账户。",
-        textEn: "Click 'Copy Prompt' to copy the current prompt to clipboard and paste into any AI platform manually. The copied prompt is clean with no system markers. Login required."
+        textZh: "点「复制提示词」会把当前结构化提示词复制到剪贴板。复制内容不带系统隐式标记，适合粘贴到外部平台继续使用。首次复制时会看到风险提示确认。",
+        textEn: "Click 'Copy Prompt' to copy the current structured prompt to the clipboard. The copied content has no hidden system markers and is meant for use on external platforms. A short risk acknowledgment appears the first time."
       },
       {
         titleZh: "生成效果不理想怎么办",
@@ -271,8 +271,8 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "什么时候需要多场景",
         titleEn: "When to use multiple scenes",
-        textZh: "单张图片或单段视频用单场景即可。需要以下情况时用多场景：完整叙事短片（开场→冲突→高潮→结局）；同一角色在不同地点出现；广告片多镜剪辑；专业任务里的连续分镜工作流。",
-        textEn: "Use a single scene for one image or one video clip. Use multiple scenes for: complete narrative short (opening → conflict → climax → ending); same character in different locations; ad film multi-shot edit; pro continuity workflow."
+        textZh: "单张图片或单段视频用单场景即可。需要以下情况时用多场景：完整叙事短片（开场→冲突→高潮→结局）；同一角色在不同地点出现；广告片多镜剪辑；专业创作里的多镜头工作流。",
+        textEn: "Use a single scene for one image or one video clip. Use multiple scenes for: complete narrative short (opening → conflict → climax → ending); same character in different locations; ad film multi-shot edit; multi-shot workflows in Pro creation."
       },
       {
         titleZh: "角色连续性",
@@ -296,14 +296,14 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "复制提示词",
         titleEn: "Copy prompt",
-        textZh: "点底部工具栏的「复制提示词」，把当前提示词复制到剪贴板。复制的内容干净，没有系统控制标记，可以直接粘贴到任意 AI 平台（Midjourney / 即梦 / Stable Diffusion 等）使用。",
-        textEn: "Click 'Copy Prompt' in the bottom bar to copy to clipboard. The copied content is clean with no system markers, ready to paste into any AI platform (Midjourney, Jimeng, Stable Diffusion, etc.)."
+        textZh: "点底部区域的「复制提示词」，把当前提示词复制到剪贴板。复制内容干净，不带系统隐藏标记，可直接粘贴到外部平台使用。",
+        textEn: "Click 'Copy Prompt' in the bottom area to copy the current prompt to the clipboard. The copied content is clean, contains no hidden system markers, and can be pasted into external platforms directly."
       },
       {
-        titleZh: "提示词 + 参考图 导出",
-        titleEn: "Prompt + refs export",
-        textZh: "在左侧菜单「Export → 提示词+参考图」可以导出包含提示词文本和所有参考图的压缩包。适合交付给设计师或存档备用。快捷键 Shift+Cmd+E。",
-        textEn: "Left menu Export → Prompt+Refs exports a zip with the prompt text and all reference images. Good for handoff to designers or archiving. Shortcut: Shift+Cmd+E."
+        titleZh: "导出项目包",
+        titleEn: "Export project package",
+        textZh: "导出项目包会根据你选择的导出类型输出统一结构。常用类型包括：通用、含参考图、不含参考图、仅提示词（TXT）。适合交付、备份和跨平台继续创作。",
+        textEn: "Export Project Package outputs a unified structure based on the export type you choose. Common types include universal, with references, without references, and prompt-only (TXT). It is best for handoff, backup, and continuing across tools."
       },
       {
         titleZh: "保存项目",
@@ -315,26 +315,26 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
   },
 
   platform: {
-    titleZh: "API 接入与本地连接",
+    titleZh: "API 与本地接入",
     titleEn: "API & Local Setup",
     blocks: [
       {
-        titleZh: "配置外部 API Key",
-        titleEn: "Set up external API key",
-        textZh: "在「账户中心 → API 接入」里配置 fal 或 Runway 的 API Key。启用后，生成时选「我的 API」就会使用你自己的账户生成，不消耗 ScenePilot 积分。这是 Pro 专属功能。",
-        textEn: "In Account → API Access, configure your fal or Runway API key. Once enabled, choose 'My API' when generating to use your own account — no ScenePilot credits consumed. Pro feature."
+        titleZh: "云端 API 接入",
+        titleEn: "Cloud API setup",
+        textZh: "在「账户中心 → API Keys」中配置云端 API。接入中心按能力分层说明，但真正的 provider 只在管理列表里出现一次。保存前可以先测试连接。这些能力仅 Pro 可用。",
+        textEn: "Configure cloud APIs in Account Center → API Keys. The page explains capability layers, but each provider appears only once in the management list. You can test the connection before saving. These capabilities are Pro-only."
       },
       {
         titleZh: "连接 ComfyUI",
         titleEn: "Connect ComfyUI",
-        textZh: "本地运行 ComfyUI 时，在「API 接入」→「本地生成」区域填入 URL（默认 http://127.0.0.1:8188）。注意：ComfyUI 启动时需要加 --enable-cors-header 参数，否则浏览器无法访问。",
+        textZh: "本地运行 ComfyUI 时，在「账户中心 → API Keys → Local」填写地址并测试连接。浏览器方式通常需要允许本地访问和正确的 CORS 配置；若本地服务不可达，工作台会提示你先完成连接。",
         textEn: "When running ComfyUI locally, enter the URL (default http://127.0.0.1:8188) in API Access → Local Generation. Important: start ComfyUI with --enable-cors-header flag, otherwise the browser can't access it."
       },
       {
         titleZh: "连接 Draw Things",
         titleEn: "Connect Draw Things",
-        textZh: "在 Draw Things 应用设置里开启「API 服务」，然后在「API 接入」→「本地生成」填入地址（默认 http://127.0.0.1:7888）。Draw Things 只支持图片生成，不支持视频。",
-        textEn: "Enable 'API Service' in Draw Things settings, then enter the address (default http://127.0.0.1:7888) in API Access → Local Generation. Draw Things supports image only, not video."
+        textZh: "在 Draw Things 中开启 API 服务后，到「账户中心 → API Keys → Local」填写地址并测试连接。Draw Things 更适合图片工作流；如果你当前是视频任务，优先考虑支持视频的云端 API 或其他本地方案。",
+        textEn: "After enabling the API service in Draw Things, enter the address and test it in Account Center → API Keys → Local. Draw Things is better suited to image workflows; for video tasks, prefer a cloud API or another local solution that supports video."
       }
     ]
   },
@@ -352,14 +352,14 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "复制提示词后到哪里生成",
         titleEn: "Where to generate after copying",
-        textZh: "复制的提示词可以粘贴到：\n• fal.ai — 图片和视频都支持\n• Runway — 高质量视频\n• Midjourney — 图片\n• 即梦 / 海螺 — 国内平台\n• Stable Diffusion / ComfyUI — 本地开源方案\n\n直接在 ScenePilot 里点「生成」按钮也可以，用平台积分或自己的 Key。",
-        textEn: "Paste the copied prompt into:\n• fal.ai — image and video\n• Runway — high-quality video\n• Midjourney — image\n• Local Stable Diffusion / ComfyUI\n\nOr click Generate directly in ScenePilot — uses platform credits or your own key."
+        textZh: "复制后的提示词可以粘贴到你熟悉的平台或本地工具里继续使用。帮助中心不替你规定唯一平台，重点是：先把结构化提示词整理好，再去你自己的执行环境里生成。",
+        textEn: "After copying, you can paste the prompt into the platform or local tool you already use. The Help Center does not prescribe a single destination. The priority is to organize a strong structured prompt first, then execute in your own environment."
       },
       {
-        titleZh: "积分消耗了但没有生成结果",
-        titleEn: "Credits deducted but no result",
-        textZh: "生成失败时积分会自动退回，请稍等片刻后刷新账户页面查看余额。如果余额确实减少但没有结果，请联系客服，提供项目名称和大致时间。",
-        textEn: "Credits are automatically refunded on generation failure — refresh the account page after a moment to check balance. If balance decreased without a result, contact support with your project name and approximate time."
+        titleZh: "为什么我不能直接生成",
+        titleEn: "Why can't I generate directly",
+        textZh: "如果你是 Free 用户，只能使用复制提示词和导出项目包。若你选择了「我的 API / ComfyUI / Draw Things」但无法继续，通常是因为未开通 Pro，或还没有在 API Keys 页面完成连接。",
+        textEn: "If you are on Free, you can only use Copy Prompt and Export Project Package. If you choose My API / ComfyUI / Draw Things and cannot continue, it is usually because Pro is not enabled yet or the connection has not been completed in API Keys."
       },
       {
         titleZh: "项目保存在哪里，会丢失吗",

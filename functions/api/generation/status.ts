@@ -2,6 +2,7 @@ import { getGenerationStatus, type ProviderSubmitBody } from "../_shared/provide
 import { corsOptions, json, rejectDisallowedOrigin } from "../_shared/http";
 import { requireApiAuth } from "../_shared/auth";
 import { buildRequestRateLimitKey, enforceRateLimit } from "../_shared/rate-limit";
+import { createUpstashClient } from "../../_lib/upstashRedis";
 
 type StatusBody = ProviderSubmitBody & { taskId?: string };
 
@@ -31,6 +32,42 @@ export const onRequestPost: PagesFunction = async (context) => {
         error: "too_many_requests",
         retryAfterSeconds: limiter.retryAfterSeconds
       }, 429, context.request, context.env);
+    }
+
+    const taskId = String(body.taskId || "").trim();
+    if (taskId.startsWith("job_")) {
+      const redis = createUpstashClient(context.env);
+      const raw = await redis.get(`spx:gen:job:${taskId}`);
+      if (!raw) {
+        return json({
+          ok: false,
+          provider: body.provider || "fal",
+          mode: body.mode || "platform",
+          mediaType: body.mediaType || "image",
+          taskId,
+          error: "job_not_found"
+        }, 404, context.request, context.env);
+      }
+      const job = JSON.parse(raw) as {
+        status: "queued" | "running" | "done" | "failed";
+        queueKey: "queue:pro" | "queue:free";
+        output?: unknown;
+        error?: string;
+      };
+      const queueIndex = job.status === "queued" ? await redis.lpos(job.queueKey, taskId) : null;
+      const queuedAhead = queueIndex !== null ? Math.max(0, queueIndex) : 0;
+      return json({
+        ok: job.status !== "failed",
+        provider: body.provider || "fal",
+        mode: body.mode || "platform",
+        mediaType: body.mediaType || "image",
+        taskId,
+        status: job.status,
+        queuePosition: queueIndex !== null ? queueIndex + 1 : undefined,
+        queuedAhead,
+        output: job.output,
+        error: job.error
+      }, 200, context.request, context.env);
     }
 
     const result = await getGenerationStatus(context.env, body);

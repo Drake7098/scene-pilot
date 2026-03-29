@@ -482,6 +482,7 @@ button:focus-visible {
 [data-workspace="pro"] .editor-sidebar-forms input[type="number"]:focus {
   border-color: var(--pro-accent) !important;
   outline: none !important;
+  box-shadow: none !important;
 }
 
 /* PropsPanel inputs (right sidebar) */
@@ -495,6 +496,13 @@ button:focus-visible {
 [data-workspace="pro"] .pro-props-panel textarea:focus {
   border-color: var(--pro-accent) !important;
   outline: none !important;
+  box-shadow: none !important;
+}
+
+[data-workspace="pro"] input:focus-visible,
+[data-workspace="pro"] select:focus-visible,
+[data-workspace="pro"] textarea:focus-visible {
+  box-shadow: none !important;
 }
 
 /* Template card hover border (Figma) */

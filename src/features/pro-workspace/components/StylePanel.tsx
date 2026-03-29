@@ -38,7 +38,7 @@ const postProcess = mkMark("post_process:");
 const filmLook = mkMark("film_look:");
 
 export function StylePanel({ lang, scene, project, onUpdateScene }: Props) {
-  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "layout_only";
+  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "full_workflow";
   const layoutLocked = applyMode === "layout_only";
   const mediaMode = resolveSceneConfig(scene).mediaMode;
 

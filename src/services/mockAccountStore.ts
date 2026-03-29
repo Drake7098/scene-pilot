@@ -78,25 +78,31 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function providerConfig(baseUrl = "", preferredModel = "") {
+  return {
+    enabled: false,
+    mode: "personal" as const,
+    apiKey: "",
+    baseUrl,
+    preferredModel,
+    updatedAt: null,
+  };
+}
+
 function defaultApiCredentials(): ApiCredentialState {
   return {
     defaultProvider: "fal",
-    fal: {
-      enabled: true,
-      mode: "platform",
-      apiKey: "",
-      baseUrl: "https://queue.fal.run",
-      preferredModel: "fal-ai/flux/dev",
-      updatedAt: null
-    },
-    runway: {
-      enabled: false,
-      mode: "platform",
-      apiKey: "",
-      baseUrl: "https://api.dev.runwayml.com",
-      preferredModel: "gen4_turbo",
-      updatedAt: null
-    },
+    fal: providerConfig("https://queue.fal.run", "fal-ai/flux/dev"),
+    replicate: providerConfig("https://api.replicate.com", "black-forest-labs/flux-1.1-pro"),
+    runway: providerConfig("https://api.dev.runwayml.com", "gen4_turbo"),
+    pika: providerConfig("https://api.pika.art", "pika-2.2"),
+    luma: providerConfig("https://api.lumalabs.ai", "ray-2"),
+    stability: providerConfig("https://api.stability.ai", "stable-image-ultra"),
+    fal_control: providerConfig("https://queue.fal.run", "fal-ai/flux-controlnet"),
+    replicate_control: providerConfig("https://api.replicate.com", "black-forest-labs/flux-depth-pro"),
+    comfyui: providerConfig("http://127.0.0.1:8188", "wan2.2"),
+    drawthings: providerConfig("http://127.0.0.1:7888", "drawthings-local"),
+    custom_api: providerConfig("", ""),
     updatedAt: null
   };
 }
@@ -109,7 +115,7 @@ function normalizeApiCredentials(raw: unknown): ApiCredentialState {
       ...defaults,
       fal: {
         ...defaults.fal,
-        mode: parsed.enabled ? "personal" : "platform",
+        enabled: Boolean(parsed.enabled),
         apiKey: parsed.openaiApiKey,
         updatedAt: parsed.updatedAt ?? null
       },
@@ -117,14 +123,65 @@ function normalizeApiCredentials(raw: unknown): ApiCredentialState {
     };
   }
   return {
-    defaultProvider: parsed.defaultProvider === "runway" ? "runway" : "fal",
+    defaultProvider: typeof parsed.defaultProvider === "string"
+      && [
+        "fal",
+        "replicate",
+        "runway",
+        "pika",
+        "luma",
+        "stability",
+        "fal_control",
+        "replicate_control",
+        "comfyui",
+        "drawthings",
+        "custom_api",
+      ].includes(parsed.defaultProvider)
+      ? parsed.defaultProvider as ApiCredentialState["defaultProvider"]
+      : "fal",
     fal: {
       ...defaults.fal,
       ...(parsed.fal ?? {})
     },
+    replicate: {
+      ...defaults.replicate,
+      ...(parsed.replicate ?? {})
+    },
     runway: {
       ...defaults.runway,
       ...(parsed.runway ?? {})
+    },
+    pika: {
+      ...defaults.pika,
+      ...(parsed.pika ?? {})
+    },
+    luma: {
+      ...defaults.luma,
+      ...(parsed.luma ?? {})
+    },
+    stability: {
+      ...defaults.stability,
+      ...(parsed.stability ?? {})
+    },
+    fal_control: {
+      ...defaults.fal_control,
+      ...(parsed.fal_control ?? {})
+    },
+    replicate_control: {
+      ...defaults.replicate_control,
+      ...(parsed.replicate_control ?? {})
+    },
+    comfyui: {
+      ...defaults.comfyui,
+      ...(parsed.comfyui ?? {})
+    },
+    drawthings: {
+      ...defaults.drawthings,
+      ...(parsed.drawthings ?? {})
+    },
+    custom_api: {
+      ...defaults.custom_api,
+      ...(parsed.custom_api ?? {})
     },
     updatedAt: parsed.updatedAt ?? null
   };

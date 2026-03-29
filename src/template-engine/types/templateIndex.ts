@@ -11,6 +11,12 @@ import type {
   TemplateDomain,
   TemplateIndustry
 } from "./templateTypes";
+import type {
+  BackStructure,
+  FrontCategory,
+  GenerationSource,
+  QualityLevel
+} from "./templatePayload";
 
 export type TemplateIndex = {
   id: string;
@@ -46,4 +52,19 @@ export type TemplateIndex = {
   isExperiment?: boolean;
   /** Benchmark templates for rebuild phases. */
   isBenchmark?: boolean;
+  /** Master/derived/user template system fields */
+  masterTemplateId?: string;
+  isMasterTemplate?: boolean;
+  isDerivedTemplate?: boolean;
+  isUserTemplate?: boolean;
+  isNewTemplate?: boolean;
+  newUntil?: number;
+  generationSource?: GenerationSource;
+  /** Front-facing task category (user-facing) */
+  frontCategory?: FrontCategory;
+  /** Back-end structure category (engine-facing) */
+  backStructure?: BackStructure;
+  /** Auto score and quality level (0-10 mapped to free/standard/advanced/premium) */
+  score?: number;
+  qualityLevel?: QualityLevel;
 };

@@ -62,8 +62,8 @@ export function BillingOverlay(props: Props) {
         />
         <span style={{ fontSize: 13, color: "rgba(255,255,255,0.72)", lineHeight: 1.6 }}>
           {t(lang,
-            "继续即表示同意《付费条款》《退款政策》《用户协议》《隐私说明》。结算与税务由 Paddle 处理。",
-            "By continuing you agree to the Billing Terms, Refund Policy, Terms of Service, and Privacy Notice. Checkout and taxes are processed by Paddle."
+            "继续即表示同意《付费条款》《退款政策》《服务协议》《隐私说明》。支付服务商与商户信息以下单页展示为准。",
+            "By continuing you agree to the Billing Terms, Refund Policy, Terms of Service, and Privacy Notice. Payment provider and merchant details are governed by the checkout page."
           )}
         </span>
       </label>
@@ -141,7 +141,7 @@ export function BillingOverlay(props: Props) {
                 <div style={s.divider} />
                 <ul style={{ ...s.list, color: "rgba(255,255,255,0.45)" }}>
                   <li>{t(lang, "最多 3 个项目", "Up to 3 projects")}</li>
-                  <li>{t(lang, "不含 AI 生成", "No AI generation")}</li>
+                  <li>{t(lang, "不含执行能力", "No execution features")}</li>
                 </ul>
               </article>
 
@@ -154,7 +154,7 @@ export function BillingOverlay(props: Props) {
                   <span style={s.pricePer}>{t(lang, " / 月", " / mo")}</span>
                 </div>
                 <div style={s.priceMeta}>
-                  {t(lang, `含 ${monthlyCredits} 积分 / 月，AI 生成按积分计费`, `Includes ${monthlyCredits} credits / month · AI generation uses credits`)}
+                  {t(lang, `含 ${monthlyCredits} 积分 / 月，用于模板与高级功能`, `Includes ${monthlyCredits} credits / month for templates and advanced features`)}
                 </div>
                 <div style={s.divider} />
                 <ul style={s.list}>
@@ -193,8 +193,8 @@ export function BillingOverlay(props: Props) {
             <div style={s.noteCard}>
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.7 }}>
                 {t(lang,
-                  "· 提示词导出永久免费，不消耗积分。\n· AI 图片生成、视频生成、付费模版使用积分。\n· Pro 会员每月自动补充积分，不使用不累积。",
-                  "· Prompt export is always free — no credits needed.\n· AI image / video generation and paid templates use credits.\n· Pro credits refresh monthly and do not roll over."
+                  "· 提示词导出永久免费，不消耗积分。\n· 平台不代你支付第三方 API 或本地生成成本。\n· Pro 会员每月自动补充积分，不使用不累积。",
+                  "· Prompt export is always free — no credits needed.\n· The platform does not pay third-party API or local-generation costs for you.\n· Pro credits refresh monthly and do not roll over."
                 ).split("\n").map((line, i) => <div key={i}>{line}</div>)}
               </div>
             </div>
@@ -243,10 +243,10 @@ export function BillingOverlay(props: Props) {
               </div>
               <div style={{ display: "grid", gap: 6 }}>
                 {[
-                  [t(lang, "标准图片生成", "Standard image"), "1"],
-                  [t(lang, "高清图片生成", "HD image"), "3"],
-                  [t(lang, "视频生成", "Video"), "20"],
-                  [t(lang, "付费模版", "Paid template"), t(lang, "1–3（按模版）", "1–3 (per template)")],
+                  [t(lang, "高级模版", "Advanced templates"), t(lang, "按模版显示", "Shown per template")],
+                  [t(lang, "工作流附加能力", "Workflow add-ons"), t(lang, "按功能显示", "Shown per feature")],
+                  [t(lang, "未来站内能力", "Future in-product features"), t(lang, "按功能显示", "Shown per feature")],
+                  [t(lang, "第三方 API / 本地生成", "Third-party API / local generation"), t(lang, "不由平台计费", "Not billed by the platform")],
                 ].map(([label, val]) => (
                   <div key={label as string} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "rgba(255,255,255,0.8)" }}>
                     <span>{label}</span>

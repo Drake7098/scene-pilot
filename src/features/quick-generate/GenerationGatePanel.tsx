@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowRight, Coins, Copy, Cpu, X } from "lucide-react";
+import { ArrowRight, Copy, Cpu, Crown, X } from "lucide-react";
 import type { Lang } from "../../i18n";
 
 const colors = {
@@ -31,7 +31,7 @@ export function GenerationGatePanel({ open, lang, canUseLocal, onClose, onCopyPr
         <div style={styles.head}>
           <div>
             <div style={styles.title}>{t(lang, "继续你的创作", "Keep creating")}</div>
-            <div style={styles.desc}>{t(lang, "站内生成需要积分。你也可以复制提示词去熟悉的平台继续，或者使用本地链路。", "Hosted generation needs credits. You can also copy the prompt to another platform, or use a local provider.")}</div>
+            <div style={styles.desc}>{t(lang, "优先复制提示词或导出项目包；Pro 用户也可以接自己的 API 或本地引擎继续执行。", "Copy the prompt or export a package first. Pro users can also continue with their own API or local engines.")}</div>
           </div>
           <button type="button" style={styles.iconBtn} onClick={onClose}><X size={15} /></button>
         </div>
@@ -45,16 +45,16 @@ export function GenerationGatePanel({ open, lang, canUseLocal, onClose, onCopyPr
           </button>
           <button type="button" style={styles.card} onClick={onTopUp}>
             <div style={styles.cardText}>
-              <div style={styles.cardTitle}><Coins size={15} /> {t(lang, "充值 $3", "Top up $3")}</div>
-              <div style={styles.cardDesc}>{t(lang, "购买 150 积分，保留当前模板和参考图，继续站内生成。", "Buy 150 credits and continue here with your current template and references.")}</div>
+              <div style={styles.cardTitle}><Crown size={15} /> {t(lang, "升级到 Pro", "Upgrade to Pro")}</div>
+              <div style={styles.cardDesc}>{t(lang, "解锁自己的 API、ComfyUI 和 Draw Things 执行能力。", "Unlock your own API, ComfyUI, and Draw Things execution paths.")}</div>
             </div>
             <ArrowRight size={15} />
           </button>
           {canUseLocal ? (
             <button type="button" style={styles.card} onClick={onLocalGenerate}>
               <div style={styles.cardText}>
-                <div style={styles.cardTitle}><Cpu size={15} /> {t(lang, "本地生成", "Generate Local")}</div>
-                <div style={styles.cardDesc}>{t(lang, "使用已连接的 Draw Things / ComfyUI，不消耗平台积分。", "Use connected Draw Things / ComfyUI without platform credits.")}</div>
+                <div style={styles.cardTitle}><Cpu size={15} /> {t(lang, "打开 API / 本地接入", "Open API / Local")}</div>
+                <div style={styles.cardDesc}>{t(lang, "检查 ComfyUI、Draw Things 或自己的 API 连接状态。", "Check ComfyUI, Draw Things, or your own API connection status.")}</div>
               </div>
               <ArrowRight size={15} />
             </button>

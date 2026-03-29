@@ -44,8 +44,8 @@ export default function PricingPage() {
             <p style={subtitle}>
               {t(
                 lang,
-                "免费开始，Pro 解锁专业工作流，积分驱动 AI 生成",
-                "Start free. Unlock pro workflow. Credits power AI generation."
+                "免费开始，Pro 解锁专业工作流，积分用于模板与高级功能",
+                "Start free. Unlock pro workflow. Credits support templates and advanced features."
               )}
             </p>
           </header>
@@ -65,7 +65,7 @@ export default function PricingPage() {
                 </ul>
                 <ul style={limitList}>
                   <li>{t(lang, "· 最多 3 个项目", "· Up to 3 projects")}</li>
-                  <li>{t(lang, "· 不含 AI 生成", "· No AI generation")}</li>
+                  <li>{t(lang, "· 不含执行能力", "· No execution features")}</li>
                 </ul>
               </article>
 
@@ -78,8 +78,8 @@ export default function PricingPage() {
                 <div style={cardLabel}>
                   {t(
                     lang,
-                    "含 700 积分/月，AI 生成按积分计费",
-                    "Includes 700 credits/month · AI uses credits"
+                    "含 700 积分/月，用于模板与高级功能",
+                    "Includes 700 credits/month for templates and advanced features"
                   )}
                 </div>
                 <ul style={featureList}>
@@ -108,8 +108,8 @@ export default function PricingPage() {
             <p style={sectionSub}>
               {t(
                 lang,
-                "提示词导出永久免费。积分用于 AI 生成和付费模版。",
-                "Prompt export is always free. Credits are used for AI generation and paid templates."
+                "提示词导出永久免费。积分用于模板、高级功能和未来站内能力，不用于第三方 API 或本地生成费用。",
+                "Prompt export is always free. Credits support templates, advanced features, and future in-product capabilities, not third-party API or local generation costs."
               )}
             </p>
             <div style={creditsGrid}>
@@ -134,20 +134,20 @@ export default function PricingPage() {
             <h2 style={sectionTitle}>{t(lang, "积分用量", "Credit usage")}</h2>
             <div style={usageTable}>
               <div style={usageRow}>
-                <span>{t(lang, "标准图片生成 / Standard image", "Standard image / 标准图片生成")}</span>
-                <strong>{t(lang, "1 积分", "1 credit")}</strong>
+                <span>{t(lang, "高级模版 / Advanced template", "Advanced template / 高级模版")}</span>
+                <strong>{t(lang, "按模版显示", "Shown per template")}</strong>
               </div>
               <div style={usageRow}>
-                <span>{t(lang, "高清图片生成 / HD image", "HD image / 高清图片生成")}</span>
-                <strong>{t(lang, "3 积分", "3 credits")}</strong>
+                <span>{t(lang, "工作流附加能力 / Workflow add-ons", "Workflow add-ons / 工作流附加能力")}</span>
+                <strong>{t(lang, "按功能显示", "Shown per feature")}</strong>
               </div>
               <div style={usageRow}>
-                <span>{t(lang, "视频生成 / Video", "Video / 视频生成")}</span>
-                <strong>{t(lang, "20 积分", "20 credits")}</strong>
+                <span>{t(lang, "未来站内能力 / Future features", "Future features / 未来站内能力")}</span>
+                <strong>{t(lang, "按功能显示", "Shown per feature")}</strong>
               </div>
               <div style={usageRow}>
-                <span>{t(lang, "付费模版 / Paid template", "Paid template / 付费模版")}</span>
-                <strong>{t(lang, "1–3 积分（按模版）", "1–3 credits (per template)")}</strong>
+                <span>{t(lang, "第三方 API / 本地生成", "Third-party API / local generation")}</span>
+                <strong>{t(lang, "不由平台计费", "Not billed by the platform")}</strong>
               </div>
             </div>
           </section>
@@ -157,8 +157,8 @@ export default function PricingPage() {
             <p style={footnote}>
               {t(
                 lang,
-                "提示词导出永久免费，不消耗积分。Pro 积分每月自动补充，不使用不累积。结算由 Paddle 处理。",
-                "Prompt export is always free. Pro credits refresh monthly and do not roll over. Checkout by Paddle."
+                "提示词导出永久免费，不消耗积分。Pro 积分每月自动补充，不使用不累积。支付服务商与商户信息以下单页展示为准。",
+                "Prompt export is always free. Pro credits refresh monthly and do not roll over. Payment provider and merchant details are governed by the checkout page."
               )}
             </p>
             <a href={`mailto:${PUBLIC_CONTACT_CHANNELS.business}`} style={footerLink}>

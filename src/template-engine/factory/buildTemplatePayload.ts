@@ -6,7 +6,6 @@ import type { TemplateVariant } from "../types/templateTypes";
 import type { TemplatePayload } from "../types/templatePayload";
 import { getFamilyBase } from "../registry/familyBases";
 import { getVariantPatch } from "../registry/variantPatches";
-import { buildPayloadFromUnifiedTemplate } from "./unifiedAdapter";
 
 function deepMerge<T extends Record<string, unknown>>(base: T, patch: Partial<T>): T {
   const out = { ...base } as T;
@@ -46,5 +45,6 @@ export async function buildTemplatePayload(
     return Promise.resolve(merged);
   }
 
+  const { buildPayloadFromUnifiedTemplate } = await import("./unifiedAdapter");
   return buildPayloadFromUnifiedTemplate(familyId, variant);
 }

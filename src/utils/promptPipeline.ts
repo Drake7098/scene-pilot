@@ -4,7 +4,7 @@ import { resolveSceneConfig } from "../model";
 import type { PlatformPresetId } from "../config/platformPresets";
 import { getPlatformPreset } from "../config/platformPresets";
 import type { PromptProfile } from "./prompt";
-import { generatePrompts } from "./prompt";
+import { compileCanonicalPromptV3 } from "./prompt";
 import { adaptPromptToPlatformDetailed } from "./platformAdapter";
 import { splitMachineNotes } from "./promptTail";
 import type { PromptExportScope, PromptPipelineMetadata, PromptPipelineStage } from "../types/export";
@@ -25,6 +25,10 @@ export type PromptPipelineOutput = {
   finalCopyPrompt: string;
   metadata: PromptPipelineMetadata;
 };
+
+export function getCanonicalPromptV3(input: { project: Project; lang: Lang }): string {
+  return compileCanonicalPromptV3(input.project, input.lang).trimEnd();
+}
 
 function collapseStaticKeyframes(text: string, lang: Lang): string {
   const lines = (text ?? "").split("\n");
@@ -193,16 +197,19 @@ export function runPromptPipeline(input: PromptPipelineInput): PromptPipelineOut
   const profile = input.profile ?? preset.baseProfile;
   const scenes = input.project.scenes ?? [];
   const firstScene = scenes[0];
-  const resolved = firstScene ? resolveSceneConfig(firstScene) : { mediaMode: "video", compiler: "v1" as SceneCompiler };
+  const resolved = firstScene ? resolveSceneConfig(firstScene) : { mediaMode: "video", compiler: "v3" as SceneCompiler };
   const mediaMode: "image" | "video" = scenes.some((scene) => resolveSceneConfig(scene).mediaMode === "video") ? "video" : "image";
-  const compiler: SceneCompiler = scenes.some((scene) => resolveSceneConfig(scene).compiler === "v2") ? "v2" : resolved.compiler;
+  const compiler: SceneCompiler = "v3";
   const sceneTitle = (firstScene?.name ?? "").trim() || firstScene?.id || (input.lang === "zh" ? "分镜" : "Scene");
 
   const stages: PromptPipelineStage[] = ["compile", "assemble", "append_tail", "adapt_platform", "final_cleanup"];
   const sceneStrategy = summarizeProjectSceneStrategy(input.project);
   const creativeContext = readProjectCreativeContext(input.project);
 
-  const corePrompt = generatePrompts(input.project, input.lang, "universal");
+  const corePrompt = getCanonicalPromptV3({
+    project: input.project,
+    lang: input.lang
+  });
   const adapted = adaptPromptToPlatformDetailed({
     prompt: corePrompt,
     profile,

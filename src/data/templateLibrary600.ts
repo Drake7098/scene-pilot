@@ -618,7 +618,7 @@ const FREE_DESCRIPTIONS: Record<string, { descriptionZh: string; descriptionEn: 
   ,lifestyle_scene: { descriptionZh: "适合生活场景、人物环境叙事、日常记录。", descriptionEn: "A starter for lifestyle scenes with subject-environment storytelling." }
   ,anime_action: { descriptionZh: "适合动漫动作戏、打斗场面、能量爆发场景。", descriptionEn: "A starter for anime action sequences and high-energy combat scenes." }
   ,anime_emotional: { descriptionZh: "适合动漫情绪特写、人物内心戏、关键时刻。", descriptionEn: "A starter for anime emotional beats and character focus moments." }
-  ,anime_landscape: { descriptionZh: "适合动漫风格环境镜头、场景建立、背景展示。", descriptionEn: "A starter for anime-style environment and establishing scene visuals." }
+  ,anime_landscape: { descriptionZh: "适合动画风格环境镜头、场景建立、背景展示。", descriptionEn: "A starter for anime-style environment and establishing scene visuals." }
   ,urban_scene: { descriptionZh: "适合城市街景、夜间都市、户外环境镜头。", descriptionEn: "A starter for urban cinematography and city environment shots." }
   ,drama_opening: { descriptionZh: "适合剧情开场、人物出场建立、氛围铺垫。", descriptionEn: "A starter for drama openings that establish character and tone." }
   ,drama_conflict: { descriptionZh: "适合剧情冲突、人物对立、矛盾激化场面。", descriptionEn: "A starter for dramatic conflict and interpersonal tension scenes." }
@@ -632,8 +632,8 @@ const FREE_DESCRIPTIONS: Record<string, { descriptionZh: string; descriptionEn: 
   ,food_ad: { descriptionZh: "适合美食广告、餐厅宣传、食品品牌形象。", descriptionEn: "A starter for food advertising with appetizing texture and depth." }
   ,tutorial_demo: { descriptionZh: "适合教学演示、操作说明、知识传递镜头。", descriptionEn: "A starter for tutorial and instructional demonstration shots." }
   ,product_tutorial: { descriptionZh: "适合产品教程、使用展示、功能说明视频。", descriptionEn: "A starter for product tutorial and feature demonstration videos." }
-  ,chase_sequence: { descriptionZh: "适合多镜追逐序列、连续追逐调度、动态场景组合。", descriptionEn: "A multi-shot starter for chase sequence continuity." }
-  ,dialogue_sequence: { descriptionZh: "适合多镜对话序列、连续对话调度、情绪递进。", descriptionEn: "A multi-shot starter for dialogue sequence continuity." }
+  ,chase_sequence: { descriptionZh: "适合多镜追逐序列、连续运动组织、动态场景组合。", descriptionEn: "A multi-shot starter for chase sequence continuity." }
+  ,dialogue_sequence: { descriptionZh: "适合多镜交流序列、连续对话组织、情绪递进。", descriptionEn: "A multi-shot starter for dialogue sequence continuity." }
   ,action_sequence: { descriptionZh: "适合多镜动作序列、连续动作调度、打斗/运动组合。", descriptionEn: "A multi-shot starter for action sequence continuity." }
 };
 

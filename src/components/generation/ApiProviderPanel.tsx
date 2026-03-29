@@ -95,9 +95,9 @@ const PROVIDERS = {
 
 function ExternalProviderCard({ lang, id, cred, onChange, isDefault, onSetDefault }: {
   lang: Lang;
-  id: ApiProviderId;
-  cred: ApiCredentialState[ApiProviderId];
-  onChange: (patch: Partial<ApiCredentialState[ApiProviderId]>) => void;
+  id: "fal" | "runway";
+  cred: ApiCredentialState["fal"] | ApiCredentialState["runway"];
+  onChange: (patch: Partial<ApiCredentialState["fal"]>) => void;
   isDefault: boolean;
   onSetDefault: () => void;
 }) {
@@ -229,8 +229,17 @@ export function ApiProviderPanel({ lang, apiCredentials, onSave, hasProAccess, o
 
   const defaultCreds: ApiCredentialState = {
     defaultProvider: "fal", updatedAt: null,
-    fal:    { enabled: true,  mode: "platform", apiKey: "", baseUrl: "https://queue.fal.run",       preferredModel: "fal-ai/flux/dev", updatedAt: null },
-    runway: { enabled: false, mode: "platform", apiKey: "", baseUrl: "https://api.dev.runwayml.com", preferredModel: "gen3a_turbo",    updatedAt: null },
+    fal:    { enabled: true,  mode: "personal", apiKey: "", baseUrl: "https://queue.fal.run",       preferredModel: "fal-ai/flux/dev", updatedAt: null },
+    replicate: { enabled: false, mode: "personal", apiKey: "", baseUrl: "https://api.replicate.com", preferredModel: "", updatedAt: null },
+    runway: { enabled: false, mode: "personal", apiKey: "", baseUrl: "https://api.dev.runwayml.com", preferredModel: "gen3a_turbo",    updatedAt: null },
+    pika: { enabled: false, mode: "personal", apiKey: "", baseUrl: "https://api.pika.art", preferredModel: "", updatedAt: null },
+    luma: { enabled: false, mode: "personal", apiKey: "", baseUrl: "https://api.lumalabs.ai", preferredModel: "", updatedAt: null },
+    stability: { enabled: false, mode: "personal", apiKey: "", baseUrl: "https://api.stability.ai", preferredModel: "", updatedAt: null },
+    fal_control: { enabled: false, mode: "personal", apiKey: "", baseUrl: "https://queue.fal.run", preferredModel: "", updatedAt: null },
+    replicate_control: { enabled: false, mode: "personal", apiKey: "", baseUrl: "https://api.replicate.com", preferredModel: "", updatedAt: null },
+    comfyui: { enabled: false, mode: "personal", apiKey: "", baseUrl: "http://127.0.0.1:8188", preferredModel: "", updatedAt: null },
+    drawthings: { enabled: false, mode: "personal", apiKey: "", baseUrl: "http://127.0.0.1:7888", preferredModel: "", updatedAt: null },
+    custom_api: { enabled: false, mode: "personal", apiKey: "", baseUrl: "", preferredModel: "", updatedAt: null },
   };
 
   const [draft, setDraft] = useState<ApiCredentialState>(() => apiCredentials ?? defaultCreds);
@@ -296,7 +305,7 @@ export function ApiProviderPanel({ lang, apiCredentials, onSave, hasProAccess, o
       <div>
         <SectionLabel label={t(lang, "云端 API", "Cloud APIs")} />
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {(["fal", "runway"] as ApiProviderId[]).map(id => (
+          {(["fal", "runway"] as const).map(id => (
             <ExternalProviderCard
               key={id} lang={lang} id={id}
               cred={draft[id]}

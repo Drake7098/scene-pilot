@@ -25,8 +25,19 @@ export type UserState = {
   updatedAt: string;
 };
 
-export type ApiProviderId = "fal" | "runway";
-export type ApiProviderMode = "platform" | "personal";
+export type CloudApiProviderId =
+  | "fal"
+  | "replicate"
+  | "runway"
+  | "pika"
+  | "luma"
+  | "stability"
+  | "fal_control"
+  | "replicate_control"
+  | "custom_api";
+export type LocalApiProviderId = "comfyui" | "drawthings";
+export type ApiProviderId = CloudApiProviderId | LocalApiProviderId;
+export type ApiProviderMode = "personal";
 
 /** Result of health check after save; do not log plain key. */
 export type ProviderConnectionStatus =
@@ -62,7 +73,16 @@ export type AuthChallenge = {
 export type ApiCredentialState = {
   defaultProvider: ApiProviderId;
   fal: ProviderApiConfig;
+  replicate: ProviderApiConfig;
   runway: ProviderApiConfig;
+  pika: ProviderApiConfig;
+  luma: ProviderApiConfig;
+  stability: ProviderApiConfig;
+  fal_control: ProviderApiConfig;
+  replicate_control: ProviderApiConfig;
+  comfyui: ProviderApiConfig;
+  drawthings: ProviderApiConfig;
+  custom_api: ProviderApiConfig;
   updatedAt: string | null;
 };
 

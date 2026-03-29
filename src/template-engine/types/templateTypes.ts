@@ -12,13 +12,16 @@ export type TemplateVariant =
 
 export type TemplateCategory =
   | "product"
+  | "portrait"
   | "dialogue"
   | "ad"
+  | "video"
   | "short_video"
   | "social"
   | "camera_move"
   | "composition"
   | "continuous"
+  | "poster"
   | "cover_poster";
 
 export type TemplateStoryPlan = "single" | "continuous" | "multi_cam" | "edited";
@@ -28,7 +31,27 @@ export type TemplateMediaType = "image" | "video";
 export type TemplateRatio = "16:9" | "9:16" | "1:1" | "4:5" | "2:3" | "3:4" | "21:9";
 
 /** Internal technical domain - for engine routing */
-export type TemplateDomain = "base" | "webdrama_continuity" | "anime_continuity" | "product" | "people" | "brand" | "drama" | "action" | "romance" | "nature" | "fashion" | "music" | "lifestyle" | "anime" | "documentary";
+export type TemplateDomain =
+  | "base"
+  | "webdrama_continuity"
+  | "anime_continuity"
+  | "product"
+  | "people"
+  | "portrait"
+  | "brand"
+  | "drama"
+  | "action"
+  | "romance"
+  | "nature"
+  | "fashion"
+  | "music"
+  | "lifestyle"
+  | "anime"
+  | "animation"
+  | "game"
+  | "poster"
+  | "talking"
+  | "documentary";
 
 /**
  * Industry/scene classification - for UI filtering.
@@ -38,7 +61,9 @@ export type TemplateIndustry =
   | "drama"       // 电视剧/网剧
   | "anime"       // 动漫
   | "ad"          // 广告/品牌
+  | "brand"       // 品牌
   | "ecommerce"   // 电商
+  | "education"   // 教育
   | "shortfilm"   // 短片/MV
   | "documentary" // 纪录片
   | "social"      // 社交/自媒体

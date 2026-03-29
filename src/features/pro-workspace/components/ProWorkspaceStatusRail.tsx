@@ -32,7 +32,7 @@ function applyModeLabel(mode: string, lang: Lang): string {
 
 export function ProWorkspaceStatusRail({ lang, project, scene, platformId }: Props) {
   const currentTemplate = project?.meta?.currentTemplate;
-  const applyMode = currentTemplate?.applyMode ?? "layout_only";
+  const applyMode = currentTemplate?.applyMode ?? "full_workflow";
   const conflicts = detectSceneConflicts(scene, lang);
   const mediaMode = resolveSceneConfig(scene).mediaMode;
   const layoutLocked = applyMode === "layout_only";

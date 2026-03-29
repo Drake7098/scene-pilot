@@ -58,6 +58,7 @@ const BG_PRESET_OPTIONS = (lang: Lang) => [
 ];
 
 const ENVIRONMENT_MARK = "env_mood:";
+const IMPERFECTION_SCENE_MARK = "imperfection_scene:";
 function parseEnvMood(notes: string) {
   const hit = (notes ?? "").split("\n").find((l) => l.trim().startsWith(ENVIRONMENT_MARK));
   return hit ? hit.trim().slice(ENVIRONMENT_MARK.length).trim() : "";
@@ -68,8 +69,78 @@ function writeEnvMood(notes: string, v: string) {
   return lines.join("\n");
 }
 
+type ImperfectionStrength = "light" | "medium" | "strong";
+
+const SCENE_IMPERFECTION_PRESETS = [
+  {
+    id: "none",
+    labelZh: "无",
+    labelEn: "None",
+    phrases: [] as string[],
+  },
+  {
+    id: "air_particles",
+    labelZh: "空气颗粒与轻雾",
+    labelEn: "Air Particles & Light Haze",
+    phrases: ["subtle dust in air", "light atmospheric particles", "slight haze"],
+  },
+  {
+    id: "light_falloff",
+    labelZh: "不均匀光衰",
+    labelEn: "Uneven Light Falloff",
+    phrases: ["uneven lighting falloff", "imperfect light distribution", "natural shadow variation"],
+  },
+  {
+    id: "lived_in",
+    labelZh: "轻微生活痕迹",
+    labelEn: "Lived-in Environment",
+    phrases: ["slight environmental messiness", "small background imperfections", "not overly clean"],
+  },
+  {
+    id: "material_aging",
+    labelZh: "材质旧化",
+    labelEn: "Material Aging",
+    phrases: ["surface wear", "texture inconsistency", "natural material aging", "non-pristine surfaces"],
+  },
+] as const;
+
+function parseSceneImperfectionMeta(raw: string): { presetId: string; level: ImperfectionStrength } {
+  const text = (raw ?? "").trim();
+  const preset = text.match(/(?:^|;)\s*preset=([a-z0-9_]+)\s*(?:;|$)/i)?.[1] ?? "none";
+  const levelRaw = text.match(/(?:^|;)\s*level=(light|medium|strong)\s*(?:;|$)/i)?.[1] ?? "light";
+  const level: ImperfectionStrength = levelRaw === "medium" || levelRaw === "strong" ? levelRaw : "light";
+  return { presetId: preset, level };
+}
+
+function buildSceneImperfectionMarkerValue(presetId: string, level: ImperfectionStrength): string {
+  const preset = SCENE_IMPERFECTION_PRESETS.find((p) => p.id === presetId) ?? SCENE_IMPERFECTION_PRESETS[0];
+  if (!preset.phrases.length) return "";
+  const count = level === "light" ? 2 : level === "medium" ? 3 : preset.phrases.length;
+  const selected = preset.phrases.slice(0, Math.max(1, count));
+  return [`preset=${preset.id}`, `level=${level}`, ...selected].join("; ");
+}
+
+function parseSceneImperfection(notes: string): string {
+  const hit = (notes ?? "").split("\n").find((l) => l.trim().startsWith(IMPERFECTION_SCENE_MARK));
+  return hit ? hit.trim().slice(IMPERFECTION_SCENE_MARK.length).trim() : "";
+}
+
+function writeSceneImperfection(notes: string, value: string): string {
+  const lines = (notes ?? "").split("\n").filter((l) => !l.trim().startsWith(IMPERFECTION_SCENE_MARK));
+  if (value.trim()) lines.push(`${IMPERFECTION_SCENE_MARK}${value.trim()}`);
+  return lines.join("\n");
+}
+
+function strengthOptions(lang: Lang) {
+  return [
+    { value: "light", label: tl(lang, "轻", "Light") },
+    { value: "medium", label: tl(lang, "中", "Medium") },
+    { value: "strong", label: tl(lang, "强", "Strong") },
+  ];
+}
+
 export function SceneBgPanel({ lang, scene, project, onUpdateScene }: Props) {
-  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "layout_only";
+  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "full_workflow";
   const layoutLocked = applyMode === "layout_only";
 
   const [bgRefThumb, setBgRefThumb] = useState("");
@@ -120,6 +191,7 @@ export function SceneBgPanel({ lang, scene, project, onUpdateScene }: Props) {
     const presets = BG_PRESET_OPTIONS(lang).map((o) => o.value).filter((v) => v && v !== "__custom__");
     return presets.includes(v) ? v : v ? "__custom__" : "";
   })();
+  const sceneImperfectionMeta = parseSceneImperfectionMeta(parseSceneImperfection(scene.notes ?? ""));
 
   const envMoodOptions = [
     { value: "",          label: tl(lang, "─ 未定义",   "─ Undefined") },
@@ -171,6 +243,41 @@ export function SceneBgPanel({ lang, scene, project, onUpdateScene }: Props) {
           onChange={(v) => onUpdateScene({ ...scene, notes: writeEnvMood(scene.notes ?? "", v) })}
           disabled={layoutLocked}
           options={envMoodOptions}
+        />
+        <EditorSelect
+          compact
+          label={tl(lang, "缺陷层", "Imperfection Layer")}
+          value={sceneImperfectionMeta.presetId}
+          onChange={(v) =>
+            onUpdateScene({
+              ...scene,
+              notes: writeSceneImperfection(
+                scene.notes ?? "",
+                buildSceneImperfectionMarkerValue(v, sceneImperfectionMeta.level)
+              ),
+            })
+          }
+          disabled={layoutLocked}
+          options={SCENE_IMPERFECTION_PRESETS.map((p) => ({
+            value: p.id,
+            label: tl(lang, p.labelZh, p.labelEn),
+          }))}
+        />
+        <EditorSelect
+          compact
+          label={tl(lang, "缺陷强度", "Imperfection Strength")}
+          value={sceneImperfectionMeta.level}
+          onChange={(v) =>
+            onUpdateScene({
+              ...scene,
+              notes: writeSceneImperfection(
+                scene.notes ?? "",
+                buildSceneImperfectionMarkerValue(sceneImperfectionMeta.presetId, v as ImperfectionStrength)
+              ),
+            })
+          }
+          disabled={layoutLocked}
+          options={strengthOptions(lang)}
         />
       </EditorSection>
 

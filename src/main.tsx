@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
-import App from "./App";
-import LegalPolicyPage from "./pages/LegalPolicyPage";
-import PricingPage from "./pages/PricingPage";
-import LandingPage from "./pages/LandingPage";
-import ProductIntroPage from "./pages/ProductIntroPage";
-import UserManagementPage from "./pages/UserManagementPage";
-import AuthEntryPage from "./pages/AuthEntryPage";
-import SharePage from "./pages/SharePage";
 import { getCurrentUser } from "./services/authService";
+
+const App = lazy(() => import("./App"));
+const LegalPolicyPage = lazy(() => import("./pages/LegalPolicyPage"));
+const PricingPage = lazy(() => import("./pages/PricingPage"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const ProductIntroPage = lazy(() => import("./pages/ProductIntroPage"));
+const UserManagementPage = lazy(() => import("./pages/UserManagementPage"));
+const AuthEntryPage = lazy(() => import("./pages/AuthEntryPage"));
+const SharePage = lazy(() => import("./pages/SharePage"));
+const TemplatePublicPage = lazy(() => import("./pages/TemplatePublicPage"));
 
 const pathnameRaw = typeof window !== "undefined" ? window.location.pathname : "/";
 const pathname = pathnameRaw.length > 1 ? pathnameRaw.replace(/\/+$/, "") : pathnameRaw;
@@ -20,16 +22,30 @@ const isAuthEntryRoute = pathname === "/login" || pathname === "/signin" || path
 const isPricingRoute = pathname === "/pricing" || pathname === "/pricing-test";
 const isUserManagementRoute = pathname === "/account" || pathname === "/user-management";
 const isShareRoute = pathname === "/s";
+const isTemplatePublicRoute = /^\/template\/[^/]+$/i.test(pathname);
 const isTermsRoute = pathname === "/terms";
 const isPrivacyRoute = pathname === "/privacy";
 const isBillingTermsRoute = pathname === "/billing-terms" || pathname === "/billing";
 const isRefundPolicyRoute = pathname === "/refund-policy" || pathname === "/refund";
+const isIpPolicyRoute = pathname === "/ip-user-content" || pathname === "/content-policy";
+const isIntegrationsTermsRoute = pathname === "/integrations-terms" || pathname === "/third-party-integrations";
+const isAupRoute = pathname === "/acceptable-use" || pathname === "/aup";
+const isDisclaimerRoute = pathname === "/disclaimer";
 
 function canBypassAppAuthGate() {
   if (typeof window === "undefined") return false;
   const url = new URL(window.location.href);
   const signin = String(url.searchParams.get("signin") || "").trim().toLowerCase();
-  return ["1", "true", "yes"].includes(signin);
+  const hash = url.hash.startsWith("#") ? url.hash.slice(1) : "";
+  const hashParams = new URLSearchParams(hash);
+  const isOAuthCallback =
+    String(url.searchParams.get("auth_provider") || "").trim().toLowerCase() === "google"
+    || Boolean(url.searchParams.get("code"))
+    || Boolean(url.searchParams.get("error"))
+    || Boolean(url.searchParams.get("error_code"))
+    || Boolean(hashParams.get("access_token"))
+    || Boolean(hashParams.get("refresh_token"));
+  return ["1", "true", "yes"].includes(signin) || isOAuthCallback;
 }
 
 function appAuthRedirectUrl() {
@@ -84,15 +100,39 @@ function resolveRootComponent() {
   if (isPricingRoute) return <PricingPage />;
   if (isUserManagementRoute) return <UserManagementPage />;
   if (isShareRoute) return <SharePage />;
+  if (isTemplatePublicRoute) return <TemplatePublicPage />;
   if (isTermsRoute) return <LegalPolicyPage docId="terms" />;
   if (isPrivacyRoute) return <LegalPolicyPage docId="privacy" />;
   if (isBillingTermsRoute) return <LegalPolicyPage docId="billing" />;
   if (isRefundPolicyRoute) return <LegalPolicyPage docId="refund" />;
+  if (isIpPolicyRoute) return <LegalPolicyPage docId="ip" />;
+  if (isIntegrationsTermsRoute) return <LegalPolicyPage docId="integrations" />;
+  if (isAupRoute) return <LegalPolicyPage docId="aup" />;
+  if (isDisclaimerRoute) return <LegalPolicyPage docId="disclaimer" />;
   return <LandingPage />;
+}
+
+function RootFallback() {
+  return (
+    <div
+      style={{
+        minHeight: "100%",
+        display: "grid",
+        placeItems: "center",
+        background: "#070b12",
+        color: "var(--spx-text-2)",
+        fontSize: 14
+      }}
+    >
+      Loading...
+    </div>
+  );
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    {resolveRootComponent()}
+    <Suspense fallback={<RootFallback />}>
+      {resolveRootComponent()}
+    </Suspense>
   </React.StrictMode>
 );

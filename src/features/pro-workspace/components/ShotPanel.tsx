@@ -112,7 +112,7 @@ export function ShotPanel({ lang, scene, project, onUpdateScene }: Props) {
     return lines.join("\n");
   }
 
-  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "layout_only";
+  const applyMode = project?.meta?.currentTemplate?.applyMode ?? "full_workflow";
   const layoutLocked = applyMode === "layout_only";
 
   return (

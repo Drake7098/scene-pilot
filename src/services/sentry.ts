@@ -63,6 +63,14 @@ export function setSentryUser(user: { id: string; email?: string; username?: str
   }
 }
 
+export function setSentryTags(tags: Record<string, string | null | undefined>): void {
+  if (!initialized || !SENTRY_DSN) return;
+  Object.entries(tags).forEach(([key, value]) => {
+    if (value == null || value === "") return;
+    Sentry.setTag(key, String(value));
+  });
+}
+
 export function isSentryInitialized(): boolean {
   return initialized;
 }

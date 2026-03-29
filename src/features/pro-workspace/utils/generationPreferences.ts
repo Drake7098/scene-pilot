@@ -6,7 +6,7 @@
 export type ImageGenerationProfile = "image_standard" | "image_hq";
 export type VideoGenerationProfile = "video_standard" | "video_hq";
 export type GenerationProfile = ImageGenerationProfile | VideoGenerationProfile;
-export type GenerationProviderMode = "hosted" | "byo";
+export type GenerationProviderMode = "api" | "local_comfy" | "local_draw";
 
 const KEY_PREFIX = "scenepilot_gen_prefs_v1";
 
@@ -23,7 +23,7 @@ export type StoredGenerationPrefs = {
 const DEFAULTS: StoredGenerationPrefs = {
   lastImageProfile: "image_standard",
   lastVideoProfile: "video_standard",
-  lastProviderMode: "hosted",
+  lastProviderMode: "api",
 };
 
 export function loadGenerationPreferences(userId: string | null): StoredGenerationPrefs {
@@ -34,7 +34,12 @@ export function loadGenerationPreferences(userId: string | null): StoredGenerati
     return {
       lastImageProfile: parsed.lastImageProfile === "image_hq" ? "image_hq" : "image_standard",
       lastVideoProfile: parsed.lastVideoProfile === "video_hq" ? "video_hq" : "video_standard",
-      lastProviderMode: parsed.lastProviderMode === "byo" ? "byo" : "hosted",
+      lastProviderMode:
+        parsed.lastProviderMode === "local_comfy"
+          ? "local_comfy"
+          : parsed.lastProviderMode === "local_draw"
+            ? "local_draw"
+            : "api",
     };
   } catch {
     return { ...DEFAULTS };

@@ -7,8 +7,18 @@ import type { Project, Scene, Layer } from "../../../model";
 const LAYOUT_LOCKED_MARK = "@layoutlocked:";
 const CONTINUITY_ID_MARK = "@continuityid:";
 
+function normalizeNotes(notes: unknown): string {
+  if (typeof notes === "string") return notes;
+  if (notes == null) return "";
+  try {
+    return String(notes);
+  } catch {
+    return "";
+  }
+}
+
 function parseLayoutLocked(notes: string): boolean {
-  const lines = (notes ?? "").split("\n");
+  const lines = normalizeNotes(notes).split("\n");
   const hit = lines.find((l) => l.trim().toLowerCase().startsWith(LAYOUT_LOCKED_MARK.toLowerCase()));
   if (!hit) return false;
   const v = hit.trim().slice(LAYOUT_LOCKED_MARK.length).trim();
@@ -16,7 +26,7 @@ function parseLayoutLocked(notes: string): boolean {
 }
 
 function parseContinuityId(notes: string): string | null {
-  const lines = (notes ?? "").split("\n");
+  const lines = normalizeNotes(notes).split("\n");
   const hit = lines.find((l) => l.trim().toLowerCase().startsWith(CONTINUITY_ID_MARK.toLowerCase()));
   if (!hit) return null;
   const v = hit.trim().slice(CONTINUITY_ID_MARK.length).trim();
@@ -24,7 +34,7 @@ function parseContinuityId(notes: string): string | null {
 }
 
 export function writeLayoutLocked(notes: string, locked: boolean): string {
-  const lines = (notes ?? "").split("\n").filter(Boolean);
+  const lines = normalizeNotes(notes).split("\n").filter(Boolean);
   const rest = lines.filter((l) => !l.trim().toLowerCase().startsWith(LAYOUT_LOCKED_MARK.toLowerCase()));
   if (locked) rest.push(`${LAYOUT_LOCKED_MARK}1`);
   return rest.join("\n");

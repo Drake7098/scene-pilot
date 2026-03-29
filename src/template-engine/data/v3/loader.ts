@@ -43,28 +43,61 @@ export function loadV3TemplatePayload(templateId: string): TemplatePayload | nul
 
   const sceneNotes = def?.sceneNotes ?? buildDefaultNotes(mediaMode as "image" | "video");
 
-  const layers = def?.layerLook
-    ? [
-        {
-          id: "layer_subject_1",
-          type: "subject",
-          shape: "rect" as const,
-          look: def.layerLook,
-          shapeDesc: def.layerShapeDesc ?? "",
-          z: 1,
-          color: "#b7c3ff",
-          opacity: 1,
-          kf: [
-            { t: 0, x: 50, y: 50, w: 35, h: 50, rot: 0 },
-            { t: 1, x: 50, y: 50, w: 35, h: 50, rot: 0 },
-          ],
-          notes: def.layerNotes ?? "",
-          externalPrompt: "",
-          referenceLinks: "",
-          referencePolicy: "optional" as const,
-        },
-      ]
-    : [];
+  const layers = def?.sceneLayers?.length
+    ? def.sceneLayers.map((layer) => ({
+        id: layer.id,
+        type: layer.type,
+        shape: "rect" as const,
+        look: layer.look,
+        shapeDesc: layer.shapeDesc ?? "",
+        z: layer.z,
+        color: layer.color ?? "#b7c3ff",
+        opacity: layer.opacity ?? 1,
+        kf: [
+          {
+            t: 0 as const,
+            x: layer.t0.x,
+            y: layer.t0.y,
+            w: layer.t0.w,
+            h: layer.t0.h,
+            rot: layer.t0.rot ?? 0,
+          },
+          {
+            t: 1 as const,
+            x: layer.t1?.x ?? layer.t0.x,
+            y: layer.t1?.y ?? layer.t0.y,
+            w: layer.t1?.w ?? layer.t0.w,
+            h: layer.t1?.h ?? layer.t0.h,
+            rot: layer.t1?.rot ?? layer.t0.rot ?? 0,
+          },
+        ],
+        notes: layer.notes ?? "",
+        externalPrompt: layer.externalPrompt ?? "",
+        referenceLinks: layer.referenceLinks ?? "",
+        referencePolicy: layer.referencePolicy ?? "optional" as const,
+      }))
+    : def?.layerLook
+      ? [
+          {
+            id: "layer_subject_1",
+            type: "subject",
+            shape: "rect" as const,
+            look: def.layerLook,
+            shapeDesc: def.layerShapeDesc ?? "",
+            z: 1,
+            color: "#b7c3ff",
+            opacity: 1,
+            kf: [
+              { t: 0, x: 50, y: 50, w: 35, h: 50, rot: 0 },
+              { t: 1, x: 50, y: 50, w: 35, h: 50, rot: 0 },
+            ],
+            notes: def.layerNotes ?? "",
+            externalPrompt: "",
+            referenceLinks: "",
+            referencePolicy: "optional" as const,
+          },
+        ]
+      : [];
 
   const scene = {
     id: "scene_1",
@@ -74,14 +107,18 @@ export function loadV3TemplatePayload(templateId: string): TemplatePayload | nul
     transitionType: "cut" as const,
     inheritFromPrevious: false,
     camera: {
-      shot: "medium",
-      movement: "static",
+      shot: def?.sceneCamera?.shot ?? "medium",
+      movement: def?.sceneCamera?.movement ?? "static",
       keyframes: [
         { t: 0, x: 0, y: 0, zoom: 1, rot: 0 },
         { t: 1, x: 0, y: 0, zoom: 1, rot: 0 },
       ],
     },
-    lighting: { time: "", key_dir: "", mood: "" },
+    lighting: {
+      time: def?.sceneLighting?.time ?? "",
+      key_dir: def?.sceneLighting?.key_dir ?? "",
+      mood: def?.sceneLighting?.mood ?? "",
+    },
     layers,
     config: {
       mediaMode: mediaMode as "image" | "video",
