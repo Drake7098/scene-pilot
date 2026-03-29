@@ -4,11 +4,11 @@ import {
   X,
   LayoutGrid,
   List,
-  User,
+  UserRound,
   Layers,
-  MessagesSquare,
-  Crosshair,
-  Orbit,
+  Video,
+  Clapperboard,
+  MonitorPlay,
   Sparkles
 } from "lucide-react";
 import type { Lang } from "../../../i18n";
@@ -97,9 +97,9 @@ export function TemplateWorkspaceHeader({
 
   const getProSubTaskIcon = (subTaskId: string) => {
     if (subTaskId === "continuity") return Layers;
-    if (subTaskId === "dialogue") return MessagesSquare;
-    if (subTaskId === "action") return Crosshair;
-    if (subTaskId === "chase") return Orbit;
+    if (subTaskId === "dialogue") return Video;
+    if (subTaskId === "action") return Clapperboard;
+    if (subTaskId === "chase") return MonitorPlay;
     return Sparkles;
   };
 
@@ -206,7 +206,7 @@ export function TemplateWorkspaceHeader({
             onMouseDown={preventMouseFocus}
             onMouseUp={blurButton}
           >
-            <User size={14} />
+            <UserRound size={14} />
             <span>{t("我的模板", "My Templates")}</span>
           </button>
           <button

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, ChevronUp, Copy, Download, HelpCircle, MoreHorizontal } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Download, CircleHelp, MoreHorizontal } from "lucide-react";
 import type { Lang } from "../i18n";
 import type { Project } from "../model";
 import type { PromptProfile } from "../utils/prompt";
@@ -866,7 +866,7 @@ export function ExportPanel({
                 aria-label={lang === "zh" ? "说明" : "Help"}
                 title={readonlyHelpText}
               >
-                <HelpCircle size={14} />
+                <CircleHelp size={14} />
               </button>
               {readonlyHelpOpen ? (
                 <div style={styles.helpPopover} role="tooltip">
