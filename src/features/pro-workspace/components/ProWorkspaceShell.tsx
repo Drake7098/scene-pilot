@@ -189,14 +189,14 @@ export function ProWorkspaceShell(props: Props) {
   const [internalSection, setInternalSection] = useState<ProWorkspaceSection>("shot");
   const [queueStatusText, setQueueStatusText] = useState("");
   const [generateSettings, setGenerateSettings] = useState<GenerateSettings>({
-    executionMode: "copy",
+    executionMode: "api",
     exportProfile: "universal",
     count: 1,
     resultMode: "new",
     referenceMode: "auto",
     canGenerate: true,
-    generateLabel: lang === "zh" ? "复制提示词" : "Copy Prompt",
-    statusHint: lang === "zh" ? "复制最终提示词到剪贴板" : "Copy the final prompt to clipboard",
+    generateLabel: lang === "zh" ? "生成" : "Generate",
+    statusHint: lang === "zh" ? "执行当前生成设置" : "Run the current generation settings",
   });
   const section = externalSection ?? internalSection;
   const normalizedSection: ProWorkspaceSection = section === "export" || section === "platform" ? "generate_settings" : section;

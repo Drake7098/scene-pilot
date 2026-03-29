@@ -8,7 +8,6 @@ import { normalizeAndValidateTemplatePayload } from "../types/templatePayload";
 import { getTemplateIndexById, getTemplateIndex } from "../index/templateIndexData";
 import { buildTemplatePayload } from "../factory/buildTemplatePayload";
 import { getCuratedPhase1Payload } from "../../data/curatedTemplates_phase1_CL";
-import { loadV3TemplatePayload } from "../data/v3/loader";
 
 const payloadCache = new Map<string, TemplatePayload>();
 
@@ -51,6 +50,7 @@ export async function loadTemplatePayloadById(id: string): Promise<TemplatePaylo
 
   // V3 模板：走 V3 payload loader（避免回落到旧 tpl400 兼容链导致 template not found）
   if (id.startsWith("v3_")) {
+    const { loadV3TemplatePayload } = await import("../data/v3/loader");
     const payload = await loadV3TemplatePayload(id);
     if (!payload) return null;
     const idx = getTemplateIndexById(id);

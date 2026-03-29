@@ -449,7 +449,7 @@ export function AccountCenterModal(props: Props) {
             {/* ── 服务不可用提示 ── */}
             {!googleSignInEnabled ? (
               <div style={styles.authEnvHint} data-testid="account-auth-env-hint">
-                {lang === "zh" ? "登录失败，请重试。" : "Login failed. Please try again."}
+                {lang === "zh" ? "Google 登录未配置。" : "Google sign-in is not configured."}
               </div>
             ) : null}
 
@@ -837,12 +837,12 @@ export function AccountCenterModal(props: Props) {
                           {t(lang, `${lastConnectedLabel} 已连接`, `${lastConnectedLabel} connected`)}
                         </div>
                         <div style={{ fontSize: 12, color: "#9ca3af" }}>
-                          {t(lang, "下一步可以去执行面板选择方式，或回到模板开始创作。", "Next, go to the execution panel or jump back to templates to start creating.")}
+                          {t(lang, "下一步可以去自有API生成面板选择方式，或回到模板开始创作。", "Next, go to the BYO API generate panel or jump back to templates to start creating.")}
                         </div>
                       </div>
                       <div style={styles.providerActions}>
                         <button type="button" style={styles.secondaryBtn} onClick={() => onGoGenerateSettings?.()}>
-                          {t(lang, "去执行", "Go to Execution")}
+                          {t(lang, "去自有API生成", "Go to BYO API Generate")}
                         </button>
                         <button type="button" style={styles.primaryBtn} onClick={() => onGoTemplateStart?.()}>
                           {t(lang, "去模板开始创作", "Go to Templates")}

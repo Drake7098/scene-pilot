@@ -47,6 +47,13 @@ function requireSupabaseConfig() {
   return cfg;
 }
 
+function getAppBaseUrl() {
+  const configured = String(import.meta.env.VITE_APP_BASE_URL || "").trim().replace(/\/+$/, "");
+  if (configured) return configured;
+  if (typeof window !== "undefined") return window.location.origin.replace(/\/+$/, "");
+  return "";
+}
+
 function readSupabaseSession(): SupabaseSessionState | null {
   if (typeof window === "undefined") return null;
   try {
@@ -466,7 +473,8 @@ export async function signInWithGoogle(): Promise<{ session: UserSession; user: 
   }
   const { verifier, challenge } = await createPkcePair();
   writePkceVerifier(verifier);
-  const redirectTo = `${window.location.origin}/?auth_provider=google`;
+  const appBaseUrl = getAppBaseUrl();
+  const redirectTo = `${appBaseUrl || window.location.origin.replace(/\/+$/, "")}/app?auth_provider=google`;
   const authUrl = `${cfg.url}/auth/v1/authorize?provider=google&flow_type=pkce&code_challenge_method=s256&code_challenge=${encodeURIComponent(challenge)}&redirect_to=${encodeURIComponent(redirectTo)}`;
   window.location.assign(authUrl);
   throw new Error("auth_redirect_started");

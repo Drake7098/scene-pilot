@@ -261,12 +261,12 @@ export function ExportControlPanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       <div style={{ padding: "12px 14px 10px" }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: C.accent, marginBottom: 3 }}>{tl(lang, "执行", "Execution")}</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.accent, marginBottom: 3 }}>{tl(lang, "自有API生成", "BYO API Generate")}</div>
         <div style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.5 }}>
           {tl(
             lang,
-            "这里只管理 Pro 用户的 API 与本地执行方式。",
-            "This panel only manages Pro API and local execution."
+            "这里只管理 Pro 用户的 API 与本地生成方式。",
+            "This panel only manages Pro API and local generation."
           )}
         </div>
       </div>
@@ -274,7 +274,7 @@ export function ExportControlPanel({
       {divider()}
 
       <div style={{ padding: "12px 14px 14px", display: "grid", gap: 8 }}>
-        {sectionTitle(tl(lang, "执行方式", "Execution Mode"))}
+        {sectionTitle(tl(lang, "生成方式", "Generation Mode"))}
         {optionRow({ selected: executionMode === "api", title: tl(lang, "我的 API · Pro", "My API · Pro"), desc: tl(lang, "使用你自己的 API 执行", "Run with your own API"), onClick: () => setExecutionMode("api") })}
         {optionRow({ selected: executionMode === "comfyui", title: "ComfyUI · Pro", desc: tl(lang, "连接本地 ComfyUI 执行", "Run through local ComfyUI"), onClick: () => setExecutionMode("comfyui") })}
         {optionRow({ selected: executionMode === "drawthings", title: "Draw Things · Pro", desc: tl(lang, "连接本地 Draw Things 执行", "Run through local Draw Things"), onClick: () => setExecutionMode("drawthings") })}
@@ -283,9 +283,9 @@ export function ExportControlPanel({
       {divider()}
 
       <div style={{ padding: "12px 14px 14px" }}>
-        {sectionTitle(tl(lang, "当前执行摘要", "Execution Summary"))}
+        {sectionTitle(tl(lang, "当前生成摘要", "Generation Summary"))}
         <div style={{ display: "grid", gridTemplateColumns: "94px 1fr", rowGap: 6, columnGap: 8, fontSize: 11 }}>
-          <div style={{ color: C.textMuted }}>{tl(lang, "执行方式", "Mode")}</div>
+          <div style={{ color: C.textMuted }}>{tl(lang, "生成方式", "Mode")}</div>
           <div style={{ color: C.text }}>
             {executionMode === "api"
               ? tl(lang, "我的 API", "My API")

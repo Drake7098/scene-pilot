@@ -16,7 +16,7 @@ import { useTemplatePricing } from "../hooks/useTemplatePricing";
 import { loadTemplatePayloadById } from "../../../template-engine/payload/templateLoader";
 import { getProFieldLabelsFromPayload } from "../../../utils/proFieldsResolver";
 import type { ProFieldLabel } from "../../../utils/proFieldsResolver";
-import { copyTemplateLink } from "../utils/templateShare";
+import { copyTemplateLink, shareTemplateLink } from "../utils/templateShare";
 
 const { colors } = editorTheme;
 const NEW_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
@@ -83,7 +83,7 @@ function buildDecisionSummary(template: TemplateIndex, lang: Lang) {
     return zh ? "你会得到一张结果明确、结构完整、可直接拿去生成宣传图的模板画面。" : "You get a clear-result, fully structured visual template ready for promo generation.";
   })();
 
-  const buyWhy = (() => {
+  const valueReason = (() => {
     const paid = !template.isFree;
     const base = paid
       ? (zh ? "这条是高复杂度付费模板：对象更多、细节更细、结果更接近可投放的宣传图。" : "This is a high-complexity paid template with more objects, richer detail, and stronger promo-ready output.")
@@ -114,7 +114,7 @@ function buildDecisionSummary(template: TemplateIndex, lang: Lang) {
     return zh ? "适合创意测试、品牌视觉探索和风格化宣传图。" : "Best for creative tests, brand exploration, and stylized promo visuals.";
   })();
 
-  return { fit, replaceWhat, outcome, buyWhy };
+  return { fit, replaceWhat, outcome, valueReason };
 }
 
 function isTemplateNewFlag(template: TemplateIndex): boolean {
@@ -260,6 +260,12 @@ export function TemplateWorkspaceDetail({
     const ok = await copyTemplateLink(marketTemplate);
     setLinkHint(ok ? t("链接已复制", "Link copied") : t("复制失败，请重试", "Copy failed, please retry"));
   };
+  const onShareTemplate = async () => {
+    const mode = await shareTemplateLink(marketTemplate, lang);
+    if (mode === "shared") setLinkHint(t("已打开系统分享", "System share opened"));
+    else if (mode === "copied") setLinkHint(t("链接已复制", "Link copied"));
+    else setLinkHint(t("分享失败，请重试", "Share failed, please retry"));
+  };
   const summary = buildDecisionSummary(marketTemplate, lang);
 
   return (
@@ -350,8 +356,8 @@ export function TemplateWorkspaceDetail({
             <div style={styles.decisionValue}>{summary.outcome}</div>
           </div>
           <div style={styles.decisionItem}>
-            <div style={styles.decisionLabel}>{t("购买理由", "Why Buy")}</div>
-            <div style={styles.decisionValue}>{summary.buyWhy}</div>
+            <div style={styles.decisionLabel}>{t("适用价值", "Value")}</div>
+            <div style={styles.decisionValue}>{summary.valueReason}</div>
           </div>
         </div>
       </div>
@@ -376,6 +382,9 @@ export function TemplateWorkspaceDetail({
               : t("使用模板", "Use Template")}
         </button>
         <div style={styles.secondaryActions}>
+          <button type="button" style={styles.secondaryBtn} onClick={onShareTemplate} onMouseDown={preventMouseFocus} onMouseUp={blurButton}>
+            {t("转发模板", "Share Template")}
+          </button>
           <button type="button" style={styles.secondaryBtn} onClick={onCopyLink} onMouseDown={preventMouseFocus} onMouseUp={blurButton}>
             {t("复制链接", "Copy Link")}
           </button>

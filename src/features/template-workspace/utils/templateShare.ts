@@ -21,6 +21,12 @@ export function buildTemplatePath(template: TemplateIndex): string {
   return `/template/${buildTemplateSlug(template)}`;
 }
 
+export function extractTemplateIdFromSlug(slug: string): string | null {
+  const normalized = (slug || "").trim().toLowerCase();
+  if (!normalized) return null;
+  return normalized.match(/-([a-z0-9_]+)$/i)?.[1] ?? null;
+}
+
 export function findTemplateBySlug(items: TemplateIndex[], slug: string): TemplateIndex | null {
   const normalized = (slug || "").trim().toLowerCase();
   if (!normalized) return null;
@@ -28,7 +34,7 @@ export function findTemplateBySlug(items: TemplateIndex[], slug: string): Templa
   const byExact = items.find((item) => buildTemplateSlug(item).toLowerCase() === normalized);
   if (byExact) return byExact;
 
-  const suffixHit = normalized.match(/-([a-z0-9_]+)$/i)?.[1];
+  const suffixHit = extractTemplateIdFromSlug(normalized);
   if (suffixHit) {
     const byId = items.find((item) => String(item.id).toLowerCase() === suffixHit.toLowerCase());
     if (byId) return byId;

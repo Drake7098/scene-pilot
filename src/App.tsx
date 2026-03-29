@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { Lang } from "./i18n";
 import { defaultProject, resolveSceneConfig, sanitizeProject } from "./model";
@@ -59,10 +59,6 @@ import {
 
 import { ChevronDown, ChevronRight, CircleHelp, FolderOpen, Image as ImageIcon, Languages, Layout, MoreHorizontal } from "lucide-react";
 import { CreditCard, Crown, Cpu, KeyRound, LogOut, UserRound, Wallet } from "lucide-react";
-import { AccountCenterModal } from "./components/AccountCenterModal";
-import { BillingOverlay } from "./components/billing/BillingOverlay";
-import { QuickGeneratePanel } from "./features/quick-generate/QuickGeneratePanel";
-import { GenerationGatePanel } from "./features/quick-generate/GenerationGatePanel";
 import type { AccountCenterSection, ApiCredentialState, UserState } from "./types/account";
 import type { CreditLedgerEntry, CreditPackConfig, ProPlanConfig, SubscriptionState } from "./types/billing";
 import {
@@ -82,13 +78,12 @@ import { getApiCredentials, setApiCredentials } from "./services/mockAccountStor
 import { computeUnsavedChanges, runUnsavedChangesGuard, shouldBlockPageLeave } from "./services/unsavedChangesGuard";
 import { createTemplateFromScene, saveUserTemplate } from "./lib/templateStore";
 import {
-  TemplateWorkspace,
-  type TemplateWorkspaceState,
-  DEFAULT_TEMPLATE_WORKSPACE_STATE,
   getTemplateMetadataFromIndex,
   getTemplateIndex,
   type TemplateIndex
-} from "./features/template-workspace";
+} from "./template-engine";
+import type { TemplateWorkspaceState } from "./features/template-workspace/state/templateWorkspaceState";
+import { DEFAULT_TEMPLATE_WORKSPACE_STATE } from "./features/template-workspace/state/templateWorkspaceState";
 import {
   consumePendingTemplateIntent,
   consumePendingTemplateSubTask,
@@ -98,7 +93,6 @@ import {
   pickDefaultTemplateForIntent,
   saveLastTemplateIntent
 } from "./features/template-workspace/model/templateIntent";
-import { findTemplateBySlug } from "./features/template-workspace/utils/templateShare";
 import { consumePendingSharePayload, encodeSharePayload, setPendingSharePayload, type SharePayload } from "./types/share";
 import { applyTemplateCharge } from "./features/billing";
 import { getTemplatePricingForTemplate } from "./pricing";
@@ -120,7 +114,7 @@ import {
   type StoredGenerationPrefs,
   type GenerationProfile,
 } from "./features/pro-workspace/utils/generationPreferences";
-import { HelpModal, DEFAULT_HELP_SECTION, type HelpSectionId } from "./features/help-center";
+import { DEFAULT_HELP_SECTION, type HelpSectionId } from "./features/help-center/types";
 import type { PromptExportAction, PromptExportTicket } from "./types/promptExport";
 import { PUBLIC_CONTACT_CHANNELS, SYSTEM_NOTIFICATION_MAILBOX } from "./config/contactChannels";
 import { BILLING_ENABLED, BILLING_LIVE_BLOCKED } from "./config/billingFlags";
@@ -138,6 +132,22 @@ import {
 import { identifyUser as identifyPostHogUser, initPostHog, resetUser as resetPostHogUser, setPostHogEnabled } from "./services/posthog";
 import { initSentry, setSentryTags, setSentryUser } from "./services/sentry";
 import { UI_ACTION, UI_COMMAND, UI_EFFECT, UI_MENU, UI_PALETTE, UI_PANEL, UI_RADIUS, UI_SPACE, UI_TYPO } from "./uiTokens";
+
+const AccountCenterModal = lazy(() =>
+  import("./components/AccountCenterModal").then((module) => ({ default: module.AccountCenterModal }))
+);
+const BillingOverlay = lazy(() =>
+  import("./components/billing/BillingOverlay").then((module) => ({ default: module.BillingOverlay }))
+);
+const GenerationGatePanel = lazy(() =>
+  import("./features/quick-generate/GenerationGatePanel").then((module) => ({ default: module.GenerationGatePanel }))
+);
+const TemplateWorkspace = lazy(() =>
+  import("./features/template-workspace/components/TemplateWorkspace").then((module) => ({ default: module.TemplateWorkspace }))
+);
+const HelpModal = lazy(() =>
+  import("./features/help-center/HelpModal").then((module) => ({ default: module.HelpModal }))
+);
 
 const API_PROVIDER_IDS = [
   "fal",
@@ -231,6 +241,40 @@ type ProGeneratedAsset = {
   ownedUrls: string[];
   createdAt: string;
 };
+
+function extractTemplateIdFromRouteSlug(slug: string): string | null {
+  const normalized = (slug || "").trim().toLowerCase();
+  if (!normalized) return null;
+  return normalized.match(/-([a-z0-9_]+)$/i)?.[1] ?? null;
+}
+
+function LazyOverlayBoundary({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={null}>{children}</Suspense>;
+}
+
+function LazyPanelBoundary({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+            display: "grid",
+            placeItems: "center",
+            color: "#9ca3af",
+            fontSize: 13
+          }}
+        >
+          Loading...
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
 
 function openLibDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -826,6 +870,14 @@ export default function App() {
   /** Export actions stay in ExportPanel pipeline; copy prompt is independent. */
   function handleCopyPrompt() {
     void (async () => {
+      if (!accountUser) {
+        feedbackBarRef.current?.pushMessage(
+          lang === "zh" ? "请先登录后再复制提示词" : "Sign in first to copy prompts"
+        );
+        openAccountCenter("auth");
+        trackExportFlow("copy_prompt", { result: "auth_required" }, lang);
+        return;
+      }
       const text = promptForMiniPreview.trim();
       if (!text) {
         feedbackBarRef.current?.pushMessage(lang === "zh" ? "暂无可复制提示词" : "No prompt to copy");
@@ -2097,7 +2149,7 @@ export default function App() {
       return lang === "zh" ? "请求过于频繁，请稍后再试。" : "Too many requests. Please try again later.";
     }
     if (code.includes("auth_redirect_started")) {
-      return "";
+      return lang === "zh" ? "正在跳转 Google 登录..." : "Redirecting to Google sign-in...";
     }
     if (code.includes("supabase_not_configured")) {
       return lang === "zh" ? "登录服务未配置完成。" : "Auth service is not configured.";
@@ -2542,9 +2594,9 @@ export default function App() {
       ? (urlIntentRaw as typeof TEMPLATE_INTENTS[number]["id"])
       : null;
     const indexList = getTemplateIndex();
+    const routeTemplateId = urlTemplateId || extractTemplateIdFromRouteSlug(urlTemplateSlug) || "";
     const routeTemplate =
-      (urlTemplateId ? indexList.find((item) => item.id === urlTemplateId) ?? null : null)
-      ?? (urlTemplateSlug ? findTemplateBySlug(indexList, urlTemplateSlug) : null);
+      (routeTemplateId ? indexList.find((item) => item.id === routeTemplateId) ?? null : null);
 
     if (routeTemplate) {
       const inferred = findIntentByFamilyId(routeTemplate.familyId);
@@ -4826,18 +4878,20 @@ export default function App() {
           >
             {isTemplateWorkspaceOpen ? (
               <div style={{ flex: 1, width: "100%", minWidth: 0, minHeight: 0, display: "flex" }}>
-                <TemplateWorkspace
-                  lang={lang}
-                  state={templateWorkspaceState}
-                  onStateChange={setTemplateWorkspaceState}
-                  onClose={() => setIsTemplateWorkspaceOpen(false)}
-                  onUseTemplate={handleUseTemplateFromWorkspace}
-                  project={safeProject}
-                  userCredits={accountCredits}
-                  userId={accountUser?.id ?? null}
-                  isTemplateOwned={(id: string) => isTemplateOwned(accountUser?.id ?? "", id)}
-                  templatesRefresh={templatesRefresh}
-                />
+                <LazyPanelBoundary>
+                  <TemplateWorkspace
+                    lang={lang}
+                    state={templateWorkspaceState}
+                    onStateChange={setTemplateWorkspaceState}
+                    onClose={() => setIsTemplateWorkspaceOpen(false)}
+                    onUseTemplate={handleUseTemplateFromWorkspace}
+                    project={safeProject}
+                    userCredits={accountCredits}
+                    userId={accountUser?.id ?? null}
+                    isTemplateOwned={(id: string) => isTemplateOwned(accountUser?.id ?? "", id)}
+                    templatesRefresh={templatesRefresh}
+                  />
+                </LazyPanelBoundary>
               </div>
             ) : (
               <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -4969,49 +5023,53 @@ export default function App() {
         onCancel={cancelCreateWizard}
       />
 
-      <BillingOverlay
-        open={billingPage !== null}
-        page={billingPage}
-        lang={lang}
-        user={accountUser}
-        billingEnabled={billingRuntimeEnabled}
-        billingNotice={billingNotice}
-        creditsBalance={accountCredits}
-        creditPacks={creditPacks}
-        proPlan={proPlan}
-        billingBusy={billingBusy}
-        billingLegalAccepted={billingLegalAccepted}
-        onClose={closeBillingPage}
-        onOpenUpgrade={() => openBillingPage("upgrade")}
-        onOpenCredits={() => openBillingPage("credits")}
-        onRequireAuth={() => openAccountCenter("auth")}
-        onBillingLegalAcceptedChange={setBillingLegalAccepted}
-        onUpgrade={() => void handleUpgradePro()}
-        onBuyCredits={(packId) => void handlePurchaseCredits(packId)}
-        onManageBilling={() => {
-          if (!accountUser) {
-            openAccountCenter("auth");
-            return;
-          }
-          void handleOpenCustomerPortal();
-        }}
-      />
+      <LazyOverlayBoundary>
+        <BillingOverlay
+          open={billingPage !== null}
+          page={billingPage}
+          lang={lang}
+          user={accountUser}
+          billingEnabled={billingRuntimeEnabled}
+          billingNotice={billingNotice}
+          creditsBalance={accountCredits}
+          creditPacks={creditPacks}
+          proPlan={proPlan}
+          billingBusy={billingBusy}
+          billingLegalAccepted={billingLegalAccepted}
+          onClose={closeBillingPage}
+          onOpenUpgrade={() => openBillingPage("upgrade")}
+          onOpenCredits={() => openBillingPage("credits")}
+          onRequireAuth={() => openAccountCenter("auth")}
+          onBillingLegalAcceptedChange={setBillingLegalAccepted}
+          onUpgrade={() => void handleUpgradePro()}
+          onBuyCredits={(packId) => void handlePurchaseCredits(packId)}
+          onManageBilling={() => {
+            if (!accountUser) {
+              openAccountCenter("auth");
+              return;
+            }
+            void handleOpenCustomerPortal();
+          }}
+        />
+      </LazyOverlayBoundary>
 
-      <GenerationGatePanel
-        open={generationGateOpen}
-        lang={lang}
-        canUseLocal={hasProAccess}
-        onClose={() => setGenerationGateOpen(false)}
-        onCopyPrompt={() => {
-          setGenerationGateOpen(false);
-          handleCopyPrompt();
-        }}
-        onTopUp={() => {
-          setGenerationGateOpen(false);
-          openBillingPage("upgrade");
-        }}
-        onLocalGenerate={handleQuickLocalPath}
-      />
+      <LazyOverlayBoundary>
+        <GenerationGatePanel
+          open={generationGateOpen}
+          lang={lang}
+          canUseLocal={hasProAccess}
+          onClose={() => setGenerationGateOpen(false)}
+          onCopyPrompt={() => {
+            setGenerationGateOpen(false);
+            handleCopyPrompt();
+          }}
+          onTopUp={() => {
+            setGenerationGateOpen(false);
+            openBillingPage("upgrade");
+          }}
+          onLocalGenerate={handleQuickLocalPath}
+        />
+      </LazyOverlayBoundary>
 
       <input
         ref={quickRefInputRef}
@@ -5109,110 +5167,114 @@ export default function App() {
         </div>
       ) : null}
 
-      <AccountCenterModal
-        key={`${accountUser?.id ?? "guest"}:${accountCenterOpen ? "open" : "closed"}`}
-        open={accountCenterOpen}
-        lang={lang}
-        section={accountCenterSection}
-        user={accountUser}
-        creditsBalance={accountCredits}
-        ledger={accountLedger}
-        creditPacks={creditPacks}
-        proPlan={proPlan}
-        subscription={accountSubscription}
-        apiCredentials={accountApiCredentials}
-        authBusy={authBusy}
-        billingBusy={billingBusy}
-        billingEnabled={billingRuntimeEnabled}
-        billingNotice={billingNotice}
-        authStep={authStep}
-        authEmail={authEmail}
-        authPassword={authPassword}
-        authCode={authCode}
-        authHint={authHint}
-        lastSentCode={lastSentCode}
-        googleSignInEnabled={googleSignInEnabled}
-        authLegalAccepted={authLegalAccepted}
-        billingLegalAccepted={billingLegalAccepted}
-        localComfyStatus={comfyStatus}
-        localDrawStatus={drawThingsStatus}
-        onRefreshLocalProviders={() => refreshLocalProviders().then(() => {})}
-        onClose={() => {
-          setAccountCenterOpen(false);
-          setAuthHint("");
-        }}
-        onSectionChange={(nextSection) => {
-          setAccountCenterSection(nextSection);
-          if (nextSection === "auth") {
+      <LazyOverlayBoundary>
+        <AccountCenterModal
+          key={`${accountUser?.id ?? "guest"}:${accountCenterOpen ? "open" : "closed"}`}
+          open={accountCenterOpen}
+          lang={lang}
+          section={accountCenterSection}
+          user={accountUser}
+          creditsBalance={accountCredits}
+          ledger={accountLedger}
+          creditPacks={creditPacks}
+          proPlan={proPlan}
+          subscription={accountSubscription}
+          apiCredentials={accountApiCredentials}
+          authBusy={authBusy}
+          billingBusy={billingBusy}
+          billingEnabled={billingRuntimeEnabled}
+          billingNotice={billingNotice}
+          authStep={authStep}
+          authEmail={authEmail}
+          authPassword={authPassword}
+          authCode={authCode}
+          authHint={authHint}
+          lastSentCode={lastSentCode}
+          googleSignInEnabled={googleSignInEnabled}
+          authLegalAccepted={authLegalAccepted}
+          billingLegalAccepted={billingLegalAccepted}
+          localComfyStatus={comfyStatus}
+          localDrawStatus={drawThingsStatus}
+          onRefreshLocalProviders={() => refreshLocalProviders().then(() => {})}
+          onClose={() => {
+            setAccountCenterOpen(false);
             setAuthHint("");
-          }
-        }}
-        onAuthEmailChange={(value) => {
-          setAuthEmail(value);
-          if (authHint) setAuthHint("");
-        }}
-        onAuthPasswordChange={(value) => {
-          setAuthPassword(value);
-          if (authHint) setAuthHint("");
-        }}
-        onAuthCodeChange={(value) => {
-          setAuthCode(value);
-          if (authHint) setAuthHint("");
-        }}
-        onAuthLegalAcceptedChange={setAuthLegalAccepted}
-        onBillingLegalAcceptedChange={setBillingLegalAccepted}
-        onGoogleSignIn={() => void handleGoogleSignIn()}
-        onPasswordSignIn={() => void handlePasswordSignIn()}
-        onSendCode={() => void handleSendAuthCode()}
-        onVerifyCode={() => void handleVerifyAuthCode()}
-        onBackToEmail={() => {
-          setAuthStep("email");
-          setAuthCode("");
-        }}
-        onLogout={() => void handleLogout()}
-        onPurchasePack={(packId) => void handlePurchaseCredits(packId)}
-        onUpgradePro={() => void handleUpgradePro()}
-        onOpenCustomerPortal={() => void handleOpenCustomerPortal()}
-        onSaveApiCredentials={handleSaveApiCredentials}
-        onGoGenerateSettings={() => {
-          setAccountCenterOpen(false);
-          setAccountCenterSection("overview");
-          setProWorkspaceSection("generate_settings");
-        }}
-        onGoTemplateStart={() => {
-          setAccountCenterOpen(false);
-          setAccountCenterSection("overview");
-          setIsTemplateWorkspaceOpen(true);
-        }}
-      />
+          }}
+          onSectionChange={(nextSection) => {
+            setAccountCenterSection(nextSection);
+            if (nextSection === "auth") {
+              setAuthHint("");
+            }
+          }}
+          onAuthEmailChange={(value) => {
+            setAuthEmail(value);
+            if (authHint) setAuthHint("");
+          }}
+          onAuthPasswordChange={(value) => {
+            setAuthPassword(value);
+            if (authHint) setAuthHint("");
+          }}
+          onAuthCodeChange={(value) => {
+            setAuthCode(value);
+            if (authHint) setAuthHint("");
+          }}
+          onAuthLegalAcceptedChange={setAuthLegalAccepted}
+          onBillingLegalAcceptedChange={setBillingLegalAccepted}
+          onGoogleSignIn={() => void handleGoogleSignIn()}
+          onPasswordSignIn={() => void handlePasswordSignIn()}
+          onSendCode={() => void handleSendAuthCode()}
+          onVerifyCode={() => void handleVerifyAuthCode()}
+          onBackToEmail={() => {
+            setAuthStep("email");
+            setAuthCode("");
+          }}
+          onLogout={() => void handleLogout()}
+          onPurchasePack={(packId) => void handlePurchaseCredits(packId)}
+          onUpgradePro={() => void handleUpgradePro()}
+          onOpenCustomerPortal={() => void handleOpenCustomerPortal()}
+          onSaveApiCredentials={handleSaveApiCredentials}
+          onGoGenerateSettings={() => {
+            setAccountCenterOpen(false);
+            setAccountCenterSection("overview");
+            setProWorkspaceSection("generate_settings");
+          }}
+          onGoTemplateStart={() => {
+            setAccountCenterOpen(false);
+            setAccountCenterSection("overview");
+            setIsTemplateWorkspaceOpen(true);
+          }}
+        />
+      </LazyOverlayBoundary>
 
-      <HelpModal
-        open={helpCenterOpen}
-        onClose={() => setHelpCenterOpen(false)}
-        sectionId={helpCenterSection}
-        setSectionId={setHelpCenterSection}
-        lang={lang}
-        viewportWidth={viewportWidth}
-        feedbackProps={{
-          feedbackText,
-          setFeedbackText,
-          feedbackSending,
-          feedbackSent,
-          onCopyTemplate: async () => {
-            const text =
-              feedbackText.trim() ||
-              (lang === "zh"
-                ? "【问题】\n【复现步骤】1) \n【期望】\n【实际】\n【环境】"
-                : "[Issue]\n[Steps] 1)\n[Expected]\n[Actual]\n[Env]");
-            await copyToClipboard(text);
-            trackUiAction("feedback", "copy", "template", { len: text.length }, lang);
-          },
-          onSubmitFeedback: submitFeedback,
-          supportChannel: PUBLIC_CONTACT_CHANNELS.support,
-          businessChannel: PUBLIC_CONTACT_CHANNELS.business,
-          systemMailbox: SYSTEM_NOTIFICATION_MAILBOX
-        }}
-      />
+      <LazyOverlayBoundary>
+        <HelpModal
+          open={helpCenterOpen}
+          onClose={() => setHelpCenterOpen(false)}
+          sectionId={helpCenterSection}
+          setSectionId={setHelpCenterSection}
+          lang={lang}
+          viewportWidth={viewportWidth}
+          feedbackProps={{
+            feedbackText,
+            setFeedbackText,
+            feedbackSending,
+            feedbackSent,
+            onCopyTemplate: async () => {
+              const text =
+                feedbackText.trim() ||
+                (lang === "zh"
+                  ? "【问题】\n【复现步骤】1) \n【期望】\n【实际】\n【环境】"
+                  : "[Issue]\n[Steps] 1)\n[Expected]\n[Actual]\n[Env]");
+              await copyToClipboard(text);
+              trackUiAction("feedback", "copy", "template", { len: text.length }, lang);
+            },
+            onSubmitFeedback: submitFeedback,
+            supportChannel: PUBLIC_CONTACT_CHANNELS.support,
+            businessChannel: PUBLIC_CONTACT_CHANNELS.business,
+            systemMailbox: SYSTEM_NOTIFICATION_MAILBOX
+          }}
+        />
+      </LazyOverlayBoundary>
     </div>
   );
 }

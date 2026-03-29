@@ -1014,6 +1014,8 @@ export function ExportPanel({
                   ? "This copy includes the current continuity sequence prompt, starting from this shot and preserving following transitions."
                   : "This copy includes current-scene final prompt only; no other scenes are included."}
             </div>
+            <pre style={styles.copyPreview}>{quickCopyPrompt}</pre>
+            {copyDone ? <div style={styles.copyOk}>{lang === "zh" ? "复制成功" : "Copied"}</div> : null}
             {!copyPolicyAccepted ? (
               <div style={styles.exportPolicyHint}>
                 <label style={styles.exportPolicyCheckbox}>
@@ -1037,8 +1039,6 @@ export function ExportPanel({
                 {copyRiskError ? <div style={styles.exportPolicyError}>{copyRiskError}</div> : null}
               </div>
             ) : null}
-            <pre style={styles.copyPreview}>{quickCopyPrompt}</pre>
-            {copyDone ? <div style={styles.copyOk}>{lang === "zh" ? "复制成功" : "Copied"}</div> : null}
             <div style={styles.modalBtns}>
               <button className="pro-btn" type="button" onClick={() => void confirmCopyPrompt()}>
                 {lang === "zh" ? "复制" : "Copy"}
@@ -1074,30 +1074,6 @@ export function ExportPanel({
           {promptExportNote ? (
             <div style={styles.exportPolicyHint} data-testid="export-prompt-note">
               {promptExportNote}
-            </div>
-          ) : null}
-          {!exportPolicyAccepted ? (
-            <div style={styles.exportPolicyHint}>
-              <label style={styles.exportPolicyCheckbox}>
-                <input
-                  type="checkbox"
-                  checked={exportRiskAccepted}
-                  onChange={(e) => {
-                    setExportRiskAccepted(e.target.checked);
-                    if (e.target.checked) setExportRiskError("");
-                  }}
-                />
-                <span>
-                  {lang === "zh"
-                    ? "我理解导出后的兼容性、素材授权、分享、传输、商用与后续使用责任由我自行承担。"
-                    : "I understand that compatibility, source authorization, sharing, transfer, commercial use, and subsequent use after export are my responsibility."}
-                </span>
-              </label>
-              <div style={styles.exportPolicyLinksInline}>
-                <a href="/disclaimer" style={styles.exportPolicyLink}>{lang === "zh" ? "免责声明" : "Disclaimer"}</a>
-                <a href="/ip-user-content" style={styles.exportPolicyLink}>{lang === "zh" ? "素材与权利说明" : "IP & Content"}</a>
-              </div>
-              {exportRiskError ? <div style={styles.exportPolicyError}>{exportRiskError}</div> : null}
             </div>
           ) : null}
           <div style={styles.modalRow}>
@@ -1183,6 +1159,30 @@ export function ExportPanel({
                   {lang === "zh" ? "复制手动建目录流程" : "Copy Manual Workflow"}
                 </button>
               </div>
+            </div>
+          ) : null}
+          {!exportPolicyAccepted ? (
+            <div style={styles.exportPolicyHint}>
+              <label style={styles.exportPolicyCheckbox}>
+                <input
+                  type="checkbox"
+                  checked={exportRiskAccepted}
+                  onChange={(e) => {
+                    setExportRiskAccepted(e.target.checked);
+                    if (e.target.checked) setExportRiskError("");
+                  }}
+                />
+                <span>
+                  {lang === "zh"
+                    ? "我理解导出后的兼容性、素材授权、分享、传输、商用与后续使用责任由我自行承担。"
+                    : "I understand that compatibility, source authorization, sharing, transfer, commercial use, and subsequent use after export are my responsibility."}
+                </span>
+              </label>
+              <div style={styles.exportPolicyLinksInline}>
+                <a href="/disclaimer" style={styles.exportPolicyLink}>{lang === "zh" ? "免责声明" : "Disclaimer"}</a>
+                <a href="/ip-user-content" style={styles.exportPolicyLink}>{lang === "zh" ? "素材与权利说明" : "IP & Content"}</a>
+              </div>
+              {exportRiskError ? <div style={styles.exportPolicyError}>{exportRiskError}</div> : null}
             </div>
           ) : null}
           <div style={styles.modalBtns}>

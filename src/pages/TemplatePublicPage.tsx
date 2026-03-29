@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Copy, Share2, Sparkles } from "lucide-react";
-import { getTemplateIndex } from "../features/template-workspace";
+import { getTemplateIndex } from "../template-engine";
 import { buildTemplateShareText, copyTemplateLink, findTemplateBySlug, shareTemplateLink } from "../features/template-workspace/utils/templateShare";
 
 function currentLang(): "zh" | "en" {

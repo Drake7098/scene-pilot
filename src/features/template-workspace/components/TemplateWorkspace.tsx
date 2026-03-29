@@ -123,7 +123,7 @@ export function TemplateWorkspace({
           if (tab === "mine") {
             update({
               templateWorkspaceView: "my_templates",
-              myTemplateSection: "owned",
+              myTemplateSection: "created",
               selectedTemplateId: null,
               selectedFamilyId: null,
               selectedIntentId: null,

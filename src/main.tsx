@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
-import App from "./App";
-import LegalPolicyPage from "./pages/LegalPolicyPage";
-import PricingPage from "./pages/PricingPage";
-import LandingPage from "./pages/LandingPage";
-import ProductIntroPage from "./pages/ProductIntroPage";
-import UserManagementPage from "./pages/UserManagementPage";
-import AuthEntryPage from "./pages/AuthEntryPage";
-import SharePage from "./pages/SharePage";
-import TemplatePublicPage from "./pages/TemplatePublicPage";
 import { getCurrentUser } from "./services/authService";
+
+const App = lazy(() => import("./App"));
+const LegalPolicyPage = lazy(() => import("./pages/LegalPolicyPage"));
+const PricingPage = lazy(() => import("./pages/PricingPage"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const ProductIntroPage = lazy(() => import("./pages/ProductIntroPage"));
+const UserManagementPage = lazy(() => import("./pages/UserManagementPage"));
+const AuthEntryPage = lazy(() => import("./pages/AuthEntryPage"));
+const SharePage = lazy(() => import("./pages/SharePage"));
+const TemplatePublicPage = lazy(() => import("./pages/TemplatePublicPage"));
 
 const pathnameRaw = typeof window !== "undefined" ? window.location.pathname : "/";
 const pathname = pathnameRaw.length > 1 ? pathnameRaw.replace(/\/+$/, "") : pathnameRaw;
@@ -102,8 +103,27 @@ function resolveRootComponent() {
   return <LandingPage />;
 }
 
+function RootFallback() {
+  return (
+    <div
+      style={{
+        minHeight: "100%",
+        display: "grid",
+        placeItems: "center",
+        background: "#070b12",
+        color: "var(--spx-text-2)",
+        fontSize: 14
+      }}
+    >
+      Loading...
+    </div>
+  );
+}
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    {resolveRootComponent()}
+    <Suspense fallback={<RootFallback />}>
+      {resolveRootComponent()}
+    </Suspense>
   </React.StrictMode>
 );
