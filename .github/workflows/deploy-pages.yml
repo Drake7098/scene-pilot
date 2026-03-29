@@ -31,6 +31,30 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate develop frontend env
+        if: github.ref == 'refs/heads/develop'
+        env:
+          VITE_SUPABASE_URL: https://sampclwsqputkeswqbbu.supabase.co
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_APP_BASE_URL: https://scenepilotix.pages.dev
+        run: |
+          test -n "$VITE_SUPABASE_URL" || (echo "Missing VITE_SUPABASE_URL for develop" && exit 1)
+          test -n "$VITE_SUPABASE_ANON_KEY" || (echo "Missing VITE_SUPABASE_ANON_KEY for develop" && exit 1)
+          test -n "$VITE_APP_BASE_URL" || (echo "Missing VITE_APP_BASE_URL for develop" && exit 1)
+          echo "Develop build base URL: $VITE_APP_BASE_URL"
+
+      - name: Validate main frontend env
+        if: github.ref == 'refs/heads/main'
+        env:
+          VITE_SUPABASE_URL: https://sampclwsqputkeswqbbu.supabase.co
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_APP_BASE_URL: https://www.scenepilotix.com
+        run: |
+          test -n "$VITE_SUPABASE_URL" || (echo "Missing VITE_SUPABASE_URL for main" && exit 1)
+          test -n "$VITE_SUPABASE_ANON_KEY" || (echo "Missing VITE_SUPABASE_ANON_KEY for main" && exit 1)
+          test -n "$VITE_APP_BASE_URL" || (echo "Missing VITE_APP_BASE_URL for main" && exit 1)
+          echo "Main build base URL: $VITE_APP_BASE_URL"
+
       - name: Build develop bundle
         if: github.ref == 'refs/heads/develop'
         run: npm run build -- --outDir dist-test
