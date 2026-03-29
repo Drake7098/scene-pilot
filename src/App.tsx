@@ -52,7 +52,6 @@ import {
   type LocalProviderStatus
 } from "./utils/localGeneration";
 import {
-  generateHosted,
   generateByo,
   generationErrorMessage,
   type GenerationInput,
@@ -136,7 +135,23 @@ import {
   installGlobalErrorHooks,
   sendFeedback
 } from "./utils/analytics";
+import { identifyUser as identifyPostHogUser, initPostHog, resetUser as resetPostHogUser, setPostHogEnabled } from "./services/posthog";
+import { initSentry, setSentryTags, setSentryUser } from "./services/sentry";
 import { UI_ACTION, UI_COMMAND, UI_EFFECT, UI_MENU, UI_PALETTE, UI_PANEL, UI_RADIUS, UI_SPACE, UI_TYPO } from "./uiTokens";
+
+const API_PROVIDER_IDS = [
+  "fal",
+  "replicate",
+  "runway",
+  "pika",
+  "luma",
+  "stability",
+  "fal_control",
+  "replicate_control",
+  "comfyui",
+  "drawthings",
+  "custom_api",
+] as const;
 
 type FSDirectoryHandle = any;
 type LibraryEntry = { name: string; kind: "file" | "directory"; label: string };
@@ -200,7 +215,7 @@ type FileRuntimeState = {
   currentProjectFilePath: string;
 };
 
-type ProGenerationSource = "hosted" | "byo";
+type ProGenerationSource = "api" | "local_comfy" | "local_draw" | "hosted";
 
 type ProGeneratedAsset = {
   id: string;
@@ -601,7 +616,7 @@ export default function App() {
   const [comfyStatus, setComfyStatus] = useState<LocalProviderStatus>({ provider: "comfyui", state: "idle" });
   const [drawThingsStatus, setDrawThingsStatus] = useState<LocalProviderStatus>({ provider: "drawthings", state: "idle" });
   const [proGenPrefs, setProGenPrefs] = useState<StoredGenerationPrefs>(() => loadGenerationPreferences(null));
-  const [proGenerationSource, setProGenerationSource] = useState<ProGenerationSource>("hosted");
+  const [proGenerationSource, setProGenerationSource] = useState<ProGenerationSource>("api");
   const [proGenerateBusy, setProGenerateBusy] = useState(false);
   const [proGenerateHint, setProGenerateHint] = useState("");
   const [proAdvancedSettingsOpen, setProAdvancedSettingsOpen] = useState(false);
@@ -1037,15 +1052,14 @@ export default function App() {
   }, [accountUser?.id]);
 
   const setProGenerationSourceAndPersist = (source: ProGenerationSource) => {
-    setProGenerationSource(source);
-    saveGenerationPreferences(accountUser?.id ?? null, { lastProviderMode: source });
-    setProGenPrefs((prev) => ({ ...prev, lastProviderMode: source }));
+    const persistedSource = source === "hosted" ? "api" : source;
+    setProGenerationSource(persistedSource);
+    saveGenerationPreferences(accountUser?.id ?? null, { lastProviderMode: persistedSource });
+    setProGenPrefs((prev) => ({ ...prev, lastProviderMode: persistedSource }));
   };
 
   const currentGenProfile = currentProfileForMedia(proGenPrefs, mediaMode) as GenerationProfileId;
   const videoSeconds = Math.max(1, Math.ceil(Number(scene?.duration_s) || 5));
-  const hostedCostPreview = creditCostForProfile(currentGenProfile, mediaMode === "video" ? videoSeconds : 1);
-
   const setGenerationProfile = (profile: GenerationProfile) => {
     if (profile === "image_standard" || profile === "image_hq") {
       saveGenerationPreferences(accountUser?.id ?? null, { lastImageProfile: profile });
@@ -1070,6 +1084,9 @@ export default function App() {
 
   // ---------------------- Telemetry boot (最小新增) ----------------------
   useEffect(() => {
+    initPostHog();
+    initSentry();
+
     // ✅ 默认开启埋点（你若要默认关闭：改成 setTelemetryOptIn(false)）
     try {
       const v = localStorage.getItem("spx_telemetry_on");
@@ -1080,10 +1097,11 @@ export default function App() {
 
     // ✅ 新会话
     newSession();
+    setPostHogEnabled(isTelemetryOn());
+    installGlobalErrorHooks(lang);
 
     if (isTelemetryOn()) {
       trackProjectFlow("app_open", { app: "ScenePilotix", ver: "1.05" }, lang);
-      installGlobalErrorHooks(lang);
 
       // ✅ 在线心跳
       const ping = () => {
@@ -1111,6 +1129,34 @@ export default function App() {
   useEffect(() => {
     trackUiAction("app", "view", "language", { lang }, lang);
   }, [lang, trackUiAction]);
+
+  useEffect(() => {
+    setSentryTags({
+      workspace: "pro",
+      media_mode: mediaMode,
+      generation_source: proGenerationSource
+    });
+  }, [mediaMode, proGenerationSource]);
+
+  useEffect(() => {
+    if (!accountUser?.id) {
+      resetPostHogUser();
+      setSentryUser(null);
+      return;
+    }
+
+    const username = accountUser.email?.split("@")[0] || "user";
+    identifyPostHogUser(accountUser.id, {
+      email: accountUser.email,
+      tier: accountUser.tier,
+      workspace: "pro"
+    });
+    setSentryUser({
+      id: accountUser.id,
+      email: accountUser.email,
+      username
+    });
+  }, [accountUser?.email, accountUser?.id, accountUser?.tier]);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -1387,7 +1433,9 @@ export default function App() {
     const ordered = nextMediaMode === "video"
       ? ["runway", "fal"] as const
       : ["fal", "runway"] as const;
-    const preferred = creds.defaultProvider;
+    const preferred = creds.defaultProvider === "runway" || creds.defaultProvider === "fal"
+      ? creds.defaultProvider
+      : ordered[0];
     const candidates = [preferred, ...ordered.filter((item) => item !== preferred)];
     for (const provider of candidates) {
       const config = creds[provider];
@@ -1397,10 +1445,13 @@ export default function App() {
   }
 
   function resolveProGenerationPlatformId(source: ProGenerationSource, nextMediaMode: "image" | "video"): SavePlatformId {
-    if (source === "byo") {
+    if (source === "api") {
       const provider = resolveByoProviderForMedia(nextMediaMode);
       if (provider === "runway") return "runway";
       if (provider === "fal") return "fal";
+    }
+    if (source === "local_comfy" || source === "local_draw") {
+      return savePlatformId;
     }
     return nextMediaMode === "video" ? "runway" : "fal";
   }
@@ -1485,51 +1536,49 @@ export default function App() {
   async function generateProAsset(requestedSource: ProGenerationSource = proGenerationSource) {
     if (proGenerateBusy) return;
 
-    if (requestedSource === "hosted") {
-      if (!hasProAccess) {
-        openBillingPage("upgrade");
+    const normalizedSource: Exclude<ProGenerationSource, "hosted"> =
+      requestedSource === "hosted" ? "api" : requestedSource;
+
+    if (!accountUser) {
+      openAccountCenter("auth");
+      return;
+    }
+    if (!canUseByoAccess) {
+      openAccountCenter("pro");
+      return;
+    }
+    if (normalizedSource === "api" && !resolveByoProviderForMedia(mediaMode)) {
+      setProGenerateHint(lang === "zh" ? "请先在账户中心连接 API" : "Connect your API first in Account");
+      openAccountCenter("api");
+      return;
+    }
+    if (normalizedSource === "local_comfy" && comfyStatus.state !== "ready") {
+      setProGenerateHint(lang === "zh" ? "请先在账户中心连接 ComfyUI" : "Connect ComfyUI first in Account");
+      openAccountCenter("api");
+      return;
+    }
+    if (normalizedSource === "local_draw") {
+      if (mediaMode !== "image") {
+        setProGenerateHint(lang === "zh" ? "Draw Things 当前仅支持图片" : "Draw Things currently supports image only");
         return;
       }
-    } else {
-      if (!accountUser) {
-        openAccountCenter("auth");
-        return;
-      }
-      if (!canUseByoAccess) {
-        openAccountCenter("api");
-        return;
-      }
-      if (!resolveByoProviderForMedia(mediaMode)) {
+      if (drawThingsStatus.state !== "ready") {
+        setProGenerateHint(lang === "zh" ? "请先在账户中心连接 Draw Things" : "Connect Draw Things first in Account");
         openAccountCenter("api");
         return;
       }
     }
 
-    const strategyPlatformId = resolveProGenerationPlatformId(requestedSource, mediaMode);
+    const strategyPlatformId = resolveProGenerationPlatformId(normalizedSource, mediaMode);
     const prompt = buildScenePromptText(scene, strategyPlatformId);
     const resolution = aspectRatioToResolution(scene?.aspectRatio, mediaMode);
     const seed = 101 + currentSceneAssets.length;
-    const videoSec = Math.max(1, Math.ceil(Number(scene?.duration_s) || 5));
-    const cost = requestedSource === "hosted" ? creditCostForProfile(currentGenProfile, mediaMode === "video" ? videoSec : 1) : 0;
-    let reservedEntryId = "";
     const startMs = Date.now();
 
     setProGenerateBusy(true);
     setProAssetMenuId(null);
 
     try {
-      if (requestedSource === "hosted" && accountUser) {
-        if (accountCredits < cost) {
-          setProGenerateBusy(false);
-          openNotEnoughCredits(lang === "zh" ? `Credits 不足。需要 ${cost}，当前余额 ${accountCredits}。` : `Not enough credits. Need ${cost}, available ${accountCredits}.`);
-          openBillingPage("credits");
-          trackProjectFlow("pro_generate", { generation_mode: "hosted", generation_profile: currentGenProfile, success: false, reason: "insufficient_credits", credits_required: cost }, lang);
-          return;
-        }
-        const reserved = await reserveCredits(accountUser.id, cost, `pro_generate_${mediaMode}`);
-        reservedEntryId = reserved.id;
-      }
-
       // ── Generation dispatch ───────────────────────────────────────
       const genInput: GenerationInput = {
         prompt,
@@ -1542,18 +1591,55 @@ export default function App() {
 
       let genResult: { kind: "image" | "video"; url: string; posterUrl?: string; ownedUrls: string[] };
 
-      if (requestedSource === "hosted") {
-        // ── Platform generation (uses our fal/runway keys from env) ──
-        const result = await generateHosted(genInput);
-        genResult = { kind: result.kind, url: result.kind === "image" ? result.url : (result.kind === "video" ? "" : result.url), posterUrl: result.posterUrl, ownedUrls: result.ownedUrls };
-        if (result.kind === "video") genResult.url = result.url;
-        else genResult.url = result.url;
-
-      } else {
-        // ── BYO (user's own API key) ──────────────────────────────────
+      if (normalizedSource === "api") {
         if (!accountApiCredentials) throw new Error("byo_api_key_missing");
         const result = await generateByo(genInput, accountApiCredentials);
         genResult = { kind: result.kind, url: result.url, posterUrl: result.posterUrl, ownedUrls: result.ownedUrls };
+      } else if (normalizedSource === "local_comfy") {
+        if (mediaMode === "video") {
+          const anchor = await buildSceneAnchorImage(prompt, resolution, seed);
+          const localCfg = loadLocalProviderConfig();
+          const durationSeconds = Math.max(1, Math.ceil(Number(scene?.duration_s) || 5));
+          const result = await runComfyUiVideoPreview({
+            prompt,
+            anchorImageUrl: anchor.url,
+            resolution,
+            seed,
+            baseUrls: defaultComfyUiBaseUrls(),
+            steps: localCfg.comfySteps,
+            cfg: localCfg.comfyCfg,
+            frameCount: Math.max(21, durationSeconds * 12)
+          });
+          genResult = {
+            kind: "video",
+            url: result.videoUrl,
+            posterUrl: result.posterUrl,
+            ownedUrls: [result.videoUrl, ...anchor.ownedUrls]
+          };
+        } else {
+          const localCfg = loadLocalProviderConfig();
+          const result = await runComfyUiImage({
+            prompt,
+            resolution,
+            seed,
+            baseUrls: defaultComfyUiBaseUrls(),
+            preferredCheckpoint: comfyStatus.checkpoint,
+            steps: localCfg.comfySteps,
+            cfg: localCfg.comfyCfg
+          });
+          genResult = { kind: "image", url: result.imageUrl, ownedUrls: [result.imageUrl] };
+        }
+      } else {
+        const localCfg = loadLocalProviderConfig();
+        const result = await runDrawThingsTxt2Img({
+          prompt,
+          resolution,
+          seed,
+          baseUrls: defaultDrawThingsBaseUrls(),
+          steps: localCfg.drawSteps,
+          guidanceScale: localCfg.drawGuidance
+        });
+        genResult = { kind: "image", url: result.imageUrl, ownedUrls: [result.imageUrl] };
       }
 
       // ── Append result to canvas tab ───────────────────────────────
@@ -1565,7 +1651,7 @@ export default function App() {
           kind: "image",
           title: proAssetLabel("image", imageCount),
           prompt,
-          source: requestedSource,
+          source: normalizedSource,
           strategyPlatformId,
           imageUrl: genResult.url,
           ownedUrls: genResult.ownedUrls,
@@ -1579,7 +1665,7 @@ export default function App() {
           kind: "video",
           title: proAssetLabel("video", videoCount),
           prompt,
-          source: requestedSource,
+          source: normalizedSource,
           strategyPlatformId,
           videoUrl: genResult.url,
           posterUrl: genResult.posterUrl,
@@ -1588,30 +1674,27 @@ export default function App() {
         });
       }
 
-      if (requestedSource === "hosted" && accountUser && reservedEntryId) {
-        await finalizeReservedCredits(accountUser.id, reservedEntryId);
-        await refreshAccountState();
-      }
-
       const latencyMs = Date.now() - startMs;
       trackProjectFlow("pro_generate", {
-        generation_mode: requestedSource,
+        generation_mode: normalizedSource,
         generation_profile: currentGenProfile,
         provider: strategyPlatformId,
-        credits_charged: requestedSource === "hosted" ? cost : 0,
+        credits_charged: 0,
         success: true,
         latency_ms: latencyMs,
       }, lang);
 
       setProGenerateHint(
-        requestedSource === "hosted"
-          ? (lang === "zh" ? "已生成新结果" : "New result generated")
-          : (lang === "zh" ? "已用我的 API 生成结果" : "Generated with your API")
+        normalizedSource === "api"
+          ? (lang === "zh" ? "已用我的 API 生成结果" : "Generated with your API")
+          : normalizedSource === "local_comfy"
+            ? (lang === "zh" ? "已用 ComfyUI 生成结果" : "Generated with ComfyUI")
+            : (lang === "zh" ? "已用 Draw Things 生成结果" : "Generated with Draw Things")
       );
     } catch (error) {
       const latencyMs = Date.now() - startMs;
       trackProjectFlow("pro_generate", {
-        generation_mode: requestedSource,
+        generation_mode: normalizedSource,
         generation_profile: currentGenProfile,
         provider: strategyPlatformId,
         credits_charged: 0,
@@ -1619,10 +1702,6 @@ export default function App() {
         latency_ms: latencyMs,
         error: error instanceof Error ? error.message : String(error),
       }, lang);
-      if (requestedSource === "hosted" && accountUser && reservedEntryId) {
-        await rollbackReservedCredits(accountUser.id, reservedEntryId);
-        await refreshAccountState();
-      }
       setProGenerateHint(generationErrorMessage(error, lang));
     } finally {
       setProGenerateBusy(false);
@@ -1751,6 +1830,7 @@ export default function App() {
   }, []);
 
   function openAccountCenter(section: AccountCenterSection) {
+    if (section === "local") section = "api";
     if (!accountUser) {
       setAuthStep("email");
       setAuthCode("");
@@ -2310,28 +2390,28 @@ export default function App() {
     if (!accountUser || !canUseByoAccess) return;
     const current = getApiCredentials(accountUser.id);
     const now = new Date().toISOString();
-    const effectiveFalKey = next.fal.mode === "personal" && next.fal.apiKey?.trim() ? next.fal.apiKey : (next.fal.mode === "personal" ? current.fal.apiKey : "");
-    const effectiveRunwayKey = next.runway.mode === "personal" && next.runway.apiKey?.trim() ? next.runway.apiKey : (next.runway.mode === "personal" ? current.runway.apiKey : "");
+    const nextWithStatus = API_PROVIDER_IDS.reduce((acc, providerId) => {
+      const nextConfig = next[providerId];
+      const currentConfig = current[providerId];
+      const effectiveApiKey =
+        nextConfig.mode === "personal"
+          ? (nextConfig.enabled
+              ? (nextConfig.apiKey?.trim() ? nextConfig.apiKey : currentConfig.apiKey)
+              : "")
+          : "";
+      acc[providerId] = {
+        ...nextConfig,
+        apiKey: effectiveApiKey,
+        status: nextConfig.mode === "personal" && nextConfig.enabled
+          ? (effectiveApiKey ? "connected" : "invalid_key")
+          : null,
+        lastCheckedAt: nextConfig.mode === "personal" && nextConfig.enabled ? now : null,
+        updatedAt: now
+      };
+      return acc;
+    }, { ...next } as ApiCredentialState);
     const withStatus: ApiCredentialState = {
-      ...next,
-      fal: {
-        ...next.fal,
-        apiKey: effectiveFalKey,
-        status: next.fal.mode === "personal"
-          ? (effectiveFalKey ? "connected" : "invalid_key")
-          : undefined,
-        lastCheckedAt: next.fal.mode === "personal" ? now : undefined,
-        updatedAt: now
-      },
-      runway: {
-        ...next.runway,
-        apiKey: effectiveRunwayKey,
-        status: next.runway.mode === "personal"
-          ? (effectiveRunwayKey ? "connected" : "invalid_key")
-          : undefined,
-        lastCheckedAt: next.runway.mode === "personal" ? now : undefined,
-        updatedAt: now
-      },
+      ...nextWithStatus,
       updatedAt: now
     };
     setApiCredentials(accountUser.id, withStatus);
@@ -4033,18 +4113,12 @@ export default function App() {
       openQuickGenerationGate();
       return;
     }
-    const seconds = Math.max(1, Math.ceil(Number(scene?.duration_s) || 5));
-    const cost = creditCostForProfile(currentGenProfile, mediaMode === "video" ? seconds : 1);
-    if (accountCredits < cost) {
-      openQuickGenerationGate();
-      return;
-    }
     void generateProAsset();
   }
 
   function handleQuickLocalPath() {
     setGenerationGateOpen(false);
-    openAccountCenter("local");
+    openAccountCenter("api");
   }
 
   async function ensureFreshSubDir(parent: any, dirName: string): Promise<any> {
@@ -4824,7 +4898,7 @@ export default function App() {
                   onPlatformChange={(id) => syncSavePlatform(id as SavePlatformId)}
                   exportMode={proExportMode}
                   onExportModeChange={handleProExportModeChange}
-                  generationSource={proGenerationSource ?? "hosted"}
+                  generationSource={proGenerationSource === "hosted" ? "api" : proGenerationSource}
                   onGenerationSourceChange={(s) => setProGenerationSourceAndPersist(s as any)}
                   canUseByo={canUseByoAccess}
                   onCopyPrompt={handleCopyPrompt}
@@ -4836,8 +4910,6 @@ export default function App() {
                   byoCredentials={accountApiCredentials}
                   comfyStatus={comfyStatus}
                   drawStatus={drawThingsStatus}
-                  creditCost={creditCostForProfile(currentGenProfile, mediaMode === "video" ? Math.max(1, Math.ceil(Number(scene?.duration_s) || 5)) : 1)}
-                  userCredits={accountCredits}
                   currentAsset={currentSceneActiveAsset ?? null}
                   assetList={currentSceneAssets}
                   activeAssetId={currentSceneActiveAssetId}
@@ -4867,6 +4939,7 @@ export default function App() {
                         onJumpToConflict={(layerId) => { if (layerId) setSelectedLayerId(layerId); }}
                         onFeedbackMessage={(msg) => feedbackBarRef.current?.pushMessage(msg)}
                         defaultExportDirectoryHandle={lastExportDirHandle}
+                        userId={accountUser?.id ?? null}
                         onExportDirectorySelected={(dirHandle, dirLabel) => {
                           rememberExportDirectory(dirLabel || String(dirHandle?.name || ""), dirHandle);
                         }}
@@ -4935,7 +5008,7 @@ export default function App() {
         }}
         onTopUp={() => {
           setGenerationGateOpen(false);
-          openBillingPage("credits");
+          openBillingPage("upgrade");
         }}
         onLocalGenerate={handleQuickLocalPath}
       />
@@ -5101,6 +5174,16 @@ export default function App() {
         onUpgradePro={() => void handleUpgradePro()}
         onOpenCustomerPortal={() => void handleOpenCustomerPortal()}
         onSaveApiCredentials={handleSaveApiCredentials}
+        onGoGenerateSettings={() => {
+          setAccountCenterOpen(false);
+          setAccountCenterSection("overview");
+          setProWorkspaceSection("generate_settings");
+        }}
+        onGoTemplateStart={() => {
+          setAccountCenterOpen(false);
+          setAccountCenterSection("overview");
+          setIsTemplateWorkspaceOpen(true);
+        }}
       />
 
       <HelpModal

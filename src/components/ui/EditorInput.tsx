@@ -44,7 +44,7 @@ export function EditorInput({
     (e: React.FocusEvent<HTMLInputElement>) => {
       if (wrapperRef.current?.style) {
         wrapperRef.current.style.borderColor = colors.accent;
-        wrapperRef.current.style.boxShadow = `0 0 0 3px rgba(245,158,11,0.18)`;
+        wrapperRef.current.style.boxShadow = "none";
       }
       onFocus?.(e);
     },

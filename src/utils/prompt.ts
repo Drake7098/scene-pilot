@@ -176,7 +176,7 @@ function buildWorkflowPromptSegments(
     editorial:       en ? "editorial photography, magazine look"                   : "杂志编辑摄影感",
     concept_art:     en ? "concept art, detailed illustration"                     : "概念艺术风格",
     illustration:    en ? "digital illustration style"                             : "插画风格",
-    anime:           en ? "anime style, 2D animation"                              : "动漫风格",
+    anime:           en ? "anime style, 2D animation"                              : "动画风格",
     "3d_render":     en ? "3D render, CGI"                                        : "三维渲染",
     filmic:          en ? "filmic look, cinematic quality"                         : "电影质感",
     documentary:     en ? "documentary style, naturalistic"                        : "纪录片风格",

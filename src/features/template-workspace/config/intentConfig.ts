@@ -13,8 +13,8 @@ export const INTENT_ICONS: Record<TemplateIntentId, LucideIcon> = {
 export const INTENT_CONFIG: TemplateIntentMeta[] = [
   {
     id: "sell_product",
-    labelZh: "卖货出图",
-    labelEn: "Sell Products",
+    labelZh: "商品展示",
+    labelEn: "Product Showcase",
     descriptionZh: "商品主图、卖点图、白底图",
     descriptionEn: "Product shots, feature images, white background",
     featured: true,
@@ -40,7 +40,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Hero visual, centered premium shot",
         sceneHintsZh: ["高端感品牌主视觉", "居中悬浮 + 光影衬托", "首图用、Banner 用"],
         sceneHintsEn: ["Premium brand hero shot", "Centered float with mood lighting", "For homepage or banner use"],
-        familyIds: ["v3_product_hero", "v3_luxury_ad"],
+        familyIds: ["v3_product_hero", "v3_luxury_ad", "v3_daily_product_luxury"],
         freeFirst: 2
       },
       {
@@ -91,8 +91,8 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
   },
   {
     id: "people_portrait",
-    labelZh: "人物出图",
-    labelEn: "Portrait",
+    labelZh: "人物形象",
+    labelEn: "Character Portraits",
     descriptionZh: "写真、头像、人像摄影",
     descriptionEn: "Portraits, headshots, personal visuals",
     featured: true,
@@ -118,7 +118,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Fashion, street, beauty detail",
         sceneHintsZh: ["杂志感构图 + 精致造型", "街头穿搭 + 强烈光影", "美妆 / 精致妆面特写"],
         sceneHintsEn: ["Editorial framing + polished styling", "Street outfit with strong light", "Beauty closeup or makeup detail"],
-        familyIds: ["v3_portrait_editorial", "v3_portrait_luxury_fashion", "v3_portrait_fashion_video"],
+        familyIds: ["v3_portrait_editorial", "v3_portrait_luxury_fashion", "v3_portrait_fashion_video", "v3_daily_portrait_premium"],
         freeFirst: 2
       },
       {
@@ -158,8 +158,8 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
   },
   {
     id: "cover_poster",
-    labelZh: "封面海报",
-    labelEn: "Cover & Poster",
+    labelZh: "封面视觉",
+    labelEn: "Cover Visuals",
     descriptionZh: "小红书、抖音、活动海报",
     descriptionEn: "Social covers, posters, promo visuals",
     featured: true,
@@ -207,7 +207,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Event poster, promo layout",
         sceneHintsZh: ["线下活动 / 演出宣传海报", "节日促销 / 大促主视觉", "标题 + 日期信息排版"],
         sceneHintsEn: ["Event or show promo poster", "Holiday or sale main visual", "Title + date info layout"],
-        familyIds: ["v3_poster_event", "v3_poster_music"],
+        familyIds: ["v3_poster_event", "v3_poster_music", "v3_daily_cover_hero"],
         freeFirst: 2
       },
       {
@@ -236,8 +236,8 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
   },
   {
     id: "talking_video",
-    labelZh: "视频口播",
-    labelEn: "Talking Video",
+    labelZh: "口播视频",
+    labelEn: "Talking Videos",
     descriptionZh: "口播广告、教程、产品演示",
     descriptionEn: "Talking ads, tutorials, explainers",
     featured: true,
@@ -252,7 +252,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Single speaker, front-facing explainer",
         sceneHintsZh: ["一个人正面讲话 + 稳定构图", "带货口播 / 品牌讲解视频", "室内简洁背景 + 中景构图"],
         sceneHintsEn: ["Single speaker front-facing stable shot", "Selling or brand explainer video", "Clean indoor background, medium shot"],
-        familyIds: ["v3_pro_commercial", "v3_pro_brand_film"],
+        familyIds: ["v3_pro_commercial", "v3_pro_brand_film", "v3_daily_talking_head"],
         freeFirst: 2
       },
       {
@@ -303,8 +303,8 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
   },
   {
     id: "story_video",
-    labelZh: "剧情短视频",
-    labelEn: "Short Drama",
+    labelZh: "剧情片段",
+    labelEn: "Story Snippets",
     descriptionZh: "开场、冲突、情绪、结尾",
     descriptionEn: "Opening, conflict, emotion, ending",
     featured: true,
@@ -330,7 +330,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Confrontation, suspense buildup",
         sceneHintsZh: ["两人对峙 / 争执场景", "悬念铺垫 + 紧张节奏", "戏剧冲突高峰前镜头"],
         sceneHintsEn: ["Two-person standoff or argument", "Tension build before the peak", "Pre-climax drama confrontation"],
-        familyIds: ["v3_story_drama", "v3_story_crime", "v3_story_suspense"],
+        familyIds: ["v3_story_drama", "v3_story_crime", "v3_story_suspense", "v3_daily_story_conflict"],
         freeFirst: 1
       },
       {
@@ -372,18 +372,18 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
     id: "pro_workflows",
     labelZh: "更多专业任务",
     labelEn: "More Pro Workflows",
-    descriptionZh: "连续分镜、多镜调度、风格化",
-    descriptionEn: "Continuity, multi-shot blocking, stylized workflows",
+    descriptionZh: "广告、影视、动画、游戏与风格化创作",
+    descriptionEn: "Ad, film, animation, game, and stylized creation",
     featured: false,
     tagsZh: ["专业", "多镜头", "连续"],
     tagsEn: ["Pro", "Multi-shot", "Continuity"],
     subTasks: [
       {
         id: "continuity",
-        labelZh: "连续分镜",
-        labelEn: "Continuity",
-        descriptionZh: "同一角色、同一空间、跨镜保持一致",
-        descriptionEn: "Keep the same character and space coherent across cuts",
+        labelZh: "广告镜头",
+        labelEn: "Ad Shots",
+        descriptionZh: "商业叙事、品牌片和广告节奏的镜头组织",
+        descriptionEn: "Commercial narrative and brand-film shot organization",
         sceneHintsZh: ["同一个人跨镜头还是同一个人", "空间方向和动作衔接不断", "短剧 / 剧情连续段落先搭好"],
         sceneHintsEn: ["The same character stays consistent across cuts", "Direction and movement hold together", "Build a continuous drama sequence first"],
         familyIds: [
@@ -392,51 +392,52 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
           "v3_pro_brand_film",
           "v3_pro_documentary",
           "v3_pro_editorial",
+          "v3_pro_ad_visual",
         ],
         freeFirst: 1
       },
       {
         id: "dialogue",
-        labelZh: "多镜对话",
-        labelEn: "Multi-shot Dialogue",
-        descriptionZh: "双人对话、走位交流、情绪反应切换",
-        descriptionEn: "Dialogue coverage with movement and reaction beats",
+        labelZh: "影视镜头",
+        labelEn: "Film Shots",
+        descriptionZh: "角色关系、走位交流和叙事镜头切换",
+        descriptionEn: "Narrative coverage with relationships, blocking, and cut grammar",
         sceneHintsZh: ["双人对话正反打", "谈判 / 对峙 / 交流场面", "说话的人和听的人都能照顾到"],
         sceneHintsEn: ["Shot-reverse-shot for two people", "Negotiation, standoff, or conversation scenes", "Covers both speaker and listener clearly"],
-        familyIds: ["v3_story_drama", "v3_portrait_cinematic"],
+        familyIds: ["v3_story_drama", "v3_portrait_cinematic", "v3_pro_film_blocking"],
         freeFirst: 1
       },
       {
         id: "action",
-        labelZh: "动作连续",
-        labelEn: "Action Blocking",
-        descriptionZh: "打、跑、冲、放招，这些动作镜头怎么排",
-        descriptionEn: "Plan fights, runs, bursts, and motion-heavy shots",
+        labelZh: "游戏视觉",
+        labelEn: "Game Visuals",
+        descriptionZh: "高速动作、对抗场景和强动态视觉节奏",
+        descriptionEn: "High-speed action, confrontation, and game-like visual rhythm",
         sceneHintsZh: ["动作戏和冲突场面", "节奏快、动势强的镜头", "从起手到爆点的动作编排"],
         sceneHintsEn: ["Fight and conflict-heavy scenes", "Fast rhythm and strong motion", "From setup to impact in one action flow"],
-        familyIds: ["v3_story_action", "v3_story_sport", "v3_story_scifi"],
+        familyIds: ["v3_story_action", "v3_story_sport", "v3_story_scifi", "v3_pro_game_squad", "v3_pro_game_skill", "v3_pro_game_entrance"],
         freeFirst: 1
       },
       {
         id: "chase",
-        labelZh: "追逐调度",
-        labelEn: "Chase Blocking",
-        descriptionZh: "追的人和被追的人，镜头顺序怎么跟",
-        descriptionEn: "How the camera follows the chaser and the chased",
+        labelZh: "风格实验",
+        labelEn: "Style Experiments",
+        descriptionZh: "悬疑、压迫、特殊气质和风格化镜头尝试",
+        descriptionEn: "Suspense, pressure, and style-forward cinematic experiments",
         sceneHintsZh: ["追逐、逃跑、逼近", "悬疑 / 惊悚的压迫感运动镜头", "先远后近、顺着紧张感推进"],
         sceneHintsEn: ["Chasing, escaping, closing in", "Suspense and thriller motion coverage", "Build tension by moving from wide to close"],
-        familyIds: ["v3_story_crime", "v3_story_suspense"],
+        familyIds: ["v3_story_crime", "v3_story_suspense", "v3_pro_style_fusion", "v3_pro_style_surreal", "v3_pro_style_future"],
         freeFirst: 1
       },
       {
         id: "anime",
-        labelZh: "动漫风格",
-        labelEn: "Anime / Stylized",
-        descriptionZh: "二次元、赛博朋克、MV感这类风格化画面",
-        descriptionEn: "Anime, cyberpunk, and stylized performance-driven visuals",
+        labelZh: "动画镜头",
+        labelEn: "Animation Shots",
+        descriptionZh: "动画、赛博朋克与强演出感的画面组织",
+        descriptionEn: "Animation, cyberpunk, and performance-driven stylized visuals",
         sceneHintsZh: ["二次元角色和演出节奏", "赛博朋克 / 风格化视觉", "MV 感、情绪感、表演感画面"],
         sceneHintsEn: ["Anime-style characters and staging", "Cyberpunk and stylized visuals", "MV-like, emotional, performance-first frames"],
-        familyIds: ["v3_story_anime", "v3_story_music_video", "v3_story_short_vertical"],
+        familyIds: ["v3_story_anime", "v3_story_music_video", "v3_story_short_vertical", "v3_pro_animation_epic", "v3_pro_animation_anime", "v3_pro_animation_cg"],
         freeFirst: 1
       }
     ]

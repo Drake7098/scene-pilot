@@ -1,6 +1,6 @@
 /**
  * PostHog 前端 Product Analytics 接入
- * 最小化实现：基础埋点 + autocapture
+ * 早期运营最小化：仅保留显式漏斗事件，不启用自动捕获或录屏
  */
 
 import posthog from "posthog-js";
@@ -22,24 +22,20 @@ export function initPostHog(): void {
 
   posthog.init(POSTHOG_KEY, {
     api_host: POSTHOG_HOST,
-    
-    // 基础配置
-    autocapture: true, // 自动捕获点击、表单提交等
-    capture_pageview: true, // 自动捕获页面浏览
-    
-    // 不开启 Replay
+    opt_out_capturing_by_default: true,
+
+    // 早期运营只保留核心漏斗与页面访问，避免噪音
+    autocapture: false,
+    capture_pageview: true,
+
+    // 不开启 Replay / 性能采样
     disable_session_recording: true,
-    
-    // Person profiles 稳妥设置
-    person_profiles: "identified_only", // 仅对已识别用户创建 profile
-    
-    // 开发环境配置
+    person_profiles: "identified_only",
+
     loaded: (posthogInstance) => {
       if (import.meta.env.DEV) {
         // eslint-disable-next-line no-console
         console.log("[PostHog] Loaded");
-        // 开发环境可选：禁用上报
-        // posthogInstance.opt_out_capturing();
       }
     },
   });
@@ -69,6 +65,12 @@ export function resetUser(): void {
 export function trackEvent(eventName: string, properties?: Record<string, unknown>): void {
   if (!initialized || !POSTHOG_KEY) return;
   posthog.capture(eventName, properties);
+}
+
+export function setPostHogEnabled(enabled: boolean): void {
+  if (!initialized || !POSTHOG_KEY) return;
+  if (enabled) posthog.opt_in_capturing();
+  else posthog.opt_out_capturing();
 }
 
 export function isPostHogInitialized(): boolean {

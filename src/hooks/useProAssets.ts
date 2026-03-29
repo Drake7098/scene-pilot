@@ -18,7 +18,7 @@ import {
 import { safeExportName } from "../utils/naming";
 import { reserveCredits, finalizeReservedCredits, rollbackReservedCredits } from "../services/creditService";
 import { creditCostForProfile } from "../services/billingService";
-import { canUseHostedGeneration, canUseBringYourOwnApi } from "../utils/entitlement";
+import { canUseBringYourOwnApi } from "../utils/entitlement";
 import {
   loadGenerationPreferences,
   saveGenerationPreferences,
@@ -27,7 +27,7 @@ import {
   type GenerationProfile,
 } from "../features/pro-workspace/utils/generationPreferences";
 
-export type ProGenerationSource = "hosted" | "byo";
+export type ProGenerationSource = "api" | "local_comfy" | "local_draw";
 
 export type ProGeneratedAsset = {
   id: string;
@@ -66,7 +66,7 @@ export function useProAssets(
   const [proGenerateHint, setProGenerateHint] = useState("");
   const [proAdvancedSettingsOpen, setProAdvancedSettingsOpen] = useState(false);
   const [proProfileDropdownOpen, setProProfileDropdownOpen] = useState(false);
-  const [proGenerationSource, setProGenerationSource] = useState<ProGenerationSource>("hosted");
+  const [proGenerationSource, setProGenerationSource] = useState<ProGenerationSource>("api");
   const [proGenPrefs, setProGenPrefs] = useState<StoredGenerationPrefs>(() => loadGenerationPreferences(null));
   const [comfyStatus, setComfyStatus] = useState<LocalProviderStatus>({ provider: "comfyui", state: "idle" });
   const [drawThingsStatus, setDrawThingsStatus] = useState<LocalProviderStatus>({ provider: "drawthings", state: "idle" });
@@ -225,24 +225,15 @@ export function useProAssets(
     return null;
   }
 
-  function resolveProGenerationPlatformId(source: ProGenerationSource, nextMediaMode: "image" | "video"): PlatformPresetId {
-    if (source === "byo") {
-      const provider = resolveByoProviderForMedia(nextMediaMode);
-      if (provider === "runway") return "runway";
-      if (provider === "fal") return "fal";
-    }
+  function resolveProGenerationPlatformId(_source: ProGenerationSource, nextMediaMode: "image" | "video"): PlatformPresetId {
     return nextMediaMode === "video" ? "runway" : "fal";
   }
 
   async function generateProAsset(requestedSource: ProGenerationSource = proGenerationSource) {
     if (proGenerateBusy) return;
 
-    if (requestedSource === "hosted") {
-      if (!canUseHostedGeneration(accountUser)) { openBillingPage("upgrade"); return; }
-    } else {
-      if (!accountUser) { openAccountCenter("auth"); return; }
-      if (!canUseBringYourOwnApi(accountUser)) { openAccountCenter("api"); return; }
-    }
+    if (!accountUser) { openAccountCenter("auth"); return; }
+    if (!canUseBringYourOwnApi(accountUser)) { openAccountCenter("api"); return; }
 
     const strategyPlatformId = resolveProGenerationPlatformId(requestedSource, mediaMode);
     const prompt = buildPromptForScene({
@@ -256,28 +247,11 @@ export function useProAssets(
 
     const resolution = mediaMode === "video" ? "512x288" : "576x320";
     const seed = 101 + currentSceneAssets.length;
-    const cost = requestedSource === "hosted" ? creditCostForProfile(currentGenProfile, mediaMode === "video" ? videoSeconds : 1) : 0;
-    let reservedEntryId = "";
 
     setProGenerateBusy(true);
     setProAssetMenuId(null);
 
     try {
-      if (requestedSource === "hosted" && accountUser) {
-        if (accountCredits < cost) {
-          setProGenerateBusy(false);
-          openNotEnoughCredits(
-            lang === "zh"
-              ? `Credits 不足。需要 ${cost}，当前余额 ${accountCredits}。`
-              : `Not enough credits. Need ${cost}, available ${accountCredits}.`
-          );
-          openBillingPage("credits");
-          return;
-        }
-        const reserved = await reserveCredits(accountUser.id, cost, `pro_generate_${mediaMode}`);
-        reservedEntryId = reserved.id;
-      }
-
       // TODO(P0-云端): 接入真实 fal/runway API 后替换此处本地引擎调用
       const localImage = await runComfyUiImage({
         prompt,
@@ -301,16 +275,8 @@ export function useProAssets(
         createdAt: new Date().toISOString(),
       });
 
-      if (requestedSource === "hosted" && accountUser && reservedEntryId) {
-        await finalizeReservedCredits(accountUser.id, reservedEntryId);
-        await refreshAccountState();
-      }
       setProGenerateHint(lang === "zh" ? "已生成新结果" : "New result generated");
     } catch (error) {
-      if (requestedSource === "hosted" && accountUser && reservedEntryId) {
-        await rollbackReservedCredits(accountUser.id, reservedEntryId);
-        await refreshAccountState();
-      }
       const message = error instanceof Error ? error.message : String(error);
       setProGenerateHint(lang === "zh" ? `生成失败：${message}` : `Generation failed: ${message}`);
     } finally {

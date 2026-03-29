@@ -26,6 +26,10 @@ const isTermsRoute = pathname === "/terms";
 const isPrivacyRoute = pathname === "/privacy";
 const isBillingTermsRoute = pathname === "/billing-terms" || pathname === "/billing";
 const isRefundPolicyRoute = pathname === "/refund-policy" || pathname === "/refund";
+const isIpPolicyRoute = pathname === "/ip-user-content" || pathname === "/content-policy";
+const isIntegrationsTermsRoute = pathname === "/integrations-terms" || pathname === "/third-party-integrations";
+const isAupRoute = pathname === "/acceptable-use" || pathname === "/aup";
+const isDisclaimerRoute = pathname === "/disclaimer";
 
 function canBypassAppAuthGate() {
   if (typeof window === "undefined") return false;
@@ -91,6 +95,10 @@ function resolveRootComponent() {
   if (isPrivacyRoute) return <LegalPolicyPage docId="privacy" />;
   if (isBillingTermsRoute) return <LegalPolicyPage docId="billing" />;
   if (isRefundPolicyRoute) return <LegalPolicyPage docId="refund" />;
+  if (isIpPolicyRoute) return <LegalPolicyPage docId="ip" />;
+  if (isIntegrationsTermsRoute) return <LegalPolicyPage docId="integrations" />;
+  if (isAupRoute) return <LegalPolicyPage docId="aup" />;
+  if (isDisclaimerRoute) return <LegalPolicyPage docId="disclaimer" />;
   return <LandingPage />;
 }
 

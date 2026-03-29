@@ -45,7 +45,7 @@ const WORKFLOW_ITEMS: NavItem[] = [
 const TOOL_ITEMS: NavItem[] = [
   { id: "composition",    icon: LayoutGrid, labelZh: "构图",     labelEn: "Composition",    dividerBefore: true },
   { id: "constraints",    icon: Shield,     labelZh: "约束",     labelEn: "Constraints" },
-  { id: "generate_settings", icon: Download, labelZh: "生成设置", labelEn: "Generate Settings" },
+  { id: "generate_settings", icon: Download, labelZh: "执行", labelEn: "Execution" },
 ];
 
 export function ProWorkspaceNav({ lang, section, onSectionChange }: Props) {

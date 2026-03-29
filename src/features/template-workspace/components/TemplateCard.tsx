@@ -15,7 +15,6 @@ import { PRO_TYPO } from "../../../uiTokens";
 import { formatPricingBucketForDisplay } from "../../../pricing";
 import type { TemplatePricingResult } from "../../../pricing/templatePricingTypes";
 import { TEMPLATE_WORKSPACE_UI } from "../constants/uiStyle";
-import { shareTemplateLink } from "../utils/templateShare";
 
 const colors = TEMPLATE_WORKSPACE_UI.colors;
 const NEW_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
@@ -118,17 +117,10 @@ export function TemplateCard({
   const fallbackDesc = isPrivate ? "" : (lang === "zh" ? (item.descriptionZh ?? item.descriptionEn) : item.descriptionEn);
 
   const isList = view === "list";
-  const canShare = !isPrivate;
   const actionLabel = (() => {
     if (showOwned || isFreeTemplate) return t("使用模板", "Use Template");
     return t("购买并使用", "Buy & Use");
   })();
-  const shareLabel = t("分享模板", "Share Template");
-  const onShareTemplate = async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    if (isPrivate) return;
-    await shareTemplateLink(item as TemplateIndex, lang);
-  };
 
   return (
     <button
@@ -251,21 +243,10 @@ export function TemplateCard({
           {/* 使用按钮（非 clickToUse 模式才显示） */}
           {!isList && !clickToUse ? (
             <div style={styles.cardActionRow}>
-              {canShare ? (
-                <button
-                  type="button"
-                  style={styles.cardShareBtn}
-                  onClick={onShareTemplate}
-                  onMouseDown={preventMouseFocus}
-                  onMouseUp={blurButton}
-                >
-                  {shareLabel}
-                </button>
-              ) : null}
               {onUse ? (
                 <button
                   type="button"
-                  style={styles.cardUseBtn}
+                  style={{ ...styles.cardUseBtn, flex: 1 }}
                   onClick={(e) => { e.stopPropagation(); onUse(); }}
                   onMouseDown={preventMouseFocus}
                   onMouseUp={blurButton}
@@ -280,20 +261,9 @@ export function TemplateCard({
       {isList && onUse && !clickToUse ? (
         <div style={styles.listActionWrap}>
           <div style={styles.listActionRow}>
-            {canShare ? (
-              <button
-                type="button"
-                style={styles.listShareBtn}
-                onClick={onShareTemplate}
-                onMouseDown={preventMouseFocus}
-                onMouseUp={blurButton}
-              >
-                {t("分享", "Share")}
-              </button>
-            ) : null}
             <button
               type="button"
-              style={styles.listUseBtn}
+              style={{ ...styles.listUseBtn, flex: 1 }}
               onClick={(e) => { e.stopPropagation(); onUse(); }}
               onMouseDown={preventMouseFocus}
               onMouseUp={blurButton}

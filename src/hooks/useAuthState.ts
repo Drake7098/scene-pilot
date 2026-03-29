@@ -19,6 +19,19 @@ import { recordLegalConsent, syncPendingLegalConsents } from "../services/legalC
 const AUTH_EMAIL_DRAFT_KEY = "sp_auth_email_draft_v1";
 const AUTH_LEGAL_CONSENT_KEY = "sp_auth_legal_consent_v1";
 const BILLING_LEGAL_CONSENT_KEY = "sp_billing_legal_consent_v1";
+const API_PROVIDER_IDS = [
+  "fal",
+  "replicate",
+  "runway",
+  "pika",
+  "luma",
+  "stability",
+  "fal_control",
+  "replicate_control",
+  "comfyui",
+  "drawthings",
+  "custom_api",
+] as const;
 
 export function useAuthState(lang: Lang) {
   const [accountUser, setAccountUser] = useState<UserState | null>(null);
@@ -216,30 +229,28 @@ export function useAuthState(lang: Lang) {
     if (!accountUser) return;
     const now = new Date().toISOString();
     const current = getApiCredentials(accountUser.id);
-    const effectiveFalKey =
-      next.fal.mode === "personal" && next.fal.apiKey?.trim()
-        ? next.fal.apiKey
-        : next.fal.mode === "personal" ? current.fal.apiKey : "";
-    const effectiveRunwayKey =
-      next.runway.mode === "personal" && next.runway.apiKey?.trim()
-        ? next.runway.apiKey
-        : next.runway.mode === "personal" ? current.runway.apiKey : "";
+    const nextWithStatus = API_PROVIDER_IDS.reduce((acc, providerId) => {
+      const nextConfig = next[providerId];
+      const currentConfig = current[providerId];
+      const effectiveApiKey =
+        nextConfig.mode === "personal"
+          ? (nextConfig.enabled
+              ? (nextConfig.apiKey?.trim() ? nextConfig.apiKey : currentConfig.apiKey)
+              : "")
+          : "";
+      acc[providerId] = {
+        ...nextConfig,
+        apiKey: effectiveApiKey,
+        status: nextConfig.mode === "personal" && nextConfig.enabled
+          ? (effectiveApiKey ? "connected" : "invalid_key")
+          : null,
+        lastCheckedAt: nextConfig.mode === "personal" && nextConfig.enabled ? now : null,
+        updatedAt: now,
+      };
+      return acc;
+    }, { ...next } as ApiCredentialState);
     const withStatus: ApiCredentialState = {
-      ...next,
-      fal: {
-        ...next.fal,
-        apiKey: effectiveFalKey,
-        status: next.fal.mode === "personal" ? (effectiveFalKey ? "connected" : "invalid_key") : undefined,
-        lastCheckedAt: next.fal.mode === "personal" ? now : undefined,
-        updatedAt: now,
-      },
-      runway: {
-        ...next.runway,
-        apiKey: effectiveRunwayKey,
-        status: next.runway.mode === "personal" ? (effectiveRunwayKey ? "connected" : "invalid_key") : undefined,
-        lastCheckedAt: next.runway.mode === "personal" ? now : undefined,
-        updatedAt: now,
-      },
+      ...nextWithStatus,
       updatedAt: now,
     };
     setApiCredentials(accountUser.id, withStatus);

@@ -1,4 +1,5 @@
 import { json } from "./http";
+import { describeUpstashRuntime } from "../../_lib/upstashRedis";
 
 export type OpsSignalInput = {
   signalType: "api_failure" | "payment_webhook_failure" | "frontend_error" | "release_health";
@@ -12,6 +13,10 @@ export type OpsSignalInput = {
 export type OpsSummary = {
   generatedAt: string;
   windowMinutes: number;
+  runtime: {
+    upstashConfigured: boolean;
+    storageMode: string;
+  };
   signals: {
     frontendErrors: number;
     apiFailures: number;
@@ -139,9 +144,14 @@ export function buildOpsAlerts(signals: OpsSummary["signals"]) {
   return alerts;
 }
 
-export async function buildOpsSummary(db: D1Database | undefined, windowMinutes = 60): Promise<OpsSummary> {
+export async function buildOpsSummary(
+  db: D1Database | undefined,
+  windowMinutes = 60,
+  env?: any
+): Promise<OpsSummary> {
   const safeWindowMinutes = Math.max(5, Math.min(24 * 60, Math.floor(windowMinutes)));
   const sinceTs = Date.now() - safeWindowMinutes * 60 * 1000;
+  const upstash = describeUpstashRuntime(env);
 
   const frontendErrors = await countFrontendErrors(db, sinceTs);
   const apiFailures = await countSignal(db, "api_failure", sinceTs);
@@ -158,6 +168,10 @@ export async function buildOpsSummary(db: D1Database | undefined, windowMinutes 
   return {
     generatedAt: nowIso(),
     windowMinutes: safeWindowMinutes,
+    runtime: {
+      upstashConfigured: upstash.configured,
+      storageMode: upstash.mode
+    },
     signals,
     alerts: buildOpsAlerts(signals)
   };
@@ -165,6 +179,6 @@ export async function buildOpsSummary(db: D1Database | undefined, windowMinutes 
 
 export async function respondOpsSummary(context: EventContext<any, any, any>) {
   const windowMinutes = envInt(context.env, "OPS_SUMMARY_WINDOW_MINUTES", 60, 5, 24 * 60);
-  const summary = await buildOpsSummary(context.env?.DB, windowMinutes);
+  const summary = await buildOpsSummary(context.env?.DB, windowMinutes, context.env);
   return json({ ok: true, summary }, 200, context.request, context.env);
 }

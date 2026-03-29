@@ -1,81 +1,93 @@
 # Phase T0 Template Field Usage
 
-Generated at: 2026-03-21T18:53:19.765Z
+Generated at: 2026-03-28T21:57:18.355Z
 
-Total templates scanned: 200
-Distinct fields: 67
+Total templates scanned: 120
+Distinct fields: 79
 
 ## Top Field Frequency
 
 | fieldKey | count |
 |---|---|
-| aspectRatio | 200 |
-| camera | 200 |
-| color | 200 |
-| compiler | 200 |
-| config | 200 |
-| continuity | 200 |
-| duration | 200 |
-| duration_s | 200 |
-| exportDefaults | 200 |
-| externalPrompt | 200 |
-| h | 200 |
-| id | 200 |
-| index | 200 |
-| key_dir | 200 |
-| keyframes | 200 |
-| kf | 200 |
-| layers | 200 |
-| lighting | 200 |
-| look | 200 |
-| mediaMode | 200 |
-| mediaType | 200 |
-| mood | 200 |
-| movement | 200 |
-| name | 200 |
-| nameEn | 200 |
-| notes | 200 |
-| opacity | 200 |
-| projectDefaults | 200 |
-| raw | 200 |
-| referenceLinks | 200 |
-| referencePolicy | 200 |
-| rot | 200 |
-| scenes | 200 |
-| shape | 200 |
-| shot | 200 |
-| storyPlan | 200 |
-| t | 200 |
-| time | 200 |
-| transitionType | 200 |
-| type | 200 |
-| w | 200 |
-| x | 200 |
-| y | 200 |
-| z | 200 |
-| zoom | 200 |
-| localRefs | 155 |
-| nameZh | 155 |
-| objects | 155 |
-| bgCarryOver | 45 |
-| cameraCarryOver | 45 |
-| characterCarryOver | 45 |
-| directionCarryOver | 45 |
-| enabled | 45 |
-| entryDir | 45 |
-| entryDirection | 45 |
-| exitDir | 45 |
-| exitDirection | 45 |
-| inheritFromPrevious | 45 |
-| method | 45 |
-| objectInheritance | 45 |
-| range | 45 |
-| referenceSlots | 45 |
-| sceneCount | 45 |
-| sceneDurations | 45 |
-| slot | 45 |
-| target | 45 |
-| totalDuration | 45 |
+| aspectRatio | 120 |
+| atmosphere | 120 |
+| backgroundPreset | 120 |
+| backgroundPromptEn | 120 |
+| backgroundPromptZh | 120 |
+| backStructure | 120 |
+| camera | 120 |
+| color | 120 |
+| compiler | 120 |
+| config | 120 |
+| continuityPreset | 120 |
+| createdAt | 120 |
+| descriptionEn | 120 |
+| descriptionZh | 120 |
+| duration_s | 120 |
+| enabled | 120 |
+| environmentalDetail | 120 |
+| exportPreset | 120 |
+| externalPrompt | 120 |
+| frontCategory | 120 |
+| generationSource | 120 |
+| h | 120 |
+| id | 120 |
+| imperfectionScene | 120 |
+| index | 120 |
+| inheritFromPrevious | 120 |
+| isDerivedTemplate | 120 |
+| isFree | 120 |
+| isMasterTemplate | 120 |
+| isNewTemplate | 120 |
+| isUserTemplate | 120 |
+| key_dir | 120 |
+| keyframes | 120 |
+| kf | 120 |
+| layers | 120 |
+| lighting | 120 |
+| locationMode | 120 |
+| look | 120 |
+| masterTemplateId | 120 |
+| mediaMode | 120 |
+| mediaType | 120 |
+| mood | 120 |
+| movement | 120 |
+| name | 120 |
+| nameEn | 120 |
+| nameZh | 120 |
+| notes | 120 |
+| objectPresets | 120 |
+| opacity | 120 |
+| price | 120 |
+| projectDefaults | 120 |
+| publishedAt | 120 |
+| qualityLevel | 120 |
+| ratio | 120 |
+| raw | 120 |
+| referenceLinks | 120 |
+| referencePolicy | 120 |
+| rot | 120 |
+| scenePreset | 120 |
+| scenes | 120 |
+| sceneTier | 120 |
+| score | 120 |
+| shape | 120 |
+| shapeDesc | 120 |
+| shot | 120 |
+| storyPlan | 120 |
+| t | 120 |
+| tags | 120 |
+| time | 120 |
+| timeOfDay | 120 |
+| transitionType | 120 |
+| type | 120 |
+| version | 120 |
+| w | 120 |
+| weather | 120 |
+| x | 120 |
+| y | 120 |
+| z | 120 |
+| zoom | 120 |
 
 ## Low Frequency Fields (<=2 templates)
 

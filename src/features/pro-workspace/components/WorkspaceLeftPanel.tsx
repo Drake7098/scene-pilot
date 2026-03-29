@@ -285,22 +285,25 @@ export function WorkspaceLeftPanel({
   const mod = isMac ? "⌘" : "Ctrl";
   const sh  = "⇧";
 
-  const WORKFLOW: Array<{ id: ProWorkspaceSection; icon: any; zh: string; en: string }> = [
-    { id: "shot",        icon: Video,       zh: "镜头",     en: "Shot" },
+  const CORE_WORKFLOW: Array<{ id: ProWorkspaceSection; icon: any; zh: string; en: string }> = [
+    { id: "scene_bg",    icon: Mountain,     zh: "场景",     en: "Scene" },
+    { id: "objects",     icon: Users,        zh: "对象",     en: "Objects" },
+    { id: "style",       icon: Palette,      zh: "风格",     en: "Style" },
+    { id: "lighting",    icon: Sun,          zh: "灯光",     en: "Lighting" },
+    { id: "shot",        icon: Video,        zh: "镜头",     en: "Shot" },
+  ];
+
+  const ADVANCED_CONTROLS: Array<{ id: ProWorkspaceSection; icon: any; zh: string; en: string }> = [
     { id: "director",    icon: Clapperboard, zh: "导演",     en: "Director" },
     { id: "output",      icon: MonitorPlay,  zh: "输出类型", en: "Output" },
     { id: "camera_lang", icon: Aperture,     zh: "镜头语言", en: "Lens" },
-    { id: "scene_bg",    icon: Mountain,     zh: "场景",     en: "Scene" },
-    { id: "objects",     icon: Users,        zh: "对象",     en: "Objects" },
-    { id: "lighting",    icon: Sun,          zh: "灯光",     en: "Lighting" },
-    { id: "style",       icon: Palette,      zh: "风格",     en: "Style" },
+    { id: "composition", icon: LayoutGrid,   zh: "构图",     en: "Compose" },
+    { id: "constraints", icon: Shield,       zh: "约束",     en: "Constrain" },
   ];
 
-  const TOOLS: Array<{ id: ProWorkspaceSection; icon: any; zh: string; en: string }> = [
-    { id: "composition",    icon: LayoutGrid, zh: "构图",   en: "Compose" },
-    { id: "constraints",    icon: Shield,     zh: "约束",   en: "Constrain" },
+  const EXECUTION_TOOLS: Array<{ id: ProWorkspaceSection; icon: any; zh: string; en: string }> = [
     { id: "prompt_preview", icon: FileText,   zh: "提示词", en: "Prompt" },
-    { id: "export",         icon: Download,   zh: "生成设置", en: "Generate Settings" },
+    { id: "export",         icon: Download,   zh: "执行",   en: "Execute" },
   ];
 
   return (
@@ -515,7 +518,8 @@ export function WorkspaceLeftPanel({
           flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 0",
           scrollbarWidth: "thin", scrollbarColor: `${BORDER} transparent`,
         }}>
-          {WORKFLOW.map(item => (
+          <ColBLabel text={tl(lang, "核心编辑", "Core")} />
+          {CORE_WORKFLOW.map(item => (
             <StepItem key={item.id} icon={item.icon}
               label={tl(lang, item.zh, item.en)}
               isActive={section === item.id}
@@ -525,8 +529,19 @@ export function WorkspaceLeftPanel({
               }} />
           ))}
           <div style={{ margin: "4px 12px", borderTop: `1px solid ${BORDER}` }} />
-          <ColBLabel text={tl(lang, "工具", "Tools")} />
-          {TOOLS.map(item => (
+          <ColBLabel text={tl(lang, "高级控制", "Advanced")} />
+          {ADVANCED_CONTROLS.map(item => (
+            <StepItem key={item.id} icon={item.icon}
+              label={tl(lang, item.zh, item.en)}
+              isActive={section === item.id}
+              onClick={() => {
+                onSectionChange(item.id);
+                onGlobalNavChange?.("workspace"); // 关闭模版库
+              }} />
+          ))}
+          <div style={{ margin: "4px 12px", borderTop: `1px solid ${BORDER}` }} />
+          <ColBLabel text={tl(lang, "执行", "Execute")} />
+          {EXECUTION_TOOLS.map(item => (
             <StepItem key={item.id} icon={item.icon}
               label={tl(lang, item.zh, item.en)}
               isActive={section === item.id}

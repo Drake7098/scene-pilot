@@ -77,8 +77,8 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "模版是什么",
         titleEn: "What templates are",
-        textZh: "模版是专业拍摄结构的预设。选一个模版，镜头、布光、风格、对象骨架会自动带入，省去从零搭结构的时间。模版分日常任务（卖货/人物/海报/口播/剧情）和专业任务（连续分镜/多镜对话/动作/动漫等）两大类。",
-        textEn: "Templates are professional shooting structure presets. Pick one and camera, lighting, style, and object skeleton are filled in automatically. Templates are split into Daily tasks (product / portrait / poster / presenter / drama) and Pro tasks (continuity / dialogue / action / anime, etc.)."
+        textZh: "模版是专业拍摄结构的预设。选一个模版，镜头、布光、风格、对象骨架会自动带入，省去从零搭结构的时间。模版分日常任务（商品展示 / 人物形象 / 封面视觉 / 口播视频 / 剧情片段）和专业创作（广告镜头 / 影视镜头 / 动画镜头 / 游戏视觉 / 风格实验）两大类。",
+        textEn: "Templates are professional shooting structure presets. Pick one and camera, lighting, style, and object skeleton are filled in automatically. Templates are split into Daily tasks (product showcase / character portraits / cover visuals / talking videos / story snippets) and Pro creation (ad shots / film shots / animation shots / game visuals / style experiments)."
       },
       {
         titleZh: "免费和付费模版",
@@ -89,8 +89,8 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "如何选模版",
         titleEn: "How to choose",
-        textZh: "根据你的最终用途选：要拍产品图 → 「卖货出图」；要拍人像写真 → 「人物出图」；要做剧情短视频 → 「剧情短视频」；要做品牌广告 → 专业任务里的「连续分镜」。搜索栏支持按名称、风格、描述搜索。",
-        textEn: "Choose by your end goal: product images → Sell Products; portrait → Portrait; drama short video → Drama; brand ad → Pro tasks / Continuity. The search bar supports name, style, and description search."
+        textZh: "根据你的最终用途选：要拍产品图 → 「商品展示」；要拍人像写真 → 「人物形象」；要做剧情向短片 → 「剧情片段」；要做品牌广告或商业叙事 → 专业创作里的对应分类。搜索栏支持按名称、风格、描述搜索。",
+        textEn: "Choose by your end goal: product images → Product Showcase; portraits → Character Portraits; story-led short videos → Story Snippets; brand ads or commercial narratives → the matching Pro creation category. The search bar supports name, style, and description search."
       }
     ]
   },
@@ -106,10 +106,10 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
         textEn: "Pro templates (3 credits) are top-tier structures for commercial production: luxury watch ads, perfume campaigns, car night posters, IMAX epic narratives, neon emotional films, fashion brand shorts, 30-second commercials. They fill 14+ object fields with precise camera and lighting — 10x more efficient than writing from scratch."
       },
       {
-        titleZh: "专业任务分类",
+        titleZh: "专业创作分类",
         titleEn: "Pro task categories",
-        textZh: "连续分镜：多镜头叙事，保持角色/场景连续性。多镜对话：两人或多人对话场景调度。动作连续：追逐、动作、运动高光等快节奏场景。追逐调度：悬疑、惊悚、紧张张力场景。动漫风格：动漫电影感、竖版短剧等特殊风格。",
-        textEn: "Continuity: multi-shot narrative with character/scene consistency. Dialogue: two or more person conversation shot choreography. Action: chase, action, sports highlight fast-paced scenes. Suspense: thriller, mystery, tension-building scenes. Anime: cinematic anime, vertical short drama styles."
+        textZh: "广告镜头：商业叙事、品牌片和宣传片的镜头组织。影视镜头：人物关系、走位交流和叙事切换。动画镜头：动画、赛博朋克与强演出感画面。游戏视觉：动作、对抗和高速节奏场景。风格实验：悬疑、压迫和风格化镜头尝试。",
+        textEn: "Ad Shots: brand films, promos, and commercial narrative coverage. Film Shots: relationships, blocking, and narrative cut grammar. Animation Shots: animation, cyberpunk, and performance-driven visuals. Game Visuals: action, confrontation, and fast visual rhythm. Style Experiments: suspense, pressure, and style-forward cinematic trials."
       }
     ]
   },
@@ -271,8 +271,8 @@ const CONTENT: Record<HelpSectionId, HelpSectionContent> = {
       {
         titleZh: "什么时候需要多场景",
         titleEn: "When to use multiple scenes",
-        textZh: "单张图片或单段视频用单场景即可。需要以下情况时用多场景：完整叙事短片（开场→冲突→高潮→结局）；同一角色在不同地点出现；广告片多镜剪辑；专业任务里的连续分镜工作流。",
-        textEn: "Use a single scene for one image or one video clip. Use multiple scenes for: complete narrative short (opening → conflict → climax → ending); same character in different locations; ad film multi-shot edit; pro continuity workflow."
+        textZh: "单张图片或单段视频用单场景即可。需要以下情况时用多场景：完整叙事短片（开场→冲突→高潮→结局）；同一角色在不同地点出现；广告片多镜剪辑；专业创作里的多镜头工作流。",
+        textEn: "Use a single scene for one image or one video clip. Use multiple scenes for: complete narrative short (opening → conflict → climax → ending); same character in different locations; ad film multi-shot edit; multi-shot workflows in Pro creation."
       },
       {
         titleZh: "角色连续性",

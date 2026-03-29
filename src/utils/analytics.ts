@@ -1,4 +1,6 @@
 import type { Lang } from "../i18n";
+import { trackEvent as trackPostHogEvent } from "../services/posthog";
+import { captureException } from "../services/sentry";
 
 type Props = Record<string, any>;
 
@@ -7,6 +9,7 @@ const LS_QUEUE = "spx_event_queue_v1";
 const LS_OPTIN = "spx_telemetry_on"; // "1" = on, else off
 const LS_SESSION = "spx_session_id";
 const LS_API_BASE = "spx_telemetry_api_base";
+let globalErrorHooksInstalled = false;
 
 function randId(prefix: string) {
   // 简单够用：时间 + 随机
@@ -181,6 +184,14 @@ export function track(event: string, props: Props = {}, lang?: Lang) {
   q.push(item);
   saveQueue(q);
 
+  trackPostHogEvent(event, {
+    ...props,
+    lang: lang || "",
+    device_id,
+    session_id,
+    ts,
+  });
+
   // 轻量：有网就尝试发一次（失败继续留队列）
   void flush();
 }
@@ -227,29 +238,36 @@ export async function sendFeedback(message: string, meta: Props = {}, lang?: Lan
 }
 
 export function installGlobalErrorHooks(lang?: Lang) {
-  if (!getOptIn()) return;
+  if (globalErrorHooksInstalled) return;
+  globalErrorHooksInstalled = true;
 
   window.addEventListener("error", (e) => {
+    const meta = {
+      kind: "error",
+      message: String((e as any)?.message || ""),
+      filename: String((e as any)?.filename || ""),
+      lineno: Number((e as any)?.lineno || 0),
+      colno: Number((e as any)?.colno || 0)
+    };
+    captureException(new Error(meta.message || "window_error"), meta);
+    if (!getOptIn()) return;
     track(
       "error",
-      {
-        kind: "error",
-        message: String((e as any)?.message || ""),
-        filename: String((e as any)?.filename || ""),
-        lineno: Number((e as any)?.lineno || 0),
-        colno: Number((e as any)?.colno || 0)
-      },
+      meta,
       lang
     );
   });
 
   window.addEventListener("unhandledrejection", (e) => {
+    const meta = {
+      kind: "unhandledrejection",
+      reason: String((e as any)?.reason || "")
+    };
+    captureException(new Error(meta.reason || "unhandled_promise_rejection"), meta);
+    if (!getOptIn()) return;
     track(
       "error",
-      {
-        kind: "unhandledrejection",
-        reason: String((e as any)?.reason || "")
-      },
+      meta,
       lang
     );
   });

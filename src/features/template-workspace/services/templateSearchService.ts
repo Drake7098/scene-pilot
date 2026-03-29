@@ -21,6 +21,7 @@ import {
 import { INTENT_CONFIG } from "../config/intentConfig";
 import { getTemplateIndex } from "../../../template-engine";
 import { addToRecent } from "../../../data/templateWorkspaceData";
+import { getTemplateDisplayCategory } from "../model/templateCategory";
 
 function matchesSearch(t: TemplateIndex, q: string): boolean {
   const lower = q.toLowerCase();
@@ -33,6 +34,7 @@ function matchesSearch(t: TemplateIndex, q: string): boolean {
   if (t.descriptionZh?.toLowerCase().includes(lower)) return true;
   if (t.tags.some((tag) => tag.toLowerCase().includes(lower))) return true;
   if (t.category.toLowerCase().includes(lower)) return true;
+  if (getTemplateDisplayCategory(t).toLowerCase().includes(lower)) return true;
   return false;
 }
 
@@ -122,7 +124,7 @@ export function filterTemplateIndex(
 
   // --- Step 2: category narrows within scope pool (additive, not exclusive) ---
   if (category && category !== "all") {
-    list = list.filter((t) => t.category === category);
+    list = list.filter((t) => getTemplateDisplayCategory(t) === category);
   }
 
   // --- Step 3: search query ---

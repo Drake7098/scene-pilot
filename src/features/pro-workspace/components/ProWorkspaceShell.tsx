@@ -34,7 +34,7 @@ import { ExportControlPanel, type GenerateSettings } from "./ExportControlPanel"
 import { Stage }                    from "../../../components/Stage";
 import { resolveSceneConfig }       from "../../../model";
 // GenerationSourceBar removed
-type GenerationSource = "hosted" | "byo" | "local_comfy" | "local_draw";
+type GenerationSource = "api" | "local_comfy" | "local_draw";
 import type { ApiCredentialState } from "../../../types/account";
 import type { LocalProviderStatus } from "../../../utils/localGeneration";
 import { detectSceneConflicts }     from "../../../utils/conflictRules";
@@ -86,8 +86,6 @@ type Props = {
   byoCredentials?: ApiCredentialState | null;
   comfyStatus?: LocalProviderStatus;
   drawStatus?: LocalProviderStatus;
-  creditCost?: number;
-  userCredits?: number;
   onGenerateSettingsChange?: (settings: GenerateSettings) => void;
   section?: ProWorkspaceSection;
   onSectionChange?: (s: ProWorkspaceSection) => void;
@@ -118,7 +116,7 @@ function RightPanelContent(props: Props & { section: ProWorkspaceSection }) {
     onAddLayer, onDeleteLayer,
     editT, setEditT, platformId, onPlatformChange,
     exportMode, onExportModeChange, generationSource, onGenerationSourceChange,
-    canUseByo, byoCredentials, comfyStatus, drawStatus, creditCost, userCredits,
+    canUseByo, byoCredentials, comfyStatus, drawStatus,
     onGenerateSettingsChange, onCopyPrompt, onExport, onGenerate, generateBusy, onJumpToConflict,
   } = props;
 
@@ -156,14 +154,12 @@ function RightPanelContent(props: Props & { section: ProWorkspaceSection }) {
           onPlatformChange={onPlatformChange ?? (() => {})}
           exportMode={exportMode ?? "prompt_only"}
           onExportModeChange={onExportModeChange ?? (() => {})}
-          generationSource={(generationSource ?? "hosted") as any}
+          generationSource={(generationSource ?? "api") as any}
           onGenerationSourceChange={onGenerationSourceChange ?? (() => {})}
           canUseByo={canUseByo ?? false}
           byoCredentials={byoCredentials}
           comfyStatus={comfyStatus}
           drawStatus={drawStatus}
-          creditCost={creditCost}
-          userCredits={userCredits}
           onGenerateSettingsChange={onGenerateSettingsChange}
         />
       );
@@ -178,13 +174,11 @@ export function ProWorkspaceShell(props: Props) {
     selectedLayerId, onSelectLayer, onUpdateScene,
     editT, setEditT, platformId,
     onCopyPrompt, onExport, onGenerate, generateBusy = false,
-    generationSource = "hosted",
+    generationSource = "api",
     onGenerationSourceChange,
     byoCredentials = null,
     comfyStatus = { provider: "comfyui" as const, state: "idle" as const },
     drawStatus  = { provider: "drawthings" as const, state: "idle" as const },
-    creditCost = 3,
-    userCredits = 0,
     onGenerateSettingsChange,
     section: externalSection, onSectionChange,
     currentAsset, assetList = [], activeAssetId,
@@ -195,23 +189,14 @@ export function ProWorkspaceShell(props: Props) {
   const [internalSection, setInternalSection] = useState<ProWorkspaceSection>("shot");
   const [queueStatusText, setQueueStatusText] = useState("");
   const [generateSettings, setGenerateSettings] = useState<GenerateSettings>({
-    executionMode: generationSource === "hosted" ? "hosted" : generationSource === "local_comfy" ? "comfyui" : generationSource === "local_draw" ? "drawthings" : "api",
-    engine: "fal",
+    executionMode: "copy",
     exportProfile: "universal",
-    quality: "standard",
     count: 1,
     resultMode: "new",
     referenceMode: "auto",
-    creditsRequired: creditCost,
-    canGenerate: generationSource === "hosted" ? userCredits >= creditCost : false,
-    generateLabel: generationSource === "hosted"
-      ? (lang === "zh" ? "生成（3 Credits）" : "Generate (3 Credits)")
-      : (lang === "zh" ? "使用 Fal 生成" : "Generate with Fal"),
-    statusHint: generationSource === "hosted"
-      ? (userCredits >= creditCost
-        ? (lang === "zh" ? "可以生成" : "Ready")
-        : (lang === "zh" ? "余额不足，请充值" : "Insufficient balance, please top up"))
-      : (lang === "zh" ? "未配置 API 或本地连接" : "API or local connection is missing"),
+    canGenerate: true,
+    generateLabel: lang === "zh" ? "复制提示词" : "Copy Prompt",
+    statusHint: lang === "zh" ? "复制最终提示词到剪贴板" : "Copy the final prompt to clipboard",
   });
   const section = externalSection ?? internalSection;
   const normalizedSection: ProWorkspaceSection = section === "export" || section === "platform" ? "generate_settings" : section;
@@ -274,6 +259,24 @@ export function ProWorkspaceShell(props: Props) {
     window.addEventListener("spx:gen-queue-status", onQueueStatus as EventListener);
     return () => window.removeEventListener("spx:gen-queue-status", onQueueStatus as EventListener);
   }, [lang]);
+
+  useEffect(() => {
+    if (generateSettings.executionMode === "copy" || generateSettings.executionMode === "package") {
+      setQueueStatusText("");
+    }
+  }, [generateSettings.executionMode]);
+
+  const primaryAction = () => {
+    if (generateSettings.executionMode === "copy") {
+      onCopyPrompt?.();
+      return;
+    }
+    if (generateSettings.executionMode === "package") {
+      onExport?.();
+      return;
+    }
+    onGenerate?.();
+  };
 
   return (
     <div style={{
@@ -460,7 +463,7 @@ export function ProWorkspaceShell(props: Props) {
             <button
               type="button"
               disabled={generateBusy || !generateSettings.canGenerate}
-              onClick={() => onGenerate?.()}
+              onClick={primaryAction}
               style={{
                 height: 34,
                 padding: "0 14px",

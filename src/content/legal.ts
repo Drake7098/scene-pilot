@@ -1,7 +1,15 @@
 import type { Lang } from "../i18n";
 import { CONTACT_CHANNELS } from "../config/contactChannels";
 
-export type LegalDocId = "terms" | "privacy" | "billing" | "refund";
+export type LegalDocId =
+  | "terms"
+  | "privacy"
+  | "billing"
+  | "refund"
+  | "ip"
+  | "integrations"
+  | "aup"
+  | "disclaimer";
 
 type LocalizedText = {
   zh: string;
@@ -36,11 +44,11 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
       zh: "用户协议",
       en: "Terms of Service"
     },
-    version: "v1.3",
-    updatedAt: "2026-03-13",
+    version: "v2.0",
+    updatedAt: "2026-03-29",
     summary: {
-      zh: "规范账户、服务使用、内容责任、可接受使用、知识产权、AI 输出限制、全球合规与责任边界。",
-      en: "Covers accounts, acceptable use, content responsibility, intellectual property, AI output limits, global compliance, and liability boundaries."
+      zh: "说明平台定位、账户使用、提示词复制、项目包导出、用户内容责任、第三方接入与责任边界。",
+      en: "Covers platform scope, accounts, prompt copying, project export, user-content responsibility, third-party integrations, and liability boundaries."
     },
     sections: [
       {
@@ -50,12 +58,12 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: `${LEGAL_COMPANY_PROFILE.brandName}（以下简称“我们”）向全球用户提供网站、应用、API、工作台及相关付费功能。你在注册、登录、访问或使用服务时，即表示你同意本协议。`,
-            en: `${LEGAL_COMPANY_PROFILE.brandName} ("we", "us", or "our") provides the website, apps, APIs, workspace, and related paid features globally. By registering, signing in, accessing, or using the service, you agree to these Terms.`
+            zh: `${LEGAL_COMPANY_PROFILE.brandName}（以下简称“我们”）向全球用户提供结构化创作、项目编排、提示词整理、导出与接入辅助服务。你在注册、登录、访问或使用服务时，即表示你同意本协议。`,
+            en: `${LEGAL_COMPANY_PROFILE.brandName} ("we", "us", or "our") provides structured creation, project orchestration, prompt organization, export, and integration-assistance services globally. By registering, signing in, accessing, or using the service, you agree to these Terms.`
           },
           {
-            zh: `付费订单由 Paddle 处理；在 Paddle 托管结账页、发票和收据中会展示法定销售主体、注册地址、税费与付款信息。客服联系方式：${LEGAL_COMPANY_PROFILE.supportEmail}。`,
-            en: `Paid orders are processed by Paddle. The legal seller entity, registered address, tax details, and payment information are shown on Paddle-hosted checkout, invoices, and receipts. Support contact: ${LEGAL_COMPANY_PROFILE.supportEmail}.`
+            zh: `付费订单由结账页展示的支付服务商或商户主体处理。法定销售主体、注册地址、税费、账单与付款信息以下单页、发票和收据展示为准。客服联系方式：${LEGAL_COMPANY_PROFILE.supportEmail}。`,
+            en: `Paid orders are processed by the payment provider or merchant entity shown at checkout. The legal seller entity, registered address, taxes, billing, and payment details are governed by the checkout page, invoice, and receipt. Support contact: ${LEGAL_COMPANY_PROFILE.supportEmail}.`
           }
         ]
       },
@@ -78,12 +86,12 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "ScenePilot 帮助用户将自然语言、结构选择和画布编辑转化为图像或视频制作结构、提示词和预览。AI 生成结果可能不准确、不完整或不适合特定用途，不能替代专业法律、医疗、财务、安全或其他受监管建议。",
-            en: "ScenePilot helps users convert natural language, structure selections, and canvas edits into image or video planning structures, prompts, and previews. AI outputs may be inaccurate, incomplete, or unsuitable for a specific purpose and do not replace professional legal, medical, financial, safety, or other regulated advice."
+            zh: "本平台是结构化创作与项目编排 SaaS，不是底层托管式图像/视频生成服务商。当前核心能力包括：复制提示词、导出项目包、用户自带 API 接入辅助，以及本地生成工作流接入辅助（如 ComfyUI、Draw Things）。",
+            en: "The service is a structured-creation and project-orchestration SaaS, not a hosted image/video generation provider. Core capabilities currently include prompt copying, project-package export, bring-your-own API integration assistance, and local workflow integration assistance (such as ComfyUI and Draw Things)."
           },
           {
-            zh: "我们可在不承担持续兼容义务的前提下更新、优化、暂停或停止部分功能。",
-            en: "We may update, improve, suspend, or discontinue parts of the service without any obligation to maintain perpetual compatibility."
+            zh: "我们不代用户购买、垫付或保证第三方模型推理资源，也不承诺任何第三方平台的生成结果、审核结果、商用结果、持续可用性或兼容性。",
+            en: "We do not purchase, subsidize, or guarantee third-party inference resources for users, and we do not promise any third-party platform's output, review outcome, commercial usability, ongoing availability, or compatibility."
           }
         ]
       },
@@ -94,12 +102,12 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "你保留你提交内容的权利。为提供服务，你授予我们一项非独占、全球范围、在服务运行所必需范围内的许可，用于托管、处理、缓存、传输和显示你的输入、项目数据和指令。",
-            en: "You retain rights in content you submit. To operate the service, you grant us a non-exclusive, worldwide license to host, process, cache, transmit, and display your inputs, project data, and instructions as necessary to provide the service."
+            zh: "你保留你提交内容的权利。为提供服务，你授予我们一项非独占、全球范围、在服务运行所必需范围内的许可，用于托管、处理、缓存、传输和显示你的输入、项目数据、导出指令和接入配置元数据。",
+            en: "You retain rights in content you submit. To operate the service, you grant us a non-exclusive, worldwide license to host, process, cache, transmit, and display your inputs, project data, export instructions, and integration metadata as necessary to provide the service."
           },
           {
-            zh: "在法律允许范围内，你对使用生成输出承担责任，包括核查第三方权利、标识义务、商用适配性和合规要求。我们不承诺输出天然具有版权、专有性、唯一性或可注册性。",
-            en: "To the extent permitted by law, you are responsible for your use of generated outputs, including reviewing third-party rights, labeling obligations, commercial suitability, and legal compliance. We do not guarantee that outputs are inherently copyrightable, proprietary, unique, or registrable."
+            zh: "你复制、导出、修改、分享、再次分发或提交至第三方平台、本地工具、商业项目、电商平台、广告投放、影视制作等场景的行为，均由你自行决定并独立承担风险和责任。",
+            en: "You independently decide and assume all risk for copying, exporting, modifying, sharing, redistributing, or submitting materials to third-party platforms, local tools, commercial projects, e-commerce channels, advertising, or production workflows."
           }
         ]
       },
@@ -110,12 +118,12 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "你不得利用服务从事违法、侵权、欺诈、骚扰、仇恨、剥削未成年人、侵犯隐私、传播恶意代码、规避安全限制、滥发垃圾信息、训练竞争性基础模型或规避计费的行为。",
-            en: "You may not use the service for unlawful, infringing, fraudulent, harassing, hateful, child exploitation, privacy-invasive, malware, security-evasion, spam, competitive foundation-model training, or billing-circumvention activities."
+            zh: "你不得利用服务从事违法、侵权、欺诈、骚扰、仇恨、剥削未成年人、侵犯隐私、传播恶意代码、规避安全限制、滥发垃圾信息、盗用或共享 API key、转售第三方调用、攻击接口或滥用本地网络暴露的行为。",
+            en: "You may not use the service for unlawful, infringing, fraudulent, harassing, hateful, child exploitation, privacy-invasive, malware, security-evasion, spam, stolen/shared API keys, reselling third-party calls, interface attacks, or abuse of exposed local-network runtimes."
           },
           {
-            zh: "你不得上传或生成你无权处理的个人数据、受保护内容或高风险受监管材料，除非你已取得充分授权并遵守适用法律。",
-            en: "You may not upload or generate personal data, protected content, or high-risk regulated material unless you have adequate authorization and comply with applicable law."
+            zh: "你不得上传、复制、导出或处理你无权使用的个人数据、参考图、品牌素材、人物形象、声音或其他受保护内容，除非你已取得充分授权并遵守适用法律。",
+            en: "You may not upload, copy, export, or process personal data, reference media, brand assets, likenesses, voices, or other protected content you are not authorized to use, unless you have adequate permission and comply with applicable law."
           }
         ]
       },
@@ -146,8 +154,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
             en: "To the extent permitted by law, the service is provided on an 'as is' and 'as available' basis. We disclaim express and implied warranties, including merchantability, fitness for a particular purpose, non-infringement, uninterrupted availability, and error-free operation."
           },
           {
-            zh: "除适用法律不得限制者外，我们不对间接、附带、惩罚性、特殊或后果性损失负责。若你的法域要求特定责任上限或消费者救济，该等强制性规则优先适用。",
-            en: "Except where prohibited by law, we are not liable for indirect, incidental, punitive, special, or consequential damages. If your jurisdiction requires specific liability caps or consumer remedies, those mandatory rules prevail."
+            zh: "除适用法律不得限制者外，我们不对第三方平台故障、封号、限流、模型下线、政策变化、审核拒绝、本地环境崩溃、插件恶意代码、设备损坏、数据丢失或任何间接、附带、惩罚性、特殊或后果性损失负责。",
+            en: "Except where prohibited by law, we are not liable for third-party outages, account suspension, rate limits, model deprecations, policy changes, review denials, local runtime failures, malicious plugins, device damage, data loss, or any indirect, incidental, punitive, special, or consequential damages."
           }
         ]
       },
@@ -194,8 +202,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "我们可基于法律、监管、风控或产品演进更新本协议。重大更新将通过站内公告、邮件或登录提示提供通知；更新生效后继续使用服务即表示你接受修订条款。",
-            en: "We may update these Terms due to legal, regulatory, risk, or product changes. Material updates will be notified via in-product notice, email, or sign-in prompts. Continued use after the effective date constitutes acceptance of the revised Terms."
+            zh: "在适用法律允许范围内，我们可基于法律法规变化、监管要求、第三方服务规则变化、产品升级、安全需要、运营安排及用户体验优化，对本协议及相关规则作出更新、调整和合理解释。重大更新将通过站内公告、邮件或登录提示提供通知；更新生效后继续使用服务即表示你接受修订条款。",
+            en: "To the extent permitted by law, we may update, adjust, and reasonably interpret these Terms and related rules due to legal or regulatory changes, third-party rule changes, product upgrades, security needs, operations, or user-experience improvements. Material changes will be notified through in-product notices, email, or sign-in prompts; continued use after the effective date constitutes acceptance."
           }
         ]
       },
@@ -239,11 +247,11 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
       zh: "隐私说明",
       en: "Privacy Notice"
     },
-    version: "v1.3",
-    updatedAt: "2026-03-13",
+    version: "v2.0",
+    updatedAt: "2026-03-29",
     summary: {
-      zh: "说明收集哪些数据、为何收集、如何使用、保存多久、跨境传输、区域权利和安全通知机制。",
-      en: "Explains what data is collected, why it is collected, how it is used, retention periods, cross-border transfers, regional rights, and security-notice processes."
+      zh: "说明账户、项目、导出、风险确认、API 接入元数据、第三方发送边界和数据保留规则。",
+      en: "Explains account, project, export, risk acknowledgments, API integration metadata, third-party transfer boundaries, and retention rules."
     },
     sections: [
       {
@@ -253,8 +261,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "我们可能收集账户信息（如邮箱）、登录与设备信息、支付相关记录、输入文本、画布结构、项目文件、日志、客服沟通和防滥用信号。默认不要收集与你提供服务无关的敏感个人信息。",
-            en: "We may collect account information (such as email), login and device data, payment-related records, prompts, canvas structures, project files, logs, support communications, and abuse-prevention signals. By default, you should avoid collecting sensitive personal data unrelated to providing the service."
+            zh: "我们可能收集账户信息（如邮箱）、登录与设备信息、支付相关记录、项目结构、提示词、导出行为、协议接受记录、风险确认记录、API 接入配置元数据、客服沟通和防滥用信号。默认不要提交与服务无关的敏感个人信息。",
+            en: "We may collect account information (such as email), login and device data, payment-related records, project structure, prompts, export activity, policy-acceptance records, risk-acknowledgment records, API integration metadata, support communications, and abuse-prevention signals. You should avoid submitting sensitive personal data unrelated to the service."
           }
         ]
       },
@@ -265,8 +273,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "我们处理数据是为了创建和管理账户、提供生成服务、结算付款、防欺诈与防滥用、履行法律义务、改进产品和回应支持请求。对于不同法域，法律基础可能包括履行合同、合法利益、同意和法定义务。",
-            en: "We process data to create and manage accounts, provide generation services, process payments, prevent fraud and abuse, comply with legal obligations, improve the product, and respond to support requests. Depending on the jurisdiction, legal bases may include contract performance, legitimate interests, consent, and legal obligations."
+            zh: "我们处理数据是为了创建和管理账户、提供提示词复制与项目导出、处理订阅和付款、支持用户自带 API 与本地接入、记录法律同意和风险确认、防欺诈与防滥用、履行法律义务、改进产品和回应支持请求。对于不同法域，法律基础可能包括履行合同、合法利益、同意和法定义务。",
+            en: "We process data to create and manage accounts, provide prompt-copy and project-export features, process subscriptions and payments, support bring-your-own API and local integrations, record legal consent and risk acknowledgments, prevent fraud and abuse, comply with legal obligations, improve the product, and respond to support requests. Depending on the jurisdiction, legal bases may include contract performance, legitimate interests, consent, and legal obligations."
           }
         ]
       },
@@ -277,8 +285,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "为提供服务，我们可能与云基础设施、支付服务商、分析服务商、邮件服务商和模型供应商共享必要数据。支付环节由 Paddle 及其支付网络处理，我们仅接收订单状态、风控与对账所需信息。",
-            en: "To provide the service, we may share necessary data with cloud infrastructure providers, payment processors, analytics vendors, email vendors, and model providers. Payment processing is handled by Paddle and its payment network, while we receive order-status, risk, and reconciliation data needed to run the service."
+            zh: "为提供服务，我们可能与云基础设施、支付服务商、分析服务商和邮件服务商共享必要数据。当你主动使用第三方 API 执行时，提示词、参考素材、结构参数及相关项目数据可能被发送至相应第三方服务商，其后续处理受该第三方自身政策约束。本地生成模式下，相关数据主要在你的设备与本地服务之间流转。",
+            en: "To provide the service, we may share necessary data with cloud infrastructure providers, payment processors, analytics vendors, and email vendors. When you intentionally execute through a third-party API, prompts, reference materials, structured parameters, and related project data may be sent to that third party, and further processing is governed by that provider's own policies. In local-workflow mode, relevant data primarily flows between your device and your local runtime."
           }
         ]
       },
@@ -289,8 +297,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "个人数据仅在实现收集目的所需期间内保留，之后删除、匿名化或隔离保存。你应为账户数据、支付记录、风控日志和支持工单设定明确保留期。",
-            en: "Personal data is retained only for as long as needed for the purposes collected, then deleted, anonymized, or isolated. You should set clear retention periods for account data, payment records, risk logs, and support tickets."
+            zh: "个人数据仅在实现收集目的所需期间内保留，之后删除、匿名化或隔离保存。协议接受记录、风险确认记录、支付记录、风控日志和支持工单会按合规、对账与安全需要保留相应期间。",
+            en: "Personal data is retained only for as long as needed for the purposes collected, then deleted, anonymized, or isolated. Policy-acceptance records, risk acknowledgments, payment records, risk logs, and support tickets may be retained for compliance, reconciliation, and security purposes."
           }
         ]
       },
@@ -398,11 +406,11 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
       zh: "付费、订阅与点数条款",
       en: "Billing, Subscription, and Credits Terms"
     },
-    version: "v1.3",
-    updatedAt: "2026-03-13",
+    version: "v2.0",
+    updatedAt: "2026-03-29",
     summary: {
-      zh: "说明价格展示、Paddle 支付处理、自动续费、取消时点、点数规则、税费、风控、主动同意与争议处理路径。",
-      en: "Explains pricing display, Paddle payment processing, auto-renewal, cancellation timing, credits rules, taxes, risk controls, affirmative consent, and dispute workflows."
+      zh: "说明价格展示、支付处理、自动续费、取消时点、点数规则、税费、风控、主动同意与争议处理路径。",
+      en: "Explains pricing display, payment processing, auto-renewal, cancellation timing, credits rules, taxes, risk controls, affirmative consent, and dispute workflows."
     },
     sections: [
       {
@@ -424,12 +432,12 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "结账由 Paddle 托管或处理，Paddle 可作为 Merchant of Record（法定销售主体）处理付款、税费、发票和收据。Pro 为自动续费订阅，直到你取消为止。",
-            en: "Checkout is hosted or processed by Paddle. Paddle may act as the merchant of record to handle payment collection, taxes, invoices, and receipts. Pro is an auto-renewing subscription until cancelled."
+            zh: "结账由产品当时接入的支付服务商或商户主体托管或处理。法定销售主体、税费、发票和收据以下单页与支付凭证展示为准。Pro 为自动续费订阅，直到你取消为止。",
+            en: "Checkout is hosted or processed by the payment provider or merchant entity integrated at the time. The legal seller, taxes, invoice, and receipt details are governed by the checkout page and payment records. Pro is an auto-renewing subscription until cancelled."
           },
           {
-            zh: "我们会在结账前明确展示自动续费、计费周期、价格、如何取消和退款规则。你可通过账户中心“管理订阅（Manage Subscription）”入口或 Paddle 客户门户管理续费。",
-            en: "Before checkout, we clearly disclose auto-renewal, billing cycle, pricing, how to cancel, and refund rules. You can manage renewal in Account Center via \"Manage Subscription\" or the Paddle customer portal."
+            zh: "我们会在结账前明确展示自动续费、计费周期、价格、如何取消和退款规则。你可通过账户中心“管理订阅”入口或结账页提示的客户门户管理续费。",
+            en: "Before checkout, we clearly disclose auto-renewal, billing cycle, pricing, how to cancel, and refund rules. You can manage renewal through the Account Center Manage Subscription entry or the customer portal shown at checkout."
           }
         ]
       },
@@ -440,8 +448,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "点数是用于解锁或调用特定生成能力的账户内使用额度，不是法定货币、储值支付工具、证券或可自由转让财产。除非我们明确允许，点数不得转让、出售、质押或兑换现金。",
-            en: "Credits are account-based usage units for unlocking or consuming certain generation features. They are not legal tender, stored-value payment instruments, securities, or freely transferable property. Unless we expressly allow it, credits may not be transferred, sold, pledged, or redeemed for cash."
+            zh: "点数是用于解锁模板、高级功能和未来站内能力的账户内使用额度，不是法定货币、储值支付工具、证券或可自由转让财产。除非我们明确允许，点数不得转让、出售、质押或兑换现金。",
+            en: "Credits are account-based usage units for unlocking templates, advanced features, and future in-product capabilities. They are not legal tender, stored-value payment instruments, securities, or freely transferable property. Unless we expressly allow it, credits may not be transferred, sold, pledged, or redeemed for cash."
           },
           {
             zh: "购买点数与订阅赠送点数应在产品界面中区分显示。赠送、促销或补偿性点数不可退款，除非适用法律另有要求。",
@@ -516,8 +524,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
         },
         body: [
           {
-            zh: "在你付款前，系统会要求你主动勾选并确认已阅读适用的付费条款、退款政策、用户协议与隐私说明。未完成勾选前，系统不会执行下单。",
-            en: "Before payment, the product requires you to actively check and confirm applicable Billing Terms, Refund Policy, Terms of Service, and Privacy Notice. No order is executed before this consent is completed."
+            zh: "在你付款前，系统会要求你主动勾选并确认已阅读适用的付费条款、退款政策、服务协议与隐私说明。未完成勾选前，系统不会执行下单。",
+            en: "Before payment, the product requires you to actively check and confirm the applicable Billing Terms, Refund Policy, Terms of Service, and Privacy Notice. No order is executed before this consent is completed."
           }
         ]
       },
@@ -553,8 +561,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
       zh: "退款政策",
       en: "Refund Policy"
     },
-    version: "v1.3",
-    updatedAt: "2026-03-13",
+    version: "v2.0",
+    updatedAt: "2026-03-29",
     summary: {
       zh: "首购订阅 7 天可退；单独充值点数在整包未使用时可退；并明确原路退回与风控复核规则。",
       en: "First-time subscriptions are refundable within 7 days; standalone purchased credits are refundable when the purchased pack remains unused; with clear original-payment return and risk-review rules."
@@ -587,8 +595,8 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
             en: "A separately purchased credits pack may be refunded if the credits associated with that purchase remain entirely unused. If the purchased credits have been partially used, blended into mixed consumption, or can no longer be identified as a wholly unused pack, pro-rata refunds are not offered unless required by law."
           },
           {
-            zh: "赠送点数、促销点数、客服补偿点数和订阅附带点数不属于“单独购买点数包未使用可退”范围。",
-            en: "Complimentary, promotional, support-compensation, and subscription-included credits are not part of the 'unused purchased credits pack refundable' rule."
+            zh: "赠送点数、促销点数、客服补偿点数和订阅附带点数不属于“单独购买点数包未使用可退”范围。第三方 API 服务商直接向你收取的费用、税费、订阅费或 API 消耗，不适用本平台退款政策。",
+            en: "Complimentary, promotional, support-compensation, and subscription-included credits are not part of the 'unused purchased credits pack refundable' rule. Charges, taxes, subscriptions, or API consumption billed directly by third-party providers are outside this platform refund policy."
           }
         ]
       },
@@ -649,6 +657,177 @@ export const LEGAL_DOCS: Record<LegalDocId, LegalDoc> = {
           {
             zh: "退款默认退回至原支付路径和原币种（如支付渠道支持）。若原路径不可用，可能改由支付服务商提供的替代路径处理。到账时间受发卡行、支付网络和地区结算规则影响。",
             en: "Refunds are returned to the original payment rail and currency by default (where supported). If the original route is unavailable, an alternative route provided by the payment processor may be used. Settlement timing depends on issuer, payment network, and regional clearing rules."
+          }
+        ]
+      }
+    ]
+  },
+  ip: {
+    id: "ip",
+    title: {
+      zh: "知识产权与用户内容政策",
+      en: "IP and User Content Policy"
+    },
+    version: "v1.0",
+    updatedAt: "2026-03-29",
+    summary: {
+      zh: "说明用户素材、参考图、导出内容、权利保证、侵权处理和平台边界。",
+      en: "Explains user materials, references, exported content, rights warranties, infringement handling, and platform boundaries."
+    },
+    sections: [
+      {
+        heading: { zh: "1. 用户素材与授权保证", en: "1. User Materials and Authorization" },
+        body: [
+          {
+            zh: "你上传、粘贴、引用、链接、导出或提交给第三方服务的所有素材，包括参考图、视频、商品图、人物照片、Logo、包装、文案、角色设定和其他内容，均由你保证来源合法并已取得必要授权。",
+            en: "You warrant that all materials you upload, paste, reference, link, export, or submit to third-party services — including reference images, video, product shots, portraits, logos, packaging, copy, character settings, and other content — come from lawful sources and have the necessary authorization."
+          },
+          {
+            zh: "对于真实人物形象、声音、品牌、包装、影视角色、动漫角色、商标标识、摄影作品和其他高风险内容，你应在使用前自行确认是否已取得充分、明确、有效的授权或其他合法基础。",
+            en: "For real-person likenesses, voices, brands, packaging, film or animation characters, trademarks, photographs, and other high-risk content, you must independently confirm that you have adequate, explicit, valid authorization or another lawful basis before use."
+          }
+        ]
+      },
+      {
+        heading: { zh: "2. 平台边界", en: "2. Platform Boundary" },
+        body: [
+          {
+            zh: "平台不会因为素材经过上传、组织、复制、导出、打包或经由平台接入第三方服务，即取得该等素材的权利，也不因此对其合法性、可商用性或不侵权作任何保证。",
+            en: "The platform does not obtain rights in materials merely because they are uploaded, organized, copied, exported, packaged, or sent through platform-assisted integrations, and we do not guarantee their legality, commercial usability, or non-infringement."
+          }
+        ]
+      },
+      {
+        heading: { zh: "3. 投诉与处理", en: "3. Complaints and Handling" },
+        body: [
+          {
+            zh: `如因你的素材、导出内容或后续使用引发投诉、下架、索赔、争议或监管调查，你应自行承担责任；如因此给平台造成损失，你应负责赔偿。权利投诉可发送至 ${LEGAL_COMPANY_PROFILE.supportEmail}。`,
+            en: `If your materials, exported content, or subsequent use leads to complaints, takedowns, claims, disputes, or regulatory inquiries, you are responsible for those consequences and must indemnify the platform for related losses. Rights complaints may be sent to ${LEGAL_COMPANY_PROFILE.supportEmail}.`
+          }
+        ]
+      }
+    ]
+  },
+  integrations: {
+    id: "integrations",
+    title: {
+      zh: "第三方 API 与本地工作流接入条款",
+      en: "Third-Party API and Local Workflow Terms"
+    },
+    version: "v1.0",
+    updatedAt: "2026-03-29",
+    summary: {
+      zh: "说明用户自带 API、第三方费用、封号风险、本地环境风险、端口暴露和兼容性边界。",
+      en: "Explains bring-your-own API use, third-party costs, suspension risk, local-runtime risk, exposed ports, and compatibility boundaries."
+    },
+    sections: [
+      {
+        heading: { zh: "1. 用户自带 API", en: "1. Bring-Your-Own API" },
+        body: [
+          {
+            zh: "你应自行向第三方服务商申请、开通、充值、维护和合法使用 API 账户及凭证。账户、账单、税费、自动续费、超额费用、限流、封号、冻结、地区限制、模型下线及争议处理均由你自行承担。",
+            en: "You must independently apply for, activate, fund, maintain, and lawfully use third-party API accounts and credentials. Accounts, billing, taxes, renewals, overage charges, rate limits, suspension, freezes, regional restrictions, model deprecations, and disputes are your responsibility."
+          },
+          {
+            zh: "你保证对所接入的 API key 或凭证拥有合法使用权，不使用盗用、共享、倒卖、灰产或其他非法来源的凭证。",
+            en: "You represent that you have lawful authority to use the API keys or credentials you connect and will not use stolen, shared, resold, abusive, or otherwise unlawful credentials."
+          }
+        ]
+      },
+      {
+        heading: { zh: "2. 第三方规则同时适用", en: "2. Third-Party Rules Also Apply" },
+        body: [
+          {
+            zh: "当你使用 fal、Runway 或其他第三方服务商 API 时，除遵守本平台协议外，还应同时遵守相应第三方服务条款、API 条款、可接受使用政策、隐私政策、计费规则和组织规则。",
+            en: "When you use fal, Runway, or any other third-party API through the platform, you must comply not only with our policies but also with the applicable third-party terms, API terms, acceptable-use policies, privacy policies, billing rules, and organizational rules."
+          }
+        ]
+      },
+      {
+        heading: { zh: "3. 本地工作流与设备安全", en: "3. Local Workflows and Device Security" },
+        body: [
+          {
+            zh: "对于 ComfyUI、Draw Things 或其他本地软件、节点、插件、模型、LoRA、脚本、API Server、驱动、局域网配置和硬件环境，你应自行安装、维护并承担安全和兼容性风险。",
+            en: "For ComfyUI, Draw Things, and other local software, nodes, plugins, models, LoRAs, scripts, API servers, drivers, LAN settings, and hardware environments, you are responsible for installation, maintenance, security, and compatibility risks."
+          },
+          {
+            zh: "如你将本地服务暴露至公网、局域网或团队网络环境，相关访问控制、数据泄露、未授权调用、结果泄露或设备安全风险均由你自行承担。",
+            en: "If you expose a local service to the public internet, LAN, or team network, all related access-control, data-exposure, unauthorized-call, output-leakage, and device-security risks are your responsibility."
+          }
+        ]
+      }
+    ]
+  },
+  aup: {
+    id: "aup",
+    title: {
+      zh: "可接受使用政策",
+      en: "Acceptable Use Policy"
+    },
+    version: "v1.0",
+    updatedAt: "2026-03-29",
+    summary: {
+      zh: "说明禁止的内容、技术滥用、API 滥用、深度伪造欺诈和网络攻击行为。",
+      en: "Explains prohibited content, technical abuse, API abuse, deepfake fraud, and network attacks."
+    },
+    sections: [
+      {
+        heading: { zh: "1. 禁止内容与行为", en: "1. Prohibited Content and Conduct" },
+        body: [
+          {
+            zh: "你不得利用服务从事违法、侵权、冒充、深度伪造欺诈、骚扰、仇恨、未成年人不当内容、侵犯隐私或其他不当活动。",
+            en: "You may not use the service for unlawful acts, infringement, impersonation, deepfake fraud, harassment, hate, improper minor-related content, privacy invasion, or other abusive activity."
+          }
+        ]
+      },
+      {
+        heading: { zh: "2. 技术滥用", en: "2. Technical Abuse" },
+        body: [
+          {
+            zh: "你不得盗用、共享、转售或批量滥用 API key，不得规避限制、攻击接口、滥用本地网络暴露或利用平台从事自动化滥刷。",
+            en: "You may not steal, share, resell, or massively abuse API keys, circumvent restrictions, attack interfaces, abuse exposed local runtimes, or use the platform for abusive automation."
+          }
+        ]
+      }
+    ]
+  },
+  disclaimer: {
+    id: "disclaimer",
+    title: {
+      zh: "免责声明与风险提示",
+      en: "Disclaimer and Risk Disclosure"
+    },
+    version: "v1.0",
+    updatedAt: "2026-03-29",
+    summary: {
+      zh: "说明提示词复制、项目包导出、素材授权、第三方 API 与本地工作流的风险边界。",
+      en: "Explains risk boundaries for prompt copying, project export, source authorization, third-party APIs, and local workflows."
+    },
+    sections: [
+      {
+        heading: { zh: "1. 提示词复制", en: "1. Prompt Copying" },
+        body: [
+          {
+            zh: "平台提供的提示词、模板、结构化字段和编译结果仅作为创作辅助与表达参考，不构成对任何第三方平台生成结果、审核结果、商用结果或法律结果的承诺。",
+            en: "Prompts, templates, structured fields, and compiled outputs provided by the platform are creative aids and reference materials only. They do not constitute a promise regarding any third-party platform's output, review result, commercial use, or legal outcome."
+          }
+        ]
+      },
+      {
+        heading: { zh: "2. 项目包导出", en: "2. Project Export" },
+        body: [
+          {
+            zh: "项目包导出仅为便于你备份、迁移、复用或继续在第三方工具中创作。导出后的存储、传输、分享、二次编辑、兼容性和后续使用均由你自行负责。",
+            en: "Project-package export is provided only to help you back up, migrate, reuse, or continue your work in third-party tools. Storage, transfer, sharing, editing, compatibility, and subsequent use after export are your responsibility."
+          }
+        ]
+      },
+      {
+        heading: { zh: "3. 第三方与本地风险", en: "3. Third-Party and Local Risks" },
+        body: [
+          {
+            zh: "第三方 API 的可用性、价格、额度、审核政策、封号决定和结果质量，以相应平台规则为准。本地环境中的插件、节点、模型、LoRA、脚本、端口暴露、日志记录和系统安全风险，由你自行承担。",
+            en: "Third-party API availability, pricing, quotas, review policies, suspension decisions, and output quality are governed by the applicable provider rules. Plugins, nodes, models, LoRAs, scripts, exposed ports, logging, and system-security risks in your local environment are your responsibility."
           }
         ]
       }

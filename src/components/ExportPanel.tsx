@@ -16,9 +16,9 @@ import { useFieldState } from "../hooks/useFieldState";
 import { useAllowedOptions } from "../hooks/useAllowedOptions";
 import { FIELD_KEYS } from "../rules/fieldKeys";
 import { defaultProjectName, safeExportName } from "../utils/naming";
+import { acknowledgePolicy, getPolicyAckVersion, hasPolicyAck, logPolicyAction } from "../services/policyAckService";
 import { UI_ACTION, UI_COLOR, UI_CONTROL, UI_EFFECT, UI_FONT, UI_INFO, UI_OPACITY, UI_PALETTE, UI_PANEL, UI_RADIUS, UI_SIZE, UI_STATUS, UI_TYPO } from "../uiTokens";
 import type { PromptExportScope } from "../types/export";
-import { PlatformModePanel } from "./PlatformModePanel";
 
 type Props = {
   lang: Lang;
@@ -45,6 +45,7 @@ type Props = {
   defaultExportDirectoryHandle?: any | null;
   /** Optional: emits selected export directory for host persistence. */
   onExportDirectorySelected?: (dirHandle: any, dirLabel: string) => void;
+  userId?: string | null;
 };
 
 function clampInt(v: number, a: number, b: number) {
@@ -78,7 +79,34 @@ function extFromName(name: string) {
 type FlowFile = { path: string; content: string };
 type FlowBlobFile = { path: string; refId: string };
 type ZipEntry = { path: string; data: Uint8Array };
+type ExportPackageType = "general" | "with_refs" | "without_refs" | "txt";
 const OBJECT_REF_LIMIT = 1;
+
+function stripReferenceHints(raw: string): string {
+  return raw
+    .split("\n")
+    .filter((line) => !/(reference|references|ref image|参考图|参考|上传参考)/i.test(line))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trimEnd();
+}
+
+function enhancePromptForExport(raw: string, mode: ExportPackageType, lang: Lang): string {
+  if (mode === "with_refs") {
+    const hint = lang === "zh"
+      ? "参考图说明：上传 images/ 中的参考图，并优先保持主体、风格、构图与一致性。"
+      : "Reference note: upload the reference images in images/ and preserve subject, style, composition, and consistency.";
+    return `${raw.trimEnd()}\n\n${hint}\n`;
+  }
+  if (mode === "without_refs") {
+    const stripped = stripReferenceHints(raw);
+    const hint = lang === "zh"
+      ? "无参考图模式：请仅依据文字描述生成，并补足主体细节、构图、风格、材质与光线。"
+      : "No-reference mode: generate from text only and fully describe subject details, composition, style, material, and lighting.";
+    return `${stripped}\n\n${hint}\n`;
+  }
+  return `${raw.trimEnd()}\n`;
+}
 
 let crcTable: Uint32Array | null = null;
 
@@ -241,7 +269,8 @@ export function ExportPanel({
   onExportModeChange,
   onFeedbackMessage,
   defaultExportDirectoryHandle = null,
-  onExportDirectorySelected
+  onExportDirectorySelected,
+  userId = null
 }: Props) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
@@ -250,7 +279,11 @@ export function ExportPanel({
   const [actionHint, setActionHint] = useState("");
   const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
   const [copyDone, setCopyDone] = useState(false);
-  const [platformPresetId, setPlatformPresetId] = useState<PlatformPresetId>(platformId);
+  const [copyRiskAccepted, setCopyRiskAccepted] = useState(false);
+  const [copyRiskError, setCopyRiskError] = useState("");
+  const [exportPackageType, setExportPackageType] = useState<ExportPackageType>("general");
+  const [exportRiskAccepted, setExportRiskAccepted] = useState(false);
+  const [exportRiskError, setExportRiskError] = useState("");
   const [internalExportScope, setInternalExportScope] = useState<PromptExportScope>("current_scene");
   const exportScope = controlledExportScope ?? internalExportScope;
   const setExportScope = onExportScopeChange ?? setInternalExportScope;
@@ -258,13 +291,14 @@ export function ExportPanel({
   const exportMode = controlledExportMode ?? internalExportMode;
   const setExportMode = onExportModeChange ?? setInternalExportMode;
   const [exporting, setExporting] = useState(false);
-  const [platformModeCollapsed, setPlatformModeCollapsed] = useState(true);
   const [promptExpanded, setPromptExpanded] = useState(false);
   const [moreExportOpen, setMoreExportOpen] = useState(false);
   const [readonlyHelpOpen, setReadonlyHelpOpen] = useState(false);
   const moreExportRef = useRef<HTMLDivElement>(null);
   const readonlyHelpRef = useRef<HTMLDivElement>(null);
   const canSaveDirectory = typeof window !== "undefined" && "showDirectoryPicker" in window;
+  const copyPolicyAccepted = hasPolicyAck(userId, "copy_prompt");
+  const exportPolicyAccepted = hasPolicyAck(userId, "export_project");
 
   const scenes = useMemo(() => project.scenes ?? [], [project.scenes]);
   const safeIdx = clampInt(sceneIdx, 0, Math.max(0, scenes.length - 1));
@@ -272,16 +306,11 @@ export function ExportPanel({
   const scopeOptions = useMemo(() => availableExportScopes(project, safeIdx), [project, safeIdx]);
   const rangeField = useFieldState(FIELD_KEYS.EXPORT_RANGE, currentScene, project, lang);
   const rangeOptions = useAllowedOptions(FIELD_KEYS.EXPORT_RANGE, ["current_scene", "continuous_sequence"], currentScene, project, lang);
-  const targetOptions = useAllowedOptions(FIELD_KEYS.EXPORT_TARGET, PLATFORM_PRESETS.map((p) => p.id), currentScene, project, lang);
   const recommendedExportMode = useMemo(() => recommendExportMode(project, safeIdx), [project, safeIdx]);
   const sceneConflicts = useMemo(() => {
     if (!currentScene) return [];
     return detectSceneConflicts(currentScene, lang);
   }, [currentScene, lang]);
-
-  useEffect(() => {
-    setPlatformPresetId(platformId);
-  }, [platformId]);
 
   useEffect(() => {
     if (!scopeOptions.includes(exportScope)) {
@@ -305,6 +334,7 @@ export function ExportPanel({
       return;
     }
     if (openExportAction === "prompt_txt") {
+      applyExportPackageType("txt");
       void guardBeforeExportTxt();
       return;
     }
@@ -319,6 +349,7 @@ export function ExportPanel({
       return;
     }
     if (openExportAction === "package") {
+      applyExportPackageType("general");
       if (sceneConflicts.length) {
         setPendingConflictAction("save");
         setPendingConflicts(sceneConflicts);
@@ -331,16 +362,16 @@ export function ExportPanel({
     setShowExportModal(true);
   }, [openExportNonce, openExportAction]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function changePlatform(id: PlatformPresetId) {
-    setPlatformPresetId(id);
-    onPlatformChange?.(id);
+  function applyExportPackageType(next: ExportPackageType) {
+    setExportPackageType(next);
+    setExportMode(next === "txt" ? "prompt_only" : "package");
   }
 
   void selectedLayerId;
 
   const platformPreset = useMemo(
-    () => getPlatformPreset(platformPresetId),
-    [platformPresetId]
+    () => getPlatformPreset(platformId),
+    [platformId]
   );
   const exportProfile: PromptProfile = platformPreset.baseProfile;
 
@@ -371,9 +402,9 @@ export function ExportPanel({
     project: promptProject,
     lang,
     profile: exportProfile,
-    platformId: platformPresetId,
+    platformId,
     scope: exportScope
-  }), [promptProject, lang, exportProfile, platformPresetId, exportScope]);
+  }), [promptProject, lang, exportProfile, platformId, exportScope]);
 
   const { main: promptsMain, notes: promptsNotes } = useMemo(() => splitMachineNotes(promptPipeline.finalCopyPrompt), [promptPipeline.finalCopyPrompt]);
   const quickCopyPrompt = useMemo(() => promptPipeline.finalCopyPrompt.trimEnd(), [promptPipeline.finalCopyPrompt]);
@@ -424,11 +455,17 @@ export function ExportPanel({
   }, [actionHint]);
 
   async function runCopyPrompt() {
+    setCopyRiskAccepted(copyPolicyAccepted);
+    setCopyRiskError("");
     setCopyDone(false);
     setCopyConfirmOpen(true);
   }
 
   async function confirmCopyPrompt() {
+    if (!copyPolicyAccepted && !copyRiskAccepted) {
+      setCopyRiskError(lang === "zh" ? "请先确认复制提示词风险提示。" : "Please confirm the prompt-copy disclosure first.");
+      return;
+    }
     let ticket: PromptExportTicket = { allowed: true };
     if (onPreparePromptExport) {
       ticket = await onPreparePromptExport("pro_copy");
@@ -437,6 +474,10 @@ export function ExportPanel({
     let committed = false;
     try {
       await copy(quickCopyPrompt);
+      if (!copyPolicyAccepted) {
+        acknowledgePolicy(userId, "copy_prompt");
+        logPolicyAction(userId, "copy_prompt", "copy_prompt");
+      }
       committed = true;
       setCopyDone(true);
       setActionHint(lang === "zh" ? "已复制当前提示词" : "Current prompt copied");
@@ -449,7 +490,12 @@ export function ExportPanel({
   }
 
   function runOpenSaveModal(mode?: ExportMode) {
-    if (mode) setExportMode(mode);
+    if (mode) {
+      setExportMode(mode);
+      setExportPackageType(mode === "prompt_only" ? "txt" : "general");
+    }
+    setExportRiskAccepted(exportPolicyAccepted);
+    setExportRiskError("");
     setShowExportModal(true);
     resetExportState();
   }
@@ -502,332 +548,140 @@ export function ExportPanel({
   }
 
   const flowBundle = useMemo(() => {
-    const scenesToExport = exportMode === "package" ? scenes : (promptProject.scenes ?? []);
-    const sceneBackgrounds = scenesToExport
-      .map((scene, sceneOrder) => {
-        const bgRef = scene.backgroundRef;
-        if (!bgRef?.id) return null;
-        const sceneTag = String((scene.index ?? sceneOrder + 1)).padStart(2, "0");
-        const ext = extFromName(bgRef.name);
-        const fileName = `${sceneTag}__BG__${safeName(bgRef.name || `background.${ext}`)}`;
-        return {
-          sceneTag,
-          sceneName: scene.name ?? scene.id,
-          fileName,
-          refId: bgRef.id
-        };
-      })
-      .filter(Boolean) as Array<{ sceneTag: string; sceneName: string; fileName: string; refId: string }>;
-
-    const objects = scenesToExport.flatMap((scene, sceneOrder) =>
-      (scene.layers ?? []).map((layer, idx) => {
-      const sceneTag = String((scene.index ?? sceneOrder + 1)).padStart(2, "0");
-      const code = `OBJ_${String.fromCharCode(65 + (idx % 26))}${idx >= 26 ? `_${idx + 1}` : ""}`;
-      const localRefs = (layer.localRefs ?? []).slice(0, OBJECT_REF_LIMIT);
-      const refItems = localRefs.map((ref, i) => {
-        const type = ref.type;
-        const ext = extFromName(ref.name);
-        const fileName = `${sceneTag}_${code}__${refShort(type)}__${String(i + 1).padStart(2, "0")}.${ext}`;
-        return { source: `local:${ref.name}`, type, fileName, refId: ref.id };
-      });
-      return {
-        sceneTag,
-        sceneName: scene.name ?? scene.id,
-        code,
-        layerId: layer.id,
-        type: (layer.type ?? "").trim(),
-        look: (layer.look ?? "").trim(),
-        notes: (layer.notes ?? "").trim(),
-        referencePolicy: layer.referencePolicy ?? "optional",
-        refItems
-      };
-    }));
-
     const projectNameForFile = safeName(projectLabel || defaultProjectName(lang));
     const shotNameForFile = safeName(sceneTitle || (lang === "zh" ? "分镜" : "shot"));
-    const platformForFile = safeName(lang === "zh" ? platformPreset.labelZh : platformPreset.labelEn);
     const rootDir = "ScenePilotix";
     const projectDir = projectNameForFile || defaultProjectName(lang);
-    const modeLabelZh = "稳妥高质（两步）";
-    const modeLabelEn = "Stable Quality (Two-step)";
+    const shouldIncludeRefs = exportPackageType === "general" || exportPackageType === "with_refs";
 
-    const readmeText = lang === "zh"
-      ? [
-          "ScenePilotix 交付包说明",
-          "",
-          `适用大模型：${platformPreset.labelZh}`,
-          `导出范围：${exportMode === "package" ? "整个项目" : exportScope === "continuous_sequence" ? "连续序列" : "当前分镜"}`,
-          `导出方式：${modeLabelZh}`,
-          "",
-          "1) 先打开 prompt.txt，直接复制提示词。",
-          "2) 再按 refs-manifest.txt 上传参考图。",
-          "3) 若浏览器不支持目录保存，可下载 ZIP 后按相同文件结构使用。",
-          "",
-          "补充说明：",
-          "- 不调用 API，不上传云端。",
-          "- 对象若没图，不会导出空图片文件。",
-          "- 分镜背景参考图为可选项，不填也可导出。"
-        ].join("\n")
-      : [
-          "ScenePilotix Package Guide",
-          "",
-          `Target Model: ${platformPreset.labelEn}`,
-          `Export Scope: ${exportMode === "package" ? "Whole Project" : exportScope === "continuous_sequence" ? "Continuity Sequence" : "Current Scene"}`,
-          `Flow: ${modeLabelEn}`,
-          "",
-          "1) Open prompt.txt first and copy the prompt directly.",
-          "2) Upload references by refs-manifest.txt.",
-          "3) If directory save is unavailable, use the ZIP package with the same structure.",
-          "",
-          "Notes:",
-          "- No API call, no cloud upload.",
-          "- Objects with no images won't generate empty files.",
-          "- Shot background references are optional."
-        ].join("\n");
+    const noRefProject: Project = {
+      ...project,
+      scenes: (project.scenes ?? []).map((scene) => ({
+        ...scene,
+        backgroundRef: undefined,
+        layers: (scene.layers ?? []).map((layer) => ({
+          ...layer,
+          referenceLinks: "",
+          localRefs: []
+        }))
+      }))
+    };
 
-    const refsManifestText = [
-      lang === "zh" ? "参考图清单" : "Reference Manifest",
-      "",
-      lang === "zh"
-        ? `适用大模型：${platformPreset.labelZh}  |  模式：${modeLabelZh}`
-        : `Target Model: ${platformPreset.labelEn} | Mode: ${modeLabelEn}`,
-      "",
-      lang === "zh" ? "## 分镜背景参考图" : "## Shot Background Refs",
-      ...(
-        sceneBackgrounds.length
-          ? sceneBackgrounds.flatMap((bg) => [
-              lang === "zh"
-                ? `- [${bg.sceneTag}] ${bg.sceneName} -> ${bg.fileName}`
-                : `- [${bg.sceneTag}] ${bg.sceneName} -> ${bg.fileName}`
-            ])
-          : [lang === "zh" ? "- 无" : "- None"]
-      ),
-      "",
-      lang === "zh" ? "## 对象参考图" : "## Object Refs",
-      "",
-      ...objects.flatMap((obj) => {
-        const head =
-          lang === "zh"
-            ? `# [${obj.sceneTag}] ${obj.sceneName} / ${obj.code} (${obj.layerId})`
-            : `# [${obj.sceneTag}] ${obj.sceneName} / ${obj.code} (${obj.layerId})`;
-        const lines = [
-          head,
-          obj.type ? (lang === "zh" ? `- 类型: ${obj.type}` : `- Type: ${obj.type}`) : "",
-          obj.look ? (lang === "zh" ? `- 外观: ${obj.look}` : `- Look: ${obj.look}`) : "",
-          obj.notes ? (lang === "zh" ? `- 备注: ${obj.notes}` : `- Notes: ${obj.notes}`) : "",
-          obj.refItems.length
-            ? lang === "zh"
-              ? `- 参考文件: ${obj.refItems.map((r) => `${r.fileName}(${r.type})`).join(", ")}`
-              : `- Ref files: ${obj.refItems.map((r) => `${r.fileName}(${r.type})`).join(", ")}`
-            : lang === "zh"
-              ? "- 参考文件: 无（仅文本描述）"
-              : "- Ref files: none (text-only fallback)"
-          ,
-          lang === "zh"
-            ? `- 参考图策略: ${obj.referencePolicy === "required" ? "必须带图" : "可选"}`
-            : `- Ref policy: ${obj.referencePolicy === "required" ? "required" : "optional"}`
-        ].filter(Boolean);
-        return [...lines, ""];
-      })
-    ].join("\n");
-
-    const promptText = `${quickCopyPrompt}\n`;
-    const packagePromptText = exportMode === "package"
-      ? scenesToExport.map((scene, index) => {
+    const packageProject = exportPackageType === "without_refs" ? noRefProject : project;
+    const packageScenes = packageProject.scenes ?? [];
+    const promptText = enhancePromptForExport(quickCopyPrompt, exportPackageType, lang);
+    const packagePromptText = packageScenes.length
+      ? packageScenes.map((scene, index) => {
           const singleScenePrompt = runPromptEngine({
-            project: { ...project, scenes: [scene] },
+            project: { ...packageProject, scenes: [scene] },
             lang,
             profile: exportProfile,
-            platformId: platformPresetId,
+            platformId,
             scope: "current_scene"
-          }).finalCopyPrompt.trimEnd();
+          }).finalCopyPrompt;
           const title = scene.name?.trim() || scene.id || (lang === "zh" ? `分镜 ${index + 1}` : `Scene ${index + 1}`);
-          return `## ${title}\n${singleScenePrompt}`;
+          return `## ${title}\n${enhancePromptForExport(singleScenePrompt, exportPackageType, lang).trimEnd()}`;
         }).join("\n\n")
-      : promptText;
+      : promptText.trimEnd();
 
-    const bgBlobFiles: FlowBlobFile[] = sceneBackgrounds.map((bg) => ({
-      path: `${projectDir}/${bg.fileName}`,
-      refId: bg.refId
-    }));
-    const objectBlobFiles: FlowBlobFile[] = objects.flatMap((obj) =>
-      obj.refItems
-        .filter((r) => typeof (r as any).refId === "string")
-        .map((r) => ({
-          path: `${projectDir}/${r.fileName}`,
-          refId: (r as any).refId as string
-        }))
-    );
-    const blobFiles: FlowBlobFile[] = [...bgBlobFiles, ...objectBlobFiles];
+    const bgBlobFiles: FlowBlobFile[] = shouldIncludeRefs
+      ? (project.scenes ?? []).flatMap((scene, sceneOrder) => {
+          const bgRef = scene.backgroundRef;
+          if (!bgRef?.id) return [];
+          const sceneTag = String((scene.index ?? sceneOrder + 1)).padStart(2, "0");
+          const ext = extFromName(bgRef.name);
+          const fileName = `${sceneTag}__BG__${safeName(bgRef.name || `background.${ext}`)}`;
+          return [{ path: `${projectDir}/images/${fileName}`, refId: bgRef.id }];
+        })
+      : [];
 
-    const files: FlowFile[] = [
-      { path: `${projectDir}/prompt.txt`, content: packagePromptText },
-      { path: `${projectDir}/README.txt`, content: readmeText },
-      { path: `${projectDir}/refs-manifest.txt`, content: refsManifestText }
-    ];
-    const quickPromptFileName = `${projectNameForFile}__${shotNameForFile}__${platformForFile}__prompt.txt`;
+    const objectBlobFiles: FlowBlobFile[] = shouldIncludeRefs
+      ? (project.scenes ?? []).flatMap((scene, sceneOrder) =>
+          (scene.layers ?? []).flatMap((layer, idx) => {
+            const sceneTag = String((scene.index ?? sceneOrder + 1)).padStart(2, "0");
+            const code = `OBJ_${String.fromCharCode(65 + (idx % 26))}${idx >= 26 ? `_${idx + 1}` : ""}`;
+            return (layer.localRefs ?? []).slice(0, OBJECT_REF_LIMIT).map((ref, i) => {
+              const ext = extFromName(ref.name);
+              const fileName = `${sceneTag}_${code}__${refShort(ref.type)}__${String(i + 1).padStart(2, "0")}.${ext}`;
+              return { path: `${projectDir}/images/${fileName}`, refId: ref.id };
+            });
+          })
+        )
+      : [];
+
+    const files: FlowFile[] = exportPackageType === "txt"
+      ? [{ path: `${projectDir}/prompt.txt`, content: promptText }]
+      : [
+          { path: `${projectDir}/prompt.txt`, content: `${packagePromptText}\n` },
+          { path: `${projectDir}/scene.json`, content: `${JSON.stringify(packageProject, null, 2)}\n` }
+        ];
+
+    const quickPromptFileName = `${projectNameForFile}__${shotNameForFile}__prompt.txt`;
 
     return {
       rootDir,
       projectDir,
       promptText,
       packagePromptText,
-      readmeText,
-      refsManifestText,
       quickPromptFileName,
       files,
-      blobFiles
+      blobFiles: [...bgBlobFiles, ...objectBlobFiles]
     };
-  }, [exportMode, exportProfile, exportScope, lang, platformPreset, platformPresetId, project, projectLabel, promptProject.scenes, quickCopyPrompt, sceneTitle, scenes]);
+  }, [exportPackageType, exportProfile, lang, platformId, project, projectLabel, quickCopyPrompt, sceneTitle]);
 
   const promptPlusRefsBundle = useMemo(() => {
-    const scenesToExport = promptProject.scenes ?? [];
-    if (scenesToExport.length === 0) return flowBundle;
-    const sceneBackgrounds = scenesToExport
-      .map((scene, sceneOrder) => {
-        const bgRef = scene.backgroundRef;
-        if (!bgRef?.id) return null;
-        const sceneTag = String((scene.index ?? sceneOrder + 1)).padStart(2, "0");
-        const ext = extFromName(bgRef.name);
-        const fileName = `${sceneTag}__BG__${safeName(bgRef.name || `background.${ext}`)}`;
-        return { sceneTag, sceneName: scene.name ?? scene.id, fileName, refId: bgRef.id };
-      })
-      .filter(Boolean) as Array<{ sceneTag: string; sceneName: string; fileName: string; refId: string }>;
-    const objects = scenesToExport.flatMap((scene, sceneOrder) =>
-      (scene.layers ?? []).map((layer, idx) => {
-        const sceneTag = String((scene.index ?? sceneOrder + 1)).padStart(2, "0");
-        const code = `OBJ_${String.fromCharCode(65 + (idx % 26))}${idx >= 26 ? `_${idx + 1}` : ""}`;
-        const localRefs = (layer.localRefs ?? []).slice(0, OBJECT_REF_LIMIT);
-        const refItems = localRefs.map((ref, i) => {
-          const type = ref.type;
-          const ext = extFromName(ref.name);
-          const fileName = `${sceneTag}_${code}__${refShort(type)}__${String(i + 1).padStart(2, "0")}.${ext}`;
-          return { source: `local:${ref.name}`, type, fileName, refId: ref.id };
-        });
-        return {
-          sceneTag,
-          sceneName: scene.name ?? scene.id,
-          code,
-          layerId: layer.id,
-          type: (layer.type ?? "").trim(),
-          look: (layer.look ?? "").trim(),
-          notes: (layer.notes ?? "").trim(),
-          referencePolicy: layer.referencePolicy ?? "optional",
-          refItems
-        };
-      })
-    );
     const projectNameForFile = safeName(projectLabel || defaultProjectName(lang));
-    const shotNameForFile = safeName(sceneTitle || (lang === "zh" ? "分镜" : "shot"));
-    const platformForFile = safeName(lang === "zh" ? platformPreset.labelZh : platformPreset.labelEn);
     const rootDir = "ScenePilotix";
     const projectDir = projectNameForFile || defaultProjectName(lang);
-    const modeLabelZh = "稳妥高质（两步）";
-    const modeLabelEn = "Stable Quality (Two-step)";
-    const scopeLabel = exportScope === "continuous_sequence"
-      ? (lang === "zh" ? "连续序列" : "Continuity Sequence")
-      : (lang === "zh" ? "当前分镜" : "Current Scene");
-    const readmeText = lang === "zh"
-      ? [
-          "ScenePilotix 交付包说明",
-          "",
-          `适用大模型：${platformPreset.labelZh}`,
-          `导出范围：${scopeLabel}`,
-          `导出方式：${modeLabelZh}`,
-          "",
-          "1) 先打开 prompt.txt，直接复制提示词。",
-          "2) 再按 refs-manifest.txt 上传参考图。",
-          "3) 若浏览器不支持目录保存，可下载 ZIP 后按相同文件结构使用。",
-          "",
-          "补充说明：",
-          "- 不调用 API，不上传云端。",
-          "- 对象若没图，不会导出空图片文件。",
-          "- 分镜背景参考图为可选项，不填也可导出。"
-        ].join("\n")
-      : [
-          "ScenePilotix Package Guide",
-          "",
-          `Target Model: ${platformPreset.labelEn}`,
-          `Export Scope: ${scopeLabel}`,
-          `Flow: ${modeLabelEn}`,
-          "",
-          "1) Open prompt.txt first and copy the prompt directly.",
-          "2) Upload references by refs-manifest.txt.",
-          "3) If directory save is unavailable, use the ZIP package with the same structure.",
-          "",
-          "Notes:",
-          "- No API call, no cloud upload.",
-          "- Objects with no images won't generate empty files.",
-          "- Shot background references are optional."
-        ].join("\n");
-    const refsManifestText = [
-      lang === "zh" ? "参考图清单" : "Reference Manifest",
-      "",
-      lang === "zh"
-        ? `适用大模型：${platformPreset.labelZh}  |  模式：${modeLabelZh}`
-        : `Target Model: ${platformPreset.labelEn} | Mode: ${modeLabelEn}`,
-      "",
-      lang === "zh" ? "## 分镜背景参考图" : "## Shot Background Refs",
-      ...(sceneBackgrounds.length
-        ? sceneBackgrounds.flatMap((bg) => [
-            lang === "zh"
-              ? `- [${bg.sceneTag}] ${bg.sceneName} -> ${bg.fileName}`
-              : `- [${bg.sceneTag}] ${bg.sceneName} -> ${bg.fileName}`
-          ])
-        : [lang === "zh" ? "- 无" : "- None"]),
-      "",
-      lang === "zh" ? "## 对象参考图" : "## Object Refs",
-      "",
-      ...objects.flatMap((obj) => {
-        const head = lang === "zh"
-          ? `# [${obj.sceneTag}] ${obj.sceneName} / ${obj.code} (${obj.layerId})`
-          : `# [${obj.sceneTag}] ${obj.sceneName} / ${obj.code} (${obj.layerId})`;
-        const lines = [
-          head,
-          obj.type ? (lang === "zh" ? `- 类型: ${obj.type}` : `- Type: ${obj.type}`) : "",
-          obj.look ? (lang === "zh" ? `- 外观: ${obj.look}` : `- Look: ${obj.look}`) : "",
-          obj.notes ? (lang === "zh" ? `- 备注: ${obj.notes}` : `- Notes: ${obj.notes}`) : "",
-          obj.refItems.length
-            ? lang === "zh"
-              ? `- 参考文件: ${obj.refItems.map((r) => `${r.fileName}(${r.type})`).join(", ")}`
-              : `- Ref files: ${obj.refItems.map((r) => `${r.fileName}(${r.type})`).join(", ")}`
-            : lang === "zh"
-              ? "- 参考文件: 无（仅文本描述）"
-              : "- Ref files: none (text-only fallback)",
-          lang === "zh"
-            ? `- 参考图策略: ${obj.referencePolicy === "required" ? "必须带图" : "可选"}`
-            : `- Ref policy: ${obj.referencePolicy === "required" ? "required" : "optional"}`
-        ].filter(Boolean);
-        return [...lines, ""];
+    const sourceScenes = promptProject.scenes ?? [];
+    if (sourceScenes.length === 0) return flowBundle;
+
+    const promptText = sourceScenes.map((scene, index) => {
+      const singleScenePrompt = runPromptEngine({
+        project: { ...project, scenes: [scene] },
+        lang,
+        profile: exportProfile,
+        platformId,
+        scope: "current_scene"
+      }).finalCopyPrompt;
+      const title = scene.name?.trim() || scene.id || (lang === "zh" ? `分镜 ${index + 1}` : `Scene ${index + 1}`);
+      return `## ${title}\n${enhancePromptForExport(singleScenePrompt, "with_refs", lang).trimEnd()}`;
+    }).join("\n\n");
+
+    const bgBlobFiles: FlowBlobFile[] = sourceScenes.flatMap((scene, sceneOrder) => {
+      const bgRef = scene.backgroundRef;
+      if (!bgRef?.id) return [];
+      const sceneTag = String((scene.index ?? sceneOrder + 1)).padStart(2, "0");
+      const ext = extFromName(bgRef.name);
+      const fileName = `${sceneTag}__BG__${safeName(bgRef.name || `background.${ext}`)}`;
+      return [{ path: `${projectDir}/images/${fileName}`, refId: bgRef.id }];
+    });
+
+    const objectBlobFiles: FlowBlobFile[] = sourceScenes.flatMap((scene, sceneOrder) =>
+      (scene.layers ?? []).flatMap((layer, idx) => {
+        const sceneTag = String((scene.index ?? sceneOrder + 1)).padStart(2, "0");
+        const code = `OBJ_${String.fromCharCode(65 + (idx % 26))}${idx >= 26 ? `_${idx + 1}` : ""}`;
+        return (layer.localRefs ?? []).slice(0, OBJECT_REF_LIMIT).map((ref, i) => {
+          const ext = extFromName(ref.name);
+          const fileName = `${sceneTag}_${code}__${refShort(ref.type)}__${String(i + 1).padStart(2, "0")}.${ext}`;
+          return { path: `${projectDir}/images/${fileName}`, refId: ref.id };
+        });
       })
-    ].join("\n");
-    const promptText = `${quickCopyPrompt}\n`;
-    const bgBlobFiles: FlowBlobFile[] = sceneBackgrounds.map((bg) => ({
-      path: `${projectDir}/${bg.fileName}`,
-      refId: bg.refId
-    }));
-    const objectBlobFiles: FlowBlobFile[] = objects.flatMap((obj) =>
-      obj.refItems
-        .filter((r) => typeof (r as any).refId === "string")
-        .map((r) => ({ path: `${projectDir}/${r.fileName}`, refId: (r as any).refId as string }))
     );
-    const blobFiles: FlowBlobFile[] = [...bgBlobFiles, ...objectBlobFiles];
-    const files: FlowFile[] = [
-      { path: `${projectDir}/prompt.txt`, content: promptText },
-      { path: `${projectDir}/README.txt`, content: readmeText },
-      { path: `${projectDir}/refs-manifest.txt`, content: refsManifestText }
-    ];
-    const quickPromptFileName = flowBundle.quickPromptFileName;
+
     return {
       ...flowBundle,
-      promptText,
-      packagePromptText: promptText,
-      readmeText,
-      refsManifestText,
-      files,
-      blobFiles
+      rootDir,
+      projectDir,
+      promptText: `${promptText}\n`,
+      packagePromptText: `${promptText}\n`,
+      files: [
+        { path: `${projectDir}/prompt.txt`, content: `${promptText}\n` },
+        { path: `${projectDir}/scene.json`, content: `${JSON.stringify(promptProject, null, 2)}\n` }
+      ],
+      blobFiles: [...bgBlobFiles, ...objectBlobFiles]
     };
-  }, [exportProfile, exportScope, lang, platformPreset, platformPresetId, project, projectLabel, promptProject.scenes, quickCopyPrompt, sceneTitle, flowBundle]);
+  }, [exportProfile, flowBundle, lang, platformId, project, projectLabel, promptProject]);
 
   const manualSaveGuide = useMemo(() => {
     const fileLines = [
@@ -902,8 +756,7 @@ export function ExportPanel({
       const zipBlob = buildZipStored(zipEntries);
       const projectNameForFile = safeName(projectLabel || defaultProjectName(lang));
       const shotNameForFile = safeName(sceneTitle || (lang === "zh" ? "分镜" : "shot"));
-      const platformForFile = safeName(lang === "zh" ? platformPreset.labelZh : platformPreset.labelEn);
-      const zipName = `${projectNameForFile}__${shotNameForFile}__${platformForFile}.zip`;
+      const zipName = `${projectNameForFile}__${shotNameForFile}.zip`;
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement("a");
       a.href = url;
@@ -1068,7 +921,7 @@ export function ExportPanel({
             <div style={styles.sectionTitle}>
               {lang === "zh" ? "生成与导出" : "Generate & Export"}
             </div>
-            <div style={styles.primaryActions}>
+          <div style={styles.primaryActions}>
             <button
               className="pro-btn"
               type="button"
@@ -1096,6 +949,14 @@ export function ExportPanel({
               <Download size={14} />
               {exporting ? (lang === "zh" ? "导出中…" : "Exporting…") : (lang === "zh" ? "导出提示词 + 参考图" : "Export Prompt + Refs")}
             </button>
+          </div>
+          <div style={styles.exportPolicyLinks}>
+            <a href="/disclaimer" style={styles.exportPolicyLink}>
+              {lang === "zh" ? "免责声明" : "Disclaimer"}
+            </a>
+            <a href="/ip-user-content" style={styles.exportPolicyLink}>
+              {lang === "zh" ? "素材与权利说明" : "IP & Content"}
+            </a>
           </div>
           <div style={styles.moreExportWrap} ref={moreExportRef}>
             <button
@@ -1127,20 +988,6 @@ export function ExportPanel({
               </div>
             ) : null}
           </div>
-            {onPlatformChange && onExportModeChange ? (
-              <div style={styles.platformModeBlock}>
-                <PlatformModePanel
-                  lang={lang}
-                  project={project}
-                  platformId={(platformId ?? "universal") as import("../config/platformPresets").PlatformPresetId}
-                  onPlatformChange={(id) => onPlatformChange(id)}
-                  exportMode={exportMode}
-                  onExportModeChange={onExportModeChange}
-                  collapsed={platformModeCollapsed}
-                  onToggle={() => setPlatformModeCollapsed((v) => !v)}
-                />
-              </div>
-            ) : null}
           </div>
         </div>
       </div>
@@ -1167,6 +1014,29 @@ export function ExportPanel({
                   ? "This copy includes the current continuity sequence prompt, starting from this shot and preserving following transitions."
                   : "This copy includes current-scene final prompt only; no other scenes are included."}
             </div>
+            {!copyPolicyAccepted ? (
+              <div style={styles.exportPolicyHint}>
+                <label style={styles.exportPolicyCheckbox}>
+                  <input
+                    type="checkbox"
+                    checked={copyRiskAccepted}
+                    onChange={(e) => {
+                      setCopyRiskAccepted(e.target.checked);
+                      if (e.target.checked) setCopyRiskError("");
+                    }}
+                  />
+                  <span>
+                    {lang === "zh"
+                      ? "我理解复制的提示词仅为创作辅助，不保证第三方平台生成结果、审核结果或商用结果。"
+                      : "I understand copied prompts are creative aids only and do not guarantee third-party output, review, or commercial results."}
+                  </span>
+                </label>
+                <div style={styles.exportPolicyLinksInline}>
+                  <a href="/disclaimer" style={styles.exportPolicyLink}>{lang === "zh" ? "查看免责声明" : "View Disclaimer"}</a>
+                </div>
+                {copyRiskError ? <div style={styles.exportPolicyError}>{copyRiskError}</div> : null}
+              </div>
+            ) : null}
             <pre style={styles.copyPreview}>{quickCopyPrompt}</pre>
             {copyDone ? <div style={styles.copyOk}>{lang === "zh" ? "复制成功" : "Copied"}</div> : null}
             <div style={styles.modalBtns}>
@@ -1206,42 +1076,81 @@ export function ExportPanel({
               {promptExportNote}
             </div>
           ) : null}
+          {!exportPolicyAccepted ? (
+            <div style={styles.exportPolicyHint}>
+              <label style={styles.exportPolicyCheckbox}>
+                <input
+                  type="checkbox"
+                  checked={exportRiskAccepted}
+                  onChange={(e) => {
+                    setExportRiskAccepted(e.target.checked);
+                    if (e.target.checked) setExportRiskError("");
+                  }}
+                />
+                <span>
+                  {lang === "zh"
+                    ? "我理解导出后的兼容性、素材授权、分享、传输、商用与后续使用责任由我自行承担。"
+                    : "I understand that compatibility, source authorization, sharing, transfer, commercial use, and subsequent use after export are my responsibility."}
+                </span>
+              </label>
+              <div style={styles.exportPolicyLinksInline}>
+                <a href="/disclaimer" style={styles.exportPolicyLink}>{lang === "zh" ? "免责声明" : "Disclaimer"}</a>
+                <a href="/ip-user-content" style={styles.exportPolicyLink}>{lang === "zh" ? "素材与权利说明" : "IP & Content"}</a>
+              </div>
+              {exportRiskError ? <div style={styles.exportPolicyError}>{exportRiskError}</div> : null}
+            </div>
+          ) : null}
           <div style={styles.modalRow}>
             <div style={styles.profileLabel}>{lang === "zh" ? "导出类型" : "Export Type"}</div>
-            <div style={styles.exportTypeGrid}>
-              <button
-                data-testid="export-mode-prompt-only"
-                type="button"
-                className="pro-btn-ghost"
-                style={{ ...styles.exportTypeCard, ...(exportMode === "prompt_only" ? styles.exportTypeCardOn : {}) }}
-                onClick={() => setExportMode("prompt_only")}
-                aria-pressed={exportMode === "prompt_only"}
-              >
-                <div style={styles.exportTypeTitle}>{lang === "zh" ? "提示词 TXT" : "Prompt TXT"}</div>
-                <div style={styles.exportTypeDesc}>
-                  {lang === "zh"
-                    ? "导出单个 .txt 文件，适合直接粘贴到生成平台"
-                    : "Export a single .txt file for direct paste into generation platforms"}
-                </div>
-              </button>
-              <button
-                data-testid="export-mode-package"
-                type="button"
-                className="pro-btn-ghost"
-                style={{ ...styles.exportTypeCard, ...(exportMode === "package" ? styles.exportTypeCardOn : {}) }}
-                onClick={() => setExportMode("package")}
-                aria-pressed={exportMode === "package"}
-              >
-                <div style={styles.exportTypeTitle}>{lang === "zh" ? "完整项目包" : "Whole Project"}</div>
-                <div style={styles.exportTypeDesc}>
-                  {lang === "zh"
-                    ? "导出包含提示词和参考图的完整压缩包"
-                    : "Export a full archive with prompt + reference images"}
-                </div>
-              </button>
+            <div style={styles.exportTypeList}>
+              {[
+                {
+                  id: "general" as const,
+                  label: lang === "zh" ? "通用" : "General",
+                  desc: lang === "zh" ? "默认项目包，适合大多数外部平台。" : "Default package for most external tools.",
+                  includes: "prompt.txt · scene.json · images/"
+                },
+                {
+                  id: "with_refs" as const,
+                  label: lang === "zh" ? "含参考图" : "With References",
+                  desc: lang === "zh" ? "保留参考图，并强化提示词中的参考图使用说明。" : "Keeps references and strengthens reference usage in prompt.",
+                  includes: "prompt.txt · scene.json · images/"
+                },
+                {
+                  id: "without_refs" as const,
+                  label: lang === "zh" ? "不含参考图" : "Without References",
+                  desc: lang === "zh" ? "删除参考图依赖，仅导出文字描述和结构。" : "Removes reference dependencies and exports text + structure only.",
+                  includes: "prompt.txt · scene.json"
+                },
+                {
+                  id: "txt" as const,
+                  label: lang === "zh" ? "仅提示词（TXT）" : "Prompt Only (TXT)",
+                  desc: lang === "zh" ? "只导出一个 prompt.txt 文件。" : "Exports only one prompt.txt file.",
+                  includes: "prompt.txt"
+                }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  data-testid={`export-type-${item.id}`}
+                  type="button"
+                  className="pro-btn-ghost"
+                  style={{ ...styles.exportTypeRow, ...(exportPackageType === item.id ? styles.exportTypeRowOn : {}) }}
+                  onClick={() => applyExportPackageType(item.id)}
+                  aria-pressed={exportPackageType === item.id}
+                >
+                  <div style={styles.exportTypeRadio} aria-hidden="true">
+                    <span style={{ ...styles.exportTypeRadioDot, ...(exportPackageType === item.id ? styles.exportTypeRadioDotOn : {}) }} />
+                  </div>
+                  <div style={styles.exportTypeCopy}>
+                    <div style={styles.exportTypeTitle}>{item.label}</div>
+                    <div style={styles.exportTypeDesc}>{item.desc}</div>
+                    <div style={styles.exportTypeMeta}>{lang === "zh" ? `包含内容：${item.includes}` : `Includes: ${item.includes}`}</div>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
-          {exportMode === "prompt_only" && scopeOptions.length > 1 && rangeField.visible ? (
+          {exportPackageType === "txt" && scopeOptions.length > 1 && rangeField.visible ? (
             <div style={styles.modalRow}>
               <div style={styles.profileLabel}>{lang === "zh" ? "导出范围" : "Export Scope"}{rangeField.reason ? ` · ${rangeField.reason}` : ""}</div>
               <div style={styles.optionWrap}>
@@ -1254,26 +1163,7 @@ export function ExportPanel({
               </div>
             </div>
           ) : null}
-          <div style={styles.modalDivider} />
-          <div style={styles.modalRow}>
-            <div style={styles.profileLabel}>{lang === "zh" ? "适用大模型" : "Target Model"}</div>
-            <select
-              data-testid="export-platform-select"
-              value={platformPresetId}
-              onChange={(e) => changePlatform(e.target.value as PlatformPresetId)}
-              style={styles.profileSelect}
-            >
-              {PLATFORM_PRESETS.map((p) => {
-                const opt = targetOptions.find((o) => o.value === p.id);
-                return (
-                  <option key={p.id} value={p.id} disabled={opt && !opt.enabled} title={opt?.reason}>
-                    {lang === "zh" ? p.labelZh : p.labelEn}{opt && !opt.enabled ? ` (${lang === "zh" ? "不支持" : "unsupported"})` : ""}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-          {exportMode === "package" && !canSaveDirectory ? (
+          {exportPackageType !== "txt" && !canSaveDirectory ? (
             <div style={styles.unsupportedCard}>
               <div style={styles.unsupportedText}>
                 {lang === "zh"
@@ -1306,7 +1196,11 @@ export function ExportPanel({
                 data-testid="export-submit"
                 className="pro-btn"
                 onClick={async () => {
-                if (exportMode === "prompt_only") {
+                if (!exportPolicyAccepted && !exportRiskAccepted) {
+                  setExportRiskError(lang === "zh" ? "请先确认导出风险提示。" : "Please confirm the export disclosure first.");
+                  return;
+                }
+                if (exportPackageType === "txt") {
                   let ticket: PromptExportTicket = { allowed: true };
                   if (onPreparePromptExport) {
                     ticket = await onPreparePromptExport("pro_export_prompt");
@@ -1318,6 +1212,10 @@ export function ExportPanel({
                     const res = await downloadQuickPromptFile();
                     committed = res.ok;
                     if (res.ok) {
+                      if (!exportPolicyAccepted) {
+                        acknowledgePolicy(userId, "export_project");
+                        logPolicyAction(userId, "export_project", "export_project");
+                      }
                       setActionHint(lang === "zh" ? "prompt.txt 下载成功" : "prompt.txt downloaded");
                       setShowExportModal(false);
                       onFeedbackMessage?.(lang === "zh" ? "已导出 TXT" : "Exported TXT");
@@ -1338,6 +1236,10 @@ export function ExportPanel({
                   const res = await exportFlowPackage();
                   setExporting(false);
                   if (res.ok) {
+                    if (!exportPolicyAccepted) {
+                      acknowledgePolicy(userId, "export_project");
+                      logPolicyAction(userId, "export_project", "export_project");
+                    }
                     setActionHint(lang === "zh" ? `项目包已导出：${res.folderLabel}` : `Project package exported: ${res.folderLabel}`);
                     setShowExportModal(false);
                     onFeedbackMessage?.(lang === "zh" ? "已导出项目" : "Exported project");
@@ -1348,6 +1250,10 @@ export function ExportPanel({
                   const zip = await downloadFlowZipPackage();
                   setExporting(false);
                   if (zip.ok) {
+                    if (!exportPolicyAccepted) {
+                      acknowledgePolicy(userId, "export_project");
+                      logPolicyAction(userId, "export_project", "export_project");
+                    }
                     setActionHint(lang === "zh" ? "项目包 ZIP 已下载" : "Project package ZIP downloaded");
                     setShowExportModal(false);
                     onFeedbackMessage?.(lang === "zh" ? "已导出项目 ZIP" : "Exported project ZIP");
@@ -1361,12 +1267,12 @@ export function ExportPanel({
               >
                 {exporting
                   ? lang === "zh"
-                    ? exportMode === "prompt_only" ? "导出中..." : "保存中..."
-                    : exportMode === "prompt_only" ? "Exporting..." : "Saving..."
-                  : exportMode === "prompt_only"
+                    ? exportPackageType === "txt" ? "导出中..." : "保存中..."
+                    : exportPackageType === "txt" ? "Exporting..." : "Saving..."
+                  : exportPackageType === "txt"
                     ? (lang === "zh" ? "导出提示词 TXT" : "Export Prompt TXT")
                     : canSaveDirectory
-                      ? (lang === "zh" ? "导出整个项目" : "Export Whole Project")
+                      ? (lang === "zh" ? "导出项目包" : "Export Project Package")
                       : (lang === "zh" ? "下载项目 ZIP" : "Download Project ZIP")}
               </button>
             </div>
@@ -1878,19 +1784,6 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 6,
     textTransform: "uppercase" as const
   },
-  profileSelect: {
-    flex: 1,
-    height: 32,
-    borderRadius: 8,
-    border: "1px solid #3a3f46",
-    background: "#1f2125",
-    color: "#e5e7eb",
-    outline: "none",
-    padding: "0 34px 0 10px",
-    fontSize: 12,
-    fontWeight: 600,
-    cursor: "pointer"
-  },
   platformTips: {
     fontSize: UI_FONT.hint,
     lineHeight: 1.4,
@@ -1908,6 +1801,33 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: UI_RADIUS.control,
     background: "rgba(255,255,255,0.02)",
     padding: "7px 10px"
+  },
+  exportPolicyLinks: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    marginTop: 2
+  },
+  exportPolicyLinksInline: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    marginTop: 6
+  },
+  exportPolicyLink: {
+    fontSize: UI_FONT.hint,
+    color: UI_PALETTE.text.secondary,
+    textDecoration: "underline"
+  },
+  exportPolicyCheckbox: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 8
+  },
+  exportPolicyError: {
+    marginTop: 6,
+    fontSize: UI_FONT.hint,
+    color: "#f87171"
   },
   platformPendingHint: {
     fontSize: UI_FONT.hint,
@@ -2023,12 +1943,12 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(245,158,11,0.12)",
     color: "#e5e7eb",
   },
-  exportTypeGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: 10
+  exportTypeList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8
   },
-  exportTypeCard: {
+  exportTypeRow: {
     padding: "10px 12px",
     borderRadius: 10,
     border: "1px solid #3a3f46",
@@ -2037,13 +1957,38 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign: "left",
     cursor: "pointer",
     display: "flex",
-    flexDirection: "column",
-    gap: 6,
+    alignItems: "flex-start",
+    gap: 10,
     outline: "none"
   },
-  exportTypeCardOn: {
+  exportTypeRowOn: {
     border: "1px solid rgba(245,158,11,0.55)",
     background: "rgba(245,158,11,0.12)"
+  },
+  exportTypeRadio: {
+    width: 16,
+    height: 16,
+    minWidth: 16,
+    marginTop: 2,
+    borderRadius: 999,
+    border: "1px solid rgba(229,231,235,0.28)",
+    display: "grid",
+    placeItems: "center"
+  },
+  exportTypeRadioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    background: "transparent"
+  },
+  exportTypeRadioDotOn: {
+    background: "#f59e0b"
+  },
+  exportTypeCopy: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    minWidth: 0
   },
   exportTypeTitle: {
     fontSize: 13,
@@ -2054,6 +1999,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     lineHeight: 1.45,
     color: "#9ca3af"
+  },
+  exportTypeMeta: {
+    fontSize: 11,
+    lineHeight: 1.4,
+    color: "#cbd5e1"
   },
   modalDivider: {
     height: 1,
