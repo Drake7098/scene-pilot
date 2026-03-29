@@ -89,6 +89,6 @@ export type SubscriptionState = {
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
   lastCreditGrantAt: string | null;
-  provider: "mock" | "paddle";
+  provider: "mock" | "paddle" | "whop";
   customerPortalUrl?: string | null;
 };
