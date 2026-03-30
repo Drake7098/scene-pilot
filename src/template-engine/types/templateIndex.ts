@@ -41,6 +41,10 @@ export type TemplateIndex = {
   cost: number;
   featured: boolean;
   preview?: string;
+  /** Optional dedicated preview image path used by newer template data. */
+  previewSrc?: string;
+  /** Optional dedicated preview video path for template detail media preview. */
+  previewVideoSrc?: string;
   variant?: TemplateVariant;
   /** Legacy templates are frozen for compare-only usage. */
   isLegacy?: boolean;
