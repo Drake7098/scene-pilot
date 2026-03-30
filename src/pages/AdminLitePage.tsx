@@ -124,6 +124,7 @@ async function apiPost<T>(path: string, body: Record<string, unknown>): Promise<
 function prettyError(code: string) {
   if (code === "missing_access_token") return "未检测到登录会话，请先登录同一站点域名。";
   if (code === "invalid_access_token") return "登录态失效，请重新登录。";
+  if (code === "supabase_not_configured") return "管理员接口的 Supabase 配置缺失（SUPABASE_URL / SUPABASE_ANON_KEY 或 SERVICE_ROLE_KEY）。";
   if (code === "admin_forbidden") return "当前账号不在管理员白名单。";
   if (code === "admin_emails_not_configured") return "服务端未配置 ADMIN_EMAILS。";
   return code || "unknown_error";

@@ -35,6 +35,10 @@ function supabaseServiceKey(env) {
   return String(env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || "").trim();
 }
 
+function supabaseAnonKey(env) {
+  return String(env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY || "").trim();
+}
+
 async function supabaseAdminRequest(env, path, init = {}) {
   const base = supabaseBaseUrl(env);
   const key = supabaseServiceKey(env);
@@ -68,22 +72,40 @@ function parseBearer(request) {
 
 async function verifyTokenUser(env, token) {
   const base = supabaseBaseUrl(env);
-  const key = supabaseServiceKey(env);
-  if (!base || !key || !token) return null;
-  try {
-    const res = await fetch(`${base}/auth/v1/user`, {
-      headers: {
-        apikey: key,
-        authorization: `Bearer ${token}`,
-      },
-    });
-    if (!res.ok) return null;
-    const user = await res.json().catch(() => null);
-    if (!user?.id || !user?.email) return null;
-    return { id: String(user.id), email: String(user.email).toLowerCase() };
-  } catch {
-    return null;
+  if (!base || !token) return { user: null, error: "supabase_not_configured" };
+
+  const authKeys = [];
+  const anonKey = supabaseAnonKey(env);
+  const serviceKey = supabaseServiceKey(env);
+  if (anonKey) authKeys.push(anonKey);
+  if (serviceKey && serviceKey !== anonKey) authKeys.push(serviceKey);
+  if (!authKeys.length) return { user: null, error: "supabase_not_configured" };
+
+  let lastError = "invalid_access_token";
+  for (const key of authKeys) {
+    try {
+      const res = await fetch(`${base}/auth/v1/user`, {
+        headers: {
+          apikey: key,
+          authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null);
+        lastError = String(payload?.error || payload?.message || "invalid_access_token");
+        continue;
+      }
+      const user = await res.json().catch(() => null);
+      if (!user?.id || !user?.email) {
+        lastError = "invalid_access_token";
+        continue;
+      }
+      return { user: { id: String(user.id), email: String(user.email).toLowerCase() }, error: "" };
+    } catch (err) {
+      lastError = String(err instanceof Error ? err.message : err) || "supabase_network_error";
+    }
   }
+  return { user: null, error: lastError };
 }
 
 async function requireAdmin(request, env) {
@@ -91,10 +113,13 @@ async function requireAdmin(request, env) {
   if (!admins.size) return { ok: false, response: json({ error: "admin_emails_not_configured" }, 500) };
   const token = parseBearer(request);
   if (!token) return { ok: false, response: json({ error: "missing_access_token" }, 401) };
-  const user = await verifyTokenUser(env, token);
-  if (!user) return { ok: false, response: json({ error: "invalid_access_token" }, 401) };
-  if (!admins.has(user.email)) return { ok: false, response: json({ error: "admin_forbidden" }, 403) };
-  return { ok: true, user };
+  const verified = await verifyTokenUser(env, token);
+  if (verified.error === "supabase_not_configured") {
+    return { ok: false, response: json({ error: "supabase_not_configured" }, 500) };
+  }
+  if (!verified.user) return { ok: false, response: json({ error: "invalid_access_token" }, 401) };
+  if (!admins.has(verified.user.email)) return { ok: false, response: json({ error: "admin_forbidden" }, 403) };
+  return { ok: true, user: verified.user };
 }
 
 async function inspectAdmin(request, env) {
@@ -106,15 +131,18 @@ async function inspectAdmin(request, env) {
   if (!token) {
     return { ok: false, status: 401, error: "missing_access_token", email: "", isAdmin: false };
   }
-  const user = await verifyTokenUser(env, token);
-  if (!user) {
+  const verified = await verifyTokenUser(env, token);
+  if (verified.error === "supabase_not_configured") {
+    return { ok: false, status: 500, error: "supabase_not_configured", email: "", isAdmin: false };
+  }
+  if (!verified.user) {
     return { ok: false, status: 401, error: "invalid_access_token", email: "", isAdmin: false };
   }
-  const isAdmin = admins.has(user.email);
+  const isAdmin = admins.has(verified.user.email);
   if (!isAdmin) {
-    return { ok: false, status: 403, error: "admin_forbidden", email: user.email, isAdmin: false, userId: user.id };
+    return { ok: false, status: 403, error: "admin_forbidden", email: verified.user.email, isAdmin: false, userId: verified.user.id };
   }
-  return { ok: true, status: 200, error: "", email: user.email, userId: user.id, isAdmin: true };
+  return { ok: true, status: 200, error: "", email: verified.user.email, userId: verified.user.id, isAdmin: true };
 }
 
 function dayStartIso() {
