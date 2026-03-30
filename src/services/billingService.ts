@@ -15,20 +15,19 @@ import type {
 import { getApiAuthHeaders } from "./authService";
 import { getSubscription } from "./mockAccountStore";
 
-/** Pricing Final: $3→150, $8→420, $15→800. checkoutUrl = Whop 结账链接 */
-export const PRICING_FINAL_CREDIT_PACKS: (CreditPackConfig & { checkoutUrl?: string })[] = [
-  { id: "pack_3",  name: "150 Credits", usdPrice: 3,  credits: 150, enabled: true, checkoutUrl: "https://whop.com/checkout/plan_S9Y9sX4nIH7M2" },
-  { id: "pack_8",  name: "420 Credits", usdPrice: 8,  credits: 420, enabled: true, checkoutUrl: "https://whop.com/checkout/plan_LsyYESGY0fqI9" },
-  { id: "pack_15", name: "800 Credits", usdPrice: 15, credits: 800, enabled: true, checkoutUrl: "https://whop.com/checkout/plan_00vbsXkjSR9jA" },
+/** Pricing Final: $3→150, $8→420, $15→800. Checkout URL always comes from backend. */
+export const PRICING_FINAL_CREDIT_PACKS: CreditPackConfig[] = [
+  { id: "pack_3",  name: "150 Credits", usdPrice: 3,  credits: 150, enabled: true },
+  { id: "pack_8",  name: "420 Credits", usdPrice: 8,  credits: 420, enabled: true },
+  { id: "pack_15", name: "800 Credits", usdPrice: 15, credits: 800, enabled: true },
 ];
 
-export const PRO_PLAN: ProPlanConfig & { checkoutUrl?: string } = {
+export const PRO_PLAN: ProPlanConfig = {
   id: "pro_monthly",
   name: "Pro",
   monthlyUsdPrice: 12,
   monthlyCredits: 700,
   enabled: true,
-  checkoutUrl: "https://whop.com/checkout/plan_BD8J6nLOGIk1t",
 };
 
 export const HOSTED_ACTIONS: HostedActionConfig[] = [
@@ -77,22 +76,34 @@ export const GENERATION_PROFILE_LABELS: Record<
   video_hq:       { labelEn: "High Quality Video",  labelZh: "高质量视频", creditsEn: "12 Credits / second", creditsZh: "12 Credits / 秒"},
 };
 
+async function getCheckoutLink(path: string, userId?: string) {
+  const sep = path.includes("?") ? "&" : "?";
+  const url = userId ? `${path}${sep}userId=${encodeURIComponent(userId)}` : path;
+  const headers = userId ? await getApiAuthHeaders(userId) : {};
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error("checkout_link_unavailable");
+  const payload = await res.json() as { url?: string; packs?: Array<{ id?: string; url?: string }> };
+  return payload;
+}
+
 // ---------------------------------------------------------------------------
-// launchCheckout — always opens Whop link directly. No Paddle.
+// launchCheckout — resolve URL from backend and open Whop checkout.
 // ---------------------------------------------------------------------------
 export async function launchCheckout(input: CheckoutRequest) {
   if (input.kind === "credits") {
-    const pack = PRICING_FINAL_CREDIT_PACKS.find((p) => p.id === input.productId);
-    if (pack?.checkoutUrl) {
-      window.open(pack.checkoutUrl, "_blank", "noopener,noreferrer");
-      return { session: null, completedUser: null };
-    }
+    const links = await getCheckoutLink("/api/billing/credit-links", input.userId);
+    const pack = Array.isArray(links.packs)
+      ? links.packs.find((item) => String(item.id || "") === input.productId)
+      : null;
+    if (!pack?.url) throw new Error("checkout_url_not_configured");
+    window.open(pack.url, "_blank", "noopener,noreferrer");
+    return { session: null, completedUser: null };
   }
   if (input.kind === "pro") {
-    if (PRO_PLAN.checkoutUrl) {
-      window.open(PRO_PLAN.checkoutUrl, "_blank", "noopener,noreferrer");
-      return { session: null, completedUser: null };
-    }
+    const data = await getCheckoutLink("/api/billing/pro-link", input.userId);
+    if (!data.url) throw new Error("checkout_url_not_configured");
+    window.open(data.url, "_blank", "noopener,noreferrer");
+    return { session: null, completedUser: null };
   }
   throw new Error("checkout_url_not_configured");
 }
@@ -153,7 +164,7 @@ export async function getBillingSnapshot(userId: string) {
             currentPeriodStart: payload.subscription.periodStart || null,
             currentPeriodEnd: payload.subscription.periodEnd || null,
             lastCreditGrantAt: null,
-            provider: "paddle",
+            provider: "whop",
           }
         : getSubscription(userId);
       return {

@@ -1,6 +1,6 @@
 /**
  * Owned templates: unlock once, reuse freely.
- * Stored per user in localStorage until backend provides owned list.
+ * Local cache mirrors backend owned list.
  */
 
 const KEY_PREFIX = "scenepilot_owned_templates_";
@@ -31,5 +31,29 @@ export function markTemplateOwned(userId: string, templateId: string): void {
     localStorage.setItem(key(userId), JSON.stringify([...ids, templateId]));
   } catch {
     // ignore
+  }
+}
+
+export function replaceOwnedTemplateIds(userId: string, templateIds: string[]): void {
+  try {
+    const unique = Array.from(new Set(templateIds.map((id) => String(id || "").trim()).filter(Boolean)));
+    localStorage.setItem(key(userId), JSON.stringify(unique));
+  } catch {
+    // ignore
+  }
+}
+
+export async function fetchOwnedTemplateIdsFromApi(userId: string): Promise<string[] | null> {
+  if (!userId) return null;
+  try {
+    const mod = await import("../services/authService");
+    const headers = await mod.getApiAuthHeaders(userId);
+    const res = await fetch(`/api/templates/owned?userId=${encodeURIComponent(userId)}`, { headers });
+    if (!res.ok) return null;
+    const payload = await res.json() as { templateIds?: string[] };
+    if (!Array.isArray(payload.templateIds)) return [];
+    return Array.from(new Set(payload.templateIds.map((id) => String(id || "").trim()).filter(Boolean)));
+  } catch {
+    return null;
   }
 }

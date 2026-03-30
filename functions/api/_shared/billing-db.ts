@@ -118,6 +118,32 @@ export async function ensureBillingTables(db: DbLike) {
       );
     `),
     db.prepare(`
+      CREATE TABLE IF NOT EXISTS template_purchases (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        template_id TEXT NOT NULL,
+        unlock_source TEXT NOT NULL DEFAULT 'credits',
+        credit_cost INTEGER NOT NULL DEFAULT 0,
+        idempotency_key TEXT UNIQUE,
+        created_at TEXT NOT NULL
+      );
+    `),
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS billing_events (
+        id TEXT PRIMARY KEY,
+        provider TEXT NOT NULL DEFAULT 'whop',
+        event_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        resource_id TEXT,
+        user_email TEXT,
+        user_external_id TEXT,
+        payload TEXT NOT NULL,
+        processed INTEGER NOT NULL DEFAULT 0,
+        processed_at TEXT,
+        created_at TEXT NOT NULL
+      );
+    `),
+    db.prepare(`
       CREATE TABLE IF NOT EXISTS legal_consents (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -133,6 +159,8 @@ export async function ensureBillingTables(db: DbLike) {
       );
     `),
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_credit_ledger_user_created ON credit_ledger(user_id, created_at DESC);`),
+    db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_template_purchases_user_template ON template_purchases(user_id, template_id);`),
+    db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_billing_events_provider_event ON billing_events(provider, event_id);`),
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id, updated_at DESC);`),
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id, created_at DESC);`),
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_legal_consents_user_created ON legal_consents(user_id, created_at DESC);`)

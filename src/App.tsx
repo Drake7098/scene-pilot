@@ -64,6 +64,7 @@ import type { CreditLedgerEntry, CreditPackConfig, ProPlanConfig, SubscriptionSt
 import {
   consumeOAuthDebugInfo,
   consumeOAuthErrorCode,
+  getApiAuthHeaders,
   getCurrentUser,
   isGoogleSignInEnabled,
   logout,
@@ -95,10 +96,14 @@ import {
   saveLastTemplateIntent
 } from "./features/template-workspace/model/templateIntent";
 import { consumePendingSharePayload, encodeSharePayload, setPendingSharePayload, type SharePayload } from "./types/share";
-import { applyTemplateCharge } from "./features/billing";
 import { getTemplatePricingForTemplate } from "./pricing";
 import { createProjectFromTemplate, createProjectFromUserTemplate, duplicateProject } from "./lib/projectCreation";
-import { isTemplateOwned, markTemplateOwned } from "./lib/ownedTemplatesStore";
+import {
+  fetchOwnedTemplateIdsFromApi,
+  isTemplateOwned,
+  markTemplateOwned,
+  replaceOwnedTemplateIds,
+} from "./lib/ownedTemplatesStore";
 import { saveCurrentProjectAsTemplate } from "./lib/userTemplatesStore";
 import type { UserPrivateTemplate } from "./lib/userTemplatesStore";
 import { isUserPrivateTemplate } from "./features/template-workspace/components/TemplateCard";
@@ -1906,7 +1911,36 @@ export default function App() {
     setAccountLedger(ledger);
     setAccountSubscription(billingSnapshot.subscription);
     setAccountApiCredentials(getApiCredentials(user.id));
+    const owned = await fetchOwnedTemplateIdsFromApi(user.id);
+    if (owned) replaceOwnedTemplateIds(user.id, owned);
   }, []);
+
+  async function purchaseTemplateUnlock(userId: string, templateId: string, creditCost: number) {
+    const headers = await getApiAuthHeaders(userId);
+    const res = await fetch("/api/templates/purchase", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...headers,
+      },
+      body: JSON.stringify({
+        userId,
+        templateId,
+        creditCost,
+      }),
+    });
+    const payload = await res.json().catch(() => null) as
+      | { ok?: boolean; alreadyOwned?: boolean; error?: string; creditsBalance?: number }
+      | null;
+    if (!res.ok || !payload?.ok) {
+      const err = String(payload?.error || "template_purchase_failed").trim();
+      throw new Error(err);
+    }
+    return {
+      alreadyOwned: Boolean(payload.alreadyOwned),
+      creditsBalance: Number(payload.creditsBalance || 0),
+    };
+  }
 
   function openAccountCenter(section: AccountCenterSection) {
     if (section === "local") section = "api";
@@ -2043,20 +2077,23 @@ export default function App() {
       newProject = { ...newProject, name: nextTemplateProjectName(templateDisplayName) };
 
       if (!freeOrUnlimited && !owned && accountUser) {
-        const chargeResult = await applyTemplateCharge(
-          accountUser.id,
-          newProject,
-          index,
-          pricing.creditPrice
-        );
-        if (!chargeResult.success) {
+        try {
+          await purchaseTemplateUnlock(accountUser.id, index.id, pricing.creditPrice);
+        } catch (error) {
+          const err = String(error instanceof Error ? error.message : error);
+          if (err === "insufficient_credits") {
+            setTemplateCreditsNeeded(pricing.creditPrice);
+            setTemplateCreditsHave(accountCredits);
+            setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
+            setTemplateCreditsInsufficientOpen(true);
+            return;
+          }
           setTemplateCreditsNeeded(pricing.creditPrice);
           setTemplateCreditsHave(accountCredits);
           setTemplateCreditsName(meta.nameZh ?? meta.name ?? "");
           setTemplateCreditsInsufficientOpen(true);
           return;
         }
-        newProject = chargeResult.project;
         markTemplateOwned(accountUser.id, index.id);
         await refreshAccountState();
       }

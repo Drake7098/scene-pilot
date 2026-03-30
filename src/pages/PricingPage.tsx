@@ -6,13 +6,6 @@ import { PUBLIC_CONTACT_CHANNELS } from "../config/contactChannels";
 
 const APP_HREF = "/app";
 
-const WHOP_CREDIT_URLS: Record<string, string> = {
-  "plan_S9Y9sX4nIH7M2": "https://whop.com/checkout/plan_S9Y9sX4nIH7M2",
-  "plan_LsyYESGY0fqI9": "https://whop.com/checkout/plan_LsyYESGY0fqI9",
-  "plan_00vbsXkjSR9jA": "https://whop.com/checkout/plan_00vbsXkjSR9jA",
-};
-const WHOP_PRO_URL = "https://whop.com/checkout/plan_BD8J6nLOGIk1t";
-
 function t(lang: Lang, zh: string, en: string) {
   return lang === "zh" ? zh : en;
 }
@@ -20,13 +13,40 @@ function t(lang: Lang, zh: string, en: string) {
 const C = { bg: "#1f2125", card: "#24262b", border: "#3a3f46", text: "#e5e7eb", muted: "#9ca3af", accent: "#f59e0b" };
 
 const CREDIT_PACKS = [
-  { usd: 3, credits: 150, url: WHOP_CREDIT_URLS["plan_S9Y9sX4nIH7M2"] },
-  { usd: 8, credits: 420, url: WHOP_CREDIT_URLS["plan_LsyYESGY0fqI9"] },
-  { usd: 15, credits: 800, url: WHOP_CREDIT_URLS["plan_00vbsXkjSR9jA"] },
+  { id: "pack_3", usd: 3, credits: 150 },
+  { id: "pack_8", usd: 8, credits: 420 },
+  { id: "pack_15", usd: 15, credits: 800 },
 ];
 
 export default function PricingPage() {
   const [lang, setLang] = useLocalLang();
+
+  async function openProCheckout() {
+    try {
+      const res = await fetch("/api/billing/pro-link");
+      if (!res.ok) return;
+      const payload = await res.json() as { url?: string };
+      if (!payload.url) return;
+      window.open(payload.url, "_blank", "noopener,noreferrer");
+    } catch {
+      // ignore
+    }
+  }
+
+  async function openCreditsCheckout(packId: string) {
+    try {
+      const res = await fetch("/api/billing/credit-links");
+      if (!res.ok) return;
+      const payload = await res.json() as { packs?: Array<{ id?: string; url?: string }> };
+      const pack = Array.isArray(payload.packs)
+        ? payload.packs.find((item) => String(item.id || "") === packId)
+        : null;
+      if (!pack?.url) return;
+      window.open(pack.url, "_blank", "noopener,noreferrer");
+    } catch {
+      // ignore
+    }
+  }
 
   return (
     <div style={page}>
@@ -94,7 +114,7 @@ export default function PricingPage() {
                 <button
                   type="button"
                   style={btnPrimary}
-                  onClick={() => window.open(WHOP_PRO_URL, "_blank")}
+                  onClick={() => void openProCheckout()}
                 >
                   {t(lang, "订阅 Pro", "Subscribe to Pro")}
                 </button>
@@ -114,13 +134,13 @@ export default function PricingPage() {
             </p>
             <div style={creditsGrid}>
               {CREDIT_PACKS.map((pack) => (
-                <article key={pack.url} style={card}>
+                <article key={pack.id} style={card}>
                   <div style={cardPrice}>${pack.usd}</div>
                   <div style={cardLabel}>{pack.credits} {t(lang, "积分", "Credits")}</div>
                   <button
                     type="button"
                     style={btnSecondary}
-                    onClick={() => window.open(pack.url, "_blank")}
+                    onClick={() => void openCreditsCheckout(pack.id)}
                   >
                     {t(lang, "购买", "Buy")}
                   </button>
