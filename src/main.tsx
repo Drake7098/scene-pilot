@@ -9,6 +9,7 @@ const PricingPage = lazy(() => import("./pages/PricingPage"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const ProductIntroPage = lazy(() => import("./pages/ProductIntroPage"));
 const UserManagementPage = lazy(() => import("./pages/UserManagementPage"));
+const AdminLitePage = lazy(() => import("./pages/AdminLitePage"));
 const AuthEntryPage = lazy(() => import("./pages/AuthEntryPage"));
 const SharePage = lazy(() => import("./pages/SharePage"));
 const TemplatePublicPage = lazy(() => import("./pages/TemplatePublicPage"));
@@ -93,7 +94,7 @@ function AppAuthGate() {
   );
 }
 
-function AdminLiteAuthGate() {
+function AdminLiteAuthGate({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<"checking" | "allowed" | "redirecting">(
     canBypassAppAuthGate() ? "allowed" : "checking"
   );
@@ -123,7 +124,7 @@ function AdminLiteAuthGate() {
     if (current !== next) window.location.replace(next);
   }, [status]);
 
-  if (status === "allowed") return <UserManagementPage />;
+  if (status === "allowed") return <>{children}</>;
   return (
     <div style={{ minHeight: "100%", display: "grid", placeItems: "center", background: "#070b12", color: "var(--spx-text-2)", fontSize: 14 }}>
       {status === "redirecting" ? "Redirecting..." : "Checking sign in..."}
@@ -135,7 +136,7 @@ function resolveRootComponent() {
   if (isLandingRoute) return <LandingPage />;
   if (isProductIntroRoute) return <ProductIntroPage />;
   if (isAppRoute) return <AppAuthGate />;
-  if (isAdminLiteRoute) return <AdminLiteAuthGate />;
+  if (isAdminLiteRoute) return <AdminLiteAuthGate><AdminLitePage /></AdminLiteAuthGate>;
   if (isAuthEntryRoute) return <AuthEntryPage />;
   if (isPricingRoute) return <PricingPage />;
   if (isUserManagementRoute) return <UserManagementPage />;
