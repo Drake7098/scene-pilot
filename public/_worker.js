@@ -97,6 +97,26 @@ async function requireAdmin(request, env) {
   return { ok: true, user };
 }
 
+async function inspectAdmin(request, env) {
+  const admins = parseAdminEmails(env.ADMIN_EMAILS);
+  const token = parseBearer(request);
+  if (!admins.size) {
+    return { ok: false, status: 500, error: "admin_emails_not_configured", email: "", isAdmin: false };
+  }
+  if (!token) {
+    return { ok: false, status: 401, error: "missing_access_token", email: "", isAdmin: false };
+  }
+  const user = await verifyTokenUser(env, token);
+  if (!user) {
+    return { ok: false, status: 401, error: "invalid_access_token", email: "", isAdmin: false };
+  }
+  const isAdmin = admins.has(user.email);
+  if (!isAdmin) {
+    return { ok: false, status: 403, error: "admin_forbidden", email: user.email, isAdmin: false, userId: user.id };
+  }
+  return { ok: true, status: 200, error: "", email: user.email, userId: user.id, isAdmin: true };
+}
+
 function dayStartIso() {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
@@ -297,6 +317,17 @@ async function handleAdminLogs(request, env) {
   return json({ items, total: items.length, range });
 }
 
+async function handleAdminWhoAmI(request, env) {
+  const inspected = await inspectAdmin(request, env);
+  return json({
+    ok: inspected.ok,
+    error: inspected.error || "",
+    email: inspected.email || "",
+    userId: inspected.userId || "",
+    isAdmin: Boolean(inspected.isAdmin),
+  }, inspected.status || 200);
+}
+
 async function handleWhopWebhook(request, env) {
   if (request.method === "GET") return text("Method Not Allowed", 405);
   if (request.method !== "POST") return text("Method Not Allowed", 405);
@@ -371,6 +402,7 @@ export default {
 
       if (url.pathname === "/api/webhooks/whop") return handleWhopWebhook(request, env);
       if (url.pathname === "/api/admin-lite/stats" && request.method === "GET") return handleAdminStats(request, env);
+      if (url.pathname === "/api/admin-lite/whoami" && request.method === "GET") return handleAdminWhoAmI(request, env);
       if (url.pathname === "/api/admin-lite/users" && request.method === "GET") return handleAdminUsers(request, env);
       if (url.pathname === "/api/admin-lite/user-detail" && request.method === "GET") return handleAdminUserDetail(request, env);
       if (url.pathname === "/api/admin-lite/logs" && request.method === "GET") return handleAdminLogs(request, env);
@@ -391,4 +423,3 @@ export default {
     }
   },
 };
-

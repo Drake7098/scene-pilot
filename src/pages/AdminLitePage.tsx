@@ -48,6 +48,14 @@ type LogsData = {
   range: string;
 };
 
+type WhoAmI = {
+  ok: boolean;
+  error: string;
+  email: string;
+  userId: string;
+  isAdmin: boolean;
+};
+
 const shell: CSSProperties = {
   minHeight: "100%",
   background: "#0b1018",
@@ -74,6 +82,7 @@ const tableWrap: CSSProperties = { border: "1px solid #293042", borderRadius: 10
 const table: CSSProperties = { width: "100%", minWidth: 1000, borderCollapse: "collapse" };
 const th: CSSProperties = { textAlign: "left", padding: 10, borderBottom: "1px solid #263046", color: "#94a3b8", fontSize: 12 };
 const td: CSSProperties = { padding: 10, borderBottom: "1px solid #1f2738", fontSize: 12, verticalAlign: "top", whiteSpace: "nowrap" };
+const banner: CSSProperties = { border: "1px solid #2f3950", borderRadius: 10, background: "#101726", padding: 12, fontSize: 12 };
 
 function parsePath() {
   const path = window.location.pathname.replace(/\/+$/, "");
@@ -98,6 +107,14 @@ async function apiGet<T>(path: string): Promise<T> {
   return payload as T;
 }
 
+function prettyError(code: string) {
+  if (code === "missing_access_token") return "未检测到登录会话，请先登录同一站点域名。";
+  if (code === "invalid_access_token") return "登录态失效，请重新登录。";
+  if (code === "admin_forbidden") return "当前账号不在管理员白名单。";
+  if (code === "admin_emails_not_configured") return "服务端未配置 ADMIN_EMAILS。";
+  return code || "unknown_error";
+}
+
 export default function AdminLitePage() {
   const [pathState, setPathState] = useState(() => parsePath());
   const [loading, setLoading] = useState(true);
@@ -106,6 +123,7 @@ export default function AdminLitePage() {
   const [users, setUsers] = useState<UsersData | null>(null);
   const [detail, setDetail] = useState<UserDetailData | null>(null);
   const [logs, setLogs] = useState<LogsData | null>(null);
+  const [whoami, setWhoami] = useState<WhoAmI | null>(null);
 
   const search = useMemo(() => new URLSearchParams(window.location.search), [pathState.mode]);
 
@@ -113,6 +131,22 @@ export default function AdminLitePage() {
     const onPop = () => setPathState(parsePath());
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const data = await apiGet<WhoAmI>("/api/admin-lite/whoami");
+        if (alive) setWhoami(data);
+      } catch (err) {
+        if (alive) {
+          const code = err instanceof Error ? err.message : String(err);
+          setWhoami({ ok: false, error: code, email: "", userId: "", isAdmin: false });
+        }
+      }
+    })();
+    return () => { alive = false; };
   }, []);
 
   useEffect(() => {
@@ -156,7 +190,20 @@ export default function AdminLitePage() {
     return <main style={shell}><div style={wrap}><h1 style={title}>Admin Lite</h1><p style={sub}>Loading...</p></div></main>;
   }
   if (error) {
-    return <main style={shell}><div style={wrap}><h1 style={title}>Admin Lite</h1><p style={sub}>Error: {error}</p></div></main>;
+    return (
+      <main style={shell}>
+        <div style={wrap}>
+          <h1 style={title}>Admin Lite</h1>
+          <section style={banner}>
+            <div>Auth: {whoami?.ok ? "OK" : "Failed"}</div>
+            <div>Email: {whoami?.email || "-"}</div>
+            <div>Whitelist: {whoami?.isAdmin ? "Matched" : "Not matched"}</div>
+            <div>Reason: {prettyError(whoami?.error || error)}</div>
+          </section>
+          <p style={sub}>Error: {prettyError(error)}</p>
+        </div>
+      </main>
+    );
   }
 
   if (pathState.mode === "dashboard" && dashboard) {
@@ -166,6 +213,12 @@ export default function AdminLitePage() {
         <div style={wrap}>
           <h1 style={title}>Admin Lite</h1>
           <p style={sub}>/admin-lite</p>
+          <section style={banner}>
+            <div>Auth: {whoami?.ok ? "OK" : "Failed"}</div>
+            <div>Email: {whoami?.email || "-"}</div>
+            <div>Whitelist: {whoami?.isAdmin ? "Matched" : "Not matched"}</div>
+            <div>Reason: {prettyError(whoami?.error || "") || "-"}</div>
+          </section>
           <section style={cardWrap}>
             <div style={card}><div>Total users</div><div>{dashboard.totalUsers}</div></div>
             <div style={card}><div>Active PRO users</div><div>{dashboard.activeProUsers}</div></div>
@@ -178,7 +231,9 @@ export default function AdminLitePage() {
             <table style={table}>
               <thead><tr><th style={th}>action</th><th style={th}>status</th><th style={th}>user_id</th><th style={th}>created_at</th><th style={th}>meta</th></tr></thead>
               <tbody>
-                {recentErrors.map((row) => (
+                {recentErrors.length === 0 ? (
+                  <tr><td style={td} colSpan={5}>暂无异常日志；如果上方全是 0，通常表示业务表还没有数据。</td></tr>
+                ) : recentErrors.map((row) => (
                   <tr key={row.id}>
                     <td style={td}>{row.action}</td>
                     <td style={td}>{row.status}</td>
@@ -202,11 +257,14 @@ export default function AdminLitePage() {
         <div style={wrap}>
           <h1 style={title}>Admin Lite Users</h1>
           <p style={sub}>/admin-lite/users · total {Number(users.total || 0)}</p>
+          {items.length === 0 ? <section style={banner}>当前筛选下没有用户数据。</section> : null}
           <section style={tableWrap}>
             <table style={table}>
               <thead><tr><th style={th}>email</th><th style={th}>user_id</th><th style={th}>pro_status</th><th style={th}>credits_balance</th><th style={th}>created_at</th><th style={th}>last_login_at</th><th style={th}>template_purchase_count</th><th style={th}>action</th></tr></thead>
               <tbody>
-                {items.map((item) => (
+                {items.length === 0 ? (
+                  <tr><td style={td} colSpan={8}>No users matched.</td></tr>
+                ) : items.map((item) => (
                   <tr key={item.id}>
                     <td style={td}>{item.email || "-"}</td>
                     <td style={td}>{item.id}</td>
@@ -236,6 +294,7 @@ export default function AdminLitePage() {
         <div style={wrap}>
           <h1 style={title}>Admin Lite User Detail</h1>
           <p style={sub}>/admin-lite/users/{pathState.userId}</p>
+          {!detail.profile ? <section style={banner}>未找到该用户的 profile 记录。</section> : null}
           <section style={card}><pre style={code}>{JSON.stringify(detail.profile || {}, null, 2)}</pre></section>
           <section style={tableWrap}>
             <table style={table}>
@@ -272,6 +331,7 @@ export default function AdminLitePage() {
       <div style={wrap}>
         <h1 style={title}>Admin Lite Logs</h1>
         <p style={sub}>/admin-lite/logs · total {Number(logs?.total || 0)}</p>
+        {logItems.length === 0 ? <section style={banner}>当前范围内没有日志。</section> : null}
         <section style={tableWrap}>
           <table style={table}>
             <thead><tr><th style={th}>created_at</th><th style={th}>action</th><th style={th}>status</th><th style={th}>user_id</th><th style={th}>meta</th></tr></thead>
