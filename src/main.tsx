@@ -21,6 +21,7 @@ const isAppRoute = pathname === "/app";
 const isAuthEntryRoute = pathname === "/login" || pathname === "/signin" || pathname === "/register" || pathname === "/signup";
 const isPricingRoute = pathname === "/pricing" || pathname === "/pricing-test";
 const isUserManagementRoute = pathname === "/account" || pathname === "/user-management";
+const isAdminLiteRoute = pathname === "/admin-lite" || pathname.startsWith("/admin-lite/");
 const isShareRoute = pathname === "/s";
 const isTemplatePublicRoute = /^\/template\/[^/]+$/i.test(pathname);
 const isTermsRoute = pathname === "/terms";
@@ -92,10 +93,49 @@ function AppAuthGate() {
   );
 }
 
+function AdminLiteAuthGate() {
+  const [status, setStatus] = useState<"checking" | "allowed" | "redirecting">(
+    canBypassAppAuthGate() ? "allowed" : "checking"
+  );
+
+  useEffect(() => {
+    if (status !== "checking") return;
+    let alive = true;
+    void getCurrentUser()
+      .then((user) => {
+        if (!alive) return;
+        setStatus(user ? "allowed" : "redirecting");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setStatus("redirecting");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [status]);
+
+  useEffect(() => {
+    if (status !== "redirecting") return;
+    if (typeof window === "undefined") return;
+    const next = appAuthRedirectUrl();
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (current !== next) window.location.replace(next);
+  }, [status]);
+
+  if (status === "allowed") return <UserManagementPage />;
+  return (
+    <div style={{ minHeight: "100%", display: "grid", placeItems: "center", background: "#070b12", color: "var(--spx-text-2)", fontSize: 14 }}>
+      {status === "redirecting" ? "Redirecting..." : "Checking sign in..."}
+    </div>
+  );
+}
+
 function resolveRootComponent() {
   if (isLandingRoute) return <LandingPage />;
   if (isProductIntroRoute) return <ProductIntroPage />;
   if (isAppRoute) return <AppAuthGate />;
+  if (isAdminLiteRoute) return <AdminLiteAuthGate />;
   if (isAuthEntryRoute) return <AuthEntryPage />;
   if (isPricingRoute) return <PricingPage />;
   if (isUserManagementRoute) return <UserManagementPage />;
