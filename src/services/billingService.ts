@@ -153,7 +153,7 @@ export async function getBillingSnapshot(userId: string) {
             currentPeriodStart: payload.subscription.periodStart || null,
             currentPeriodEnd: payload.subscription.periodEnd || null,
             lastCreditGrantAt: null,
-            provider: "whop",
+            provider: "paddle",
           }
         : getSubscription(userId);
       return {
