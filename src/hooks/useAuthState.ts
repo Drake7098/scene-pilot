@@ -81,6 +81,23 @@ export function useAuthState(lang: Lang) {
     void syncPendingLegalConsents(accountUser.id);
   }, [accountUser?.id]);
 
+  useEffect(() => {
+    function handleSessionExpired() {
+      setAccountUser(null);
+      setAccountCredits(0);
+      setAccountLedger([]);
+      setAccountSubscription(null);
+      setAccountApiCredentials(null);
+      setAuthStep("email");
+      setAuthPassword("");
+      setAuthCode("");
+      setLastSentCode("");
+      setAuthHint(lang === "zh" ? "登录态已失效，请重新登录。" : "Session expired. Please sign in again.");
+    }
+    window.addEventListener("sp:session_expired", handleSessionExpired as EventListener);
+    return () => window.removeEventListener("sp:session_expired", handleSessionExpired as EventListener);
+  }, [lang]);
+
   const refreshAccountState = useCallback(async () => {
     const user = await getCurrentUser();
     setAccountUser(user);

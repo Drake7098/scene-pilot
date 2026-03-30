@@ -107,6 +107,20 @@ async function apiGet<T>(path: string): Promise<T> {
   return payload as T;
 }
 
+async function apiPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  const headers = await getApiAuthHeaders();
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(String((payload as Record<string, unknown>).error || "request_failed"));
+  }
+  return payload as T;
+}
+
 function prettyError(code: string) {
   if (code === "missing_access_token") return "未检测到登录会话，请先登录同一站点域名。";
   if (code === "invalid_access_token") return "登录态失效，请重新登录。";
@@ -124,6 +138,15 @@ export default function AdminLitePage() {
   const [detail, setDetail] = useState<UserDetailData | null>(null);
   const [logs, setLogs] = useState<LogsData | null>(null);
   const [whoami, setWhoami] = useState<WhoAmI | null>(null);
+  const [detailReloadTick, setDetailReloadTick] = useState(0);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionMsg, setActionMsg] = useState("");
+  const [actionErr, setActionErr] = useState("");
+  const [creditAmountInput, setCreditAmountInput] = useState("100");
+  const [creditNoteInput, setCreditNoteInput] = useState("");
+  const [proStatusInput, setProStatusInput] = useState("active");
+  const [proNoteInput, setProNoteInput] = useState("");
+  const [deleteTemplateIdInput, setDeleteTemplateIdInput] = useState("");
 
   const search = useMemo(() => new URLSearchParams(window.location.search), [pathState.mode]);
 
@@ -131,6 +154,16 @@ export default function AdminLitePage() {
     const onPop = () => setPathState(parsePath());
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  useEffect(() => {
+    function handleSessionExpired() {
+      setWhoami({ ok: false, error: "invalid_access_token", email: "", userId: "", isAdmin: false });
+      setError("invalid_access_token");
+      setLoading(false);
+    }
+    window.addEventListener("sp:session_expired", handleSessionExpired as EventListener);
+    return () => window.removeEventListener("sp:session_expired", handleSessionExpired as EventListener);
   }, []);
 
   useEffect(() => {
@@ -184,7 +217,78 @@ export default function AdminLitePage() {
       }
     })();
     return () => { alive = false; };
-  }, [pathState.mode, pathState.userId, search]);
+  }, [pathState.mode, pathState.userId, search, detailReloadTick]);
+
+  const reloadDetail = () => setDetailReloadTick((x) => x + 1);
+
+  async function submitAddCredits(delta: number) {
+    if (pathState.mode !== "user-detail") return;
+    setActionBusy(true);
+    setActionMsg("");
+    setActionErr("");
+    try {
+      const amount = Number.isFinite(delta) ? Math.trunc(delta) : 0;
+      if (!amount) throw new Error("invalid_amount");
+      const resp = await apiPost<{ balance?: number; ok?: boolean }>("/api/admin-lite/add-credits", {
+        userId: pathState.userId,
+        amount,
+        note: creditNoteInput.trim() || undefined,
+      });
+      setActionMsg(`credits 已更新，当前余额 ${String(resp.balance ?? "-")}`);
+      reloadDetail();
+    } catch (err) {
+      setActionErr(prettyError(err instanceof Error ? err.message : String(err)));
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  async function submitSetProStatus() {
+    if (pathState.mode !== "user-detail") return;
+    setActionBusy(true);
+    setActionMsg("");
+    setActionErr("");
+    try {
+      await apiPost<{ ok?: boolean }>("/api/admin-lite/set-pro-status", {
+        userId: pathState.userId,
+        proStatus: proStatusInput,
+        note: proNoteInput.trim() || undefined,
+      });
+      setActionMsg(`PRO 状态已更新为 ${proStatusInput}`);
+      reloadDetail();
+    } catch (err) {
+      setActionErr(prettyError(err instanceof Error ? err.message : String(err)));
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  async function submitDeleteTemplatePurchase() {
+    if (pathState.mode !== "user-detail") return;
+    const templateId = deleteTemplateIdInput.trim();
+    if (!templateId) {
+      setActionErr("请输入 templateId");
+      return;
+    }
+    const ok = window.confirm(`确认删除模板购买记录？\nuserId: ${pathState.userId}\ntemplateId: ${templateId}`);
+    if (!ok) return;
+    setActionBusy(true);
+    setActionMsg("");
+    setActionErr("");
+    try {
+      await apiPost<{ ok?: boolean; deleted?: boolean }>("/api/admin-lite/delete-template-purchase", {
+        userId: pathState.userId,
+        templateId,
+      });
+      setActionMsg(`模板购买记录已删除：${templateId}`);
+      setDeleteTemplateIdInput("");
+      reloadDetail();
+    } catch (err) {
+      setActionErr(prettyError(err instanceof Error ? err.message : String(err)));
+    } finally {
+      setActionBusy(false);
+    }
+  }
 
   if (loading) {
     return <main style={shell}><div style={wrap}><h1 style={title}>Admin Lite</h1><p style={sub}>Loading...</p></div></main>;
@@ -294,6 +398,103 @@ export default function AdminLitePage() {
         <div style={wrap}>
           <h1 style={title}>Admin Lite User Detail</h1>
           <p style={sub}>/admin-lite/users/{pathState.userId}</p>
+          <section style={card}>
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ fontWeight: 700 }}>Manual Actions</div>
+              {actionMsg ? <div style={{ color: "#22c55e", fontSize: 12 }}>{actionMsg}</div> : null}
+              {actionErr ? <div style={{ color: "#f87171", fontSize: 12 }}>{actionErr}</div> : null}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <label style={{ fontSize: 12 }}>credits amount</label>
+                <input
+                  value={creditAmountInput}
+                  onChange={(e) => setCreditAmountInput(e.target.value)}
+                  inputMode="numeric"
+                  style={{ background: "#0b1018", color: "#e5e7eb", border: "1px solid #293042", borderRadius: 6, padding: "6px 8px", width: 120 }}
+                />
+                <input
+                  value={creditNoteInput}
+                  onChange={(e) => setCreditNoteInput(e.target.value)}
+                  placeholder="note"
+                  style={{ background: "#0b1018", color: "#e5e7eb", border: "1px solid #293042", borderRadius: 6, padding: "6px 8px", width: 280 }}
+                />
+                <button
+                  disabled={actionBusy}
+                  onClick={() => {
+                    const n = Math.trunc(Number(creditAmountInput || "0"));
+                    if (!Number.isFinite(n) || n <= 0) {
+                      setActionErr("credits amount 必须是正整数");
+                      return;
+                    }
+                    void submitAddCredits(n);
+                  }}
+                  style={{ background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, padding: "6px 10px", cursor: "pointer" }}
+                >
+                  Add Credits
+                </button>
+                <button
+                  disabled={actionBusy}
+                  onClick={() => {
+                    const n = Math.trunc(Number(creditAmountInput || "0"));
+                    if (!Number.isFinite(n) || n <= 0) {
+                      setActionErr("credits amount 必须是正整数");
+                      return;
+                    }
+                    const ok = window.confirm(`确认扣减 credits ${n}？`);
+                    if (!ok) return;
+                    void submitAddCredits(-n);
+                  }}
+                  style={{ background: "#b91c1c", color: "#fff", border: "none", borderRadius: 6, padding: "6px 10px", cursor: "pointer" }}
+                >
+                  Subtract Credits
+                </button>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <label style={{ fontSize: 12 }}>pro status</label>
+                <select
+                  value={proStatusInput}
+                  onChange={(e) => setProStatusInput(e.target.value)}
+                  style={{ background: "#0b1018", color: "#e5e7eb", border: "1px solid #293042", borderRadius: 6, padding: "6px 8px" }}
+                >
+                  <option value="active">active</option>
+                  <option value="inactive">inactive</option>
+                  <option value="cancel_at_period_end">cancel_at_period_end</option>
+                </select>
+                <input
+                  value={proNoteInput}
+                  onChange={(e) => setProNoteInput(e.target.value)}
+                  placeholder="note"
+                  style={{ background: "#0b1018", color: "#e5e7eb", border: "1px solid #293042", borderRadius: 6, padding: "6px 8px", width: 280 }}
+                />
+                <button
+                  disabled={actionBusy}
+                  onClick={() => {
+                    const ok = window.confirm(`确认将 PRO 状态改为 ${proStatusInput}？`);
+                    if (!ok) return;
+                    void submitSetProStatus();
+                  }}
+                  style={{ background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, padding: "6px 10px", cursor: "pointer" }}
+                >
+                  Set PRO Status
+                </button>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <label style={{ fontSize: 12 }}>templateId</label>
+                <input
+                  value={deleteTemplateIdInput}
+                  onChange={(e) => setDeleteTemplateIdInput(e.target.value)}
+                  placeholder="template_xxx"
+                  style={{ background: "#0b1018", color: "#e5e7eb", border: "1px solid #293042", borderRadius: 6, padding: "6px 8px", width: 320 }}
+                />
+                <button
+                  disabled={actionBusy}
+                  onClick={() => void submitDeleteTemplatePurchase()}
+                  style={{ background: "#be123c", color: "#fff", border: "none", borderRadius: 6, padding: "6px 10px", cursor: "pointer" }}
+                >
+                  Delete Template Purchase
+                </button>
+              </div>
+            </div>
+          </section>
           {!detail.profile ? <section style={banner}>未找到该用户的 profile 记录。</section> : null}
           <section style={card}><pre style={code}>{JSON.stringify(detail.profile || {}, null, 2)}</pre></section>
           <section style={tableWrap}>

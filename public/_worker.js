@@ -317,6 +317,173 @@ async function handleAdminLogs(request, env) {
   return json({ items, total: items.length, range });
 }
 
+function nowIso() {
+  return new Date().toISOString();
+}
+
+async function handleAdminAddCredits(request, env) {
+  const auth = await requireAdmin(request, env);
+  if (!auth.ok) return auth.response;
+  const body = await request.json().catch(() => ({}));
+  const userId = String(body.userId || "").trim();
+  const amount = Math.round(Number(body.amount || 0));
+  const note = String(body.note || "").trim();
+  if (!userId) return json({ error: "missing_user_id" }, 400);
+  if (!Number.isFinite(amount) || amount === 0) return json({ error: "invalid_amount" }, 400);
+
+  const profileRes = await supabaseAdminRequest(
+    env,
+    `/rest/v1/profiles?select=id,credits_balance&id=eq.${encodeURIComponent(userId)}&limit=1`
+  );
+  const profile = asRows(profileRes.data)[0];
+  if (!profile?.id) return json({ error: "user_not_found" }, 404);
+  const current = Number(profile.credits_balance || 0);
+  const nextBalance = current + amount;
+  if (nextBalance < 0) return json({ error: "insufficient_credits_balance" }, 400);
+
+  const ts = nowIso();
+  const patchRes = await supabaseAdminRequest(
+    env,
+    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`,
+    {
+      method: "PATCH",
+      body: { credits_balance: nextBalance, updated_at: ts },
+    }
+  );
+  if (!patchRes.ok) return json({ error: patchRes.error || "profile_update_failed" }, 500);
+
+  await supabaseAdminRequest(env, "/rest/v1/credit_ledger", {
+    method: "POST",
+    body: {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      event_type: "admin_adjust",
+      amount,
+      balance_after: nextBalance,
+      source: "manual",
+      reference_type: "admin",
+      reference_id: auth.user.userId,
+      note: note || null,
+      created_at: ts,
+    },
+  });
+
+  await supabaseAdminRequest(env, "/rest/v1/audit_logs", {
+    method: "POST",
+    body: {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      action: "admin_add_credits",
+      status: "success",
+      meta: {
+        adminUserId: auth.user.userId,
+        amount,
+        previousBalance: current,
+        nextBalance,
+        note: note || "",
+      },
+      created_at: ts,
+    },
+  });
+
+  return json({ ok: true, userId, previousBalance: current, nextBalance, amount });
+}
+
+async function handleAdminSetProStatus(request, env) {
+  const auth = await requireAdmin(request, env);
+  if (!auth.ok) return auth.response;
+  const body = await request.json().catch(() => ({}));
+  const userId = String(body.userId || "").trim();
+  const proStatus = String(body.proStatus || "").trim();
+  const note = String(body.note || "").trim();
+  if (!userId) return json({ error: "missing_user_id" }, 400);
+  if (!["active", "inactive", "cancel_at_period_end"].includes(proStatus)) {
+    return json({ error: "invalid_pro_status" }, 400);
+  }
+
+  const profileRes = await supabaseAdminRequest(
+    env,
+    `/rest/v1/profiles?select=id,pro_status,pro_activated_at&id=eq.${encodeURIComponent(userId)}&limit=1`
+  );
+  const profile = asRows(profileRes.data)[0];
+  if (!profile?.id) return json({ error: "user_not_found" }, 404);
+  const oldStatus = String(profile.pro_status || "inactive");
+  const ts = nowIso();
+  const patch = {
+    pro_status: proStatus,
+    pro_cancel_at_period_end: proStatus === "cancel_at_period_end",
+    pro_activated_at: proStatus === "active" ? (profile.pro_activated_at || ts) : profile.pro_activated_at || null,
+    pro_deactivated_at: proStatus === "inactive" ? ts : null,
+    updated_at: ts,
+  };
+
+  const patchRes = await supabaseAdminRequest(
+    env,
+    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`,
+    { method: "PATCH", body: patch }
+  );
+  if (!patchRes.ok) return json({ error: patchRes.error || "profile_update_failed" }, 500);
+
+  await supabaseAdminRequest(env, "/rest/v1/audit_logs", {
+    method: "POST",
+    body: {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      action: "admin_set_pro_status",
+      status: "success",
+      meta: {
+        adminUserId: auth.user.userId,
+        oldStatus,
+        newStatus: proStatus,
+        note: note || "",
+      },
+      created_at: ts,
+    },
+  });
+
+  return json({ ok: true, userId, oldStatus, newStatus: proStatus });
+}
+
+async function handleAdminDeleteTemplatePurchase(request, env) {
+  const auth = await requireAdmin(request, env);
+  if (!auth.ok) return auth.response;
+  const body = await request.json().catch(() => ({}));
+  const userId = String(body.userId || "").trim();
+  const templateId = String(body.templateId || "").trim();
+  const note = String(body.note || "").trim();
+  if (!userId) return json({ error: "missing_user_id" }, 400);
+  if (!templateId) return json({ error: "missing_template_id" }, 400);
+
+  const ts = nowIso();
+  const delRes = await supabaseAdminRequest(
+    env,
+    `/rest/v1/template_purchases?user_id=eq.${encodeURIComponent(userId)}&template_id=eq.${encodeURIComponent(templateId)}`,
+    {
+      method: "DELETE",
+      headers: { Prefer: "return=representation" },
+    }
+  );
+  if (!delRes.ok) return json({ error: delRes.error || "delete_failed" }, 500);
+
+  await supabaseAdminRequest(env, "/rest/v1/audit_logs", {
+    method: "POST",
+    body: {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      action: "admin_delete_template_purchase",
+      status: "success",
+      meta: {
+        adminUserId: auth.user.userId,
+        templateId,
+        note: note || "",
+      },
+      created_at: ts,
+    },
+  });
+
+  return json({ ok: true, userId, templateId, deletedCount: asRows(delRes.data).length });
+}
+
 async function handleAdminWhoAmI(request, env) {
   const inspected = await inspectAdmin(request, env);
   return json({
@@ -406,6 +573,11 @@ export default {
       if (url.pathname === "/api/admin-lite/users" && request.method === "GET") return handleAdminUsers(request, env);
       if (url.pathname === "/api/admin-lite/user-detail" && request.method === "GET") return handleAdminUserDetail(request, env);
       if (url.pathname === "/api/admin-lite/logs" && request.method === "GET") return handleAdminLogs(request, env);
+      if (url.pathname === "/api/admin-lite/add-credits" && request.method === "POST") return handleAdminAddCredits(request, env);
+      if (url.pathname === "/api/admin-lite/set-pro-status" && request.method === "POST") return handleAdminSetProStatus(request, env);
+      if (url.pathname === "/api/admin-lite/delete-template-purchase" && request.method === "POST") {
+        return handleAdminDeleteTemplatePurchase(request, env);
+      }
 
       if (!env.ASSETS) return text("ASSETS binding unavailable", 500);
       const res = await env.ASSETS.fetch(request);
