@@ -26,6 +26,7 @@ import {
 const WORKSPACE_MODE_KEY = "sp_workspace_mode";
 const WORKSPACE_ENTRY_GUIDE_KEY = "sp_workspace_entry_guide_done_v1";
 const LANDING_LANG_KEY = "sp_landing_lang";
+const LANDING_ASSET_REV = "20260331-fix-mime-cache-1";
 
 type WorkspaceMode = "results" | "pro";
 type LandingLocale = "zh" | "en";
@@ -387,7 +388,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div style={page}>
+    <div style={page} data-landing-rev={LANDING_ASSET_REV}>
       <style>{`
         .landing-task-button:hover {
           border-color: #f59e0b !important;
