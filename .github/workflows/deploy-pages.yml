@@ -46,7 +46,7 @@ jobs:
 
       - name: Deploy develop → scenepilotix
         if: github.ref == 'refs/heads/develop'
-        run: npx -y wrangler pages deploy dist-test --project-name=scenepilotix --branch=main
+        run: npx -y wrangler pages deploy dist-test --project-name=scenepilotix --branch=main --functions=functions
         env:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
@@ -66,7 +66,7 @@ jobs:
 
       - name: Deploy main → scenepilotix1-prod
         if: github.ref == 'refs/heads/main'
-        run: npx -y wrangler pages deploy dist-prod --project-name=scenepilotix1-prod --branch=main
+        run: npx -y wrangler pages deploy dist-prod --project-name=scenepilotix1-prod --branch=main --functions=functions
         env:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
