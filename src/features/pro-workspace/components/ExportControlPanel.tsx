@@ -208,7 +208,7 @@ export function ExportControlPanel({
         resultMode,
         referenceMode,
         canGenerate,
-        generateLabel: tl(lang, "使用我的 API 执行", "Run with My API"),
+        generateLabel: tl(lang, "使用我的API生成", "BYO API Generate"),
         statusHint: canGenerate
           ? tl(lang, "已连接 Fal", "Fal is connected")
           : canUseByo

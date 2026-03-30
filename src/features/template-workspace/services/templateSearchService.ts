@@ -180,10 +180,23 @@ function variantRank(template: TemplateIndex): number {
   return 4;
 }
 
+function isFlagshipTemplate(template: TemplateIndex): boolean {
+  return (template.tags ?? []).includes("flagship") || (template.cost ?? 0) >= 10;
+}
+
 function sortWithIntentPriority(list: TemplateIndex[], intentId: TemplateIntentId | null): TemplateIndex[] {
-  // When user picked a specific intent/subtask we already filtered; keep existing priority.
-  if (intentId) return sortByIntentPriority(list);
+  if (intentId) {
+    return [...list].sort((a, b) => {
+      if (isFlagshipTemplate(a) !== isFlagshipTemplate(b)) return isFlagshipTemplate(a) ? -1 : 1;
+      if (a.featured !== b.featured) return a.featured ? -1 : 1;
+      if (a.isFree !== b.isFree) return a.isFree ? -1 : 1;
+      if ((a.cost ?? 0) !== (b.cost ?? 0)) return (a.cost ?? 0) - (b.cost ?? 0);
+      if (variantRank(a) !== variantRank(b)) return variantRank(a) - variantRank(b);
+      return a.nameEn.localeCompare(b.nameEn);
+    });
+  }
   return [...list].sort((a, b) => {
+    if (isFlagshipTemplate(a) !== isFlagshipTemplate(b)) return isFlagshipTemplate(a) ? -1 : 1;
     const pa = FAMILY_PRIORITY[a.familyId] ?? 999;
     const pb = FAMILY_PRIORITY[b.familyId] ?? 999;
     if (pa !== pb) return pa - pb;

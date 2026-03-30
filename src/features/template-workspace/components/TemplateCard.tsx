@@ -88,19 +88,28 @@ export function TemplateCard({
   const isPrivate = isUserPrivateTemplate(item);
   const name = isPrivate ? item.name : (lang === "zh" ? item.nameZh : item.nameEn);
   const isNew = !isPrivate && isTemplateNewFlag(item as TemplateIndex);
+  const isFlagship = !isPrivate && (
+    ((item as TemplateIndex).tags ?? []).includes("flagship")
+    || (((item as TemplateIndex).cost ?? 0) >= 10)
+  );
+  const templateCost = isPrivate ? 0 : Number((item as TemplateIndex).cost ?? 0);
+  const isPaidTemplate = !isPrivate && templateCost > 0;
 
   const priceLabel = (() => {
     if (isPrivate) return "";
+    if (templateCost > 0) return `${templateCost} ${t("积分", "credits")}`;
     if ((item as TemplateIndex).isFree) return t("免费", "Free");
     if (pricing !== undefined && pricing !== null)
       return formatPricingBucketForDisplay(pricing.pricingBucket, lang);
     return "…";
   })();
 
-  const isFreeTemplate = isPrivate ? false : (item as TemplateIndex).isFree;
+  const isFreeTemplate = isPrivate ? false : !isPaidTemplate && (item as TemplateIndex).isFree;
   const showOwned = isPrivate || owned;
   const mediaType = isPrivate ? "video" : item.mediaType;
-  const preview = isPrivate ? undefined : item.preview;
+  const preview = isPrivate
+    ? undefined
+    : ((item as TemplateIndex).previewSrc || (item as TemplateIndex).preview);
   const ratioValue = isPrivate ? "16:9" : item.ratio;
   const storyPlanValue = isPrivate
     ? t("单镜", "Single")
@@ -115,6 +124,7 @@ export function TemplateCard({
     ? (sceneHintsZh ?? [])
     : (sceneHintsEn ?? []);
   const fallbackDesc = isPrivate ? "" : (lang === "zh" ? (item.descriptionZh ?? item.descriptionEn) : item.descriptionEn);
+  const compactSummary = sceneHints[0] ?? fallbackDesc ?? "";
 
   const isList = view === "list";
   const actionLabel = (() => {
@@ -167,9 +177,13 @@ export function TemplateCard({
         {preview ? (
           <img src={preview} alt="" style={styles.thumbImg} />
         ) : (
-          <div style={styles.thumbPlaceholder}>
-            <span style={styles.thumbIcon}>{mediaType === "video" ? "▶" : "⬜"}</span>
-            <span style={styles.thumbHint}>{t("预览图", "Preview")}</span>
+          <div style={{ ...styles.thumbPlaceholder, ...(isFlagship ? styles.thumbPlaceholderFlagship : {}) }}>
+            <span style={{ ...styles.thumbIcon, ...(isFlagship ? styles.thumbIconFlagship : {}) }}>
+              {isFlagship ? "◆" : mediaType === "video" ? "▶" : "⬜"}
+            </span>
+            <span style={{ ...styles.thumbHint, ...(isFlagship ? styles.thumbHintFlagship : {}) }}>
+              {isFlagship ? t("旗舰缩略图", "Flagship Preview") : t("预览图", "Preview")}
+            </span>
           </div>
         )}
         {/* 媒体类型角标 */}
@@ -183,9 +197,14 @@ export function TemplateCard({
 
         {/* 名字行：左边名字，右边收藏 */}
         <div style={styles.cardHeader}>
-          <div style={styles.cardNameRow}>
+          <div style={styles.cardTitleBlock}>
             <div style={styles.cardName}>{name}</div>
-            {isNew ? <span style={styles.newBadge}>NEW</span> : null}
+            {(isFlagship || isNew) ? (
+              <div style={styles.cardBadgeRow}>
+                {isFlagship ? <span style={styles.flagshipBadge}>{t("旗舰", "FLAGSHIP")}</span> : null}
+                {isNew ? <span style={styles.newBadge}>NEW</span> : null}
+              </div>
+            ) : null}
           </div>
           {onToggleFavorite && !isPrivate && (
             <button
@@ -202,9 +221,11 @@ export function TemplateCard({
         </div>
 
         <div style={styles.metaRow}>
-          <span style={styles.metaItem}><span style={styles.metaKey}>{mediaLabel}</span>{mediaValue}</span>
-          <span style={styles.metaItem}><span style={styles.metaKey}>{ratioLabel}</span>{ratioValue}</span>
-          <span style={styles.metaItem}><span style={styles.metaKey}>{planLabel}</span>{storyPlanValue}</span>
+          <span style={styles.metaItem}>{mediaValue}</span>
+          <span style={styles.metaDot}>•</span>
+          <span style={styles.metaItem}>{ratioValue}</span>
+          <span style={styles.metaDot}>•</span>
+          <span style={styles.metaItem}>{storyPlanValue}</span>
         </div>
 
         <div style={styles.industryRow}>
@@ -212,21 +233,10 @@ export function TemplateCard({
         </div>
 
         {/* 场景提示：这是帮用户判断"适合我吗"的核心区域 */}
-        {!isList && sceneHints.length > 0 ? (
-          <ul style={styles.hintList}>
-            {sceneHints.map((hint, i) => (
-              <li key={i} style={styles.hintItem}>
-                <span style={styles.hintDot} />
-                {hint}
-              </li>
-            ))}
-          </ul>
-        ) : !isList && fallbackDesc ? (
-          <div style={styles.fallbackDesc}>{fallbackDesc}</div>
-        ) : null}
+        {!isList && compactSummary ? <div style={styles.fallbackDesc}>{compactSummary}</div> : null}
         {isList ? (
           <div style={styles.listSceneHint}>
-            {sceneHints[0] ?? fallbackDesc ?? t("点击查看详情并使用模板", "Click for details and use template")}
+            {compactSummary || t("点击查看详情并使用模板", "Click for details and use template")}
           </div>
         ) : null}
 
@@ -337,8 +347,25 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: 4,
   },
+  thumbPlaceholderFlagship: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    background:
+      "radial-gradient(circle at 50% 38%, rgba(245,158,11,0.22), rgba(245,158,11,0.06) 34%, rgba(0,0,0,0) 60%), linear-gradient(180deg, rgba(16,16,18,0.92), rgba(10,10,12,0.98))",
+  },
   thumbIcon: { fontSize: 20, color: colors.textDim },
+  thumbIconFlagship: {
+    fontSize: 24,
+    color: colors.accent,
+    textShadow: "0 0 20px rgba(245,158,11,0.28)",
+  },
   thumbHint: { fontSize: TEMPLATE_WORKSPACE_UI.fontSize.caption, color: colors.textDim },
+  thumbHintFlagship: {
+    color: colors.accent,
+    fontWeight: 700,
+    letterSpacing: "0.04em",
+  },
 
   // 媒体类型角标
   mediaBadge: {
@@ -378,21 +405,30 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 4,
     marginBottom: 5,
   },
+  cardTitleBlock: {
+    minWidth: 0,
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+  },
   cardName: {
     fontWeight: PRO_TYPO.weightMedium,
     fontSize: PRO_TYPO.xs,
     fontFamily: PRO_TYPO.fontFamily,
     color: colors.text,
-    flex: 1,
     minWidth: 0,
     lineHeight: 1.35,
+    overflow: "hidden",
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical" as const,
   },
-  cardNameRow: {
-    display: "inline-flex",
+  cardBadgeRow: {
+    display: "flex",
     alignItems: "center",
     gap: 6,
-    minWidth: 0,
-    flex: 1,
+    flexWrap: "wrap" as const,
   },
   newBadge: {
     display: "inline-flex",
@@ -408,23 +444,39 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: "0.04em",
     flexShrink: 0,
   },
+  flagshipBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 16,
+    padding: "0 6px",
+    borderRadius: 4,
+    background: "rgba(245,158,11,0.22)",
+    color: "#ffd089",
+    fontSize: 10,
+    fontWeight: 800,
+    letterSpacing: "0.04em",
+    boxShadow: "inset 0 0 0 1px rgba(245,158,11,0.18)",
+    flexShrink: 0,
+  },
   metaRow: {
     display: "flex",
-    flexWrap: "wrap",
-    gap: 8,
+    alignItems: "center",
+    gap: 6,
     marginBottom: 6,
   },
   metaItem: {
     display: "inline-flex",
     alignItems: "center",
-    gap: 4,
     fontSize: TEMPLATE_WORKSPACE_UI.fontSize.caption,
     color: colors.textMuted,
     lineHeight: TEMPLATE_WORKSPACE_UI.lineHeight.normal,
-  },
-  metaKey: {
-    color: colors.textDim,
     fontWeight: 600,
+  },
+  metaDot: {
+    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.caption,
+    color: colors.textDim,
+    lineHeight: 1,
   },
   industryRow: {
     display: "flex",
@@ -455,30 +507,6 @@ const styles: Record<string, React.CSSProperties> = {
   favBtnOn: { color: colors.accent },
 
   // 场景提示列表
-  hintList: {
-    listStyle: "none",
-    padding: 0,
-    margin: "0 0 6px 0",
-    display: "flex",
-    flexDirection: "column",
-    gap: 3,
-  },
-  hintItem: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 5,
-    fontSize: TEMPLATE_WORKSPACE_UI.fontSize.label,
-    color: colors.textMuted,
-    lineHeight: 1.4,
-  },
-  hintDot: {
-    width: 3,
-    height: 3,
-    borderRadius: "50%",
-    background: colors.textDim,
-    flexShrink: 0,
-    marginTop: 5,
-  },
   fallbackDesc: {
     fontSize: TEMPLATE_WORKSPACE_UI.fontSize.label,
     color: colors.textMuted,
@@ -486,7 +514,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 6,
     overflow: "hidden",
     display: "-webkit-box",
-    WebkitLineClamp: 2,
+    WebkitLineClamp: 3,
     WebkitBoxOrient: "vertical" as const,
   },
   listSceneHint: {

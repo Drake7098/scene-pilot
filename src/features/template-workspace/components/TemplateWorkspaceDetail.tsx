@@ -165,6 +165,7 @@ export function TemplateWorkspaceDetail({
   };
   const [proLabels, setProLabels] = React.useState<ProFieldLabel[]>([]);
   const [linkHint, setLinkHint] = React.useState("");
+  const [previewOpen, setPreviewOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!template || isUserPrivateTemplate(template)) {
@@ -206,11 +207,15 @@ export function TemplateWorkspaceDetail({
         ? ((template as TemplateIndex).descriptionZh ?? (template as TemplateIndex).descriptionEn)
         : (template as TemplateIndex).descriptionEn);
   const owned = isPrivate || (isTemplateOwned?.(template.id) ?? false);
+  const isFlagship = !isPrivate && (
+    ((template as TemplateIndex).tags ?? []).includes("flagship")
+    || (((template as TemplateIndex).cost ?? 0) >= 10)
+  );
+  const templateCost = Number((template as TemplateIndex).cost ?? (pricing?.creditPrice ?? 0));
   const priceLabel = (() => {
     if (isPrivate) return t("已拥有", "Owned");
+    if (templateCost > 0) return `${templateCost} ${t("积分", "credits")}`;
     if ((template as TemplateIndex).isFree) return t("免费", "Free");
-    const cost = (template as TemplateIndex).cost ?? 0;
-    if (cost > 0) return `${cost} ${t("积分", "credits")}`;
     if (pricing) return formatPricingBucketForDisplay(pricing.pricingBucket, lang);
     return t("免费", "Free");
   })();
@@ -247,12 +252,20 @@ export function TemplateWorkspaceDetail({
   }
 
   const marketTemplate = template as TemplateIndex;
+  const preview = marketTemplate.previewSrc || marketTemplate.preview;
+  const previewVideoByTemplateId: Record<string, string> = {
+    v3_daily_talking_head_02: "/template-previews/flagship-trusted-talking-head.mp4",
+    v3_pro_animation_epic_45: "/template-previews/flagship-epic-animation-finale.mp4",
+  };
+  const previewVideo =
+    previewVideoByTemplateId[marketTemplate.id]
+    || ((marketTemplate as unknown as { previewVideoSrc?: string }).previewVideoSrc ?? "");
+  const hasVideoPreview = Boolean(previewVideo);
   const mediaLabel = marketTemplate.mediaType === "image" ? t("图片", "Image") : t("视频", "Video");
   const isNew = isTemplateNewFlag(marketTemplate);
-  const templateCost = (marketTemplate as TemplateIndex).cost ?? (pricing?.creditPrice ?? 0);
   const insufficient =
     !owned &&
-    !marketTemplate.isFree &&
+    templateCost > 0 &&
     templateCost > 0 &&
     userCredits < templateCost;
 
@@ -273,6 +286,7 @@ export function TemplateWorkspaceDetail({
       <div style={styles.section}>
         <div style={styles.titleRow}>
           <h3 style={styles.title}>{name}</h3>
+          {isFlagship ? <span style={styles.flagshipBadge}>{t("旗舰", "FLAGSHIP")}</span> : null}
           {isNew ? <span style={styles.newBadge}>NEW</span> : null}
           {onToggleFavorite ? (
             <button
@@ -293,6 +307,38 @@ export function TemplateWorkspaceDetail({
         </div>
         <div style={styles.heroSummary}>{summary.fit}</div>
       </div>
+
+      {(preview || hasVideoPreview) ? (
+        <div style={styles.previewSection}>
+          <button
+            type="button"
+            style={styles.previewButton}
+            onClick={() => setPreviewOpen(true)}
+            onMouseDown={preventMouseFocus}
+            onMouseUp={blurButton}
+          >
+            {hasVideoPreview ? (
+              <video
+                src={previewVideo}
+                poster={preview || undefined}
+                style={styles.previewVideo}
+                muted
+                autoPlay
+                loop
+                playsInline
+                preload="metadata"
+              />
+            ) : (
+              <img src={preview} alt="" style={styles.previewImage} />
+            )}
+            <div style={styles.previewCaption}>
+              {hasVideoPreview
+                ? t("点击放大播放示例视频", "Click to enlarge and play preview video")
+                : t("点击放大查看示例图", "Click to enlarge preview")}
+            </div>
+          </button>
+        </div>
+      ) : null}
 
       {proLabels.length > 0 ? (
         <div style={styles.proCard}>
@@ -370,14 +416,14 @@ export function TemplateWorkspaceDetail({
             </span>
           ) : (
             <span style={styles.priceLabel}>
-              {owned || marketTemplate.isFree ? t("免费使用", "Free") : priceLabel}
+              {owned ? t("已拥有", "Owned") : templateCost > 0 ? priceLabel : t("免费使用", "Free")}
             </span>
           )}
         </div>
         <button type="button" style={styles.useBtn} onClick={onUse} onMouseDown={preventMouseFocus} onMouseUp={blurButton}>
-          {owned || marketTemplate.isFree
+          {owned
             ? t("使用模板", "Use Template")
-            : (marketTemplate.cost ?? 0) > 0
+            : templateCost > 0
               ? t("购买并使用", "Buy & Use")
               : t("使用模板", "Use Template")}
         </button>
@@ -414,6 +460,36 @@ export function TemplateWorkspaceDetail({
                 {lang === "zh" ? item.nameZh : item.nameEn}
               </div>
             ))}
+          </div>
+        </div>
+      ) : null}
+
+      {previewOpen ? (
+        <div style={styles.previewOverlay} onClick={() => setPreviewOpen(false)}>
+          <div style={styles.previewDialog} onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              style={styles.previewClose}
+              onClick={() => setPreviewOpen(false)}
+              onMouseDown={preventMouseFocus}
+              onMouseUp={blurButton}
+            >
+              {t("关闭", "Close")}
+            </button>
+            {hasVideoPreview ? (
+              <video
+                src={previewVideo}
+                poster={preview || undefined}
+                style={styles.previewDialogVideo}
+                controls
+                autoPlay
+                loop
+                playsInline
+                preload="metadata"
+              />
+            ) : (
+              <img src={preview} alt="" style={styles.previewDialogImage} />
+            )}
           </div>
         </div>
       ) : null}
@@ -465,6 +541,41 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.55,
     color: colors.text,
     marginTop: 2,
+  },
+  previewSection: {
+    marginBottom: 16,
+  },
+  previewButton: {
+    width: "100%",
+    padding: 0,
+    border: `1px solid ${colors.border}`,
+    borderRadius: 10,
+    overflow: "hidden",
+    background: colors.bg,
+    cursor: "pointer",
+    appearance: "none",
+    outline: "none",
+    WebkitTapHighlightColor: "transparent",
+  },
+  previewImage: {
+    display: "block",
+    width: "100%",
+    height: 196,
+    objectFit: "cover",
+    background: "#111214",
+  },
+  previewVideo: {
+    display: "block",
+    width: "100%",
+    height: 196,
+    objectFit: "cover",
+    background: "#111214",
+  },
+  previewCaption: {
+    padding: "8px 10px",
+    fontSize: PRO_TYPO["2xs"],
+    color: colors.textMuted,
+    textAlign: "left",
   },
   favBtn: {
     padding: 4,
@@ -716,9 +827,78 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: "0.04em",
     flexShrink: 0,
   },
+  flagshipBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 18,
+    padding: "0 7px",
+    borderRadius: 4,
+    background: "rgba(245,158,11,0.22)",
+    color: "#ffd089",
+    fontSize: 10,
+    fontWeight: 800,
+    letterSpacing: "0.04em",
+    flexShrink: 0,
+    boxShadow: "inset 0 0 0 1px rgba(245,158,11,0.18)",
+  },
   shareHint: {
     marginTop: 6,
     fontSize: PRO_TYPO["2xs"],
     color: colors.accent,
+  },
+  previewOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.72)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    zIndex: 60,
+  },
+  previewDialog: {
+    position: "relative",
+    width: "min(880px, 92vw)",
+    maxHeight: "90vh",
+    background: colors.panel,
+    border: `1px solid ${colors.border}`,
+    borderRadius: 12,
+    padding: 12,
+    boxShadow: "0 24px 60px rgba(0,0,0,0.45)",
+  },
+  previewDialogImage: {
+    display: "block",
+    width: "100%",
+    maxHeight: "calc(90vh - 56px)",
+    objectFit: "contain",
+    borderRadius: 8,
+    background: "#111214",
+  },
+  previewDialogVideo: {
+    display: "block",
+    width: "100%",
+    maxHeight: "calc(90vh - 56px)",
+    objectFit: "contain",
+    borderRadius: 8,
+    background: "#111214",
+  },
+  previewClose: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    minHeight: 28,
+    padding: "0 10px",
+    borderRadius: 6,
+    border: `1px solid ${colors.border}`,
+    background: "rgba(31,33,37,0.92)",
+    color: colors.text,
+    fontSize: PRO_TYPO["2xs"],
+    fontWeight: PRO_TYPO.weightMedium,
+    cursor: "pointer",
+    zIndex: 2,
+    appearance: "none",
+    outline: "none",
+    WebkitTapHighlightColor: "transparent",
   },
 };

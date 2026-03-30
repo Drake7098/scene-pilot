@@ -120,11 +120,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:warm_golden", "film_look:digital_clean",
       "narrative_rhythm:meditative", "visual_tension:none"
     ),
-    layerLook: "premium product",
-    layerNotes: notes(
-      "costume:polished surface, high-end material finish",
-      "detail:controlled specular highlights, deep shadow on base, surface reflection"
-    ),
+    sceneLayers: [
+      { id: "hero_product_dark", type: "product", look: "premium hero product centered in a deep black luxury studio", shapeDesc: "main commercial object with crisp front-facing readability", z: 6, notes: notes("detail:high-end material finish, disciplined edge highlights, clean label zone, deep premium shadows","imperfection_object:minor surface wear; faint fingerprint trace; subtle dust on edges"), t0: { x: 50, y: 55, w: 28, h: 30, rot: 0 } },
+      { id: "hero_reflection_base", type: "prop", look: "glossy black reflective plinth under the product", shapeDesc: "support layer anchoring the object without clutter", z: 2, notes: notes("detail:controlled reflection, premium grounding support"), t0: { x: 50, y: 69, w: 34, h: 10, rot: 0 } },
+      { id: "hero_rim_particles", type: "prop", look: "subtle warm rim haze and suspended highlight particles around the product silhouette", shapeDesc: "luxury atmosphere support", z: 1, notes: notes("detail:keeps the image from feeling sterile","imperfection_object:slight light falloff irregularity"), t0: { x: 54, y: 44, w: 42, h: 20, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_product_hero_02",
@@ -140,11 +140,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:warm_golden", "film_look:halation",
       "narrative_rhythm:meditative", "visual_tension:none"
     ),
-    layerLook: "product with floating effect",
-    layerNotes: notes(
-      "costume:polished premium finish",
-      "detail:soft halo around product, gradient shadow below, suspended in space"
-    ),
+    sceneLayers: [
+      { id: "floating_product", type: "product", look: "premium product suspended slightly above a dark gradient stage", shapeDesc: "floating hero object with readable front plane", z: 6, notes: notes("detail:soft halo, premium finish, strong edge separation, high-value commercial polish","imperfection_object:minor scratches; subtle smudge marks; non-pristine finish"), t0: { x: 50, y: 52, w: 26, h: 28, rot: 0 } },
+      { id: "floating_shadow", type: "prop", look: "soft gradient shadow and diffuse glow directly below the product", shapeDesc: "floating illusion anchor", z: 2, notes: notes("detail:creates believable lift rather than fake cutout"), t0: { x: 50, y: 67, w: 30, h: 9, rot: 0 } },
+      { id: "flare_field", type: "prop", look: "subtle amber lens flare and side bloom glancing across the frame", shapeDesc: "premium light atmosphere support", z: 1, notes: notes("detail:raises commercial value without overpowering the product"), t0: { x: 62, y: 41, w: 34, h: 18, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_product_detail_02",
@@ -160,11 +160,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:natural", "film_look:digital_clean",
       "narrative_rhythm:meditative", "visual_tension:none"
     ),
-    layerLook: "diamond jewelry piece",
-    layerNotes: notes(
-      "costume:polished platinum or gold setting",
-      "detail:brilliant cut facets visible, light refracting through stone, micro-pavé details"
-    ),
+    sceneLayers: [
+      { id: "jewel_macro_hero", type: "product", look: "diamond jewelry piece presented in a macro luxury close-up", shapeDesc: "central gemstone and setting occupying most of the frame", z: 6, notes: notes("detail:brilliant-cut facets, metal prongs, refracted highlights, micro-pavé structure","imperfection_object:tiny setting scratches; faint polishing residue; non-perfect stone edge reflection"), t0: { x: 50, y: 54, w: 32, h: 28, rot: 0 } },
+      { id: "jewel_reflection", type: "prop", look: "dark reflective base with controlled glints under the jewel", shapeDesc: "macro support plane", z: 2, notes: notes("detail:keeps the macro image premium and grounded"), t0: { x: 50, y: 67, w: 34, h: 10, rot: 0 } },
+      { id: "jewel_bokeh", type: "prop", look: "soft luxury bokeh and edge sparkle around the gem", shapeDesc: "micro atmosphere layer", z: 1, notes: notes("detail:turns technical macro detail into a commercial beauty image"), t0: { x: 58, y: 42, w: 24, h: 16, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_luxury_01",
@@ -180,18 +180,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:warm_golden", "film_look:digital_clean",
       "narrative_rhythm:meditative", "visual_tension:none"
     ),
-    layerLook: "high-end mechanical wristwatch",
-    layerShapeDesc: "precision Swiss movement timepiece",
-    layerNotes: notes(
-      "costume:polished stainless steel case, brushed finishing on lugs, polished bevels on case sides",
-      "prop:dark brown alligator leather strap, hand-stitched ivory thread, deployment clasp",
-      "detail:intricate guilloché dial texture, applied hour markers with luminous fill, engraved crown at three o'clock, running seconds hand at 6 o'clock",
-      "shapeDesc:rectangular watch case, 40mm diameter, 12mm thick, crown at 3 o'clock position",
-      "accessory:exhibition caseback, visible rotor movement, engraved brand signature",
-      "status:movement running, second hand in motion, date wheel visible",
-      "emotion:timeless luxury, mechanical perfection, investment-grade craftsmanship",
-      "action:placed on dark velvet surface, angled at 30 degrees toward camera"
-    ),
+    sceneLayers: [
+      { id: "watch_hero_macro", type: "product", look: "high-end mechanical wristwatch placed as the hero object on dark velvet", shapeDesc: "angled prestige watch with readable dial and case", z: 6, notes: notes("detail:polished stainless steel case, brushed lugs, guilloché dial texture, engraved crown, visible second hand","imperfection_object:faint hairline scratches; subtle fingerprint haze; slight strap wear"), t0: { x: 50, y: 56, w: 28, h: 24, rot: -10 } },
+      { id: "watch_strap", type: "prop", look: "dark brown leather strap extending behind the case with stitched edge detail", shapeDesc: "support object reinforcing luxury material contrast", z: 3, notes: notes("detail:alligator grain, deployment clasp, hand-stitched thread","imperfection_object:minor crease wear; non-pristine leather finish"), t0: { x: 50, y: 66, w: 42, h: 12, rot: -8 } },
+      { id: "watch_set", type: "prop", look: "dark velvet plane with soft golden edge falloff and prestige reflection", shapeDesc: "luxury support environment", z: 1, notes: notes("detail:commercial atmosphere without stealing focus"), t0: { x: 52, y: 73, w: 52, h: 16, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_luxury_02",
@@ -207,13 +200,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:warm_golden", "film_look:halation",
       "narrative_rhythm:meditative", "visual_tension:low"
     ),
-    layerLook: "crystal perfume bottle",
-    layerShapeDesc: "tall elegant flacon with sculptural form",
-    layerNotes: notes(
-      "costume:transparent glass body, golden liquid inside, engraved brand logo",
-      "prop:gold metallic cap, brand insignia on neck",
-      "detail:soft mist around bottle, subtle vapor effect, glossy obsidian surface reflection below"
-    ),
+    sceneLayers: [
+      { id: "perfume_flacon", type: "product", look: "crystal perfume bottle with sculptural tall flacon silhouette", shapeDesc: "luxury bottle centered in the frame", z: 6, notes: notes("detail:transparent glass body, golden liquid, engraved logo, metallic cap, elegant neck detailing","imperfection_object:tiny cap wear; subtle glass smudge; slight liquid meniscus irregularity"), t0: { x: 50, y: 54, w: 24, h: 34, rot: 0 } },
+      { id: "perfume_mist", type: "prop", look: "soft perfume mist and halo blooming around the bottle", shapeDesc: "atmosphere support layer", z: 2, notes: notes("detail:builds sensual premium mood without obscuring the bottle"), t0: { x: 52, y: 48, w: 34, h: 22, rot: 0 } },
+      { id: "perfume_reflection", type: "prop", look: "glossy obsidian surface reflection below the bottle", shapeDesc: "luxury grounding plane", z: 1, notes: notes("detail:clean prestige reflection with subtle distortion"), t0: { x: 50, y: 71, w: 30, h: 10, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_luxury_video_01",
@@ -307,19 +298,10 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:warm_golden", "film_look:halation",
       "narrative_rhythm:slow_burn", "visual_tension:low"
     ),
-    layerLook: "solitary figure, 1970s Hong Kong attire, loose shirt, melancholic posture",
-    layerShapeDesc: "melancholic presence, timeless quality",
-    layerNotes: notes(
-      "costume:raw silk qipao or linen suit, 1970s Hong Kong period-accurate, nothing synthetic",
-      "shapeDesc:medium close-up, face upper center, shallow focus separates subject from neon background",
-      "accessory:thin gold bracelet, single period earring, nothing modern",
-      "action:head slightly turned, gaze directed off-frame at 30-degree angle",
-      "expression:eyes slightly downcast, mouth relaxed — melancholy without drama",
-      "emotion:trapped time, longing for something unreachable, nostalgic ache in every detail",
-      "detail:single warm neon catchlight in each eye — amber point of reflection in iris, soft halo on cheekbone",
-      "status:absolutely still, suspended in an emotional moment",
-      "shapeDesc:background neon signs render as soft oval amber and red blobs behind head"
-    ),
+    sceneLayers: [
+      { id: "wk_lead", type: "character", look: "solitary figure in 1970s Hong Kong attire with melancholic posture", shapeDesc: "medium close-up lead separated from the background by neon haze", z: 6, notes: notes("costume:raw silk qipao or period linen suit, restrained period styling, minimal jewelry","action:head slightly turned off-frame, still and suspended","detail:amber neon catchlight in each eye, soft cheekbone halo, real skin finish","imperfection_object:visible pores; natural facial asymmetry; faint under-eye darkness; slight fabric wear"), t0: { x: 48, y: 53, w: 30, h: 42, rot: 0 } },
+      { id: "wk_neon_blobs", type: "prop", look: "soft oval neon signs and wet bokeh behind the subject", shapeDesc: "Hong Kong night anchor", z: 1, notes: notes("detail:red and amber blobs, humid night atmosphere, nostalgic depth"), t0: { x: 62, y: 40, w: 38, h: 20, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_portrait_luxury_fashion_01",
@@ -335,14 +317,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:warm_golden", "film_look:film_grain",
       "narrative_rhythm:meditative", "visual_tension:none"
     ),
-    layerLook: "tall model, couture garment, sculptural silhouette, luxury styling",
-    layerShapeDesc: "full-length elegant stance",
-    layerNotes: notes(
-      "costume:luxury fashion garment, couture quality, intricate detail",
-      "pose:profile",
-      "expression:confident",
-      "detail:fabric drape and texture, garment craftsmanship, skin luminosity"
-    ),
+    sceneLayers: [
+      { id: "luxury_model", type: "character", look: "tall couture model standing in a full-length luxury fashion pose", shapeDesc: "elegant profile-led fashion silhouette", z: 6, notes: notes("costume:couture garment with sculptural drape, intricate seam work, luxury textile volume","expression:confident and composed","detail:skin luminosity, garment craftsmanship, sharp silhouette control","imperfection_object:visible pores; natural asymmetry; slight lint and seam irregularity"), t0: { x: 48, y: 56, w: 28, h: 54, rot: 0 } },
+      { id: "fashion_pedestal", type: "prop", look: "subtle pedestal or folded shadow plane around the model's feet", shapeDesc: "runway-like fashion support anchor", z: 2, notes: notes("detail:gives the portrait editorial structure and prestige"), t0: { x: 50, y: 78, w: 30, h: 10, rot: 0 } },
+      { id: "fashion_backdrop", type: "prop", look: "dark luxury backdrop with disciplined rim light and light falloff", shapeDesc: "fashion set anchor", z: 1, notes: notes("detail:keeps the image premium and magazine-ready"), t0: { x: 50, y: 36, w: 70, h: 26, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_portrait_corporate_01",
@@ -358,14 +337,10 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:cool_steel", "film_look:digital_clean",
       "narrative_rhythm:meditative", "visual_tension:none"
     ),
-    layerLook: "senior executive",
-    layerShapeDesc: "composed authoritative presence",
-    layerNotes: notes(
-      "costume:tailored business suit, quality fabric",
-      "pose:power_pose",
-      "expression:confident",
-      "detail:precise tailoring, clean grooming, controlled expression"
-    ),
+    sceneLayers: [
+      { id: "executive_lead", type: "character", look: "senior executive with calm authority in a refined interior office portrait", shapeDesc: "mid-close business portrait subject", z: 6, notes: notes("costume:tailored business suit, crisp shirt, refined grooming, power-pose restraint","detail:precise tailoring, controlled expression, believable skin texture","imperfection_object:visible pores; slight under-eye darkness; faint jacket crease wear"), t0: { x: 48, y: 54, w: 28, h: 40, rot: 0 } },
+      { id: "executive_space", type: "prop", look: "soft office glass edge, chair line, and desk silhouette behind the executive", shapeDesc: "professional interior anchor", z: 1, notes: notes("detail:grounds the portrait in a credible executive environment"), t0: { x: 62, y: 44, w: 40, h: 20, rot: 0 } },
+    ],
   },
 
   // ── COVER POSTER ───────────────────────────────────────────────
@@ -384,11 +359,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:warm_golden", "film_look:digital_clean",
       "narrative_rhythm:meditative", "visual_tension:none"
     ),
-    layerLook: "brand visual centerpiece, bold graphic composition",
-    layerNotes: notes(
-      "costume:premium brand aesthetic",
-      "detail:clean typography space in upper third, strong visual hierarchy"
-    ),
+    sceneLayers: [
+      { id: "brand_centerpiece", type: "character", look: "brand visual centerpiece with premium fashion or product-facing posture", shapeDesc: "hero object placed for typography-friendly composition", z: 6, notes: notes("detail:strong hierarchy, premium styling, clear focal center","imperfection_object:natural texture variation; slight material wear"), t0: { x: 48, y: 58, w: 30, h: 42, rot: 0 } },
+      { id: "brand_shape_support", type: "prop", look: "bold graphic support shape or pedestal balancing the lower frame", shapeDesc: "poster composition anchor", z: 2, notes: notes("detail:keeps the poster from collapsing into a simple portrait"), t0: { x: 56, y: 72, w: 34, h: 16, rot: 0 } },
+      { id: "brand_type_space", type: "prop", look: "clean negative space reserved for headline and campaign typography in the upper third", shapeDesc: "brand poster layout support", z: 1, notes: notes("detail:designed to hold copy without crowding the hero"), t0: { x: 50, y: 22, w: 66, h: 22, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_poster_movie_01",
@@ -404,13 +379,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:teal_orange", "film_look:film_grain",
       "narrative_rhythm:epic_build", "visual_tension:high"
     ),
-    layerLook: "hero figure, dramatic 3/4 angle, confident stance, cinematic lighting",
-    layerNotes: notes(
-      "costume:distinctive iconic clothing",
-      "pose:hero_entry",
-      "expression:determined",
-      "detail:dramatic sky behind, environmental scale contrast, poster composition"
-    ),
+    sceneLayers: [
+      { id: "movie_hero", type: "character", look: "hero figure framed at a dramatic three-quarter angle with cinematic poster presence", shapeDesc: "full-body poster lead in low-angle stance", z: 6, notes: notes("costume:distinctive iconic clothing, readable silhouette, blockbuster hero entry","expression:determined","detail:real skin texture, costume wear, controlled poster lighting","imperfection_object:minor garment dust; natural asymmetry; slight battle wear"), t0: { x: 48, y: 60, w: 28, h: 50, rot: 0 } },
+      { id: "movie_sky", type: "prop", look: "dramatic cloud break, volumetric sky, and environmental scale behind the hero", shapeDesc: "epic background anchor", z: 1, notes: notes("detail:pushes the poster toward large-scale cinematic narrative"), t0: { x: 52, y: 28, w: 80, h: 30, rot: 0 } },
+      { id: "movie_ground", type: "prop", look: "debris line or terrain texture below the hero's feet", shapeDesc: "poster grounding support", z: 2, notes: notes("detail:prevents the hero from floating and adds story residue"), t0: { x: 48, y: 79, w: 44, h: 12, rot: 0 } },
+    ],
   },
 
   // ── STORY VIDEO ────────────────────────────────────────────────
@@ -430,13 +403,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:warm_golden", "film_look:film_grain",
       "narrative_rhythm:slow_burn", "visual_tension:medium"
     ),
-    layerLook: "character in dramatic indoor dialogue",
-    layerNotes: notes(
-      "costume:contemporary clothing",
-      "action:standing",
-      "expression:determined",
-      "detail:ambient practical lights in background, emotional shadows on face"
-    ),
+    sceneLayers: [
+      { id: "drama_lead", type: "character", look: "character caught in a dramatic indoor dialogue moment", shapeDesc: "mid-close dramatic lead holding emotional tension", z: 6, notes: notes("costume:contemporary layered clothing","expression:determined with controlled emotion","detail:facial shadows, subtle skin realism, believable wardrobe texture","imperfection_object:visible pores; faint under-eye darkness; slight garment lint"), t0: { x: 48, y: 54, w: 28, h: 40, rot: 0 }, t1: { x: 48, y: 53, w: 29, h: 41, rot: 0 } },
+      { id: "drama_partner", type: "character", look: "secondary conversation presence just off axis in the same room", shapeDesc: "support character anchor for dialogue tension", z: 4, notes: notes("detail:keeps the dramatic exchange readable without stealing focus"), t0: { x: 67, y: 56, w: 16, h: 28, rot: 0 }, t1: { x: 66, y: 56, w: 16, h: 28, rot: 0 } },
+      { id: "drama_practicals", type: "prop", look: "soft practical lamps and interior silhouettes behind both characters", shapeDesc: "interior drama atmosphere layer", z: 1, notes: notes("detail:warmer practicals and emotional shadows support the scene"), t0: { x: 60, y: 40, w: 40, h: 20, rot: 0 }, t1: { x: 60, y: 40, w: 40, h: 20, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_story_action_01",
@@ -454,17 +425,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:teal_orange", "film_look:film_grain",
       "narrative_rhythm:urgent", "visual_tension:high"
     ),
-    layerLook: "athletic figure, running, motion blur on limbs",
-    layerNotes: notes(
-      "costume:worn dark hoodie, tactical pants, well-used trainers — functional not fashionable, lived-in",
-      "shapeDesc:3/4 body visible, body pitched 30 degrees forward, arms pumping mid-stride",
-      "action:full sprint, right foot pushing off wet pavement, body committed toward camera-left",
-      "expression:jaw tight, eyes scanning ahead — survival-focus, not rage",
-      "emotion:desperate velocity, fight-or-flight adrenaline, urban pursuit tension at its peak",
-      "detail:motion blur on legs and periphery, face sharp — panning camera technique implied",
-      "status:peak-action moment — not running TO something, running FROM something",
-      "shapeDesc:wet pavement reflections below echo the running figure as a distorted shadow-twin"
-    ),
+    sceneLayers: [
+      { id: "action_runner", type: "character", look: "athletic figure sprinting through a tense urban pursuit frame", shapeDesc: "three-quarter body action lead lunging across the scene", z: 6, notes: notes("costume:worn dark hoodie, tactical pants, well-used trainers","action:full sprint, arms pumping, body pitched forward","detail:face remains sharp while limbs imply motion","imperfection_object:fabric wear; shoe scuffs; sweat and street grit"), t0: { x: 50, y: 58, w: 30, h: 42, rot: 0 }, t1: { x: 42, y: 58, w: 30, h: 42, rot: 0 } },
+      { id: "action_reflection", type: "prop", look: "wet pavement reflections and distorted shadow-twin beneath the runner", shapeDesc: "ground motion anchor", z: 2, notes: notes("detail:sells speed and urgency in a cinematic way"), t0: { x: 50, y: 75, w: 48, h: 14, rot: 0 }, t1: { x: 44, y: 75, w: 48, h: 14, rot: 0 } },
+      { id: "action_background", type: "prop", look: "soft urban threat shapes and blurred environmental pursuit hints behind the lead", shapeDesc: "chase-world support layer", z: 1, notes: notes("detail:keeps the scene narrative rather than generic action wallpaper"), t0: { x: 66, y: 42, w: 38, h: 18, rot: 0 }, t1: { x: 64, y: 42, w: 38, h: 18, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_story_scifi_01",
@@ -482,19 +447,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:cool_steel", "film_look:anamorphic_flare",
       "narrative_rhythm:epic_build", "visual_tension:high"
     ),
-    layerLook: "lone astronaut in full space suit, visor reflecting stars",
-    layerShapeDesc: "full-body standing, helmet on, arms slightly raised for balance",
-    layerNotes: notes(
-      "costume:hard-shell EVA space suit, white with orange trim, mission patches on shoulder, tethering D-rings on chest",
-      "shapeDesc:full-body standing, helmet visor reflecting nebula, arms slightly raised for zero-G balance",
-      "accessory:sealed helmet with curved polycarbonate visor, built-in comm antenna, chest-mounted life support panel",
-      "prop:handheld equipment in right hand, tether cable trailing off to the right",
-      "action:stationary, slight body lean as if adjusting to microgravity",
-      "expression:face partially visible through visor, focused and calm",
-      "detail:visible helmet reflection contains the nebula background, suit surface has micro-scratches from use",
-      "emotion:vast cosmic solitude, human scale dwarfed by universe, quiet heroism",
-      "status:suit pressurized, oxygen indicator LED visible on wrist panel"
-    ),
+    sceneLayers: [
+      { id: "astronaut_hero", type: "character", look: "lone astronaut in a full EVA suit with the visor reflecting stars", shapeDesc: "full-body space-suited figure in a wide cinematic frame", z: 6, notes: notes("costume:white hard-shell suit with orange trim, mission patches, life support panel","action:stationary with slight microgravity lean","detail:helmet reflection, suit scratches, status LED, tether hardware","imperfection_object:micro-scratches; worn seals; dust traces on suit joints"), t0: { x: 48, y: 58, w: 18, h: 42, rot: 0 }, t1: { x: 48, y: 57, w: 18, h: 42, rot: 0 } },
+      { id: "astronaut_tether", type: "prop", look: "tether cable and handheld equipment trailing away from the astronaut", shapeDesc: "support object adding realism and mission context", z: 3, notes: notes("detail:connects the human figure to a larger off-frame craft or mission"), t0: { x: 59, y: 64, w: 22, h: 10, rot: 6 }, t1: { x: 59, y: 63, w: 22, h: 10, rot: 6 } },
+      { id: "cosmic_field", type: "prop", look: "nebula field, scattered stars, and volumetric cosmic haze behind the astronaut", shapeDesc: "epic space anchor", z: 1, notes: notes("detail:creates scale, solitude, and mystery"), t0: { x: 56, y: 34, w: 84, h: 28, rot: 0 }, t1: { x: 56, y: 34, w: 84, h: 28, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_story_romance_01",
@@ -512,14 +469,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:warm_golden", "film_look:halation",
       "narrative_rhythm:slow_burn", "visual_tension:low"
     ),
-    layerLook: "two characters in a chance encounter",
-    layerNotes: notes(
-      "costume:romantic casual clothing",
-      "action:standing",
-      "expression:surprised",
-      "emotion:tense",
-      "detail:warm neon light between them, city night softly out of focus"
-    ),
+    sceneLayers: [
+      { id: "romance_lead_a", type: "character", look: "first character caught in a chance night encounter", shapeDesc: "mid-close left-side romantic lead", z: 6, notes: notes("costume:romantic casual clothing, city-night realism","expression:surprised, guarded warmth","detail:skin texture, subtle emotional stillness","imperfection_object:visible pores; natural asymmetry; slight hair disarray"), t0: { x: 40, y: 54, w: 24, h: 38, rot: 0 }, t1: { x: 40, y: 54, w: 24, h: 38, rot: 0 } },
+      { id: "romance_lead_b", type: "character", look: "second character standing opposite with suspended tension", shapeDesc: "mid-close right-side romantic lead", z: 5, notes: notes("detail:held breath energy, quiet eye contact, believable clothing texture","imperfection_object:visible pores; subtle under-eye darkness; slight garment fold wear"), t0: { x: 60, y: 54, w: 24, h: 38, rot: 0 }, t1: { x: 60, y: 54, w: 24, h: 38, rot: 0 } },
+      { id: "romance_neon_gap", type: "prop", look: "warm neon strip and city-night bokeh separating the two characters", shapeDesc: "romantic tension anchor", z: 1, notes: notes("detail:puts emotional energy in the negative space between them"), t0: { x: 50, y: 42, w: 42, h: 18, rot: 0 }, t1: { x: 50, y: 42, w: 42, h: 18, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_story_fashion_film_01",
@@ -536,18 +490,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:warm_golden", "film_look:film_grain",
       "narrative_rhythm:meditative", "visual_tension:none"
     ),
-    layerLook: "fashion model in structured luxury garment, minimal jewelry, confident stance",
-    layerNotes: notes(
-      "costume:structured wool coat off-white oversized, raw hem at ankle, single oversized matte button closure",
-      "shapeDesc:full-length to knee, figure at two-thirds frame height, ample negative space on both sides",
-      "accessory:one architectural gold cuff on left wrist, no bag, no visible branding",
-      "action:mid-stride, weight transferring left to right, coat hem lifting in motion",
-      "expression:forward gaze, chin slightly elevated, presence not affect — not smiling",
-      "emotion:quiet authority, fashion confidence, garment IS the statement",
-      "detail:fabric drape across structured shoulders catches soft studio light, seams razor-sharp",
-      "status:in motion — fabric ghost-blur visible but face crisp and sharp",
-      "shapeDesc:negative space flanking figure is deliberate — this is not a catalog shot"
-    ),
+    sceneLayers: [
+      { id: "fashion_film_model", type: "character", look: "fashion model in a structured luxury garment moving through a controlled editorial frame", shapeDesc: "full-length figure with deliberate negative space", z: 6, notes: notes("costume:structured off-white wool coat, raw hem, matte button closure, architectural gold cuff","action:mid-stride with coat hem lifting","detail:sharp seams, premium drape, crisp face against moving fabric","imperfection_object:visible pores; subtle garment lint; slight hem fray"), t0: { x: 48, y: 58, w: 24, h: 52, rot: 0 }, t1: { x: 52, y: 58, w: 24, h: 52, rot: 0 } },
+      { id: "fashion_film_floor", type: "prop", look: "minimal luxury floor plane and shadow trail guiding the motion path", shapeDesc: "editorial runway support", z: 2, notes: notes("detail:keeps the motion readable and premium"), t0: { x: 50, y: 79, w: 40, h: 10, rot: 0 }, t1: { x: 54, y: 79, w: 40, h: 10, rot: 0 } },
+      { id: "fashion_film_backdrop", type: "prop", look: "disciplined dark studio backdrop with rim light spill and deliberate empty side space", shapeDesc: "fashion-film stage anchor", z: 1, notes: notes("detail:turns the template into a true editorial moving image"), t0: { x: 50, y: 38, w: 78, h: 24, rot: 0 }, t1: { x: 50, y: 38, w: 78, h: 24, rot: 0 } },
+    ],
   },
 
   // ── PRO WORKFLOWS ──────────────────────────────────────────────
@@ -567,19 +514,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:warm_golden", "film_look:digital_clean",
       "narrative_rhythm:meditative", "visual_tension:none"
     ),
-    layerLook: "premium product, flawless surface finish, precision-machined details",
-    layerShapeDesc: "premium commercial subject",
-    layerNotes: notes(
-      "costume:premium product surface — anodized aluminum body, matte-finish rear panel, chamfered edge catches specular highlight",
-      "shapeDesc:product positioned at 30-degree angle to lens, bottom-left closer, top-right receding — classic ad perspective",
-      "accessory:subtle ambient occlusion shadow at base, groundline visible but clean",
-      "prop:no props — product is hero, negative space is intentional",
-      "detail:every surface texture rendered: brushed grain direction visible on metal, glass specular is a single elongated highlight not blown",
-      "action:static, no motion — this is the hero freeze-frame of a 30-second commercial",
-      "emotion:aspirational desire, premium quality, you-deserve-this energy",
-      "status:hero moment — maximum elegance, zero distraction",
-      "shapeDesc:product fills 40% of frame, centered with 30% breathing room on each side"
-    ),
+    sceneLayers: [
+      { id: "commercial_hero", type: "product", look: "precision-crafted hero product with anodized metal body and glass or ceramic face", shapeDesc: "premium commercial subject angled slightly toward lens", z: 6, notes: notes("detail:brushed metal grain, chamfer edge highlight, logo readability, luxury finishing","imperfection_object:micro fingerprints; faint hairline scratches; subtle edge wear"), t0: { x: 50, y: 54, w: 28, h: 30, rot: -8 }, t1: { x: 50, y: 54, w: 28, h: 30, rot: -8 } },
+      { id: "base_shadow", type: "prop", look: "clean dark pedestal shadow and low reflective base under the hero object", shapeDesc: "grounding commercial anchor", z: 2, notes: notes("detail:keeps the frame premium, stable, and ad-ready","imperfection_object:minor stage scuffs; imperfect edge reflection"), t0: { x: 50, y: 70, w: 36, h: 10, rot: 0 }, t1: { x: 50, y: 70, w: 36, h: 10, rot: 0 } },
+      { id: "light_accent", type: "prop", look: "subtle rim-lit haze ribbon and a precision light bar behind the product", shapeDesc: "cinematic ad atmosphere layer", z: 1, notes: notes("detail:premium commercial polish without clutter","imperfection_object:light haze irregularity"), t0: { x: 56, y: 42, w: 48, h: 12, rot: 0 }, t1: { x: 56, y: 42, w: 48, h: 12, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_nolan_epic_01",
@@ -597,19 +536,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:teal_orange", "film_look:film_grain",
       "narrative_rhythm:epic_build", "visual_tension:high"
     ),
-    layerLook: "lone figure in worn practical clothing, silhouette sharp",
-    layerShapeDesc: "full-body long shot, centered in frame, dwarfed by architecture",
-    layerNotes: notes(
-      "costume:practical dark field jacket, cargo pants, worn leather boots — nothing branded, everything functional",
-      "shapeDesc:full-body long shot, human figure at lower third, dwarfed by towering concrete or natural cliff behind",
-      "action:standing still, weight on one foot, facing slightly away from camera — suggesting contemplation or resolve",
-      "expression:face not fully visible at this scale — expression implied by posture",
-      "prop:no props — isolation is the point",
-      "detail:golden light from hard side angle creates strong shadow split on figure and environment equally",
-      "emotion:epic scale, human resolve against impossible odds, IMAX-grade gravitas",
-      "status:still, composed, not afraid — a moment before action",
-      "shapeDesc:human figure occupies 15% of frame height — everything else is environment"
-    ),
+    sceneLayers: [
+      { id: "epic_figure", type: "character", look: "lone figure in worn practical clothing, silhouetted against monumental architecture", shapeDesc: "small full-body figure in the lower third", z: 5, notes: notes("costume:dark field jacket, cargo trousers, worn boots, practical no-logo styling","detail:human scale against impossible architecture, face implied by posture more than close detail","imperfection_object:dust on hem; fabric wear; boot scuffs; natural asymmetry"), t0: { x: 41, y: 66, w: 10, h: 22, rot: 0 }, t1: { x: 41, y: 64, w: 10, h: 22, rot: 0 } },
+      { id: "monument_anchor", type: "prop", look: "towering concrete wall or cliff face with brutal geometric scale", shapeDesc: "epic environmental mass filling the frame", z: 1, notes: notes("detail:oppressive scale, hard side light split, IMAX-grade atmosphere","imperfection_object:surface cracks; dust plumes; weathered stains"), t0: { x: 58, y: 40, w: 76, h: 46, rot: 0 }, t1: { x: 58, y: 38, w: 78, h: 48, rot: 0 } },
+      { id: "atmo_layer", type: "prop", look: "low dust haze and volumetric light shaft crossing the giant space", shapeDesc: "epic atmosphere support layer", z: 0, notes: notes("detail:expands scale without clutter"), t0: { x: 50, y: 50, w: 84, h: 24, rot: 0 }, t1: { x: 50, y: 50, w: 84, h: 24, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_wk_style_01",
@@ -627,20 +558,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:warm_golden", "film_look:halation",
       "narrative_rhythm:slow_burn", "visual_tension:low"
     ),
-    layerLook: "lone figure, vintage coat, collar up, face half-lit by neon",
-    layerShapeDesc: "medium shot, figure at left third, bokeh neon at right",
-    layerNotes: notes(
-      "costume:loose cream linen shirt half-tucked, wide-leg trousers, 1970s Hong Kong style — lived-in and slightly rumpled",
-      "shapeDesc:medium shot, figure at left third of frame, occupying 60% of vertical height, bokeh neon columns at right",
-      "accessory:lit cigarette in right hand, smoke curl visible",
-      "prop:glass of amber liquid on surface, condensation rings, half-empty",
-      "action:leaning against wall, weight on left shoulder, right arm hanging loose",
-      "expression:eyes half-closed, gaze past camera — somewhere in memory, not present",
-      "emotion:suspended time, melancholic longing, beautiful sadness without explanation",
-      "detail:neon red and amber light split across face — left side warm, right side cool shadow, skin texture visible in catch light",
-      "status:in stasis — a person living inside a feeling",
-      "shapeDesc:background bokeh columns elongated not circular — slow aperture, anamorphic quality"
-    ),
+    sceneLayers: [
+      { id: "wk_figure", type: "character", look: "lone figure in vintage Hong Kong-inspired styling with collar up and face half-lit by neon", shapeDesc: "medium subject on left third of frame", z: 5, notes: notes("costume:rumpled cream shirt, wide trousers, lived-in vintage coat","accessory:lit cigarette and tired hand gesture","detail:melancholic gaze past camera, time-suspended mood, skin catch-light realism","imperfection_object:visible pores; under-eye darkness; fabric wrinkles; smoke irregularity"), t0: { x: 36, y: 56, w: 24, h: 42, rot: 0 }, t1: { x: 38, y: 56, w: 24, h: 42, rot: 0 } },
+      { id: "amber_glass", type: "prop", look: "half-empty glass of amber liquid on a weathered surface", shapeDesc: "small emotional prop near the subject", z: 4, notes: notes("detail:condensation ring, lonely-night residue","imperfection_object:glass smudges; liquid level irregularity"), t0: { x: 56, y: 69, w: 8, h: 10, rot: 0 }, t1: { x: 56, y: 69, w: 8, h: 10, rot: 0 } },
+      { id: "neon_columns", type: "prop", look: "elongated red and amber neon bokeh columns receding on the right", shapeDesc: "bokeh architecture and emotional color support", z: 1, notes: notes("detail:anamorphic elongation, moody city proof"), t0: { x: 72, y: 44, w: 26, h: 28, rot: 0 }, t1: { x: 72, y: 44, w: 26, h: 28, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_fincher_style_01",
@@ -658,14 +580,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:noir", "film_look:bleach_bypass",
       "narrative_rhythm:slow_burn", "visual_tension:high"
     ),
-    layerLook: "character under clinical Fincher lighting",
-    layerNotes: notes(
-      "costume:precise, controlled clothing",
-      "action:sitting",
-      "expression:determined",
-      "emotion:tense",
-      "detail:green-teal light wash, hard shadow geometry, controlled chaos in background"
-    ),
+    sceneLayers: [
+      { id: "fincher_subject", type: "character", look: "controlled protagonist seated under clinical green-teal lighting", shapeDesc: "mid-shot subject framed with severe precision", z: 5, notes: notes("costume:dark tailored shirt or jacket with controlled fold geometry","expression:determined","detail:psychological tension, exact posture, real skin and measured eye line","imperfection_object:visible pores; faint fatigue; lint on fabric"), t0: { x: 46, y: 56, w: 24, h: 38, rot: 0 }, t1: { x: 46, y: 56, w: 24, h: 38, rot: 0 } },
+      { id: "table_geometry", type: "prop", look: "interrogation-like table edge and hard shadow planes around the subject", shapeDesc: "clinical spatial geometry anchor", z: 3, notes: notes("detail:strict linework, measured blocking, no visual mess"), t0: { x: 50, y: 70, w: 40, h: 12, rot: 0 }, t1: { x: 50, y: 70, w: 40, h: 12, rot: 0 } },
+      { id: "background_practicals", type: "prop", look: "practical lamps and deep background disorder held in controlled darkness", shapeDesc: "Fincher atmosphere support layer", z: 1, notes: notes("detail:controlled chaos, hard light geometry, teal-noir falloff","imperfection_object:uneven practical glow; slight room clutter hints"), t0: { x: 60, y: 40, w: 54, h: 24, rot: 0 }, t1: { x: 60, y: 40, w: 54, h: 24, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_editorial_series_01",
@@ -681,14 +600,11 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:warm_golden", "film_look:film_grain",
       "narrative_rhythm:meditative", "visual_tension:none"
     ),
-    layerLook: "editorial fashion subject",
-    layerShapeDesc: "magazine-quality presence",
-    layerNotes: notes(
-      "costume:couture-level fashion garment",
-      "pose:power_pose",
-      "expression:confident",
-      "detail:fabric architecture, garment engineering, skin perfection"
-    ),
+    sceneLayers: [
+      { id: "editorial_lead", type: "character", look: "editorial fashion lead in couture-level styling", shapeDesc: "full subject with magazine-cover confidence", z: 6, notes: notes("costume:architectural couture silhouette, premium fabric structure, controlled drape","pose:power_pose","expression:confident","detail:garment engineering, skin realism, polished editorial posture","imperfection_object:subtle skin texture; fabric tension lines; natural asymmetry"), t0: { x: 48, y: 56, w: 24, h: 46, rot: 0 } },
+      { id: "editorial_block", type: "prop", look: "minimal studio plinth or seating block supporting the pose", shapeDesc: "editorial support geometry", z: 2, notes: notes("detail:gives the frame series-shoot credibility","imperfection_object:minor scuffs"), t0: { x: 48, y: 76, w: 22, h: 10, rot: 0 } },
+      { id: "rim_haze", type: "prop", look: "subtle rim-lit haze and dark gradient studio depth", shapeDesc: "premium magazine atmosphere layer", z: 1, notes: notes("detail:luxury polish without losing editorial realism"), t0: { x: 54, y: 42, w: 58, h: 28, rot: 0 } },
+    ],
   },
 
   // ── MISSING PAYLOADS — all 73 remaining templates ────────────────
@@ -727,9 +643,11 @@ export const V3_PAYLOADS: V3Payload[] = [
   {
     templateId: "v3_product_detail_01",
     mediaMode: "image", aspectRatio: "1:1",
-    sceneNotes: notes("@compiler: v3","media: image","render_style:commercial","shot_size:ECU","focal_length:macro","depth_of_field:very_shallow","bg_preset:studio_dark","env_mood:luxurious","key_light_time:studio","color_temp:5600K","spec_light:rim_light","color_grade:natural","film_look:digital_clean","narrative_rhythm:meditative","visual_tension:none"),
-    layerLook: "product material texture close-up",
-    layerNotes: notes("costume:premium material surface","detail:micro-texture visible, grain or weave pattern, surface quality communicates craftsmanship"),
+    sceneNotes: notes("@compiler: v3","media: image","render_style:commercial","shot_size:ECU","focal_length:macro","depth_of_field:very_shallow","bg_preset:studio_dark","env_mood:luxurious","key_light_time:studio","color_temp:5600K","spec_light:rim_light","color_grade:natural","film_look:digital_clean","narrative_rhythm:meditative","visual_tension:none","imperfection_scene:micro dust in beam light; slight dark stage texture"),
+    sceneLayers: [
+      { id: "detail_surface", type: "product", look: "premium material surface shown in extreme close-up", shapeDesc: "macro texture field with clear craftsmanship signal", z: 5, notes: notes("detail:grain, weave, knurling, edge transitions, premium finish variation","imperfection_object:tiny scratches; micro texture inconsistency; faint dust"), t0: { x: 48, y: 52, w: 58, h: 40, rot: 0 } },
+      { id: "hand_scale", type: "character", look: "subtle fingertip or hand edge barely entering the frame to show real-world scale", shapeDesc: "secondary scale anchor", z: 3, notes: notes("detail:keeps the macro shot believable and useful for detail pages","imperfection_object:natural skin texture; soft nail edge"), t0: { x: 70, y: 66, w: 14, h: 12, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_product_lifestyle_02",
@@ -1202,23 +1120,29 @@ export const V3_PAYLOADS: V3Payload[] = [
   {
     templateId: "v3_poster_film_video_01",
     mediaMode: "video", aspectRatio: "16:9", duration: 10,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:filmic","shot_size:LS","focal_length:35mm","cam_movement:crane_up","depth_of_field:deep","bg_preset:outdoor_urban","env_mood:dramatic","key_light_time:golden_hour","color_temp:3200K","spec_light:volumetric","color_grade:teal_orange","film_look:anamorphic_flare","narrative_rhythm:epic_build","visual_tension:high"),
-    layerLook: "cinematic scene for film promo",
-    layerNotes: notes("costume:character in distinctive role","expression:determined","detail:cinematic scale, crane reveals environment, epic theatrical quality"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:filmic","shot_size:LS","focal_length:35mm","cam_movement:crane_up","depth_of_field:deep","bg_preset:outdoor_urban","env_mood:dramatic","key_light_time:golden_hour","color_temp:3200K","spec_light:volumetric","color_grade:teal_orange","film_look:anamorphic_flare","narrative_rhythm:epic_build","visual_tension:high","imperfection_scene:street dust; poster debris; practical haze"),
+    sceneLayers: [
+      { id: "film_lead", type: "character", look: "cinematic lead character in distinctive wardrobe standing before a large-scale urban event", shapeDesc: "main theatrical promo subject", z: 6, notes: notes("costume:role-defining wardrobe, readable silhouette, dramatic stance","expression:determined","detail:teaser-poster energy with real environmental grounding","imperfection_object:dust on hem; natural skin detail; fabric wear"), t0: { x: 42, y: 58, w: 18, h: 38, rot: 0 }, t1: { x: 42, y: 56, w: 18, h: 38, rot: 0 } },
+      { id: "world_anchor", type: "prop", look: "towering architecture, smoke, and atmosphere revealing the scale of the film world", shapeDesc: "epic crane-reveal environment anchor", z: 1, notes: notes("detail:teaser-scale worldbuilding, unmistakable film-promo frame"), t0: { x: 58, y: 42, w: 74, h: 34, rot: 0 }, t1: { x: 58, y: 40, w: 76, h: 36, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_poster_brand_video_01",
     mediaMode: "video", aspectRatio: "16:9", duration: 15,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:commercial","shot_size:MS","focal_length:50mm","cam_movement:slow_push","depth_of_field:shallow","bg_preset:gradient_black","env_mood:luxurious","key_light_time:studio","color_temp:3200K","color_grade:warm_golden","film_look:digital_clean","narrative_rhythm:meditative","visual_tension:none"),
-    layerLook: "brand hero product or person",
-    layerNotes: notes("costume:premium brand aesthetic","detail:15-second brand message, strong brand identity, memorable visual hook"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:commercial","shot_size:MS","focal_length:50mm","cam_movement:slow_push","depth_of_field:shallow","bg_preset:gradient_black","env_mood:luxurious","key_light_time:studio","color_temp:3200K","color_grade:warm_golden","film_look:digital_clean","narrative_rhythm:meditative","visual_tension:none","imperfection_scene:soft haze; non-pristine reflective floor"),
+    sceneLayers: [
+      { id: "brand_hero", type: "product", look: "brand hero product or spokesperson held in a luxury studio reveal setup", shapeDesc: "clear campaign anchor with memorable silhouette", z: 6, notes: notes("detail:15-second hook frame, bold brand presence, high memorability","imperfection_object:subtle surface wear; real skin texture or packaging dust"), t0: { x: 50, y: 56, w: 24, h: 30, rot: 0 }, t1: { x: 50, y: 54, w: 26, h: 32, rot: 0 } },
+      { id: "brand_accent", type: "prop", look: "graphic light planes and reflection accents framing the hero", shapeDesc: "brand-system support layer", z: 2, notes: notes("detail:strong identity without clutter"), t0: { x: 52, y: 46, w: 48, h: 18, rot: 0 }, t1: { x: 52, y: 46, w: 48, h: 18, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_poster_abstract_01",
     mediaMode: "image", aspectRatio: "4:5",
-    sceneNotes: notes("@compiler: v3","media: image","render_style:editorial","shot_size:FS","focal_length:35mm","depth_of_field:medium","bg_preset:abstract","env_mood:mysterious","key_light_time:studio","color_temp:5600K","color_grade:vibrant","film_look:halation","narrative_rhythm:meditative","visual_tension:low"),
-    layerLook: "abstract gradient visual composition",
-    layerNotes: notes("costume:minimal geometric or organic form","detail:color gradients, light refraction, artistic composition, designed negative space"),
+    sceneNotes: notes("@compiler: v3","media: image","render_style:editorial","shot_size:FS","focal_length:35mm","depth_of_field:medium","bg_preset:abstract","env_mood:mysterious","key_light_time:studio","color_temp:5600K","color_grade:vibrant","film_look:halation","narrative_rhythm:meditative","visual_tension:low","imperfection_scene:surface grain; imperfect symmetry; light spill irregularity"),
+    sceneLayers: [
+      { id: "abstract_form", type: "prop", look: "large geometric or organic abstract form suspended in a designed gradient field", shapeDesc: "central creative poster form", z: 5, notes: notes("detail:designed negative space, refracted light, art-poster readability","imperfection_object:material cracks; uneven gloss; edge inconsistency"), t0: { x: 50, y: 52, w: 34, h: 36, rot: 0 } },
+      { id: "gradient_field", type: "prop", look: "layered color gradient plane with subtle refraction and shadow overlap", shapeDesc: "poster environment anchor", z: 1, notes: notes("detail:graphic-design clarity, still visually rich"), t0: { x: 50, y: 50, w: 76, h: 54, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_cover_structure_room_01",
@@ -2035,9 +1959,11 @@ export const V3_PAYLOADS: V3Payload[] = [
   {
     templateId: "v3_story_music_video_02",
     mediaMode: "video", aspectRatio: "16:9", duration: 8,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:cinematic_still","shot_size:MCU","focal_length:85mm","cam_movement:slow_push","depth_of_field:very_shallow","bg_preset:outdoor_urban","env_mood:melancholic","key_light_time:night","color_temp:3200K","spec_light:neon","color_grade:warm_golden","film_look:halation","narrative_rhythm:slow_burn","visual_tension:low"),
-    layerLook: "artist in narrative music video scene",
-    layerNotes: notes("costume:artistic narrative costume","expression:sad","emotion:melancholic","detail:cinematic storytelling, emotional visual poetry, MV aesthetic"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:cinematic_still","shot_size:MCU","focal_length:85mm","cam_movement:slow_push","depth_of_field:very_shallow","bg_preset:outdoor_urban","env_mood:melancholic","key_light_time:night","color_temp:3200K","spec_light:neon","color_grade:warm_golden","film_look:halation","narrative_rhythm:slow_burn","visual_tension:low","imperfection_scene:wet pavement residue; neon flicker; urban haze"),
+    sceneLayers: [
+      { id: "mv_artist", type: "character", look: "music artist in an emotional urban night scene", shapeDesc: "hero medium-close emotional anchor", z: 6, notes: notes("costume:artistic narrative wardrobe with lived-in texture","expression:sad","emotion:melancholic","detail:cinematic music-video poetry, intimate storytelling","imperfection_object:tearline; skin texture; wind hair flyaways; fabric wear"), t0: { x: 44, y: 56, w: 26, h: 40, rot: 0 }, t1: { x: 46, y: 56, w: 26, h: 40, rot: 0 } },
+      { id: "urban_neon", type: "prop", look: "soft neon signage, wet street highlights, and blurred city depth behind the artist", shapeDesc: "melancholic MV city anchor", z: 1, notes: notes("detail:music-video setting proof without clutter"), t0: { x: 62, y: 44, w: 42, h: 24, rot: 0 }, t1: { x: 62, y: 44, w: 42, h: 24, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_story_vlog_01",
@@ -2056,9 +1982,11 @@ export const V3_PAYLOADS: V3Payload[] = [
   {
     templateId: "v3_story_anime_film_01",
     mediaMode: "image", aspectRatio: "16:9",
-    sceneNotes: notes("@compiler: v3","media: image","render_style:editorial","shot_size:LS","focal_length:35mm","depth_of_field:shallow","bg_preset:outdoor_nature","env_mood:melancholic","key_light_time:golden_hour","color_temp:3200K","color_grade:warm_golden","film_look:halation","narrative_rhythm:meditative","visual_tension:none"),
-    layerLook: "anime-style character in cinematic landscape",
-    layerNotes: notes("costume:distinctive anime character design","action:looking","detail:Shinkai-level sky detail, volumetric light, emotional color palette"),
+    sceneNotes: notes("@compiler: v3","media: image","render_style:editorial","shot_size:LS","focal_length:35mm","depth_of_field:shallow","bg_preset:outdoor_nature","env_mood:melancholic","key_light_time:golden_hour","color_temp:3200K","color_grade:warm_golden","film_look:halation","narrative_rhythm:meditative","visual_tension:none","imperfection_scene:petal drift; uneven cloud edge; soft atmospheric particles"),
+    sceneLayers: [
+      { id: "anime_lead", type: "character", look: "anime-style protagonist standing in a cinematic emotional landscape", shapeDesc: "hero anime figure in a wide scenic frame", z: 5, notes: notes("costume:distinctive anime design with readable silhouette and fabric movement","action:looking","detail:emotion-forward anime storytelling, sky and light resonance","imperfection_object:cloth fray; hair strand irregularity; weapon or accessory wear"), t0: { x: 42, y: 58, w: 16, h: 34, rot: 0 } },
+      { id: "anime_world", type: "prop", look: "Shinkai-like sky, distant city or ridge line, and glowing light atmosphere", shapeDesc: "cinematic anime landscape anchor", z: 1, notes: notes("detail:volumetric sky depth, emotional weather, poster-grade composition"), t0: { x: 58, y: 42, w: 76, h: 34, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_story_short_vertical_01",
@@ -2079,16 +2007,21 @@ export const V3_PAYLOADS: V3Payload[] = [
   {
     templateId: "v3_pro_brand_film_01",
     mediaMode: "video", aspectRatio: "16:9", duration: 30,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:MCU","focal_length:50mm","cam_movement:slow_push","depth_of_field:shallow","bg_preset:indoor_luxury","env_mood:serene","key_light_time:overcast","color_temp:5600K","color_grade:warm_golden","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none"),
-    layerLook: "brand story protagonist in authentic moment",
-    layerNotes: notes("costume:brand-aligned authentic clothing","expression:joyful","detail:emotional narrative beat, product or brand value embodied in scene"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:MCU","focal_length:50mm","cam_movement:slow_push","depth_of_field:shallow","bg_preset:indoor_luxury","env_mood:serene","key_light_time:overcast","color_temp:5600K","color_grade:warm_golden","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none","imperfection_scene:paper edges; warm glass reflections; soft lived-in room wear"),
+    sceneLayers: [
+      { id: "brand_story_lead", type: "character", look: "brand story protagonist caught in an authentic meaningful moment", shapeDesc: "hero narrative close anchor", z: 6, notes: notes("costume:brand-aligned but real clothing, tactile materials","expression:joyful","detail:brand value embodied through emotion, not product spam","imperfection_object:real skin texture; fabric wrinkles; natural asymmetry"), t0: { x: 46, y: 56, w: 24, h: 38, rot: 0 }, t1: { x: 48, y: 56, w: 24, h: 38, rot: 0 } },
+      { id: "value_prop", type: "prop", look: "small product, object, or home-life detail supporting the brand story", shapeDesc: "secondary emotional proof object", z: 4, notes: notes("detail:grounds the brand narrative in a real moment","imperfection_object:minor wear; touch marks"), t0: { x: 61, y: 66, w: 10, h: 12, rot: 0 }, t1: { x: 61, y: 66, w: 10, h: 12, rot: 0 } },
+      { id: "story_room", type: "prop", look: "warm interior architecture and background practicals framing the protagonist", shapeDesc: "brand-story environment anchor", z: 1, notes: notes("detail:feels lived-in and premium, not generic"), t0: { x: 58, y: 44, w: 52, h: 24, rot: 0 }, t1: { x: 58, y: 44, w: 52, h: 24, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_fashion_film_01",
     mediaMode: "video", aspectRatio: "16:9", duration: 30,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:FS","focal_length:85mm","cam_movement:orbit","depth_of_field:shallow","bg_preset:studio_dark","env_mood:luxurious","key_light_time:studio","color_temp:3200K","spec_light:rim_light","color_grade:warm_golden","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none"),
-    layerLook: "fashion model as art film subject",
-    layerNotes: notes("costume:couture art piece from collection","expression:confident","detail:garment as protagonist, MV visual language, beauty in motion"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:FS","focal_length:85mm","cam_movement:orbit","depth_of_field:shallow","bg_preset:studio_dark","env_mood:luxurious","key_light_time:studio","color_temp:3200K","spec_light:rim_light","color_grade:warm_golden","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none","imperfection_scene:studio haze; runway floor scuffs; uneven fabric shadow"),
+    sceneLayers: [
+      { id: "fashion_lead", type: "character", look: "fashion model as the protagonist of an art-driven fashion film", shapeDesc: "full-body couture lead", z: 6, notes: notes("costume:collection-level couture piece with dramatic silhouette and movement","expression:confident","detail:garment is the protagonist, body language supports the collection","imperfection_object:real skin texture; seam tension; hem wear; shoe scuffs"), t0: { x: 50, y: 56, w: 22, h: 46, rot: 0 }, t1: { x: 52, y: 56, w: 22, h: 46, rot: 0 } },
+      { id: "fashion_stage", type: "prop", look: "dark reflective studio floor and low haze shaping the silhouette", shapeDesc: "fashion-film staging anchor", z: 1, notes: notes("detail:luxury mood, music-video elegance, runway polish"), t0: { x: 50, y: 72, w: 48, h: 14, rot: 0 }, t1: { x: 50, y: 72, w: 48, h: 14, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_documentary_01",
@@ -2107,79 +2040,101 @@ export const V3_PAYLOADS: V3Payload[] = [
   {
     templateId: "v3_pro_music_video_01",
     mediaMode: "video", aspectRatio: "16:9", duration: 10,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:FS","focal_length:35mm","cam_movement:orbit","depth_of_field:shallow","bg_preset:studio_dark","env_mood:mysterious","key_light_time:night","color_temp:8000K","spec_light:neon","color_grade:vibrant","film_look:film_grain","narrative_rhythm:urgent","visual_tension:medium"),
-    layerLook: "music artist in creative visual space",
-    layerNotes: notes("costume:artist signature visual identity","expression:confident","detail:creative choreography, visual concept driven, award-worthy aesthetics"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:FS","focal_length:35mm","cam_movement:orbit","depth_of_field:shallow","bg_preset:studio_dark","env_mood:mysterious","key_light_time:night","color_temp:8000K","spec_light:neon","color_grade:vibrant","film_look:film_grain","narrative_rhythm:urgent","visual_tension:medium","imperfection_scene:haze grain; beam irregularity; stage scuffs"),
+    sceneLayers: [
+      { id: "music_lead", type: "character", look: "music artist in a concept-driven neon performance space", shapeDesc: "full-body creative performance lead", z: 6, notes: notes("costume:signature artist styling, high-contrast stage wardrobe","expression:confident","detail:award-worthy performance visual language, clear music identity","imperfection_object:real skin texture; sweat sheen; fabric wear; flyaway hair"), t0: { x: 48, y: 56, w: 22, h: 44, rot: 0 }, t1: { x: 50, y: 56, w: 22, h: 44, rot: 0 } },
+      { id: "music_space", type: "prop", look: "neon frames, stage riser, and graphic light beams shaping the performance zone", shapeDesc: "creative MV anchor layer", z: 1, notes: notes("detail:distinct visual concept, not just generic concert lighting"), t0: { x: 54, y: 46, w: 54, h: 28, rot: 0 }, t1: { x: 54, y: 46, w: 54, h: 28, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_sports_ad_01",
     mediaMode: "video", aspectRatio: "16:9", duration: 30,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:photorealistic","shot_size:MCU","focal_length:35mm","cam_angle:low_angle","cam_movement:tracking","depth_of_field:shallow","bg_preset:outdoor_nature","env_mood:energetic","key_light_time:golden_hour","color_temp:3200K","spec_light:golden_hour","color_grade:vibrant","film_look:film_grain","narrative_rhythm:urgent","visual_tension:high"),
-    layerLook: "elite athlete at explosive performance peak",
-    layerNotes: notes("costume:sport brand gear, iconic colors","action:running","expression:determined","emotion:euphoric","detail:Nike/Adidas level, sweat and power, inspirational energy"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:photorealistic","shot_size:MCU","focal_length:35mm","cam_angle:low_angle","cam_movement:tracking","depth_of_field:shallow","bg_preset:outdoor_nature","env_mood:energetic","key_light_time:golden_hour","color_temp:3200K","spec_light:golden_hour","color_grade:vibrant","film_look:film_grain","narrative_rhythm:urgent","visual_tension:high","imperfection_scene:dust kick-up; track debris; uneven sweat highlights"),
+    sceneLayers: [
+      { id: "sports_hero", type: "character", look: "elite athlete captured at an explosive performance peak", shapeDesc: "hero athletic body in low-angle motion framing", z: 6, notes: notes("costume:brand-forward sport gear with iconic contrast colors","action:running","expression:determined","emotion:euphoric","detail:power, sweat, muscle strain, campaign-scale inspiration","imperfection_object:sweat texture; mud on shoes; fabric stretch marks; natural skin detail"), t0: { x: 46, y: 58, w: 24, h: 42, rot: 0 }, t1: { x: 54, y: 58, w: 24, h: 42, rot: 0 } },
+      { id: "sports_ground", type: "prop", look: "track surface, dust plume, and branded training environment under the athlete", shapeDesc: "performance proof anchor", z: 1, notes: notes("detail:gives the ad a real competitive setting"), t0: { x: 50, y: 74, w: 56, h: 14, rot: 0 }, t1: { x: 58, y: 74, w: 56, h: 14, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_travel_01",
     mediaMode: "video", aspectRatio: "16:9", duration: 15,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:LS","focal_length:24mm","cam_movement:crane_up","depth_of_field:medium","bg_preset:outdoor_nature","env_mood:serene","key_light_time:golden_hour","color_temp:3200K","spec_light:volumetric","color_grade:warm_golden","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none"),
-    layerLook: "traveler in destination landscape",
-    layerNotes: notes("costume:travel casual clothing","expression:joyful","detail:destination beauty central, human presence adds scale, wanderlust feeling"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:LS","focal_length:24mm","cam_movement:crane_up","depth_of_field:medium","bg_preset:outdoor_nature","env_mood:serene","key_light_time:golden_hour","color_temp:3200K","spec_light:volumetric","color_grade:warm_golden","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none","imperfection_scene:wind dust; uneven trail; natural cloud variation"),
+    sceneLayers: [
+      { id: "travel_lead", type: "character", look: "traveler in layered casual travel clothing inside a destination landscape", shapeDesc: "small journey-scale human anchor", z: 5, notes: notes("expression:joyful","detail:wanderlust, believable scale, bag or jacket detail","imperfection_object:dust on shoes; fabric creases; wind hair flyaways"), t0: { x: 38, y: 62, w: 12, h: 26, rot: 0 }, t1: { x: 40, y: 62, w: 12, h: 26, rot: 0 } },
+      { id: "destination_anchor", type: "prop", look: "iconic destination landscape with trail edge, ridge line, or architecture", shapeDesc: "wide travel proof anchor", z: 1, notes: notes("detail:postcard beauty with credible depth"), t0: { x: 56, y: 42, w: 82, h: 36, rot: 0 }, t1: { x: 58, y: 42, w: 82, h: 36, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_food_film_01",
     mediaMode: "video", aspectRatio: "16:9", duration: 10,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:MCU","focal_length:85mm","cam_movement:slow_push","depth_of_field:very_shallow","bg_preset:indoor_luxury","env_mood:luxurious","key_light_time:studio","color_temp:3200K","color_grade:warm_golden","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none"),
-    layerLook: "fine dining dish or culinary experience",
-    layerNotes: notes("costume:impeccably plated dish on premium service","detail:steam rising, ingredient freshness, Michelin-level presentation, appetite appeal"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:MCU","focal_length:85mm","cam_movement:slow_push","depth_of_field:very_shallow","bg_preset:indoor_luxury","env_mood:luxurious","key_light_time:studio","color_temp:3200K","color_grade:warm_golden","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none","imperfection_scene:linen wrinkles; steam drift; glass smudges"),
+    sceneLayers: [
+      { id: "dish_hero", type: "product", look: "fine dining hero dish on premium serviceware with layered ingredients", shapeDesc: "culinary close-up anchor", z: 6, notes: notes("detail:steam, ingredient freshness, plated precision, appetite appeal","imperfection_object:sauce irregularity; plate edge smudge; garnish variation"), t0: { x: 50, y: 58, w: 26, h: 20, rot: 0 }, t1: { x: 50, y: 56, w: 28, h: 22, rot: 0 } },
+      { id: "table_context", type: "prop", look: "cutlery, folded linen, and soft glass highlights around the dish", shapeDesc: "restaurant context layer", z: 2, notes: notes("detail:fine-dining credibility without clutter"), t0: { x: 58, y: 66, w: 36, h: 14, rot: 0 }, t1: { x: 58, y: 66, w: 36, h: 14, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_real_estate_01",
     mediaMode: "video", aspectRatio: "16:9", duration: 15,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:LS","focal_length:24mm","cam_movement:steadicam","depth_of_field:medium","bg_preset:indoor_luxury","env_mood:luxurious","key_light_time:overcast","color_temp:5600K","color_grade:natural","film_look:digital_clean","narrative_rhythm:meditative","visual_tension:none"),
-    layerLook: "luxury property interior or exterior",
-    layerNotes: notes("costume:architectural space in peak condition","detail:sweeping view, architectural lines, natural light, aspirational living"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:LS","focal_length:24mm","cam_movement:steadicam","depth_of_field:medium","bg_preset:indoor_luxury","env_mood:luxurious","key_light_time:overcast","color_temp:5600K","color_grade:natural","film_look:digital_clean","narrative_rhythm:meditative","visual_tension:none","imperfection_scene:soft floor wear; glass fingerprints; cushion irregularity"),
+    sceneLayers: [
+      { id: "real_estate_space", type: "prop", look: "luxury property interior with sweeping architecture and natural light", shapeDesc: "hero property space anchor", z: 5, notes: notes("detail:architectural linework, view corridor, aspirational living","imperfection_object:minor floor scuffs; subtle glass smudges; textile creases"), t0: { x: 52, y: 48, w: 78, h: 44, rot: 0 }, t1: { x: 54, y: 48, w: 78, h: 44, rot: 0 } },
+      { id: "lifestyle_hint", type: "prop", look: "small chair, table edge, or vase cluster adding livable warmth", shapeDesc: "secondary hospitality anchor", z: 2, notes: notes("detail:prevents the space from feeling empty or staged"), t0: { x: 70, y: 66, w: 18, h: 12, rot: 0 }, t1: { x: 70, y: 66, w: 18, h: 12, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_tech_launch_01",
     mediaMode: "video", aspectRatio: "16:9", duration: 15,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:commercial","shot_size:MCU","focal_length:85mm","cam_movement:slow_push","depth_of_field:very_shallow","bg_preset:gradient_black","env_mood:dramatic","key_light_time:studio","color_temp:6500K","spec_light:rim_light","color_grade:cool_steel","film_look:digital_clean","narrative_rhythm:epic_build","visual_tension:medium"),
-    layerLook: "premium tech product launch reveal",
-    layerNotes: notes("costume:device with precise engineering detail","detail:Apple keynote level, product floating in darkness, spec details emerge"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:commercial","shot_size:MCU","focal_length:85mm","cam_movement:slow_push","depth_of_field:very_shallow","bg_preset:gradient_black","env_mood:dramatic","key_light_time:studio","color_temp:6500K","spec_light:rim_light","color_grade:cool_steel","film_look:digital_clean","narrative_rhythm:epic_build","visual_tension:medium","imperfection_scene:soft industrial haze; subtle stage dust"),
+    sceneLayers: [
+      { id: "tech_hero", type: "product", look: "premium tech device floating in darkness with precise engineering detail", shapeDesc: "launch-stage hero device", z: 6, notes: notes("detail:Apple-keynote level reveal, edges and material transitions readable","imperfection_object:micro fingerprints; tiny chamfer wear; subtle machining variance"), t0: { x: 50, y: 54, w: 26, h: 20, rot: 0 }, t1: { x: 50, y: 52, w: 28, h: 22, rot: 0 } },
+      { id: "launch_light", type: "prop", look: "controlled light strip and subtle stage plane behind the device", shapeDesc: "launch-event support layer", z: 1, notes: notes("detail:turns the frame into a real product launch instead of a generic black void"), t0: { x: 52, y: 46, w: 48, h: 14, rot: 0 }, t1: { x: 52, y: 46, w: 48, h: 14, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_luxury_hotel_01",
     mediaMode: "video", aspectRatio: "16:9", duration: 15,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:LS","focal_length:35mm","cam_movement:steadicam","depth_of_field:medium","bg_preset:indoor_luxury","env_mood:luxurious","key_light_time:golden_hour","color_temp:3200K","color_grade:warm_golden","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none"),
-    layerLook: "five-star hotel space or experience",
-    layerNotes: notes("costume:luxury hospitality environment","detail:white glove service, architectural beauty, quiet opulence, aspirational calm"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:editorial","shot_size:LS","focal_length:35mm","cam_movement:steadicam","depth_of_field:medium","bg_preset:indoor_luxury","env_mood:luxurious","key_light_time:golden_hour","color_temp:3200K","color_grade:warm_golden","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none","imperfection_scene:soft textile folds; brass wear; glass reflection irregularity"),
+    sceneLayers: [
+      { id: "hotel_space", type: "prop", look: "five-star suite or lobby with layered seating and warm luxury materials", shapeDesc: "hotel architecture anchor", z: 5, notes: notes("detail:quiet opulence, hospitality atmosphere, aspirational calm","imperfection_object:slight brass oxidation; crease in upholstery; faint glass marks"), t0: { x: 52, y: 50, w: 74, h: 40, rot: 0 }, t1: { x: 54, y: 50, w: 74, h: 40, rot: 0 } },
+      { id: "service_hint", type: "prop", look: "small tray, robe, or service detail proving refined hospitality", shapeDesc: "secondary hotel experience layer", z: 2, notes: notes("detail:adds service storytelling without clutter"), t0: { x: 68, y: 66, w: 16, h: 12, rot: 0 }, t1: { x: 68, y: 66, w: 16, h: 12, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_beauty_01",
     mediaMode: "video", aspectRatio: "16:9", duration: 15,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:commercial","shot_size:MCU","focal_length:85mm","cam_movement:slow_push","depth_of_field:very_shallow","bg_preset:studio_dark","env_mood:luxurious","key_light_time:studio","color_temp:3200K","spec_light:rim_light","color_grade:warm_golden","film_look:digital_clean","narrative_rhythm:meditative","visual_tension:none"),
-    layerLook: "beauty or skincare product with person",
-    layerNotes: notes("costume:premium product and aspirational model","detail:skin luminosity, product application or reveal, Chanel/Dior level production"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:commercial","shot_size:MCU","focal_length:85mm","cam_movement:slow_push","depth_of_field:very_shallow","bg_preset:studio_dark","env_mood:luxurious","key_light_time:studio","color_temp:3200K","spec_light:rim_light","color_grade:warm_golden","film_look:digital_clean","narrative_rhythm:meditative","visual_tension:none","imperfection_scene:soft powder dust; glow falloff irregularity"),
+    sceneLayers: [
+      { id: "beauty_model", type: "character", look: "aspirational beauty subject with luminous skin and calm premium presence", shapeDesc: "beauty close-up lead", z: 6, notes: notes("detail:skin luminosity, believable pores, catchlight clarity","imperfection_object:real pores; peach-fuzz realism; slight asymmetry"), t0: { x: 42, y: 54, w: 22, h: 34, rot: 0 }, t1: { x: 44, y: 54, w: 22, h: 34, rot: 0 } },
+      { id: "beauty_product", type: "product", look: "premium skincare product held near the face or positioned in reveal proximity", shapeDesc: "secondary product proof layer", z: 5, notes: notes("detail:ties product to skin sensation and premium packaging","imperfection_object:micro fingerprints; tiny cap wear"), t0: { x: 63, y: 62, w: 10, h: 14, rot: 0 }, t1: { x: 63, y: 62, w: 10, h: 14, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_kubrick_01",
     mediaMode: "video", aspectRatio: "16:9", duration: 8,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:filmic","director_pack:kubrick","shot_size:LS","focal_length:24mm","cam_movement:slow_push","depth_of_field:deep","bg_preset:indoor_luxury","env_mood:mysterious","key_light_time:studio","color_temp:6500K","color_grade:cool_steel","film_look:film_grain","narrative_rhythm:slow_burn","visual_tension:medium"),
-    layerLook: "character in Kubrick symmetrical composition",
-    layerNotes: notes("costume:precise, period or contemporary","expression:stoic","detail:perfect bilateral symmetry, one-point perspective, cold detached atmosphere"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:filmic","director_pack:kubrick","shot_size:LS","focal_length:24mm","cam_movement:slow_push","depth_of_field:deep","bg_preset:indoor_luxury","env_mood:mysterious","key_light_time:studio","color_temp:6500K","color_grade:cool_steel","film_look:film_grain","narrative_rhythm:slow_burn","visual_tension:medium","imperfection_scene:polished floor scuffs; practical hum; imperfect symmetry wear"),
+    sceneLayers: [
+      { id: "kubrick_subject", type: "character", look: "stoic character centered in a one-point perspective composition", shapeDesc: "symmetrical subject anchor", z: 5, notes: notes("costume:precise period or contemporary styling","expression:stoic","detail:cold detachment and exact geometry","imperfection_object:skin texture; slight fatigue; natural asymmetry"), t0: { x: 50, y: 58, w: 16, h: 34, rot: 0 }, t1: { x: 50, y: 58, w: 16, h: 34, rot: 0 } },
+      { id: "kubrick_hall", type: "prop", look: "long corridor or formal room with bilateral geometry", shapeDesc: "one-point perspective environment anchor", z: 1, notes: notes("detail:strict symmetry, cold depth, unnerving order"), t0: { x: 50, y: 44, w: 80, h: 36, rot: 0 }, t1: { x: 50, y: 44, w: 80, h: 36, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_villeneuve_01",
     mediaMode: "video", aspectRatio: "21:9", duration: 10,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:filmic","director_pack:villeneuve","shot_size:XLS","focal_length:24mm","cam_movement:crane_up","depth_of_field:deep","bg_preset:outdoor_nature","env_mood:mysterious","key_light_time:golden_hour","color_temp:3200K","spec_light:volumetric","color_grade:teal_orange","film_look:film_grain","narrative_rhythm:meditative","visual_tension:medium"),
-    layerLook: "tiny figure against oppressive landscape",
-    layerNotes: notes("costume:minimal practical clothing","action:standing","detail:Villeneuve ultra-wide, human dwarfed, existential scale, silence in the composition"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:filmic","director_pack:villeneuve","shot_size:XLS","focal_length:24mm","cam_movement:crane_up","depth_of_field:deep","bg_preset:outdoor_nature","env_mood:mysterious","key_light_time:golden_hour","color_temp:3200K","spec_light:volumetric","color_grade:teal_orange","film_look:film_grain","narrative_rhythm:meditative","visual_tension:medium","imperfection_scene:windblown dust; terrain cracks; atmospheric grain"),
+    sceneLayers: [
+      { id: "villeneuve_figure", type: "character", look: "tiny solitary figure in minimal practical clothing", shapeDesc: "small existential scale marker", z: 5, notes: notes("action:standing","detail:human dwarfed by place, silence and weight","imperfection_object:dust on fabric; hem wear"), t0: { x: 40, y: 64, w: 8, h: 20, rot: 0 }, t1: { x: 40, y: 64, w: 8, h: 20, rot: 0 } },
+      { id: "villeneuve_landscape", type: "prop", look: "oppressive landscape with severe atmospheric depth and monumental emptiness", shapeDesc: "vast world anchor", z: 1, notes: notes("detail:ultrawide existential scale and oppressive distance"), t0: { x: 58, y: 42, w: 86, h: 36, rot: 0 }, t1: { x: 58, y: 42, w: 86, h: 36, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_wes_anderson_01",
     mediaMode: "video", aspectRatio: "4:5", duration: 6,
-    sceneNotes: notes("@compiler: v3","media: video","render_style:cinematic_still","director_pack:wes_anderson","shot_size:MS","focal_length:50mm","cam_movement:static","depth_of_field:deep","bg_preset:indoor_luxury","env_mood:serene","key_light_time:studio","color_temp:5600K","color_grade:pastel","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none"),
-    layerLook: "character in Wes Anderson symmetrical scene",
-    layerNotes: notes("costume:quirky period or retro clothing","expression:neutral","detail:perfect pastel symmetry, deadpan framing, whimsical detail in set design"),
+    sceneNotes: notes("@compiler: v3","media: video","render_style:cinematic_still","director_pack:wes_anderson","shot_size:MS","focal_length:50mm","cam_movement:static","depth_of_field:deep","bg_preset:indoor_luxury","env_mood:serene","key_light_time:studio","color_temp:5600K","color_grade:pastel","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none","imperfection_scene:paper label wear; pastel paint variation; tiny prop asymmetry"),
+    sceneLayers: [
+      { id: "wes_subject", type: "character", look: "deadpan character in quirky retro clothing", shapeDesc: "perfectly centered subject", z: 5, notes: notes("expression:neutral","detail:whimsical detail, clean silhouette, flat-camera humor","imperfection_object:subtle skin texture; fabric creases; vintage wear"), t0: { x: 50, y: 56, w: 20, h: 38, rot: 0 }, t1: { x: 50, y: 56, w: 20, h: 38, rot: 0 } },
+      { id: "wes_set", type: "prop", look: "pastel symmetrical set with aligned props and whimsical architecture", shapeDesc: "Anderson-style symmetry anchor", z: 1, notes: notes("detail:pastel, centered, deadpan, handcrafted not sterile"), t0: { x: 50, y: 46, w: 72, h: 34, rot: 0 }, t1: { x: 50, y: 46, w: 72, h: 34, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_ultrawide_01",
@@ -2200,23 +2155,30 @@ export const V3_PAYLOADS: V3Payload[] = [
   {
     templateId: "v3_product_compare_01",
     mediaMode: "image", aspectRatio: "16:9",
-    sceneNotes: notes("@compiler: v3","media: image","render_style:photorealistic","shot_size:MS","focal_length:85mm","depth_of_field:medium","bg_preset:studio_white","env_mood:serene","key_light_time:studio","color_temp:5600K","color_grade:natural","film_look:digital_clean","narrative_rhythm:meditative","visual_tension:none"),
-    layerLook: "two product variants side by side",
-    layerNotes: notes("costume:consistent surface treatment on both","detail:equal spacing, same lighting angle, differences clearly visible, detail labels optional"),
+    sceneNotes: notes("@compiler: v3","media: image","render_style:photorealistic","shot_size:MS","focal_length:85mm","depth_of_field:medium","bg_preset:studio_white","env_mood:serene","key_light_time:studio","color_temp:5600K","color_grade:natural","film_look:digital_clean","narrative_rhythm:meditative","visual_tension:none","imperfection_scene:soft stage dust; light floor scuffs"),
+    sceneLayers: [
+      { id: "compare_left", type: "product", look: "first product variant presented cleanly on the left", shapeDesc: "left comparison anchor", z: 5, notes: notes("detail:clear silhouette, readable finish, equal lighting","imperfection_object:micro dust; slight label wear"), t0: { x: 34, y: 56, w: 18, h: 24, rot: 0 } },
+      { id: "compare_right", type: "product", look: "second product variant presented cleanly on the right", shapeDesc: "right comparison anchor", z: 5, notes: notes("detail:difference remains obvious without breaking parity","imperfection_object:micro dust; slight finish inconsistency"), t0: { x: 66, y: 56, w: 18, h: 24, rot: 0 } },
+      { id: "compare_base", type: "prop", look: "shared baseline and subtle divider logic under both products", shapeDesc: "comparison staging support", z: 1, notes: notes("detail:makes the side-by-side useful for detail pages"), t0: { x: 50, y: 70, w: 56, h: 10, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_portrait_bw_01",
     mediaMode: "image", aspectRatio: "4:5",
-    sceneNotes: notes("@compiler: v3","media: image","render_style:cinematic_still","shot_size:MCU","focal_length:85mm","depth_of_field:very_shallow","bg_preset:studio_dark","env_mood:dramatic","key_light_time:studio","color_temp:5600K","spec_light:rim_light","color_grade:bw","film_look:film_grain","narrative_rhythm:meditative","visual_tension:low"),
-    layerLook: "portrait subject in classic black and white",
-    layerNotes: notes("costume:simple clean clothing","expression:neutral","detail:rich tonal range, deep shadows, luminous highlights, timeless quality"),
+    sceneNotes: notes("@compiler: v3","media: image","render_style:cinematic_still","shot_size:MCU","focal_length:85mm","depth_of_field:very_shallow","bg_preset:studio_dark","env_mood:dramatic","key_light_time:studio","color_temp:5600K","spec_light:rim_light","color_grade:bw","film_look:film_grain","narrative_rhythm:meditative","visual_tension:low","imperfection_scene:grain density variation; backdrop dust"),
+    sceneLayers: [
+      { id: "bw_subject", type: "character", look: "portrait subject in timeless black-and-white styling", shapeDesc: "classic monochrome portrait anchor", z: 5, notes: notes("costume:simple clean clothing","expression:neutral","detail:deep shadow, luminous highlight, timeless tonal control","imperfection_object:visible pores; expression lines; natural asymmetry"), t0: { x: 50, y: 54, w: 26, h: 38, rot: 0 } },
+      { id: "bw_backdrop", type: "prop", look: "dark studio backdrop and subtle tonal falloff behind the subject", shapeDesc: "monochrome atmosphere support", z: 1, notes: notes("detail:rich tonal separation without clutter"), t0: { x: 50, y: 42, w: 60, h: 26, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_story_golden_hour_01",
     mediaMode: "image", aspectRatio: "16:9",
-    sceneNotes: notes("@compiler: v3","media: image","render_style:cinematic_still","shot_size:LS","focal_length:35mm","cam_angle:low_angle","depth_of_field:shallow","bg_preset:outdoor_nature","env_mood:serene","key_light_time:golden_hour","color_temp:3200K","spec_light:golden_hour","color_grade:warm_golden","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none"),
-    layerLook: "person or subject in golden hour landscape",
-    layerNotes: notes("costume:natural outdoor styling","expression:joyful","detail:warm directional light, long shadows, golden atmosphere, cinematic natural beauty"),
+    sceneNotes: notes("@compiler: v3","media: image","render_style:cinematic_still","shot_size:LS","focal_length:35mm","cam_angle:low_angle","depth_of_field:shallow","bg_preset:outdoor_nature","env_mood:serene","key_light_time:golden_hour","color_temp:3200K","spec_light:golden_hour","color_grade:warm_golden","film_look:film_grain","narrative_rhythm:meditative","visual_tension:none","imperfection_scene:long grass irregularity; dust motes; uneven path wear"),
+    sceneLayers: [
+      { id: "golden_subject", type: "character", look: "person in natural outdoor styling caught in golden-hour light", shapeDesc: "small human mood anchor", z: 5, notes: notes("expression:joyful","detail:warm directional light, long shadows, cinematic natural beauty","imperfection_object:wind hair flyaways; dust on shoes; natural skin texture"), t0: { x: 40, y: 60, w: 14, h: 26, rot: 0 } },
+      { id: "golden_landscape", type: "prop", look: "golden field, path, or ridge line with long sunlight shadows", shapeDesc: "warm outdoor anchor", z: 1, notes: notes("detail:location beauty remains readable"), t0: { x: 58, y: 44, w: 80, h: 32, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_daily_product_luxury_01",
@@ -2224,23 +2186,143 @@ export const V3_PAYLOADS: V3Payload[] = [
     sceneNotes: notes(
       "@compiler: v3", "media: image",
       "render_style:commercial",
-      "shot_size:MCU", "focal_length:macro",
+      "shot_size:MCU", "focal_length:85mm",
       "depth_of_field:very_shallow",
       "bg_preset:gradient_black",
       "env_mood:luxurious",
       "key_light_time:studio", "color_temp:3200K", "spec_light:rim_light",
       "color_grade:warm_golden", "film_look:halation",
       "narrative_rhythm:meditative", "visual_tension:medium",
-      "imperfection_scene: subtle dust in air; natural material aging; non-pristine reflective surfaces"
+      "imperfection_scene: subtle dust in air; natural material aging; non-pristine reflective surfaces; soft beam particles"
     ),
-    layerLook: "premium hero product suspended above a polished obsidian pedestal, surrounded by smoked glass, brushed metal, and liquid gold accents",
-    layerShapeDesc: "centered luxury product composition with strong silhouette and multi-surface reflections",
-    layerNotes: notes(
-      "costume:high-end material finish, polished primary body, mixed metal and glass components",
-      "prop:thin reflective ring, acrylic shards, dark velvet base, luxury staging elements",
-      "detail:micro edge highlights, controlled reflections, visible surface texture, engraved marks, premium craftsmanship",
-      "imperfection_object: tiny fingerprints; minor scratches; imperfect finish on edges; realistic usage marks"
+    sceneLayers: [
+      {
+        id: "daily_luxury_hero",
+        type: "product",
+        look: "premium fragrance hero suspended above a polished obsidian pedestal with a black glass body and warm amber lower chamber",
+        shapeDesc: "centered luxury product silhouette with strong campaign readability",
+        z: 8,
+        notes: notes(
+          "detail:glass wall thickness, brushed metal cap, engraved emblem, amber liquid band, controlled specular transitions, premium craftsmanship",
+          "imperfection_object:tiny fingerprints; faint hairline scratches; slight finish inconsistency on the metal edge"
+        ),
+        t0: { x: 50, y: 52, w: 24, h: 30, rot: 0 }
+      },
+      {
+        id: "daily_luxury_halo",
+        type: "prop",
+        look: "large brushed metal halo ring positioned directly behind the hero product",
+        shapeDesc: "strong circular support form amplifying the central silhouette",
+        z: 3,
+        notes: notes(
+          "detail:high-end metal grain, clean luxury framing, premium halo geometry",
+          "imperfection_object:faint edge abrasion; brushed texture inconsistency"
+        ),
+        t0: { x: 50, y: 49, w: 56, h: 56, rot: 0 }
+      },
+      {
+        id: "daily_luxury_shards",
+        type: "prop",
+        look: "four to six smoked crystal shards floating asymmetrically around the hero",
+        shapeDesc: "floating luxury support accents with restrained asymmetry",
+        z: 4,
+        notes: notes(
+          "detail:glass refraction, dark crystal facets, motionless premium staging",
+          "imperfection_object:tiny chipped edges; subtle dust; imperfect facet symmetry"
+        ),
+        t0: { x: 66, y: 46, w: 32, h: 20, rot: 0 }
+      },
+      {
+        id: "daily_luxury_base",
+        type: "prop",
+        look: "polished black obsidian pedestal with fractured stone facets supporting the suspended hero",
+        shapeDesc: "dark premium base with sculptural grounding",
+        z: 2,
+        notes: notes(
+          "detail:stone fracture lines, reflective premium grounding, campaign-level set design",
+          "imperfection_object:surface dust; chipped micro edges; non-pristine reflective surfaces"
+        ),
+        t0: { x: 50, y: 74, w: 34, h: 14, rot: 0 }
+      },
+      {
+        id: "daily_luxury_ribbon",
+        type: "prop",
+        look: "single restrained liquid-gold light ribbon sweeping low across the front of the pedestal",
+        shapeDesc: "luxury accent line without stealing the subject",
+        z: 1,
+        notes: notes(
+          "detail:elegant gold energy accent, premium motion cue, ad-grade polish",
+          "imperfection_object:slight glow irregularity"
+        ),
+        t0: { x: 54, y: 74, w: 46, h: 8, rot: 0 }
+      },
+    ],
+  },
+  {
+    templateId: "v3_daily_product_luxury_02",
+    mediaMode: "image", aspectRatio: "1:1",
+    sceneNotes: notes(
+      "@compiler: v3", "media: image",
+      "render_style:commercial_still",
+      "shot_size:MCU", "focal_length:70mm",
+      "depth_of_field:very_shallow",
+      "bg_preset:studio_black",
+      "env_mood:luxury",
+      "key_light_time:studio", "color_temp:3200K", "spec_light:rim_light",
+      "color_grade:warm_gold", "film_look:halation",
+      "narrative_rhythm:meditative", "visual_tension:medium",
+      "imperfection_scene: subtle beam dust; slight glow irregularity; non-pristine reflective surfaces"
     ),
+    sceneLayers: [
+      {
+        id: "premium_product_hero",
+        type: "product",
+        look: "premium hero product suspended above a dark luxury stage with a precise centered silhouette",
+        shapeDesc: "floating hero object with controlled commercial proportions",
+        z: 6,
+        notes: notes(
+          "detail:premium metal cap, refined glass body, precise logo area, ad-grade reflections",
+          "imperfection_object:tiny fingerprints; faint hairline scratches; subtle edge inconsistency"
+        ),
+        t0: { x: 50, y: 48, w: 24, h: 42, rot: 0 }
+      },
+      {
+        id: "premium_support_ring",
+        type: "prop",
+        look: "single metallic halo ring behind the product creating a premium ad-stage backdrop",
+        shapeDesc: "circular luxury support frame",
+        z: 3,
+        notes: notes(
+          "detail:brushed metal grain, smooth circular geometry, restrained highlight sweep",
+          "imperfection_object:micro scratches; imperfect polish"
+        ),
+        t0: { x: 50, y: 46, w: 52, h: 52, rot: 0 }
+      },
+      {
+        id: "premium_obsidian_base",
+        type: "prop",
+        look: "dark stone pedestal with fractured obsidian surfaces anchoring the product",
+        shapeDesc: "low luxury grounding element",
+        z: 2,
+        notes: notes(
+          "detail:fracture lines, premium black reflections, strong base silhouette",
+          "imperfection_object:surface dust; chipped micro edges"
+        ),
+        t0: { x: 50, y: 74, w: 34, h: 14, rot: 0 }
+      },
+      {
+        id: "premium_gold_accent",
+        type: "prop",
+        look: "thin warm gold light accent curving in front of the base without stealing attention",
+        shapeDesc: "controlled premium accent line",
+        z: 1,
+        notes: notes(
+          "detail:elegant ad motion cue, premium warm highlight path",
+          "imperfection_object:slight glow irregularity"
+        ),
+        t0: { x: 54, y: 74, w: 42, h: 8, rot: 0 }
+      },
+    ],
   },
   {
     templateId: "v3_daily_portrait_premium_01",
@@ -2257,15 +2339,76 @@ export const V3_PAYLOADS: V3Payload[] = [
       "narrative_rhythm:meditative", "visual_tension:low",
       "imperfection_scene: subtle dust in air; slight shadow falloff; not overly clean backdrop"
     ),
-    layerLook: "premium character portrait with direct gaze, precise tailoring, and high-trust personal branding presence",
-    layerShapeDesc: "three-quarter portrait with elegant posture and balanced facial structure",
-    layerNotes: notes(
-      "costume:tailored outerwear, layered styling, refined accessories, visible fabric weave",
-      "expression:confident",
-      "emotion:quiet authority",
-      "detail:visible pores, realistic skin texture, hair strands, jewelry detail, collar shape, garment seam quality",
-      "imperfection_object: natural facial asymmetry; faint under-eye darkness; uneven skin texture; slight fabric creasing"
+    sceneLayers: [
+      {
+        id: "daily_portrait_lead",
+        type: "character",
+        look: "premium identity portrait with direct gaze and precise tailoring",
+        shapeDesc: "three-quarter portrait anchor",
+        z: 6,
+        notes: notes(
+          "expression:confident",
+          "emotion:quiet authority",
+          "detail:skin texture, fabric weave, jewelry and collar detail",
+          "imperfection_object:natural asymmetry; faint under-eye darkness; slight fabric creasing"
+        ),
+        t0: { x: 50, y: 54, w: 26, h: 40, rot: 0 }
+      },
+      {
+        id: "portrait_space",
+        type: "prop",
+        look: "dark studio falloff and subtle brand-safe support geometry",
+        shapeDesc: "portrait environment layer",
+        z: 1,
+        notes: notes(
+          "detail:keeps the identity portrait premium and controlled"
+        ),
+        t0: { x: 56, y: 44, w: 52, h: 24, rot: 0 }
+      },
+    ],
+  },
+  {
+    templateId: "v3_daily_portrait_premium_02",
+    mediaMode: "image", aspectRatio: "4:5",
+    sceneNotes: notes(
+      "@compiler: v3", "media: image",
+      "render_style:luxury_portrait",
+      "shot_size:MCU", "focal_length:85mm",
+      "depth_of_field:very_shallow",
+      "bg_preset:premium_interior",
+      "env_mood:refined",
+      "key_light_time:studio", "color_temp:4600K", "spec_light:rim_light",
+      "color_grade:warm_neutral", "film_look:film_grain",
+      "narrative_rhythm:meditative", "visual_tension:low",
+      "imperfection_scene: subtle dust in air; gentle shadow falloff; believable interior softness; not overly sterile premium space"
     ),
+    sceneLayers: [
+      {
+        id: "flagship_brand_portrait_lead",
+        type: "character",
+        look: "confident modern brand founder or creative director with direct but restrained eye contact, composed posture, and quiet authority",
+        shapeDesc: "centered medium close-up portrait anchor with premium tailoring and strong shoulder line",
+        z: 6,
+        notes: notes(
+          "expression:confident",
+          "emotion:quiet authority",
+          "detail:real skin texture, visible pores, subtle hair irregularity, natural lip texture, premium blazer fabric, understated luxury wardrobe",
+          "imperfection_object:natural asymmetry; faint under-eye detail; slight garment creasing; not overly retouched"
+        ),
+        t0: { x: 50, y: 54, w: 26, h: 40, rot: 0 }
+      },
+      {
+        id: "flagship_brand_portrait_space",
+        type: "prop",
+        look: "softly blurred warm-neutral premium interior with elegant practical lamp, muted architectural background, refined furniture silhouette, and calm spatial depth",
+        shapeDesc: "brand-safe portrait environment layer that supports identity without distracting from the face",
+        z: 1,
+        notes: notes(
+          "detail:quiet premium room tone, believable interior depth, polished but realistic atmosphere"
+        ),
+        t0: { x: 56, y: 44, w: 52, h: 24, rot: 0 }
+      },
+    ],
   },
   {
     templateId: "v3_daily_cover_hero_01",
@@ -2282,15 +2425,90 @@ export const V3_PAYLOADS: V3Payload[] = [
       "narrative_rhythm:epic_build", "visual_tension:high",
       "imperfection_scene: subtle haze; surface wear; slight environmental messiness; non-pristine urban surfaces"
     ),
-    layerLook: "hero character poster composition with a dominant protagonist, layered city atmosphere, and strong title-safe negative space",
-    layerShapeDesc: "full-body poster silhouette with dramatic stance and controlled negative space",
-    layerNotes: notes(
-      "costume:signature outerwear, layered textures, iconic accessory or prop",
-      "pose:power_pose",
-      "expression:determined",
-      "detail:coat texture, hair movement, cinematic backlight, atmospheric depth, readable poster geometry",
-      "imperfection_object: visible pores; fabric edge wear; faint scars; slight asymmetry"
+    sceneLayers: [
+      { id: "daily_cover_hero", type: "character", look: "hero character in dominant poster composition with dramatic stance", shapeDesc: "full-body poster silhouette", z: 6, notes: notes("pose:power_pose","expression:determined","detail:coat texture, hair movement, backlight, title-safe geometry","imperfection_object:visible pores; fabric edge wear; faint scars"), t0: { x: 44, y: 58, w: 22, h: 46, rot: 0 } },
+      { id: "daily_cover_city", type: "prop", look: "layered city atmosphere or cinematic environment behind the protagonist", shapeDesc: "poster world anchor", z: 1, notes: notes("detail:gives the cover real scale and category identity"), t0: { x: 60, y: 42, w: 60, h: 34, rot: 0 } },
+    ],
+  },
+  {
+    templateId: "v3_daily_cover_hero_02",
+    mediaMode: "image", aspectRatio: "2:3",
+    sceneNotes: notes(
+      "@compiler: v3", "media: image",
+      "render_style:cinematic_still",
+      "director_pack:nolan",
+      "shot_size:FS", "focal_length:35mm", "cam_angle:low_angle",
+      "depth_of_field:medium",
+      "bg_preset:outdoor_urban",
+      "env_mood:dramatic",
+      "key_light_time:night", "color_temp:6500K", "spec_light:volumetric",
+      "color_grade:teal_orange", "film_look:film_grain",
+      "narrative_rhythm:epic_build", "visual_tension:high",
+      "imperfection_scene: slight atmospheric haze; worn pavement texture; drifting paper debris; uneven neon spill; subtle lens dirt"
     ),
+    sceneLayers: [
+      {
+        id: "flagship_cover_lead",
+        type: "character",
+        look: "dominant cover protagonist in long structured coat, standing with restrained power and iconic silhouette, unmistakably cover-grade and instantly readable",
+        shapeDesc: "hero anchor designed for bestseller-style cover readability with clear face hierarchy",
+        z: 10,
+        notes: notes(
+          "costume:signature long coat with layered collar, utility strap accents, and non-tactical premium texture response",
+          "expression:determined",
+          "detail:clear facial hierarchy, readable posture, cinematic edge light, stable hero identity, cover-first silhouette",
+          "imperfection_object:visible pores; slight fabric edge wear; minor asymmetry in garment folds; subtle under-eye fatigue"
+        ),
+        t0: { x: 44, y: 63, w: 25, h: 47, rot: 0 }
+      },
+      {
+        id: "flagship_cover_support_world",
+        type: "prop",
+        look: "supporting world layer with elevated rail structures, distant skyline, and controlled practical light streaks framing the protagonist",
+        shapeDesc: "world-building support object group that signals genre and campaign scale",
+        z: 3,
+        notes: notes(
+          "detail:builds campaign-scale visual weight while keeping protagonist priority intact and title area readable",
+          "imperfection_object:surface wear; uneven light falloff; micro debris in atmosphere; slight signage flicker"
+        ),
+        t0: { x: 60, y: 46, w: 64, h: 34, rot: 0 }
+      },
+      {
+        id: "flagship_cover_title_zone",
+        type: "support",
+        look: "clean high-contrast negative space reserved for main title, subtitle, and brand mark lockup",
+        shapeDesc: "title-safe layout zone in upper frame with controlled luminance separation",
+        z: 1,
+        notes: notes(
+          "detail:ensures practical cover typography placement without collapsing visual tension; avoids visual noise behind headline"
+        ),
+        t0: { x: 50, y: 18, w: 74, h: 22, rot: 0 }
+      },
+      {
+        id: "flagship_cover_light_layer",
+        type: "support",
+        look: "diagonal volumetric light beams and restrained haze band separating hero from deep background",
+        shapeDesc: "cinematic light-layer anchor for poster-grade depth",
+        z: 4,
+        notes: notes(
+          "detail:raises poster drama and creates clean hero-background separation",
+          "imperfection_object:slight beam diffusion irregularity; minor haze density inconsistency"
+        ),
+        t0: { x: 58, y: 50, w: 66, h: 24, rot: 0 }
+      },
+      {
+        id: "flagship_cover_ground_anchor",
+        type: "support",
+        look: "ground contact layer with wet-road reflection, low smoke drift, and cinematic depth cue",
+        shapeDesc: "bottom anchor preventing floating hero look while keeping cover polish",
+        z: 2,
+        notes: notes(
+          "detail:keeps the cover commercial and physically grounded",
+          "imperfection_object:tiny puddle irregularity; dust clumps near frame edge"
+        ),
+        t0: { x: 50, y: 84, w: 66, h: 12, rot: 0 }
+      },
+    ],
   },
   {
     templateId: "v3_daily_talking_head_01",
@@ -2307,15 +2525,34 @@ export const V3_PAYLOADS: V3Payload[] = [
       "narrative_rhythm:meditative", "visual_tension:none",
       "imperfection_scene: small background imperfections; natural shadow variation; not overly clean surfaces"
     ),
-    layerLook: "professional spokesperson seated in a premium studio-office environment with direct-to-camera credibility",
-    layerShapeDesc: "mid-close vertical talking-head cover frame with clean desk and brand-safe composition",
-    layerNotes: notes(
-      "costume:polished business-casual wardrobe with neat layering",
-      "prop:laptop edge, notebook, glass of water, subtle desk accessories",
-      "expression:confident",
-      "detail:realistic skin, eye catchlight, fabric texture, tabletop material, clean environment hierarchy",
-      "imperfection_object: natural expression lines; slight under-eye darkness; not overly retouched skin; subtle clothing folds"
+    sceneLayers: [
+      { id: "daily_talking_head", type: "character", look: "professional spokesperson seated in a premium studio-office environment", shapeDesc: "mid-close vertical talking-head frame", z: 6, notes: notes("costume:polished business-casual wardrobe","expression:confident","detail:realistic skin, catchlight, fabric texture, desk credibility","imperfection_object:natural expression lines; slight under-eye darkness; subtle clothing folds"), t0: { x: 48, y: 54, w: 28, h: 40, rot: 0 } },
+      { id: "desk_props", type: "prop", look: "laptop edge, notebook, glass of water, and subtle work props", shapeDesc: "business credibility support layer", z: 3, notes: notes("detail:keeps the frame believable and conversion-friendly"), t0: { x: 56, y: 70, w: 28, h: 12, rot: 0 } },
+      { id: "office_background", type: "prop", look: "clean office depth, practical light, and orderly backdrop", shapeDesc: "talking-head environment anchor", z: 1, notes: notes("detail:premium office proof, not generic empty blur"), t0: { x: 56, y: 44, w: 54, h: 24, rot: 0 } },
+    ],
+  },
+  {
+    templateId: "v3_daily_talking_head_02",
+    mediaMode: "video", aspectRatio: "16:9", duration: 5,
+    sceneNotes: notes(
+      "@compiler: v3", "media: video",
+      "render_style:photorealistic",
+      "shot_size:MCU", "focal_length:50mm", "cam_angle:eye_level",
+      "cam_movement:slow_push",
+      "depth_of_field:shallow",
+      "bg_preset:indoor_luxury",
+      "env_mood:serene",
+      "key_light_time:overcast", "color_temp:5600K", "spec_light:practical_window",
+      "color_grade:natural", "film_look:digital_clean",
+      "narrative_rhythm:meditative", "visual_tension:low",
+      "imperfection_scene: subtle desk wear; tiny paper edge irregularity; slight lighting falloff variance",
+      "source_example_local: /Users/dk/Downloads/task_01kmxgf35ef0krbpt8tb9kxm6q_task_01kmxgf35ef0krbpt8tb9kxm6q_genid_be20c5d6-4b8c-49b1-a5d3-a25c554ff1c1_26_03_29_19_46_726836_videos_00000_491485399_md.mp4"
     ),
+    sceneLayers: [
+      { id: "flagship_speaker", type: "character", look: "credible business presenter seated at a real office desk, front-facing and calm", shapeDesc: "main talking-head subject for trust conversion", z: 8, notes: notes("costume:clean business blazer and shirt","expression:confident","gesture:natural explanatory hand motion","detail:stable face identity, realistic pores, natural eye micro-movement, believable speech posture","imperfection_object:visible pores; slight under-eye darkness; subtle fabric fold memory"), t0: { x: 47, y: 56, w: 30, h: 44, rot: 0 }, t1: { x: 47, y: 55, w: 31, h: 45, rot: 0 } },
+      { id: "desk_support_props", type: "prop", look: "office desk with notebook, water glass, and practical daily work items", shapeDesc: "conversion credibility support layer", z: 4, notes: notes("detail:proves a real working context instead of abstract studio blur","imperfection_object:minor notebook edge wear; tiny water ring mark; light dust traces"), t0: { x: 54, y: 72, w: 42, h: 14, rot: 0 }, t1: { x: 54, y: 72, w: 42, h: 14, rot: 0 } },
+      { id: "office_depth_anchor", type: "prop", look: "structured office background with practical lamp, wall texture, and soft depth separation", shapeDesc: "space anchor behind speaker", z: 1, notes: notes("detail:supports trust and professionalism, keeps scene grounded"), t0: { x: 57, y: 42, w: 58, h: 28, rot: 0 }, t1: { x: 57, y: 42, w: 58, h: 28, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_daily_story_conflict_01",
@@ -2363,6 +2600,31 @@ export const V3_PAYLOADS: V3Payload[] = [
     ],
   },
   {
+    templateId: "v3_daily_story_conflict_02",
+    mediaMode: "video", aspectRatio: "16:9", duration: 5,
+    sceneNotes: notes(
+      "@compiler: v3", "media: video",
+      "render_style:filmic",
+      "director_pack:nolan",
+      "shot_size:LS", "focal_length:35mm", "cam_angle:low_angle",
+      "cam_movement:slow_push",
+      "depth_of_field:medium",
+      "bg_preset:outdoor_urban",
+      "env_mood:dramatic",
+      "key_light_time:night", "color_temp:6200K", "spec_light:volumetric",
+      "color_grade:teal_orange", "film_look:film_grain",
+      "narrative_rhythm:epic_build", "visual_tension:high",
+      "post_process:controlled highlight rolloff, rain-haze depth stacking, restrained bloom, disciplined contrast separation",
+      "imperfection_scene: heavy rain streaks, rooftop puddle ripples, drifting smoke wisps, searchlight flare variance, airborne dust and spark fragments",
+      "action_rule:single confrontation arc only, two leads hold opposite positions while pressure builds, no chaotic scene jumps"
+    ),
+    sceneLayers: [
+      { id: "flagship_conflict_lead_a", type: "subject", look: "charismatic female lead in rain-soaked fitted tactical coat on rooftop edge, fierce stare, dominant silhouette", shapeDesc: "primary confrontation anchor for immediate narrative tension", z: 10, notes: notes("costume:dark fitted trench silhouette, wet fabric cling, metal utility details","detail:readable face, jaw tension, controlled breathing posture","imperfection_object:visible pores; rainwater streaks on skin; slight fabric fray"), t0: { x: 36, y: 58, w: 22, h: 40, rot: 0 }, t1: { x: 38, y: 56, w: 23, h: 41, rot: 0 } },
+      { id: "flagship_conflict_lead_b", type: "subject", look: "opposing male lead under searchlight glare, restrained combat stance and emotional pressure, cinematic counterweight", shapeDesc: "secondary confrontation anchor balancing left-right dramatic axis", z: 8, notes: notes("costume:dark tactical layers with rain sheen, minimal gear silhouette","detail:clear opposing stance, readable hand tension, eye-line locked to lead A","imperfection_object:beard roughness; damp cloth folds; slight stance asymmetry"), t0: { x: 68, y: 57, w: 20, h: 38, rot: 0 }, t1: { x: 66, y: 55, w: 21, h: 39, rot: 0 } },
+      { id: "flagship_conflict_rooftop_anchor", type: "support", look: "storm-night prison rooftop with helicopter searchlights, distant industrial fire burst, wet concrete reflections, and low fog layers", shapeDesc: "environment anchor delivering scale, danger, and blockbuster confrontation context", z: 2, notes: notes("detail:strong depth ladder from puddles to skyline, searchlight sweep readability, controlled explosion glow","imperfection_object:uneven rain streaks; puddle ripple noise; drifting smoke; spark fragments"), t0: { x: 52, y: 44, w: 82, h: 52, rot: 0 }, t1: { x: 50, y: 43, w: 84, h: 53, rot: 0 } },
+    ],
+  },
+  {
     templateId: "v3_pro_ad_visual_01",
     mediaMode: "image", aspectRatio: "16:9",
     sceneNotes: notes(
@@ -2377,14 +2639,34 @@ export const V3_PAYLOADS: V3Payload[] = [
       "narrative_rhythm:epic_build", "visual_tension:medium",
       "imperfection_scene: subtle particles in air; natural surface wear; non-pristine premium set pieces"
     ),
-    layerLook: "campaign hero scene for a premium brand with a dominant core subject, reflective staging, sculptural props, and luxury set geometry",
-    layerShapeDesc: "wide hero advertising composition with premium spacing and campaign-level readability",
-    layerNotes: notes(
-      "costume:hero subject or product with premium finish and precise silhouette",
-      "prop:architectural plinths, reflective side elements, soft fabric or smoke layers, branded environment anchors",
-      "detail:hard and soft light contrast, material fidelity, edge polish, layered reflections, high-end campaign art direction",
-      "imperfection_object: tiny scratches; subtle dust; realistic material inconsistencies; light wear on non-primary set surfaces"
+    sceneLayers: [
+      { id: "ad_visual_hero", type: "product", look: "campaign hero subject or product with premium finish and precise silhouette", shapeDesc: "wide ad hero anchor", z: 6, notes: notes("detail:campaign-level readability, hard and soft light contrast, premium art direction","imperfection_object:tiny scratches; subtle dust; realistic material inconsistencies"), t0: { x: 48, y: 56, w: 24, h: 28, rot: 0 } },
+      { id: "ad_visual_set", type: "prop", look: "architectural plinths, reflective side elements, and sculptural set geometry", shapeDesc: "luxury campaign support environment", z: 2, notes: notes("detail:brand campaign feel, not just a plain product shot","imperfection_object:light wear on non-primary set surfaces"), t0: { x: 54, y: 60, w: 56, h: 22, rot: 0 } },
+    ],
+  },
+  {
+    templateId: "v3_pro_ad_visual_43",
+    mediaMode: "video", aspectRatio: "16:9", duration: 5,
+    sceneNotes: notes(
+      "@compiler: v3", "media: video",
+      "render_style:commercial",
+      "shot_size:MS", "focal_length:50mm", "cam_angle:low_angle",
+      "cam_movement:dolly_in",
+      "depth_of_field:medium",
+      "bg_preset:studio_dark",
+      "env_mood:luxurious",
+      "key_light_time:studio", "color_temp:3000K", "spec_light:rim_light",
+      "color_grade:warm_golden", "film_look:digital_clean",
+      "narrative_rhythm:epic_build", "visual_tension:high",
+      "post_process:premium highlight rolloff, luxury contrast discipline, precise black-level control, clean edge separation",
+      "imperfection_scene: subtle floating dust, mild lacquer-surface micro-scuff, minor reflective smudges, controlled studio haze, tiny condensation edge marks",
+      "composition_rule:single hero object must dominate at ~40% frame presence, support props strictly subordinate, no furniture, no human subjects, no abstract unknown geometry"
     ),
+    sceneLayers: [
+      { id: "flagship_ad_hero", type: "product", look: "single ultra-luxury perfume bottle hero with thick crystal body, brushed metal shoulder, faceted metal cap, and clear premium fragrance silhouette, unmistakably a high-end perfume product", shapeDesc: "center-locked perfume hero subject commanding premium ad attention", z: 10, notes: notes("detail:hero perfume bottle must stay dominant with front-face readability, iconic bottle contour, luxury material contrast, controlled specular glide over 5 seconds, no random text clutter","imperfection_object:micro hairline scratches; soft fingerprint traces; tiny edge wear at contact points"), t0: { x: 50, y: 60, w: 34, h: 42, rot: 0 }, t1: { x: 50, y: 56, w: 37, h: 45, rot: 0 } },
+      { id: "flagship_ad_support_props", type: "support", look: "restrained perfume-support accents: one precision-machined cap ring and one compact crystal fragrance-test block, kept low and offset from hero bottle", shapeDesc: "subordinate prop layer framing perfume hero value and premium ecosystem context", z: 6, notes: notes("detail:strict hierarchy where support accents never compete with hero bottle, ad-agency spacing discipline, no furniture, no lifestyle clutter","imperfection_object:uneven liquid meniscus edge; mild reflection noise; tiny machining burrs"), t0: { x: 64, y: 68, w: 20, h: 13, rot: 0 }, t1: { x: 62, y: 67, w: 22, h: 14, rot: 0 } },
+      { id: "flagship_ad_space_anchor", type: "support", look: "haute-couture studio stage with amber-to-black gradient void, controlled spotlight cone, and lacquered reflective surface plane", shapeDesc: "large premium set anchor creating cinematic luxury scale and negative space control", z: 2, notes: notes("detail:campaign-grade set architecture, dark luxury depth, clean separation around hero silhouette, no visible rigging or equipment","imperfection_object:minor stage scuff; subtle dust accumulation; soft backdrop texture variance"), t0: { x: 52, y: 47, w: 78, h: 38, rot: 0 }, t1: { x: 50, y: 46, w: 80, h: 40, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_film_blocking_01",
@@ -2442,6 +2724,32 @@ export const V3_PAYLOADS: V3Payload[] = [
     ],
   },
   {
+    templateId: "v3_pro_film_blocking_44",
+    mediaMode: "video", aspectRatio: "21:9", duration: 5,
+    sceneNotes: notes(
+      "@compiler: v3", "media: video",
+      "render_style:filmic",
+      "director_pack:nolan",
+      "shot_size:ELS", "focal_length:35mm", "cam_angle:low_angle",
+      "cam_movement:slow_push",
+      "depth_of_field:deep",
+      "bg_preset:outdoor_urban",
+      "env_mood:dramatic",
+      "key_light_time:dusk", "color_temp:6800K", "spec_light:anamorphic_flare",
+      "color_grade:cool_steel", "film_look:film_grain",
+      "narrative_rhythm:epic_build", "visual_tension:high",
+      "post_process:controlled shadow lift, restrained highlight bloom, cinematic depth separation, volumetric cloud-light integration",
+      "imperfection_scene: ionized particle streaks, hull micro-scars, turbulent cloud shear, city haze noise, minor sensor grain in dark zones",
+      "action_rule:single readable flyover arc, colossal carrier passes above storm-cloud megacity with disciplined motion and no chaotic camera shake"
+    ),
+    sceneLayers: [
+      { id: "flagship_blocking_mothership", type: "subject", look: "colossal interstellar mothership crossing above cloud sea, fortress-scale hull with readable panel seams, docking bays, antenna arrays, and engine architecture", shapeDesc: "primary cinematic megaship anchor dominating widescreen hierarchy", z: 10, notes: notes("detail:clear macro silhouette plus micro hull detail, strong scale readability, clean parallax during 5-second flyover","imperfection_object:hull micro-scars; patchwork panel wear; soot traces near engine vents"), t0: { x: 38, y: 55, w: 56, h: 30, rot: 0 }, t1: { x: 46, y: 53, w: 60, h: 32, rot: 0 } },
+      { id: "flagship_blocking_cloud_anchor", type: "support", look: "storm cloud ocean with layered lightning walls, volumetric light shafts, and high-altitude turbulence under the mothership", shapeDesc: "atmospheric anchor providing epic weather scale and motion depth", z: 4, notes: notes("detail:readable cloud layers, controlled lightning contrast, cinematic depth ladder","imperfection_object:uneven lightning bloom; cloud shear artifacts"), t0: { x: 58, y: 42, w: 86, h: 56, rot: 0 }, t1: { x: 60, y: 41, w: 88, h: 58, rot: 0 } },
+      { id: "flagship_blocking_megacity_anchor", type: "support", look: "distant futuristic megacity skyline breaking through cloud gaps with dense light grids and monumental towers", shapeDesc: "urban scale anchor reinforcing mothership size shock and cinematic context", z: 2, notes: notes("detail:city lights as scale reference, layered skyline silhouettes, stable depth separation","imperfection_object:haze noise; slight light flicker variance"), t0: { x: 68, y: 61, w: 54, h: 22, rot: 0 }, t1: { x: 70, y: 60, w: 56, h: 23, rot: 0 } },
+      { id: "flagship_blocking_escort_anchor", type: "support", look: "tiny escort fighters and probe beacons near mothership flank for hard size comparison", shapeDesc: "micro-scale reference layer for blockbuster mass perception", z: 7, notes: notes("detail:escort craft remain tiny and sparse, readable nav lights, no clutter"), t0: { x: 60, y: 51, w: 10, h: 7, rot: 0 }, t1: { x: 63, y: 50, w: 11, h: 8, rot: 0 } },
+    ],
+  },
+  {
     templateId: "v3_pro_animation_epic_01",
     mediaMode: "image", aspectRatio: "16:9",
     sceneNotes: notes(
@@ -2456,14 +2764,32 @@ export const V3_PAYLOADS: V3Payload[] = [
       "narrative_rhythm:epic_build", "visual_tension:high",
       "imperfection_scene: airborne dust; cracked stone surfaces; material wear; uneven glow edges"
     ),
-    layerLook: "anime-style hero at the center of an epic final-battle frame, with ceremonial ruins, storm light, and weapon-driven silhouette clarity",
-    layerShapeDesc: "heroic wide frame with massive readable silhouette and surrounding fantasy debris",
-    layerNotes: notes(
-      "costume:signature fantasy coat, layered armor accents, sculpted footwear, glowing weapon core",
-      "prop:stone ruins, torn banners, floating talismans, atmospheric particles",
-      "detail:high-contrast rim light, color-blocked sky, metal edge wear, cloth tears, weapon surface detail",
-      "imperfection_object: blade edge wear; cloth fray; uneven energy glow; cracked material texture"
+    sceneLayers: [
+      { id: "animation_epic_hero", type: "character", look: "anime-style hero at the center of an epic final-battle frame", shapeDesc: "heroic wide-frame silhouette", z: 6, notes: notes("costume:signature fantasy coat, layered armor, glowing weapon core","detail:rim light, silhouette clarity, poster-scale anime energy","imperfection_object:blade edge wear; cloth fray; uneven energy glow"), t0: { x: 50, y: 56, w: 22, h: 42, rot: 0 } },
+      { id: "animation_world", type: "prop", look: "ceremonial ruins, torn banners, floating talismans, and storm atmosphere around the hero", shapeDesc: "epic anime world anchor", z: 1, notes: notes("detail:fantasy debris, sky drama, battle-finale scale","imperfection_object:cracked stone; material wear; atmospheric particles"), t0: { x: 56, y: 42, w: 72, h: 34, rot: 0 } },
+    ],
+  },
+  {
+    templateId: "v3_pro_animation_epic_45",
+    mediaMode: "video", aspectRatio: "16:9", duration: 5,
+    sceneNotes: notes(
+      "@compiler: v3", "media: video",
+      "render_style:editorial",
+      "shot_size:LS", "focal_length:anamorphic", "cam_angle:low_angle",
+      "cam_movement:slow_push",
+      "depth_of_field:medium",
+      "bg_preset:outdoor_nature",
+      "env_mood:dramatic",
+      "key_light_time:night", "color_temp:6500K", "spec_light:volumetric",
+      "color_grade:vibrant", "film_look:halation",
+      "narrative_rhythm:epic_build", "visual_tension:high",
+      "imperfection_scene: airborne dust, cracked stone, uneven glow edges, material wear on props and armor"
     ),
+    sceneLayers: [
+      { id: "flagship_animation_hero", type: "character", look: "anime hero standing at finale peak with clear silhouette and decisive endgame posture", shapeDesc: "epic hero anchor", z: 9, notes: notes("costume:signature fantasy armor and layered cloth","detail:strong silhouette, expressive face read, high-impact anime staging","imperfection_object:blade wear; cloth fray; asymmetrical strands"), t0: { x: 50, y: 56, w: 22, h: 42, rot: 0 }, t1: { x: 50, y: 55, w: 23, h: 43, rot: 0 } },
+      { id: "flagship_animation_weapon_fx", type: "support", look: "weapon energy arc and floating finale particles radiating around the hero", shapeDesc: "weapon and energy support layer", z: 11, notes: notes("detail:supports epic impact while preserving readability","imperfection_object:uneven energy density; rough glow transitions"), t0: { x: 56, y: 50, w: 38, h: 28, rot: 0 }, t1: { x: 56, y: 50, w: 38, h: 28, rot: 0 } },
+      { id: "flagship_animation_world_anchor", type: "support", look: "finale world anchor with ceremonial ruins, sky-scale depth, and symbolic debris field", shapeDesc: "world-scale environment anchor", z: 2, notes: notes("detail:clear world-building and climax scale, suitable for campaign spread"), t0: { x: 56, y: 42, w: 72, h: 34, rot: 0 }, t1: { x: 56, y: 42, w: 72, h: 34, rot: 0 } },
+    ],
   },
   {
     templateId: "v3_pro_game_squad_01",
@@ -3187,6 +3513,72 @@ export const V3_PAYLOADS: V3Payload[] = [
     ],
   },
   {
+    templateId: "v3_pro_game_skill_41",
+    mediaMode: "image", aspectRatio: "16:9",
+    sceneNotes: notes(
+      "@compiler: v3", "media: image",
+      "render_style:cinematic_still",
+      "shot_size:MS", "focal_length:35mm", "cam_angle:low_angle",
+      "depth_of_field:medium",
+      "bg_preset:studio_dark",
+      "env_mood:dramatic",
+      "key_light_time:night", "color_temp:6500K", "spec_light:volumetric",
+      "color_grade:teal_orange", "film_look:halation",
+      "narrative_rhythm:urgent", "visual_tension:high",
+      "imperfection_scene: scorched floor marks; uneven energy glow edges; suspended smoke dust"
+    ),
+    sceneLayers: [
+      {
+        id: "flagship_game_hero",
+        type: "character",
+        look: "main game hero at peak skill-release posture with clear role identity and commercial key-art readability",
+        shapeDesc: "hero subject anchor for flagship game KV",
+        z: 10,
+        notes: notes(
+          "costume:combat-grade outfit with armor segments, gloves, and readable faction silhouette",
+          "detail:strong character presence, face readability, weapon interaction, stable role hierarchy",
+          "imperfection_object:armor scratches; fabric wear; natural asymmetry in pose and gear"
+        ),
+        t0: { x: 44, y: 58, w: 24, h: 42, rot: 0 }
+      },
+      {
+        id: "flagship_game_skill_fx",
+        type: "support",
+        look: "skill burst effect with energy arcs, particle shockwave, and rune-based directional motion",
+        shapeDesc: "primary VFX support object cluster around the hero",
+        z: 12,
+        notes: notes(
+          "detail:high-impact skill visualization with controlled readability for commercial use",
+          "imperfection_object:energy non-uniformity; particle density variation; slight glow clipping"
+        ),
+        t0: { x: 56, y: 50, w: 46, h: 32, rot: 0 }
+      },
+      {
+        id: "flagship_game_world_anchor",
+        type: "support",
+        look: "world anchor layer with battle arena geometry, fractured ground lines, and atmospheric faction cues",
+        shapeDesc: "environmental anchor for world-building and scale",
+        z: 2,
+        notes: notes(
+          "detail:keeps the image as a true game campaign KV rather than isolated character art",
+          "imperfection_object:ground cracks; debris residue; uneven fog thickness"
+        ),
+        t0: { x: 52, y: 44, w: 78, h: 40, rot: 0 }
+      },
+      {
+        id: "flagship_game_debris_field",
+        type: "support",
+        look: "secondary debris and smoke layer supporting impact depth near the lower frame",
+        shapeDesc: "micro-depth layer for impact realism",
+        z: 4,
+        notes: notes(
+          "detail:adds depth and force without obscuring hero readability"
+        ),
+        t0: { x: 50, y: 78, w: 58, h: 14, rot: 0 }
+      },
+    ],
+  },
+  {
     templateId: "v3_pro_game_entrance_38",
     mediaMode: "image", aspectRatio: "16:9",
     sceneNotes: notes(
@@ -3245,6 +3637,71 @@ export const V3_PAYLOADS: V3Payload[] = [
       { id: "layer1", type: "subject", look: "central figure or object caught at the exact instant of time freezing inside a high-contrast scene", shapeDesc: "time-freeze hero anchor", z: 10, notes: "detail:readable frozen gesture, fabric shape, face intensity, suspended motion\nimperfection_object: skin texture; cloth wear; asymmetrical detail; tiny cracks", t0: { x: 48, y: 58, w: 22, h: 40, rot: 0 } },
       { id: "layer2", type: "support", look: "frozen debris, liquid fragments, paper, or dust suspended around the subject in mid-action", shapeDesc: "suspension support field", z: 12, notes: "detail:micro freeze moments, dramatic spacing, surreal motion stop\nimperfection_object: broken edges; irregular fragment shapes; uneven spacing", t0: { x: 52, y: 50, w: 46, h: 30, rot: 0 } },
       { id: "layer3", type: "support", look: "high-contrast environment behind the frozen action creating theatrical separation", shapeDesc: "contrast stage anchor", z: 1, notes: "detail:clean background geometry, dark-light split, concept poster readability\nimperfection_object: worn surfaces; slight texture noise; dust", t0: { x: 50, y: 42, w: 78, h: 44, rot: 0 } },
+    ],
+  },
+  {
+    templateId: "v3_pro_style_fusion_42",
+    mediaMode: "image", aspectRatio: "16:9",
+    sceneNotes: notes(
+      "@compiler: v3", "media: image",
+      "render_style:editorial",
+      "shot_size:MS", "focal_length:50mm", "cam_angle:eye_level",
+      "depth_of_field:medium",
+      "bg_preset:indoor_luxury",
+      "env_mood:mysterious",
+      "key_light_time:studio", "color_temp:6500K", "spec_light:hard_key",
+      "color_grade:cool_steel", "film_look:halation",
+      "narrative_rhythm:frozen", "visual_tension:high",
+      "imperfection_scene: micro cracks on polished surfaces; uneven gloss response; light dust haze"
+    ),
+    sceneLayers: [
+      {
+        id: "flagship_style_hero",
+        type: "subject",
+        look: "central hero object with a bold silhouette designed for premium style experimentation and case-study transmission value",
+        shapeDesc: "main object anchor with high readability and controlled visual tension",
+        z: 10,
+        notes: notes(
+          "detail:strong shape logic, premium material readability, high-end concept poster presence",
+          "imperfection_object:edge chips; subtle surface scratches; non-perfect symmetry"
+        ),
+        t0: { x: 48, y: 58, w: 22, h: 40, rot: 0 }
+      },
+      {
+        id: "flagship_style_support_a",
+        type: "support",
+        look: "style support object A using reflective hard material and fractured geometry language",
+        shapeDesc: "material-contrast support object",
+        z: 6,
+        notes: notes(
+          "detail:reinforces world language and upscale experimental tone",
+          "imperfection_object:micro fractures; reflection inconsistency; rough edge transitions"
+        ),
+        t0: { x: 64, y: 52, w: 24, h: 20, rot: 0 }
+      },
+      {
+        id: "flagship_style_support_b",
+        type: "support",
+        look: "style support object B with soft translucent material and controlled color haze",
+        shapeDesc: "secondary contrast support for layered style narrative",
+        z: 5,
+        notes: notes(
+          "detail:balances hard material with soft volumetric presence for stable experimentation",
+          "imperfection_object:uneven translucency; slight edge blooming; material conflict traces"
+        ),
+        t0: { x: 34, y: 50, w: 24, h: 22, rot: 0 }
+      },
+      {
+        id: "flagship_style_world_anchor",
+        type: "support",
+        look: "world anchor layer with architectural depth plane, atmospheric particles, and concept-grade spatial rhythm",
+        shapeDesc: "global scene anchor for stable world-building",
+        z: 1,
+        notes: notes(
+          "detail:ensures experimental aesthetics stay structurally coherent, not random abstraction"
+        ),
+        t0: { x: 50, y: 42, w: 78, h: 44, rot: 0 }
+      },
     ],
   },
 ];

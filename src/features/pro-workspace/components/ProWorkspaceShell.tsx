@@ -195,8 +195,8 @@ export function ProWorkspaceShell(props: Props) {
     resultMode: "new",
     referenceMode: "auto",
     canGenerate: true,
-    generateLabel: lang === "zh" ? "生成" : "Generate",
-    statusHint: lang === "zh" ? "执行当前生成设置" : "Run the current generation settings",
+    generateLabel: lang === "zh" ? "使用我的API生成" : "BYO API Generate",
+    statusHint: lang === "zh" ? "使用当前 API 生成设置" : "Use the current API generation settings",
   });
   const section = externalSection ?? internalSection;
   const normalizedSection: ProWorkspaceSection = section === "export" || section === "platform" ? "generate_settings" : section;
