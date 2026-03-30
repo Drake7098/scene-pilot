@@ -84,6 +84,10 @@ function parsePath() {
   return { mode: "dashboard" as const, userId: "" };
 }
 
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
 async function apiGet<T>(path: string): Promise<T> {
   const headers = await getApiAuthHeaders();
   const res = await fetch(path, { headers });
@@ -156,6 +160,7 @@ export default function AdminLitePage() {
   }
 
   if (pathState.mode === "dashboard" && dashboard) {
+    const recentErrors = asArray<DashboardData["recentErrors"][number]>(dashboard.recentErrors);
     return (
       <main style={shell}>
         <div style={wrap}>
@@ -173,7 +178,7 @@ export default function AdminLitePage() {
             <table style={table}>
               <thead><tr><th style={th}>action</th><th style={th}>status</th><th style={th}>user_id</th><th style={th}>created_at</th><th style={th}>meta</th></tr></thead>
               <tbody>
-                {dashboard.recentErrors.map((row) => (
+                {recentErrors.map((row) => (
                   <tr key={row.id}>
                     <td style={td}>{row.action}</td>
                     <td style={td}>{row.status}</td>
@@ -191,16 +196,17 @@ export default function AdminLitePage() {
   }
 
   if (pathState.mode === "users" && users) {
+    const items = asArray<UsersData["items"][number]>(users.items);
     return (
       <main style={shell}>
         <div style={wrap}>
           <h1 style={title}>Admin Lite Users</h1>
-          <p style={sub}>/admin-lite/users · total {users.total}</p>
+          <p style={sub}>/admin-lite/users · total {Number(users.total || 0)}</p>
           <section style={tableWrap}>
             <table style={table}>
               <thead><tr><th style={th}>email</th><th style={th}>user_id</th><th style={th}>pro_status</th><th style={th}>credits_balance</th><th style={th}>created_at</th><th style={th}>last_login_at</th><th style={th}>template_purchase_count</th><th style={th}>action</th></tr></thead>
               <tbody>
-                {users.items.map((item) => (
+                {items.map((item) => (
                   <tr key={item.id}>
                     <td style={td}>{item.email || "-"}</td>
                     <td style={td}>{item.id}</td>
@@ -221,6 +227,10 @@ export default function AdminLitePage() {
   }
 
   if (pathState.mode === "user-detail" && detail) {
+    const recentLedger = asArray<Record<string, unknown>>(detail.recentLedger);
+    const recentTemplatePurchases = asArray<Record<string, unknown>>(detail.recentTemplatePurchases);
+    const recentBillingEvents = asArray<Record<string, unknown>>(detail.recentBillingEvents);
+    const recentAuditLogs = asArray<Record<string, unknown>>(detail.recentAuditLogs);
     return (
       <main style={shell}>
         <div style={wrap}>
@@ -230,25 +240,25 @@ export default function AdminLitePage() {
           <section style={tableWrap}>
             <table style={table}>
               <thead><tr><th style={th}>created_at</th><th style={th}>event_type</th><th style={th}>amount</th><th style={th}>balance_after</th><th style={th}>source</th><th style={th}>reference_id</th></tr></thead>
-              <tbody>{detail.recentLedger.map((row, idx) => (<tr key={`l-${idx}`}><td style={td}>{String(row.created_at || "-")}</td><td style={td}>{String(row.event_type || "-")}</td><td style={td}>{String(row.amount || "-")}</td><td style={td}>{String(row.balance_after || "-")}</td><td style={td}>{String(row.source || "-")}</td><td style={td}>{String(row.reference_id || "-")}</td></tr>))}</tbody>
+              <tbody>{recentLedger.map((row, idx) => (<tr key={`l-${idx}`}><td style={td}>{String(row.created_at || "-")}</td><td style={td}>{String(row.event_type || "-")}</td><td style={td}>{String(row.amount || "-")}</td><td style={td}>{String(row.balance_after || "-")}</td><td style={td}>{String(row.source || "-")}</td><td style={td}>{String(row.reference_id || "-")}</td></tr>))}</tbody>
             </table>
           </section>
           <section style={tableWrap}>
             <table style={table}>
               <thead><tr><th style={th}>template_id</th><th style={th}>credit_cost</th><th style={th}>unlock_source</th><th style={th}>created_at</th></tr></thead>
-              <tbody>{detail.recentTemplatePurchases.map((row, idx) => (<tr key={`t-${idx}`}><td style={td}>{String(row.template_id || "-")}</td><td style={td}>{String(row.credit_cost || "-")}</td><td style={td}>{String(row.unlock_source || "-")}</td><td style={td}>{String(row.created_at || "-")}</td></tr>))}</tbody>
+              <tbody>{recentTemplatePurchases.map((row, idx) => (<tr key={`t-${idx}`}><td style={td}>{String(row.template_id || "-")}</td><td style={td}>{String(row.credit_cost || "-")}</td><td style={td}>{String(row.unlock_source || "-")}</td><td style={td}>{String(row.created_at || "-")}</td></tr>))}</tbody>
             </table>
           </section>
           <section style={tableWrap}>
             <table style={table}>
               <thead><tr><th style={th}>event_type</th><th style={th}>resource_id</th><th style={th}>processed</th><th style={th}>created_at</th><th style={th}>payload</th></tr></thead>
-              <tbody>{detail.recentBillingEvents.map((row, idx) => (<tr key={`b-${idx}`}><td style={td}>{String(row.event_type || "-")}</td><td style={td}>{String(row.resource_id || "-")}</td><td style={td}>{String(row.processed || "-")}</td><td style={td}>{String(row.created_at || "-")}</td><td style={td}><details><summary>payload</summary><pre style={code}>{JSON.stringify(row.payload || {}, null, 2)}</pre></details></td></tr>))}</tbody>
+              <tbody>{recentBillingEvents.map((row, idx) => (<tr key={`b-${idx}`}><td style={td}>{String(row.event_type || "-")}</td><td style={td}>{String(row.resource_id || "-")}</td><td style={td}>{String(row.processed || "-")}</td><td style={td}>{String(row.created_at || "-")}</td><td style={td}><details><summary>payload</summary><pre style={code}>{JSON.stringify(row.payload || {}, null, 2)}</pre></details></td></tr>))}</tbody>
             </table>
           </section>
           <section style={tableWrap}>
             <table style={table}>
               <thead><tr><th style={th}>created_at</th><th style={th}>action</th><th style={th}>status</th><th style={th}>meta</th></tr></thead>
-              <tbody>{detail.recentAuditLogs.map((row, idx) => (<tr key={`a-${idx}`}><td style={td}>{String(row.created_at || "-")}</td><td style={td}>{String(row.action || "-")}</td><td style={td}>{String(row.status || "-")}</td><td style={td}><details><summary>meta</summary><pre style={code}>{JSON.stringify(row.meta || {}, null, 2)}</pre></details></td></tr>))}</tbody>
+              <tbody>{recentAuditLogs.map((row, idx) => (<tr key={`a-${idx}`}><td style={td}>{String(row.created_at || "-")}</td><td style={td}>{String(row.action || "-")}</td><td style={td}>{String(row.status || "-")}</td><td style={td}><details><summary>meta</summary><pre style={code}>{JSON.stringify(row.meta || {}, null, 2)}</pre></details></td></tr>))}</tbody>
             </table>
           </section>
         </div>
@@ -256,15 +266,16 @@ export default function AdminLitePage() {
     );
   }
 
+  const logItems = asArray<Record<string, unknown>>(logs?.items);
   return (
     <main style={shell}>
       <div style={wrap}>
         <h1 style={title}>Admin Lite Logs</h1>
-        <p style={sub}>/admin-lite/logs · total {logs?.total || 0}</p>
+        <p style={sub}>/admin-lite/logs · total {Number(logs?.total || 0)}</p>
         <section style={tableWrap}>
           <table style={table}>
             <thead><tr><th style={th}>created_at</th><th style={th}>action</th><th style={th}>status</th><th style={th}>user_id</th><th style={th}>meta</th></tr></thead>
-            <tbody>{(logs?.items || []).map((row, idx) => (<tr key={`g-${idx}`}><td style={td}>{String(row.created_at || "-")}</td><td style={td}>{String(row.action || "-")}</td><td style={td}>{String(row.status || "-")}</td><td style={td}>{String(row.user_id || "-")}</td><td style={td}><details><summary>meta</summary><pre style={code}>{JSON.stringify(row.meta || {}, null, 2)}</pre></details></td></tr>))}</tbody>
+            <tbody>{logItems.map((row, idx) => (<tr key={`g-${idx}`}><td style={td}>{String(row.created_at || "-")}</td><td style={td}>{String(row.action || "-")}</td><td style={td}>{String(row.status || "-")}</td><td style={td}>{String(row.user_id || "-")}</td><td style={td}><details><summary>meta</summary><pre style={code}>{JSON.stringify(row.meta || {}, null, 2)}</pre></details></td></tr>))}</tbody>
           </table>
         </section>
       </div>
