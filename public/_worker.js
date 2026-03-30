@@ -18,6 +18,18 @@ function text(data, status = 200) {
   });
 }
 
+function shouldServeSpaFallback(request, url) {
+  if (request.method !== "GET") return false;
+  if (url.pathname.startsWith("/api/")) return false;
+  if (url.pathname.startsWith("/assets/")) return false;
+  // Requests for files (e.g. .js/.css/.png/.map/.ico) should stay 404 when missing.
+  if (/\.[a-z0-9]+$/i.test(url.pathname)) return false;
+  const accept = String(request.headers.get("accept") || "").toLowerCase();
+  const secFetchDest = String(request.headers.get("sec-fetch-dest") || "").toLowerCase();
+  if (secFetchDest && secFetchDest !== "document") return false;
+  return accept.includes("text/html");
+}
+
 function parseAdminEmails(raw) {
   return new Set(
     String(raw || "")
@@ -609,7 +621,7 @@ export default {
 
       if (!env.ASSETS) return text("ASSETS binding unavailable", 500);
       const res = await env.ASSETS.fetch(request);
-      if (res.status === 404) {
+      if (res.status === 404 && shouldServeSpaFallback(request, url)) {
         const assetUrl = new URL("/index.html", request.url);
         const indexRes = await env.ASSETS.fetch(new Request(assetUrl.toString()));
         return new Response(indexRes.body, {
