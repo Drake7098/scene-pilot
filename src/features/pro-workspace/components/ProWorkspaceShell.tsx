@@ -9,7 +9,7 @@
  * - Tab active 样式：bottom border amber
  */
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import type { Lang } from "../../../i18n";
 import type { Project, Scene, Layer } from "../../../model";
 import type { PlatformPresetId } from "../../../config/platformPresets";
@@ -42,7 +42,7 @@ import { buildPromptForScene }      from "../../../utils/promptEngine";
 import { getPlatformPreset }        from "../../../config/platformPresets";
 
 import {
-  Sparkles, Copy, Download, AlertCircle, Image as ImageIcon, Play, LayoutGrid,
+  Sparkles, Copy, Download, AlertCircle, Image as ImageIcon, Play, LayoutGrid, MoreHorizontal, RefreshCw, Trash2,
 } from "lucide-react";
 
 // ── Design tokens — figma/app.tsx aligned ─────────────────────────────────
@@ -368,12 +368,24 @@ export function ProWorkspaceShell(props: Props) {
                     }}>
                       {currentAsset.kind === "video" ? tl("视频", "Video") : tl("图片", "Image")}
                     </span>
+                    {currentAsset.source && (
+                      <span style={{
+                        fontSize: 10, padding: "1px 6px", borderRadius: 3,
+                        border: `1px solid ${BORDER}`, color: MUTED, textTransform: "capitalize",
+                      }}>
+                        {currentAsset.source === "local_comfy" ? "ComfyUI"
+                          : currentAsset.source === "local_draw" ? "Draw Things"
+                          : currentAsset.source}
+                      </span>
+                    )}
                   </div>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    {onDownloadAsset && <IconBtn onClick={onDownloadAsset}><Download size={13} /></IconBtn>}
-                    {onRegenerateAsset && <IconBtn onClick={onRegenerateAsset}><Sparkles size={13} /></IconBtn>}
-                    {onDeleteAsset && <IconBtn onClick={onDeleteAsset} danger>×</IconBtn>}
-                  </div>
+                  {/* 三点菜单 */}
+                  <AssetMenu
+                    lang={lang}
+                    onDownload={onDownloadAsset}
+                    onRegenerate={onRegenerateAsset}
+                    onDelete={onDeleteAsset}
+                  />
                 </div>
                 <div style={{
                   flex: 1, minHeight: 0,
@@ -631,6 +643,120 @@ function StatusChip({ children, accent, danger }: { children: React.ReactNode; a
     }}>
       {children}
     </span>
+  );
+}
+
+// ── AssetMenu — 三点下拉菜单（下载 / 重新生成 / 删除） ────────────────────
+function AssetMenu({
+  lang,
+  onDownload,
+  onRegenerate,
+  onDelete,
+}: {
+  lang: Lang;
+  onDownload?: () => void;
+  onRegenerate?: () => void;
+  onDelete?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const tl = (zh: string, en: string) => lang === "zh" ? zh : en;
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: "relative", flexShrink: 0 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
+          borderRadius: 4, border: `1px solid ${BORDER}`, background: open ? BORDER : "transparent",
+          color: MUTED, cursor: "pointer", transition: "background 0.12s",
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = BORDER; }}
+        onMouseLeave={(e) => { if (!open) e.currentTarget.style.background = "transparent"; }}
+      >
+        <MoreHorizontal size={14} />
+      </button>
+
+      {open && (
+        <div style={{
+          position: "absolute", top: 32, right: 0, zIndex: 50,
+          minWidth: 160,
+          background: "#1a1c1f",
+          border: `1px solid ${BORDER}`,
+          borderRadius: 6,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          padding: "4px 0",
+          display: "flex", flexDirection: "column",
+        }}>
+          {onDownload && (
+            <AssetMenuItem
+              icon={<Download size={13} />}
+              label={tl("下载", "Download")}
+              onClick={() => { setOpen(false); onDownload(); }}
+            />
+          )}
+          {onRegenerate && (
+            <AssetMenuItem
+              icon={<RefreshCw size={13} />}
+              label={tl("重新生成", "Regenerate")}
+              onClick={() => { setOpen(false); onRegenerate(); }}
+            />
+          )}
+          {(onDownload || onRegenerate) && onDelete && (
+            <div style={{ margin: "3px 0", borderTop: `1px solid ${BORDER}` }} />
+          )}
+          {onDelete && (
+            <AssetMenuItem
+              icon={<Trash2 size={13} />}
+              label={tl("删除", "Delete")}
+              onClick={() => { setOpen(false); onDelete(); }}
+              danger
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AssetMenuItem({
+  icon, label, onClick, danger,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "7px 14px", width: "100%",
+        background: hov ? (danger ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.05)") : "transparent",
+        border: "none", cursor: "pointer", textAlign: "left",
+        color: danger ? (hov ? "#f87171" : "#e07070") : (hov ? TEXT : MUTED),
+        fontSize: 12, fontWeight: 500,
+        transition: "background 0.1s, color 0.1s",
+      }}
+    >
+      <span style={{ flexShrink: 0, display: "flex", opacity: 0.8 }}>{icon}</span>
+      {label}
+    </button>
   );
 }
 

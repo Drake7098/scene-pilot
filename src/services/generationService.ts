@@ -216,7 +216,7 @@ async function runwayGenerate(
   apiKey: string,
   input: GenerationInput,
   model = "gen3a_turbo",
-  baseUrl = "https://api.dev.runwayml.com"
+  baseUrl = "https://api.runwayml.com"
 ): Promise<GenerationResult> {
   const submitRes = await fetch(`${baseUrl}/v1/image_to_video`, {
     method: "POST",
@@ -360,42 +360,36 @@ async function stabilityGenerate(
   baseUrl = "https://api.stability.ai"
 ): Promise<GenerationResult> {
   if (input.mediaMode !== "image") throw new Error("stability_image_only");
-  const [width, height] = parseResolution(input.resolution);
   const normalizedBase = baseUrl.replace(/\/+$/, "");
-  const response = await fetch(`${normalizedBase}/v1/generation/${model}/text-to-image`, {
+  // v2beta endpoint — v1 is deprecated and returns 404
+  const response = await fetch(`${normalizedBase}/v2beta/stable-image/generate/ultra`, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "Accept": "application/json"
+      "Accept": "image/*",
     },
-    body: JSON.stringify({
-      width,
-      height,
-      steps: input.qualityTier === "hd" ? 40 : 30,
-      cfg_scale: 7,
-      samples: 1,
-      seed: input.seed ?? 0,
-      text_prompts: [
-        { text: input.prompt, weight: 1 },
-        ...(input.negativePrompt ? [{ text: input.negativePrompt, weight: -1 }] : [])
-      ]
-    })
+    body: (() => {
+      const fd = new FormData();
+      fd.append("prompt", input.prompt);
+      if (input.negativePrompt) fd.append("negative_prompt", input.negativePrompt);
+      fd.append("aspect_ratio", resolutionToAspectRatio(input.resolution));
+      fd.append("output_format", "png");
+      if (input.seed != null) fd.append("seed", String(input.seed));
+      return fd;
+    })(),
   });
-  const data = await safeJson(response) as { artifacts?: Array<{ base64?: string; finishReason?: string }> ; message?: string; name?: string } | null;
-  if (!response.ok || !data) {
-    const text = data?.message || data?.name || (await response.text().catch(() => response.statusText));
+  if (!response.ok) {
+    const text = await response.text().catch(() => response.statusText);
     throw new Error(`Stability submit failed (${response.status}): ${text}`);
   }
-  const artifact = data.artifacts?.find((item) => item.finishReason !== "CONTENT_FILTERED" && item.base64);
-  if (!artifact?.base64) throw new Error("stability_missing_image_data");
-  const objectUrl = base64ImageToObjectUrl(artifact.base64);
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
   return {
     kind: "image",
     url: objectUrl,
     ownedUrls: [objectUrl],
     provider: "stability",
-    model
+    model,
   };
 }
 

@@ -325,7 +325,7 @@ export function AccountCenterModal(props: Props) {
       if (editingItem.id === "fal") {
         await testFalConnection(baseUrlValue || currentConfig.baseUrl || "https://queue.fal.run", primaryValue);
       } else if (editingItem.id === "runway") {
-        await testRunwayConnection(baseUrlValue || currentConfig.baseUrl || "https://api.dev.runwayml.com", primaryValue);
+        await testRunwayConnection(baseUrlValue || currentConfig.baseUrl || "https://api.runwayml.com", primaryValue);
       } else if (editingItem.id === "replicate") {
         await testReplicateConnection(baseUrlValue || currentConfig.baseUrl || "https://api.replicate.com", primaryValue);
       } else if (editingItem.id === "stability") {
@@ -1188,7 +1188,7 @@ function normalizeApiCredentials(input: ApiCredentialState | null): ApiCredentia
       enabled: false,
       mode: "personal",
       apiKey: "",
-      baseUrl: "https://api.dev.runwayml.com",
+      baseUrl: "https://api.runwayml.com",
       preferredModel: "gen4_turbo",
       updatedAt: null
     },
