@@ -666,26 +666,34 @@ function formatImperfection(raw: string, lang: Lang): string {
 }
 
 function qualitySuffix(renderStyle: string, mediaMode: "image" | "video", lang: Lang): string {
+  // Fix 3: 视频模式去掉 8K/resolution tag（Runway/Sora 不支持），改用视频专属质量描述
+  if (mediaMode === "video") {
+    if (lang === "zh") {
+      if (renderStyle === "commercial") return "照片级写实，专业商业影视质感，高动态范围，精确曝光";
+      if (renderStyle === "documentary") return "照片级写实，自然纪实影像，高动态范围";
+      return "照片级写实，专业影视质感，高动态范围，精确曝光";
+    }
+    if (renderStyle === "commercial") return "photorealistic, professional commercial cinematography, high dynamic range, precise exposure";
+    if (renderStyle === "documentary") return "photorealistic, naturalistic cinematography, high dynamic range";
+    return "photorealistic, professional cinematography, high dynamic range, precise exposure";
+  }
+
+  // 图片模式保留 8K
   if (lang === "zh") {
     if (renderStyle === "commercial")
-      return "照片级写实，专业商业影视质感，高动态范围，8K 超清细节";
+      return "照片级写实，专业商业摄影质感，高动态范围，8K 超清细节";
     if (renderStyle === "photorealistic" || renderStyle === "editorial")
       return "照片级写实，专业摄影质感，高动态范围，8K 细节";
     if (renderStyle === "documentary")
       return "照片级写实，自然纪实摄影，高动态范围";
-    if (mediaMode === "video")
-      return "照片级写实，专业商业影视质感，高动态范围，8K 细节";
     return "照片级写实，专业摄影质感，高动态范围，8K 细节";
   }
-
   if (renderStyle === "commercial")
-    return "photorealistic, professional commercial cinematography, high dynamic range, 8K ultra detail";
+    return "photorealistic, professional commercial photography, high dynamic range, 8K ultra detail";
   if (renderStyle === "photorealistic" || renderStyle === "editorial")
     return "photorealistic, professional photography, high dynamic range, 8K detail";
   if (renderStyle === "documentary")
     return "photorealistic, naturalistic photography, high dynamic range";
-  if (mediaMode === "video")
-    return "photorealistic, professional commercial cinematography, high dynamic range, 8K detail";
   return "photorealistic, professional photography, high dynamic range, 8K detail";
 }
 
@@ -897,39 +905,58 @@ function buildCameraSegment(f: ResolvedFields, lang: Lang): string | null {
 }
 
 function buildMotionSegment(f: ResolvedFields, validLayers: any[], lang: Lang): string | null {
-  const moveStr = pickLabel(f.camMove.value, lang, MOVEMENT, MOVEMENT_ZH);
-  
+  // Fix 1 + Fix 2: 重写运动段
+  // - Fix 1: 去掉 camMove 和 describeVideoMotion 的重复描述
+  //   原来两者都描述"推进"，叠加后模型理解为运动速度翻倍
+  // - Fix 2: 静止镜头加显式锁定约束，防止 Runway/Sora 自由发挥
+
+  const isStatic = !f.camMove.value || f.camMove.value === "static";
+  const moveStr = isStatic ? "" : pickLabel(f.camMove.value, lang, MOVEMENT, MOVEMENT_ZH);
+
   const parts: string[] = [];
-  
-  // Camera movement with duration - natural phrasing
-  if (moveStr) {
-    parts.push(lang === "zh" ? `${moveStr}，时长约 ${f.duration} 秒` : `${moveStr} over ${f.duration} seconds`);
+
+  if (isStatic) {
+    // Fix 2: 明确声明摄像机锁定，防止模型自发添加运动
+    parts.push(
+      lang === "zh"
+        ? `摄像机固定锁定，无任何移动，时长 ${f.duration} 秒`
+        : `static camera, locked off, no camera movement, ${f.duration} seconds`
+    );
   } else {
-    parts.push(lang === "zh" ? `时长约 ${f.duration} 秒` : `over ${f.duration} seconds`);
+    // 有运动：只输出一次运动描述 + 时长，不叠加 describeVideoMotion 的同义描述
+    parts.push(
+      lang === "zh"
+        ? `${moveStr}，时长 ${f.duration} 秒`
+        : `${moveStr}, over ${f.duration} seconds`
+    );
   }
-  
-  // Subject motion - primary layer only in main prompt
-  if (validLayers.length > 0) {
-    const secondaryMentions: string[] = [];
-    if (hasEffectiveMotion(validLayers[0])) {
-      const primaryMotion = describeVideoMotion(validLayers[0], f.duration, true, lang);
-      if (primaryMotion) parts.push(primaryMotion);
-    }
-    
-    // Secondary layers - keep minimal, push detail to Structure_Guide
-    for (let i = 1; i < validLayers.length; i++) {
-      const layer = validLayers[i];
-      const layerId = layer.id || `obj${i + 1}`;
-      // Only add brief mention of secondary motion if there's actual movement
-      if (hasEffectiveMotion(layer)) {
-        secondaryMentions.push(lang === "zh" ? `${layerId}：轻微位移` : `${layerId}: subtle movement`);
-      }
-    }
-    if (secondaryMentions.length > 0) {
-      parts.push(lang === "zh" ? `次对象运动：${secondaryMentions.join("；")}` : `secondary motion: ${secondaryMentions.join("; ")}`);
+
+  // 主体运动：只在摄像机静止时补充，避免与摄像机运动描述混淆
+  // Fix 1: 摄像机有运动时不再追加 describeVideoMotion（防止重复）
+  if (isStatic && validLayers.length > 0 && hasEffectiveMotion(validLayers[0])) {
+    const primaryMotion = describeVideoMotion(validLayers[0], f.duration, true, lang);
+    if (primaryMotion) parts.push(primaryMotion);
+  }
+
+  // 次级对象运动：简洁提及，细节推给 Structure_Guide
+  const secondaryMentions: string[] = [];
+  for (let i = 1; i < validLayers.length; i++) {
+    const layer = validLayers[i];
+    const layerId = layer.id || `obj${i + 1}`;
+    if (hasEffectiveMotion(layer)) {
+      secondaryMentions.push(
+        lang === "zh" ? `${layerId}：轻微位移` : `${layerId}: subtle movement`
+      );
     }
   }
-  
+  if (secondaryMentions.length > 0) {
+    parts.push(
+      lang === "zh"
+        ? `次对象：${secondaryMentions.join("；")}`
+        : `secondary: ${secondaryMentions.join("; ")}`
+    );
+  }
+
   return parts.join(", ");
 }
 
