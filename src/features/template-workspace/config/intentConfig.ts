@@ -118,7 +118,7 @@ export const INTENT_CONFIG: TemplateIntentMeta[] = [
         descriptionEn: "Fashion, street, beauty detail",
         sceneHintsZh: ["杂志感构图 + 精致造型", "街头穿搭 + 强烈光影", "美妆 / 精致妆面特写"],
         sceneHintsEn: ["Editorial framing + polished styling", "Street outfit with strong light", "Beauty closeup or makeup detail"],
-        familyIds: ["v3_portrait_editorial", "v3_portrait_luxury_fashion", "v3_portrait_fashion_video", "v3_daily_portrait_premium"],
+        familyIds: ["v3_portrait_editorial", "v3_portrait_luxury_fashion", "v3_portrait_fashion_video", "v3_daily_portrait_premium", "v3_daily_portrait_fantasy"],
         freeFirst: 2
       },
       {

@@ -1816,7 +1816,7 @@ const V3_TEMPLATES: TemplateIndex[] = [
   {
     id: "v3_daily_portrait_fantasy_03", familyId: "v3_daily_portrait_fantasy", variantId: "queen_full_body",
     familyNameZh: "人物形象", familyNameEn: "Character Identity",
-    nameZh: "东方幻境女王全身像", nameEn: "Fantasy Queen Full-Body Portrait",
+    nameZh: "东方环境女王全身像", nameEn: "Fantasy Queen Full-Body Portrait",
     category: "ad", domain: "people", industry: "social",
     mediaType: "image", storyPlan: "single", ratio: "2:3",
     isFree: true, cost: 0, featured: true,
@@ -1832,7 +1832,7 @@ const V3_TEMPLATES: TemplateIndex[] = [
     isDerivedTemplate: false,
     generationSource: "manual",
     isNewTemplate: true,
-    previewSrc: "/template-previews/fantasy-queen-full-body-free.png",
+    previewSrc: "/template-previews/fantasy-queen-full-body-free.webp",
     score: 8,
     qualityLevel: "advanced",
   },

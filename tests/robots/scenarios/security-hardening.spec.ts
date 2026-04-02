@@ -153,7 +153,7 @@ test("auth middleware enforces token and claimed user consistency", async () => 
   expect(mismatch?.status).toBe(403);
 });
 
-test("generation and checkout routes enforce auth", async () => {
+test("generation routes enforce auth and paddle checkout remains disabled", async () => {
   const tokenEnv = { API_AUTH_TOKEN: "test-token", DB: createMockDb() };
 
   const providerDenied = await generationProvidersGet(
@@ -181,7 +181,7 @@ test("generation and checkout routes enforce auth", async () => {
       tokenEnv
     )
   );
-  expect(checkoutDenied.status).toBe(401);
+  expect(checkoutDenied.status).toBe(503);
 
   const checkoutAllowed = await paddleCheckoutPost(
     makeContext(
@@ -197,7 +197,7 @@ test("generation and checkout routes enforce auth", async () => {
       tokenEnv
     )
   );
-  expect(checkoutAllowed.status).toBe(200);
+  expect(checkoutAllowed.status).toBe(503);
 });
 
 test("legal consent route enforces auth and accepts valid payload", async () => {
@@ -281,51 +281,16 @@ test("provider baseUrl allowlist and ssrf guard block unsafe personal endpoints"
   expect(notAllowlisted.error).toBe("base_host_not_allowlisted");
 });
 
-test("paddle webhook dedupes repeated event id", async () => {
-  const webhookSecret = "whsec_test";
-  const ts = String(Math.floor(Date.now() / 1000));
-  const body = JSON.stringify({
-    event_id: "evt_dedup_1",
-    event_type: "transaction.completed",
-    data: {
-      id: "txn_1",
-      custom_data: {
-        userId: "user_1",
-        productId: "pro_monthly"
-      },
-      details: {
-        totals: {
-          grand_total: 1200
-        }
-      },
-      currency_code: "USD"
-    }
+test("paddle webhook remains disabled with stable response", async () => {
+  const request = new Request("https://example.com/api/paddle/webhook", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ event_id: "evt_dedup_1" })
   });
-  const signature = await hmacSha256Hex(webhookSecret, `${ts}:${body}`);
-  const requestFactory = () =>
-    new Request("https://example.com/api/paddle/webhook", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "paddle-signature": `ts=${ts};h1=${signature}`
-      },
-      body
-    });
 
-  const env = {
-    DB: createMockDb(),
-    PADDLE_WEBHOOK_SECRET: webhookSecret
-  };
-
-  const first = await paddleWebhookPost(makeContext(requestFactory(), env));
-  const firstPayload = await first.json() as { ok?: boolean; dedup?: boolean };
-  expect(first.status).toBe(200);
-  expect(firstPayload.ok).toBeTruthy();
-  expect(firstPayload.dedup).toBeFalsy();
-
-  const second = await paddleWebhookPost(makeContext(requestFactory(), env));
-  const secondPayload = await second.json() as { ok?: boolean; dedup?: boolean };
-  expect(second.status).toBe(200);
-  expect(secondPayload.ok).toBeTruthy();
-  expect(secondPayload.dedup).toBeTruthy();
+  const resp = await paddleWebhookPost(makeContext(request, { DB: createMockDb() }));
+  const payload = await resp.json() as { ok?: boolean; message?: string };
+  expect(resp.status).toBe(200);
+  expect(payload.ok).toBeTruthy();
+  expect(payload.message).toBe("paddle_disabled");
 });
