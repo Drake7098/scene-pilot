@@ -139,7 +139,17 @@ function RightPanelContent(props: Props & { section: ProWorkspaceSection }) {
     case "style":        return <StylePanel lang={lang} scene={scene} project={project} onUpdateScene={onUpdateScene} />;
     case "tech":         return <TechPanel lang={lang} scene={scene} project={project} onUpdateScene={onUpdateScene} />;
     case "composition":  return <CompositionEditorPanel lang={lang} scene={scene} project={project} selectedLayerId={selectedLayerId ?? null} onSelectLayer={onSelectLayer!} onUpdateScene={onUpdateScene} onUpdateLayer={updateLayer} editT={editT} setEditT={setEditT} />;
-    case "constraints":  return <ConstraintInspectorPanel lang={lang} scene={scene} project={project} selectedLayerId={selectedLayerId ?? null} onJumpToConflict={onJumpToConflict} />;
+    case "constraints":
+      return (
+        <ConstraintInspectorPanel
+          lang={lang}
+          scene={scene}
+          project={project}
+          selectedLayerId={selectedLayerId ?? null}
+          onJumpToConflict={onJumpToConflict}
+          onUpdateScene={onUpdateScene}
+        />
+      );
     case "prompt_preview":
       return <PromptPreviewPanel lang={lang} project={project} scene={scene} platformId={platformId} onCopyPrompt={onCopyPrompt} />;
     case "platform":

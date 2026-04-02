@@ -2411,6 +2411,63 @@ export const V3_PAYLOADS: V3Payload[] = [
     ],
   },
   {
+    templateId: "v3_daily_portrait_fantasy_03",
+    mediaMode: "image", aspectRatio: "2:3",
+    sceneNotes: notes(
+      "@compiler: v3", "media: image",
+      "render_style:fantasy_editorial",
+      "shot_size:FS", "focal_length:50mm", "cam_angle:eye_level",
+      "depth_of_field:shallow",
+      "bg_preset:premium_interior",
+      "env_mood:dramatic",
+      "key_light_time:night", "color_temp:4200K", "spec_light:rim_light",
+      "color_grade:warm_golden", "film_look:halation",
+      "narrative_rhythm:meditative", "visual_tension:medium",
+      "post_process:cinematic highlight rolloff, skin-friendly contrast, premium bokeh discipline, layered depth haze",
+      "imperfection_scene: subtle floating dust, slight candle flicker variance, gentle shadow falloff irregularity, non-pristine palace texture",
+      "negative_prompt: lowres, blurry, bad anatomy, bad hands, extra fingers, deformed body, plastic skin, over-smoothed skin, cartoon, anime, childish face, flat lighting, overexposed highlights, modern casual clothes, cheap costume, watermark, text, logo, UI overlay"
+    ),
+    sceneLayers: [
+      {
+        id: "fantasy_queen_full_body",
+        type: "character",
+        look: "adult East Asian fantasy queen standing in a full-body elegant pose, long legs and graceful feminine silhouette, refined face and clear eyes",
+        shapeDesc: "centered full-body hero anchor with strong costume readability",
+        z: 8,
+        notes: notes(
+          "costume:ornate silver-gold crown, long flowing black hair with braided details, gemstone earrings and layered necklace, intricate embroidered gown with translucent silk layers, fitted waist, rich fabric folds, metallic filigree and emerald inlays",
+          "expression:confident",
+          "emotion:calm",
+          "detail:realistic skin with natural pores, subtle clavicle and shoulder highlights, ultra-detailed garment craftsmanship, jewelry micro-reflections",
+          "imperfection_object:natural facial asymmetry; slight fabric edge wear; tiny jewelry scratches; realistic skin microtexture"
+        ),
+        t0: { x: 50, y: 58, w: 34, h: 66, rot: 0 }
+      },
+      {
+        id: "fantasy_palace_background",
+        type: "prop",
+        look: "cinematic ancient palace interior at night with warm candle layers and cool moonlit depth",
+        shapeDesc: "atmospheric fantasy architecture support layer",
+        z: 2,
+        notes: notes(
+          "detail:carved wood architecture, warm candle bokeh clusters, soft volumetric haze, deep-space layering behind the queen"
+        ),
+        t0: { x: 56, y: 45, w: 72, h: 34, rot: 0 }
+      },
+      {
+        id: "fantasy_ambient_particles",
+        type: "support",
+        look: "subtle floating dust and soft atmosphere shimmer around the subject silhouette",
+        shapeDesc: "micro-atmosphere polish layer for premium fantasy depth",
+        z: 1,
+        notes: notes(
+          "detail:adds cinematic depth and richness without stealing subject priority"
+        ),
+        t0: { x: 54, y: 48, w: 64, h: 20, rot: 0 }
+      },
+    ],
+  },
+  {
     templateId: "v3_daily_cover_hero_01",
     mediaMode: "image", aspectRatio: "2:3",
     sceneNotes: notes(
@@ -2445,6 +2502,8 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:teal_orange", "film_look:film_grain",
       "narrative_rhythm:epic_build", "visual_tension:high",
       "imperfection_scene: slight atmospheric haze; worn pavement texture; drifting paper debris; uneven neon spill; subtle lens dirt"
+      ,"@constraint:subject_integrity=full_body_required"
+      ,"@constraint:ground_contact_lock=on"
     ),
     sceneLayers: [
       {
@@ -2546,6 +2605,8 @@ export const V3_PAYLOADS: V3Payload[] = [
       "color_grade:natural", "film_look:digital_clean",
       "narrative_rhythm:meditative", "visual_tension:low",
       "imperfection_scene: subtle desk wear; tiny paper edge irregularity; slight lighting falloff variance",
+      "@constraint:focus_priority=hero_only",
+      "@constraint:support_defocus=slight",
       "source_example_local: /Users/dk/Downloads/task_01kmxgf35ef0krbpt8tb9kxm6q_task_01kmxgf35ef0krbpt8tb9kxm6q_genid_be20c5d6-4b8c-49b1-a5d3-a25c554ff1c1_26_03_29_19_46_726836_videos_00000_491485399_md.mp4"
     ),
     sceneLayers: [
@@ -2616,7 +2677,9 @@ export const V3_PAYLOADS: V3Payload[] = [
       "narrative_rhythm:epic_build", "visual_tension:high",
       "post_process:controlled highlight rolloff, rain-haze depth stacking, restrained bloom, disciplined contrast separation",
       "imperfection_scene: heavy rain streaks, rooftop puddle ripples, drifting smoke wisps, searchlight flare variance, airborne dust and spark fragments",
-      "action_rule:single confrontation arc only, two leads hold opposite positions while pressure builds, no chaotic scene jumps"
+      "action_rule:single confrontation arc only, two leads hold opposite positions while pressure builds, no chaotic scene jumps",
+      "@constraint:frame_safety_margin=strict",
+      "@constraint:focus_priority=hero_only"
     ),
     sceneLayers: [
       { id: "flagship_conflict_lead_a", type: "subject", look: "charismatic female lead in rain-soaked fitted tactical coat on rooftop edge, fierce stare, dominant silhouette", shapeDesc: "primary confrontation anchor for immediate narrative tension", z: 10, notes: notes("costume:dark fitted trench silhouette, wet fabric cling, metal utility details","detail:readable face, jaw tension, controlled breathing posture","imperfection_object:visible pores; rainwater streaks on skin; slight fabric fray"), t0: { x: 36, y: 58, w: 22, h: 40, rot: 0 }, t1: { x: 38, y: 56, w: 23, h: 41, rot: 0 } },
@@ -2660,7 +2723,14 @@ export const V3_PAYLOADS: V3Payload[] = [
       "narrative_rhythm:epic_build", "visual_tension:high",
       "post_process:premium highlight rolloff, luxury contrast discipline, precise black-level control, clean edge separation",
       "imperfection_scene: subtle floating dust, mild lacquer-surface micro-scuff, minor reflective smudges, controlled studio haze, tiny condensation edge marks",
-      "composition_rule:single hero object must dominate at ~40% frame presence, support props strictly subordinate, no furniture, no human subjects, no abstract unknown geometry"
+      "composition_rule:single hero object must dominate at ~40% frame presence, support props strictly subordinate, no furniture, no human subjects, no abstract unknown geometry",
+      "@constraint:lock_perspective=strict",
+      "@constraint:lock_proportion=on",
+      "@constraint:pedestal_subordinate=on",
+      "@constraint:focus_priority=hero_only",
+      "@constraint:highlight_discipline=hero_edge_only",
+      "@constraint:palette_discipline=warm_amber_limited",
+      "@constraint:visual_climax_mode=silhouette_contour_peak"
     ),
     sceneLayers: [
       { id: "flagship_ad_hero", type: "product", look: "single ultra-luxury perfume bottle hero with thick crystal body, brushed metal shoulder, faceted metal cap, and clear premium fragrance silhouette, unmistakably a high-end perfume product", shapeDesc: "center-locked perfume hero subject commanding premium ad attention", z: 10, notes: notes("detail:hero perfume bottle must stay dominant with front-face readability, iconic bottle contour, luxury material contrast, controlled specular glide over 5 seconds, no random text clutter","imperfection_object:micro hairline scratches; soft fingerprint traces; tiny edge wear at contact points"), t0: { x: 50, y: 60, w: 34, h: 42, rot: 0 }, t1: { x: 50, y: 56, w: 37, h: 45, rot: 0 } },

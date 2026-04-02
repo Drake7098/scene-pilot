@@ -94,12 +94,36 @@ export type ResolvedFields = {
   postProcess: ResolvedValue;
   keyTimeFinal: string;
   specLightFinal: string;
+  constraintLocks: ConstraintLocks;
+};
+
+type ConstraintLocks = {
+  perspectiveLock: "off" | "natural" | "strict";
+  proportionLock: "off" | "on";
+  subjectIntegrity: "off" | "full_body_required";
+  groundContactLock: "off" | "on";
+  frameSafetyMargin: "off" | "strict";
+  pedestalSubordinate: "off" | "on";
+  pedestalReflectivityMax: number | null;
+  focusPriority: "default" | "hero_only";
+  supportDefocus: "none" | "slight" | "medium";
+  highlightDiscipline: "default" | "hero_edge_only";
+  paletteDiscipline: "default" | "warm_amber_limited";
+  visualClimaxMode: "off" | "silhouette_contour_peak";
 };
 
 // ── Marker reader ──────────────────────────────────────────────────────────
 function mark(notes: string, key: string): string {
   const line = (notes ?? "").split("\n").find(l => l.trim().startsWith(key + ":"));
   return line ? line.trim().slice(key.length + 1).trim() : "";
+}
+
+function markAny(notes: string, keys: string[]): string {
+  for (const key of keys) {
+    const hit = mark(notes, key);
+    if (hit) return hit;
+  }
+  return "";
 }
 
 // ── Conflict resolver with priority rules ─────────────────────────────────
@@ -876,6 +900,7 @@ function resolveAllFields(scene: Scene, notes: string, cam: any, lighting: any):
   const colorGrade = resolveWithPriority(mark(notes, "color_grade"), undefined, undefined, "");
   const filmLook = resolveWithPriority(mark(notes, "film_look"), undefined, undefined, "");
   const postProcess = resolveWithPriority(mark(notes, "post_process"), undefined, undefined, "");
+  const constraintLocks = resolveConstraintLocks(notes);
   
   const [keyTimeFinal, specLightFinal] = dedupeLight(keyTimeRaw, specLightRaw);
   
@@ -884,7 +909,182 @@ function resolveAllFields(scene: Scene, notes: string, cam: any, lighting: any):
     renderStyle, focalLength, dof, bgPreset, envMood,
     keyTimeRaw, keyDir, keyMood, colorTemp, specLightRaw,
     colorGrade, filmLook, postProcess, keyTimeFinal, specLightFinal,
+    constraintLocks,
   };
+}
+
+function resolveConstraintLocks(notes: string): ConstraintLocks {
+  const perspectiveRaw = markAny(notes, ["lock_perspective", "constraint_perspective_lock"]).toLowerCase();
+  const proportionRaw = markAny(notes, ["lock_proportion", "constraint_proportion_lock"]).toLowerCase();
+  const subjectIntegrityRaw = markAny(notes, ["subject_integrity", "constraint_subject_integrity"]).toLowerCase();
+  const groundContactRaw = markAny(notes, ["ground_contact_lock", "constraint_ground_contact_lock"]).toLowerCase();
+  const frameSafetyRaw = markAny(notes, ["frame_safety_margin", "constraint_frame_safety_margin"]).toLowerCase();
+  const pedestalSubRaw = markAny(notes, ["pedestal_subordinate", "constraint_pedestal_subordinate"]).toLowerCase();
+  const reflectivityRaw = markAny(notes, ["pedestal_reflectivity_max", "constraint_pedestal_reflectivity_max"]);
+  const focusRaw = markAny(notes, ["focus_priority", "constraint_focus_priority"]).toLowerCase();
+  const defocusRaw = markAny(notes, ["support_defocus", "constraint_support_defocus"]).toLowerCase();
+  const highlightRaw = markAny(notes, ["highlight_discipline", "constraint_highlight_discipline"]).toLowerCase();
+  const paletteRaw = markAny(notes, ["palette_discipline", "constraint_palette_discipline"]).toLowerCase();
+  const climaxRaw = markAny(notes, ["visual_climax_mode", "constraint_visual_climax_mode"]).toLowerCase();
+
+  const reflectivitySource = (reflectivityRaw ?? "").trim();
+  const reflectivityNum = reflectivitySource ? Number(reflectivitySource) : NaN;
+  const reflectivity = Number.isFinite(reflectivityNum)
+    ? Math.max(0, Math.min(1, reflectivityNum))
+    : null;
+
+  const perspectiveLock: ConstraintLocks["perspectiveLock"] =
+    perspectiveRaw === "strict" ? "strict" : perspectiveRaw === "natural" ? "natural" : "off";
+  const proportionLock: ConstraintLocks["proportionLock"] = proportionRaw === "on" ? "on" : "off";
+  const subjectIntegrity: ConstraintLocks["subjectIntegrity"] =
+    subjectIntegrityRaw === "full_body_required" ? "full_body_required" : "off";
+  const groundContactLock: ConstraintLocks["groundContactLock"] = groundContactRaw === "on" ? "on" : "off";
+  const frameSafetyMargin: ConstraintLocks["frameSafetyMargin"] = frameSafetyRaw === "strict" ? "strict" : "off";
+  const pedestalSubordinate: ConstraintLocks["pedestalSubordinate"] = pedestalSubRaw === "on" ? "on" : "off";
+  const focusPriority: ConstraintLocks["focusPriority"] = focusRaw === "hero_only" ? "hero_only" : "default";
+  const supportDefocus: ConstraintLocks["supportDefocus"] =
+    defocusRaw === "medium" ? "medium" : defocusRaw === "slight" ? "slight" : "none";
+  const highlightDiscipline: ConstraintLocks["highlightDiscipline"] =
+    highlightRaw === "hero_edge_only" ? "hero_edge_only" : "default";
+  const paletteDiscipline: ConstraintLocks["paletteDiscipline"] =
+    paletteRaw === "warm_amber_limited" ? "warm_amber_limited" : "default";
+  const visualClimaxMode: ConstraintLocks["visualClimaxMode"] =
+    climaxRaw === "silhouette_contour_peak" ? "silhouette_contour_peak" : "off";
+
+  return {
+    perspectiveLock,
+    proportionLock,
+    subjectIntegrity,
+    groundContactLock,
+    frameSafetyMargin,
+    pedestalSubordinate,
+    pedestalReflectivityMax: reflectivity,
+    focusPriority,
+    supportDefocus,
+    highlightDiscipline,
+    paletteDiscipline,
+    visualClimaxMode,
+  };
+}
+
+function buildConstraintTail(
+  locks: ConstraintLocks,
+  _input: { shotSize: string; firstLayerLook: string; firstLayerW: number },
+  lang: Lang
+): { hard: string[]; avoid: string[]; climax: string } {
+  void _input;
+  const effectiveIntegrity = locks.subjectIntegrity;
+  const effectiveGroundContact = locks.groundContactLock;
+
+  const hard: string[] = [];
+  const avoid: string[] = [];
+  let climax = "";
+
+  if (locks.perspectiveLock === "natural" || locks.perspectiveLock === "strict") {
+    hard.push(
+      lang === "zh"
+        ? "保持自然透视，禁止垂直畸变"
+        : "natural perspective, no vertical distortion"
+    );
+    avoid.push(lang === "zh" ? "避免透视畸变" : "no perspective warping");
+  }
+
+  if (locks.proportionLock === "on") {
+    hard.push(
+      lang === "zh"
+        ? "保持产品比例，禁止拉长或压扁"
+        : "preserve product proportions, no elongation or compression"
+    );
+    avoid.push(lang === "zh" ? "避免比例失真" : "no warped proportions");
+  }
+
+  if (effectiveIntegrity === "full_body_required") {
+    hard.push(
+      lang === "zh"
+        ? "主体全身必须完整可见，禁止头部或脚部裁切"
+        : "full body visible, no cropping at feet or head"
+    );
+    avoid.push(lang === "zh" ? "避免截断主体肢体" : "no cropped limbs");
+  }
+
+  if (effectiveGroundContact === "on") {
+    hard.push(
+      lang === "zh"
+        ? "脚部必须完整着地，地面接触关系清晰"
+        : "feet must be fully grounded and visible, clear contact with ground plane"
+    );
+    avoid.push(lang === "zh" ? "避免穿地或悬空错位" : "no sinking or clipping into ground");
+  }
+
+  if (locks.frameSafetyMargin === "strict") {
+    hard.push(
+      lang === "zh"
+        ? "主体必须完整落在安全边界内，头脚保留安全留白"
+        : "subject fully contained within frame boundaries, safe margin around head and feet"
+    );
+    avoid.push(lang === "zh" ? "避免触边或贴边裁切" : "no edge clipping at frame boundaries");
+  }
+
+  if (locks.pedestalSubordinate === "on") {
+    hard.push(
+      lang === "zh"
+        ? "底座必须视觉降权，不得成为主视觉中心"
+        : "pedestal remains visually subordinate, never primary focal center"
+    );
+    avoid.push(lang === "zh" ? "避免底座高光抢戏" : "no pedestal highlight dominance");
+  }
+
+  if (locks.pedestalReflectivityMax !== null) {
+    hard.push(
+      lang === "zh"
+        ? `底座反射强度上限 ${locks.pedestalReflectivityMax.toFixed(2)}`
+        : `pedestal reflectivity capped at ${locks.pedestalReflectivityMax.toFixed(2)}`
+    );
+  }
+
+  if (locks.focusPriority === "hero_only") {
+    hard.push(
+      lang === "zh"
+        ? "焦点优先级严格锁定主产品"
+        : "focus priority strictly locked to hero product"
+    );
+    avoid.push(lang === "zh" ? "避免支撑物清晰抢焦" : "no support focus competition");
+  }
+
+  if (locks.supportDefocus === "slight" || locks.supportDefocus === "medium") {
+    hard.push(
+      lang === "zh"
+        ? `支撑元素保持${locks.supportDefocus === "medium" ? "中度" : "轻度"}失焦`
+        : `support elements remain ${locks.supportDefocus} defocused`
+    );
+  }
+
+  if (locks.highlightDiscipline === "hero_edge_only") {
+    hard.push(
+      lang === "zh"
+        ? "高光分布仅允许主产品边缘轮廓主导"
+        : "specular highlights constrained to hero edge contour"
+    );
+    avoid.push(lang === "zh" ? "避免散乱高光噪声" : "no scattered highlight noise");
+  }
+
+  if (locks.paletteDiscipline === "warm_amber_limited") {
+    hard.push(
+      lang === "zh"
+        ? "色彩限制为暖琥珀主导，保持低污染"
+        : "limited palette with warm amber dominance and low color pollution"
+    );
+    avoid.push(lang === "zh" ? "避免色彩污染和霓虹串色" : "no color pollution or neon contamination");
+  }
+
+  if (locks.visualClimaxMode === "silhouette_contour_peak") {
+    climax =
+      lang === "zh"
+        ? "最后一帧强化主体轮廓与边缘高光作为视觉峰值"
+        : "final frame emphasizes hero silhouette and contour highlights as visual climax";
+  }
+
+  return { hard, avoid, climax };
 }
 
 // ── Segment Builders ──────────────────────────────────────────────────────
@@ -1235,8 +1435,34 @@ export function compileV3(input: V3Input): string {
     seg[12] = seg[12] ? `${seg[12]}${lang === "zh" ? "，" : ", "}${sceneImperfection}` : sceneImperfection;
   }
   seg[13] = buildTechnicalSegment(f, mediaMode, lang);
+
+  const firstLayer = validLayers[0];
+  const firstKf0 = firstLayer
+    ? ((firstLayer.kf ?? []).find((k: any) => k.t === 0) ?? { w: 30 })
+    : { w: 30 };
+  const constraintTail = buildConstraintTail(
+    f.constraintLocks,
+    {
+      shotSize: f.shotSize.value,
+      firstLayerLook: String(firstLayer?.look ?? ""),
+      firstLayerW: Number(firstKf0.w ?? 30),
+    },
+    lang
+  );
+  const tailSegments: string[] = [];
+  if (constraintTail.climax) tailSegments.push(constraintTail.climax);
+  if (constraintTail.hard.length > 0) {
+    tailSegments.push(
+      `${lang === "zh" ? "hard constraints" : "hard constraints"}: ${constraintTail.hard.join(lang === "zh" ? "；" : "; ")}`
+    );
+  }
+  if (constraintTail.avoid.length > 0) {
+    tailSegments.push(
+      `${lang === "zh" ? "avoid" : "avoid"}: ${constraintTail.avoid.join(lang === "zh" ? "；" : "; ")}`
+    );
+  }
   
-  const mainOutput = seg.filter(Boolean).join(",\n");
+  const mainOutput = [...seg.filter(Boolean), ...tailSegments].join(",\n");
   
   const includeStructureGuide = mark(n, "include_structure_guide") === "true";
   if (includeStructureGuide) {

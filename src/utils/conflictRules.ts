@@ -57,6 +57,15 @@ function parseBg(notes: string): string {
   return hit ? hit.trim().slice(3).trim() : "";
 }
 
+function parseConstraintMarker(notes: string, keys: string[]): string {
+  const lines = (notes ?? "").split("\n");
+  for (const key of keys) {
+    const hit = lines.find((line) => line.trim().toLowerCase().startsWith(`${key.toLowerCase()}:`));
+    if (hit) return hit.trim().slice(key.length + 1).trim();
+  }
+  return "";
+}
+
 function getKF(layer: Layer, t: 0 | 1) {
   const hit = (layer.kf ?? []).find((k) => k.t === t);
   return hit ?? (layer.kf ?? [])[0] ?? { t, x: 50, y: 50, w: 18, h: 18, rot: 0 };
@@ -101,6 +110,10 @@ export function detectSceneConflicts(
     ? parseVideoClassicModeId(notes)
     : parseImageClassicModeId(notes);
   const proMotionIds = parseProMotionSelection(notes).proPlusIds;
+  const perspectiveLock = parseConstraintMarker(notes, ["lock_perspective", "constraint_perspective_lock"]).toLowerCase();
+  const proportionLock = parseConstraintMarker(notes, ["lock_proportion", "constraint_proportion_lock"]).toLowerCase();
+  const focusPriority = parseConstraintMarker(notes, ["focus_priority", "constraint_focus_priority"]).toLowerCase();
+  const paletteDiscipline = parseConstraintMarker(notes, ["palette_discipline", "constraint_palette_discipline"]).toLowerCase();
 
   for (const layer of layers) {
     const all = layerText(layer);
@@ -277,6 +290,96 @@ export function detectSceneConflicts(
         "Scene background text contains lighting wording while the current scene strategy already controls lighting. Keep the background focused on place and environment."
       )
     });
+  }
+
+  // ── 约束锁定一致性检查（V3 constraint locks）────────────────────────────
+  const camAngle = (notes.split("\n").find((line) => line.trim().toLowerCase().startsWith("cam_angle:")) ?? "")
+    .split(":")
+    .slice(1)
+    .join(":")
+    .trim()
+    .toLowerCase();
+  if ((perspectiveLock === "natural" || perspectiveLock === "strict") && camAngle === "dutch") {
+    out.push({
+      id: "constraint_perspective_vs_dutch",
+      severity: "warning",
+      scope: "scene",
+      layerId: null,
+      field: "scene",
+      title: zhOrEn(lang, "透视锁定与荷兰角冲突", "Perspective lock conflicts with Dutch angle"),
+      detail: zhOrEn(
+        lang,
+        "已启用自然/严格透视锁定，同时又设置了荷兰倾斜机位，可能导致透视目标不稳定。",
+        "Natural/strict perspective lock is enabled while Dutch angle is set, which may destabilize perspective intent."
+      )
+    });
+  }
+
+  if (focusPriority === "hero_only" && layers.length > 1) {
+    const oversizedSupport = layers
+      .slice(1)
+      .some((layer) => {
+        const k0 = getKF(layer, 0);
+        return (k0.w ?? 0) >= 25;
+      });
+    if (oversizedSupport) {
+      out.push({
+        id: "constraint_focus_vs_support_scale",
+        severity: "warning",
+        scope: "scene",
+        layerId: null,
+        field: "scene",
+        title: zhOrEn(lang, "主焦点锁定与支撑物比例冲突", "Hero focus lock conflicts with support scale"),
+        detail: zhOrEn(
+          lang,
+          "已启用主焦点锁定，但存在较大支撑对象（宽度>=25），可能抢焦。",
+          "Hero-only focus lock is enabled while one or more support objects are large (w>=25), which may steal focus."
+        )
+      });
+    }
+  }
+
+  if (paletteDiscipline === "warm_amber_limited") {
+    const colorGrade = (notes.split("\n").find((line) => line.trim().toLowerCase().startsWith("color_grade:")) ?? "")
+      .toLowerCase();
+    const hasConflictingPalette =
+      colorGrade.includes("teal_orange") ||
+      colorGrade.includes("cool_steel") ||
+      /\bneon\b/i.test(notes);
+    if (hasConflictingPalette) {
+      out.push({
+        id: "constraint_palette_conflict",
+        severity: "warning",
+        scope: "scene",
+        layerId: null,
+        field: "scene",
+        title: zhOrEn(lang, "色彩纪律与场景调色冲突", "Palette discipline conflicts with color grade"),
+        detail: zhOrEn(
+          lang,
+          "已启用暖琥珀限色，但当前调色或光线词包含冷钢/青橙/霓虹倾向。",
+          "Warm-amber palette discipline is enabled, but current grade/lighting wording includes cool steel, teal-orange, or neon tendencies."
+        )
+      });
+    }
+  }
+
+  if (proportionLock === "on") {
+    const hasExtremeLens = /\bfocal_length:\s*(8mm|14mm|18mm|macro)\b/i.test(notes);
+    if (hasExtremeLens) {
+      out.push({
+        id: "constraint_proportion_vs_extreme_lens",
+        severity: "warning",
+        scope: "scene",
+        layerId: null,
+        field: "scene",
+        title: zhOrEn(lang, "比例锁定与极端镜头冲突", "Proportion lock conflicts with extreme lens"),
+        detail: zhOrEn(
+          lang,
+          "已启用比例锁定，同时使用极端镜头（超广/微距），可能引入形变风险。",
+          "Proportion lock is enabled while an extreme lens (ultra-wide/macro) is used, which may introduce distortion risk."
+        )
+      });
+    }
   }
 
   // ── 字段组合冲突检测 ──────────────────────────────────────────────────────

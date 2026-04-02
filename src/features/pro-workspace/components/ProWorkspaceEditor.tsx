@@ -121,6 +121,7 @@ export function ProWorkspaceEditor({
           <ConstraintInspectorPanel
             lang={lang} scene={scene} project={project}
             selectedLayerId={selectedLayerId} onJumpToConflict={onJumpToConflict}
+            onUpdateScene={onUpdateScene}
           />
         );
 
